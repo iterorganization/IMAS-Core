@@ -1,0 +1,42 @@
+SHELL=/bin/sh
+
+
+CC=gcc
+LD=gcc
+CFLAGS=-g -fPIC -DUSE_ITM_CATALOG
+INCDIR=-I$(MDSPLUS_DIR)/include -I$(ITM_CATALOG_DIR)/include -I$(JAVA_DIR)/include -I$(JAVA_DIR)/include/linux
+LIBDIR= -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib -L$(JAVA_DIR)/jre/lib/amd64 -L/usr/lib64/mysql -L$(JAVA_DIR)/jre/lib/i386 -L. -L$(ITM_CATALOG_DIR)/lib
+LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
+LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lCacheShr -ljava -lmysqlclient -lItmCatalog -lz 
+
+
+COMMON_OBJECTS=ual_low_level_f77.o ual_jni.o ual_low_level.o  ual_low_level_mdsplus.o ual_catalog.o
+
+INSTALL=$(INSTALL)
+
+all: libUALLowLevel.so pythonbinding
+
+install:
+	cp *.so $(INSTALL)/lib
+	python setup.py install --install-lib=$(INSTALL)/python_pk/ual
+
+clean:
+	rm -f *.o *.so *~ ual_low_level_wrap.c ual_low_level.py
+	rm -rf build
+
+clean-src:
+	rm -f $(INSTALL)/python_pk/ual/*
+
+
+libUALLowLevel.so: $(COMMON_OBJECTS)  
+	$(LD) -g -o $@ -shared $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
+
+pythonbinding: libUALLowLevel.so
+	python setup.py build_ext --inplace
+	python setup.py build
+
+.c.o:
+	$(CC) $(INCDIR) $(CFLAGS) -c $< 
+
+
+
