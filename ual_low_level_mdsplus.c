@@ -396,7 +396,7 @@ static int getInfoData(int expIdx, char *cpoPath, char *path, int *exists, int *
     //printf("GET INFO DATA %s/%s infoExists: %d\n", cpoPath, path, infoExists);
     
     if(!infoExists) return 0;
-    if(*exists)
+    if(*exists) // why is this an input argument of the function ??
     {
         if(dataSize == 0 || data == 0)
 	{
@@ -580,10 +580,10 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 
 
     //reportInfo("START INTERNAL FLUSH %s\n", path);
-//printf("Internal Flush %s %s\n", cpoPath, path);    
+    //printf("Internal Flush %s %s\n", cpoPath, path);    
     if(dataSize == 0 || data == 0)
     {
-	    //printf("INTERNAL ERROR IN  internalFlush: Missing data in existing info\n");
+	   // printf("INTERNAL ERROR IN  internalFlush: Missing data in existing info\n");
 	    return;
     }
     if(isObject)
@@ -642,6 +642,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
     	return;
     }
 //Non Object management follows  
+    //printf("Reached here in InternalFlush \n");
     if(nDims == 0) //Scalar
     {
 	dataD.class = CLASS_S;
@@ -655,6 +656,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
     }
     else //Array
     {
+    //printf("Reached Array part in InternalFlush \n");
 	arrayD.dtype = dtype;
 	arrayD.length = itemSize;
 	arrayD.dimct = nDims;
@@ -664,17 +666,22 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 	arrayD.arsize = dataSize;
 	if(isSliced)
 	{
-	    getInfoWithDataNoLock(expIdx, cpoPath, "time", &timeExists, &timeNDims, timeDims, &timeItemSize, &timeType, &timeDataSize, (char **)&times);
+            //printf("Reached getInfoWithDataNoLock in InternalFlush \n");
+	    getInfoWithDataNoLock(expIdx, cpoPath, timeBasePath, &timeExists, &timeNDims, timeDims, &timeItemSize, &timeType, &timeDataSize, (char **)&times); // This is getting the timebase from the structure in memory, should be fine now
 	    if(!timeExists)
 	    {
-	    	//printf("FATAL ERROR in internalFlush: Missing time in slice\n");
+	    	printf("FATAL ERROR in internalFlush: Missing time in slice\n");
 		return;
 	    }
+            //printf("Passed getInfoWithDataNoLock in InternalFlush \n");
+
 // Remove previous data, if any	        
             if(isExpRemote(expIdx))
         	status = putDataRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, (struct descriptor *)&emptyXd);
     	    else
     		status =  putDataLocal(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
+            //printf("Passed putDataLocal in InternalFlush \n");
+
     	    if(status)
 	    {
       		printf("ERROR in internalFlush: Cannot delete data %s  %s\n", cpoPath, path);
@@ -684,7 +691,10 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
             if(isExpRemote(expIdx))
                 status = putSegmentRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, (void *)&arrayD, times, timeDims[0]);
             else
+            //printf("Reached putSegmentLocal in InternalFlush \n");
     	        status = putSegmentLocal(expIdx, cpoPath, path, timeBasePath, (void *)&arrayD, times, timeDims[0]);
+            printf("Passed putSegmentLocal in InternalFlush, status = %d \n", status); // Plante ici avec le pb de memcache qui ne connait pas le TimebasePath
+
 	}
 	else
 	{
@@ -774,14 +784,17 @@ int getData(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retXd, 
     int status;
 static int counter;
     int cacheLevel = getCacheLevel(expIdx);
+    //printf("getData : call of getInfoData for %s %s returns %d \n",cpoPath, path, getInfoData(expIdx, cpoPath, path, &exists, &nDims, dims, retXd));
     if(cacheLevel > 0 && getInfoData(expIdx, cpoPath, path, &exists, &nDims, dims, retXd))
     {
 //static int count;
-//printf("DATA HIT %s %s\n", cpoPath, path);
+// printf("DATA HIT %s %s\n", cpoPath, path);
 	if(exists)
-	    return 0;
+        { //printf("getData : data exists according to getInfoData %s %s\n",cpoPath, path); This part is correct but is not traversed by the time dependent quantities in this test
+	    return 0;}
 	else
-	    return -1;
+        { //printf("getData : data DOES NOT EXIST according to getInfoData %s %s\n",cpoPath, path);; This part is correct but is not traversed by the time dependent quantities in this test
+	    return -1;}
     }
 //////////////////////////////////////////////////    
 // printf("MISS %d %s %s\n", counter++, cpoPath, path);
@@ -968,10 +981,10 @@ int getSlicedData(int expIdx, char *cpoPath, char *path, char *timeBasePath, dou
     int status;
 
     status = getData(expIdx, cpoPath, path, retDataXd, 0);
-//    printf("GetSlicedData 1. status getData %s = %d\n",path,status);
+    //printf("GetSlicedData 1. status getData %s = %d\n",path,status);
     if(!status) 
 	status = getData(expIdx, cpoPath, timeBasePath, retTimesXd, 0); 
-//    printf("GetSlicedData 2. status getData %s = %d\n",timeBasePath,status);
+    //printf("GetSlicedData 2. status getData %s = %d\n",timeBasePath,status);
     return status;
 
 /*
@@ -3059,7 +3072,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
         sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"%s:%s\"),%d))", convertPathDot(cpoPath),convertAnotherPathDot(timeBasePath), currSegment);
 //        sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"pf0:coils0.1.current0.timebase0\"),0))");
 // segmentExpr = data(GetCheckedSegment(build_path("pf0:coils0/1/current0/timebase0"),0))
-//        printf("segmentExpr = %s\n",segmentExpr);  
+       // printf("segmentExpr = %s\n",segmentExpr);  
 	exprD.length = strlen(segmentExpr);
         exprD.pointer = segmentExpr;
         status = TdiCompile(&exprD, &timeExprXd MDS_END_ARG);
@@ -7419,7 +7432,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	EMPTYXD(xd);
  	status = getDataAndSliceIdxs(expIdx, cpoPath, path, timeBasePath, &xd, time, &sliceIdx1, &sliceIdx2, &sliceTime1, &sliceTime2, &nTimes);
 	
-	printf("sliceIdx1, sliceIdx2, sliceTime1, sliceTime2 = %d, %d, %lf, %lf\n", sliceIdx1, sliceIdx2, sliceTime1, sliceTime2);
+	//printf("sliceIdx1, sliceIdx2, sliceTime1, sliceTime2 = %d, %d, %lf, %lf\n", sliceIdx1, sliceIdx2, sliceTime1, sliceTime2);
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));

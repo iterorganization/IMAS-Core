@@ -23,8 +23,7 @@ extern "C" {
     void invalidateAllCpoInfos(int expIdx);
     void invalidateCpoInfo(int expIdx, char *cpoPath);
     void invalidateCpoField(int expIdx, char *cpoPath, char *path);
-    void internalFlush(int expIdx, char *cpoPath, char *path, int isSliced, int isObject, int nDims, int *dims, int itemSize, int dtype, int dataSize, 
-    	char *data, int numSloces, int *sliceOffsets);
+    void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,int isSliced, int isObject, int nDims, int *dims, int itemSize, int dtype, int dataSize, char *data, int numSlices, int *sliceOffsets);
     void flushInfo(int expIdx);
     void flushCpoInfo(int expIdx, char *cpoName);
 
@@ -481,7 +480,7 @@ public:
     virtual bool getInfo(char *name, bool *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data)
     {
  
- //printf("GET INFO FOR %s EXISTS: %d dataSIze: %d NUM CHILDREN: %d\n", this->name, this->exists, this->dataSize, numChildren);
+    //printf("virtual GET INFO FOR %s EXISTS: %d dataSIze: %d NUM CHILDREN: %d\n", this->name, this->exists, this->dataSize, numChildren);
     	if(numChildren > 0) //Handle object components which may be created as leaf even when having timed and nontimed children
 	{
 	    return PathNode::getInfo(name, exists, nDims, dims, itemSize, type, dataSize, data);
@@ -686,7 +685,7 @@ public:
 	else
 	{
     	    char *path = getPath();
-    	    internalFlush(expIdx, cpoPath, path, isSliced, isObject, nDims, dims, itemSize, type, dataSize, data, numSlices, sliceOffsets);
+    	    internalFlush(expIdx, cpoPath, path, "dummyTimeBasePath", isSliced, isObject, nDims, dims, itemSize, type, dataSize, data, numSlices, sliceOffsets);
     	    delete [] path;
 	}
     }
@@ -898,6 +897,7 @@ void appendInfoObjectSlice(int expIdx, char *cpoPath, char *path, char *buf, int
 
 static int getInfoLocal(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims, int *itemSize = 0, char *type = 0, int *dataSize = 0, char **data = 0, bool lock = true)
 {
+    //printf("getInfoLocal, looking for %s\n", cpoPath);
     if(lock) pthread_mutex_lock(&mutex);
     for(int idx = 0; idx < numCpos; idx++)
     {
