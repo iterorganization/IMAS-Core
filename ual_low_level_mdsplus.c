@@ -214,8 +214,8 @@ extern void invalidateCpoField(int expIdx, char *cpoPath, char *path);
 extern void putInfoWithData(int expIdx, char *cpoPath, char *path, int exists, int nDims, int *dims, int itemSize, char type, int dataSize, char *data, int isObject);
 extern int getInfoWithData(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data);
 extern int getInfoWithDataNoLock(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data);
-extern void appendSlice(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice);
-extern void appendSliceSet(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices);
+extern void appendSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice);
+extern void appendSliceSet(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices);
 extern void flushInfo(int expIdx);
 extern void flushCpoInfo(int expIdx, char *cpoPath);
 extern int getInfoNumSlices(int expIdx, char *cpoPath, char *path);
@@ -693,7 +693,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
             else
             //printf("Reached putSegmentLocal in InternalFlush \n");
     	        status = putSegmentLocal(expIdx, cpoPath, path, timeBasePath, (void *)&arrayD, times, timeDims[0]);
-            printf("Passed putSegmentLocal in InternalFlush, status = %d \n", status); // Plante ici avec le pb de memcache qui ne connait pas le TimebasePath
+            //printf("Passed putSegmentLocal in InternalFlush, status = %d \n", status); // Plante ici avec le pb de memcache qui ne connait pas le TimebasePath
 
 	}
 	else
@@ -709,7 +709,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 }
 
 
-static void appendSliceData(int expIdx, char *cpoPath, char *path, struct descriptor *dataD)
+static void appendSliceData(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor *dataD)
 {
     ARRAY_COEFF(char, 16) *arrayDPtr;
     int dims[16], nDims, i;
@@ -724,7 +724,7 @@ static void appendSliceData(int expIdx, char *cpoPath, char *path, struct descri
  
     if(dataD->class == CLASS_S)
     {
-	appendSlice(expIdx, cpoPath, path, 0, dims, dataD->length, dataD->dtype, dataD->length, dataD->pointer);
+	appendSlice(expIdx, cpoPath, path, timeBasePath, 0, dims, dataD->length, dataD->dtype, dataD->length, dataD->pointer);
 	return;
     }
     arrayDPtr = (void *)dataD;
@@ -736,9 +736,9 @@ static void appendSliceData(int expIdx, char *cpoPath, char *path, struct descri
         for(i = 0; i < nDims; i++)
 	    dims[i] = arrayDPtr->m[i];
     }
-    appendSlice(expIdx, cpoPath, path, nDims, dims, arrayDPtr->length, arrayDPtr->dtype, arrayDPtr->arsize, arrayDPtr->pointer);
+    appendSlice(expIdx, cpoPath, path, timeBasePath, nDims, dims, arrayDPtr->length, arrayDPtr->dtype, arrayDPtr->arsize, arrayDPtr->pointer);
 }
-static void appendSliceSetData(int expIdx, char *cpoPath, char *path, struct descriptor_a *dataD)
+static void appendSliceSetData(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor_a *dataD)
 {
     ARRAY_COEFF(char, 16) *arrayDPtr;
     int dims[16], nDims, i;
@@ -765,7 +765,7 @@ static void appendSliceSetData(int expIdx, char *cpoPath, char *path, struct des
         for(i = 0; i < nDims; i++)
 	    dims[i] = arrayDPtr->m[i];
     }
-    appendSliceSet(expIdx, cpoPath, path, nDims, dims, arrayDPtr->length, arrayDPtr->dtype, arrayDPtr->arsize, arrayDPtr->pointer, dims[nDims - 1]);
+    appendSliceSet(expIdx, cpoPath, path, timeBasePath, nDims, dims, arrayDPtr->length, arrayDPtr->dtype, arrayDPtr->arsize, arrayDPtr->pointer, dims[nDims - 1]);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -932,7 +932,7 @@ int putSegment(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct
 	    MdsFree1Dx(&dataXd, 0);
 	    MdsFree1Dx(&timeXd, 0);
         }
-    	appendSliceSetData(expIdx, cpoPath, path, dataD);
+    	appendSliceSetData(expIdx, cpoPath, path, timeBasePath, dataD);
     	if(cacheLevel == 2)
     	    return 0;
     }
@@ -958,7 +958,7 @@ int putSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct d
 	    MdsFree1Dx(&dataXd, 0);
 	    MdsFree1Dx(&timeXd, 0);
         }
-        appendSliceData(expIdx, cpoPath, path, dataD);
+        appendSliceData(expIdx, cpoPath, path, timeBasePath, dataD);
         if(cacheLevel == 2)
     	    return 0;
     }	    
@@ -7446,7 +7446,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 
 	arrayD = (void *)xd.pointer;
 	*dim = nItems = arrayD->m[0];
-	printf("nitems: %d\n",nItems);
+	//printf("nitems: %d\n",nItems);
 
 	y1 = &((double *)arrayD->pointer)[sliceIdx1 * nItems];
 	y2 = &((double *)arrayD->pointer)[sliceIdx2 * nItems];
@@ -7456,12 +7456,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	{
 		switch(interpolMode) {
 			case INTERPOLATION: 
-				printf("Interpolation \n");
+				//printf("Interpolation \n");
 				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
 			case CLOSEST_SAMPLE: 
-				printf("Closest_sample %lf, %lf\n", time - sliceTime1, sliceTime2 - time);
+				//printf("Closest_sample %lf, %lf\n", time - sliceTime1, sliceTime2 - time);
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7474,7 +7474,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 				}
 				break;
 			case PREVIOUS_SAMPLE:
-				printf("Previous_sample \n");
+				//printf("Previous_sample \n");
 				retData[i] = y1[i];
 				*retTime = sliceTime1;
 				break;

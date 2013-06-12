@@ -13,8 +13,8 @@
 extern "C" {
     void putInfo(int expIdx, char *cpoPath, char *path, int exists, int nDims, int *dims);
     void putInfoWithData(int expIdx, char *cpoPath, char *path, int exists, int nDims, int *dims, int itemSize, char type, int dataSize, char *data, int isObject);
-    void appendSlice(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice);
-    void appendSliceSet(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int
+    void appendSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice);
+    void appendSliceSet(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int
     numSlices);
     int getInfo(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims);
     int getInfoWithData(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data);
@@ -198,16 +198,16 @@ public:
 	return false;
     }
 
-    virtual void appendSliceSet(char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
+    virtual void appendSliceSet(char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
     {
         PathNode *leaf = getLeaf(path);
-	leaf->appendSliceSet("", nDims, dims, itemSize, type, sliceSize, slice, numSlices);
+	leaf->appendSliceSet("", timeBasePath, nDims, dims, itemSize, type, sliceSize, slice, numSlices);
     }
     
-    virtual void appendSlice(char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
+    virtual void appendSlice(char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
     {
         PathNode *leaf = getLeaf(path);
-	leaf->appendSlice("", nDims, dims, itemSize, type, sliceSize, slice);
+	leaf->appendSlice("", timeBasePath, nDims, dims, itemSize, type, sliceSize, slice);
     }
 
     virtual void removeAllInfoObjectSlices(char *path)
@@ -383,6 +383,8 @@ public:
     int numSlices;
     int *sliceOffsets;
     int sliceOffsetSize;
+//Added to keep track of the original path name for time information
+    char *timeBasePath;
 
     PathLeaf(PathNode *parent, char *name, bool exists, int nDims, int *dims, int itemSize = 0, char type = 0, int dataSize = 0, char *data = 0):PathNode(parent, name)
     {
@@ -411,6 +413,7 @@ public:
 	isObject = false;
 	numSlices = 0;
 	sliceOffsetSize = 0;
+	timeBasePath = 0;
     }
     ~PathLeaf()
     {
@@ -418,6 +421,8 @@ public:
 	    delete[] data;
 	if(isObject && sliceOffsetSize > 0)
 	    delete [] sliceOffsets;
+	if(timeBasePath)
+	    delete[]timeBasePath;
     }
 
 #ifdef MONITOR
@@ -499,7 +504,7 @@ public:
 	}
 	return true;
     }
-    virtual void appendSlice(char *name, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
+    virtual void appendSlice(char *name, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
     {
 /*	if(strcmp(this->name, name)|| getFirstSlashOccurrence(name) != -1)
 	{
@@ -526,7 +531,6 @@ public:
 	        this->data = new char[this->bufferSize];
 	        memcpy(this->data, slice, sliceSize);
 	    }
-
 #ifdef MONITOR
 	    this->numSlices = 1;
 #endif
@@ -561,8 +565,14 @@ public:
 
 	}
 	isSliced = true;
+//Gabriele: added to record timeBasePath
+	if(this->timeBasePath)
+	    delete[] this->timeBasePath;
+	this->timeBasePath = new char[strlen(timeBasePath) + 1];
+	strcpy(this->timeBasePath, timeBasePath);
+//////////////////
     }
-    virtual void appendSliceSet(char *name, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
+    virtual void appendSliceSet(char *name, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
     {
 /*	if(strcmp(this->name, name)|| getFirstSlashOccurrence(name) != -1)
 	{
@@ -623,6 +633,12 @@ public:
 #endif
 	}
 	isSliced = true;
+//Gabriele: added to record timeBasePath
+	if(this->timeBasePath)
+	    delete[] this->timeBasePath;
+	this->timeBasePath = new char[strlen(timeBasePath) + 1];
+	strcpy(this->timeBasePath, timeBasePath);
+//////////////////
     }
     virtual void removeAllInfoObjectSlices(char *path)
     {
@@ -685,7 +701,9 @@ public:
 	else
 	{
     	    char *path = getPath();
-    	    internalFlush(expIdx, cpoPath, path, "dummyTimeBasePath", isSliced, isObject, nDims, dims, itemSize, type, dataSize, data, numSlices, sliceOffsets);
+//Gabriele: Use saved information about timebase path
+//    	    internalFlush(expIdx, cpoPath, path, "dummyTimeBasePath", isSliced, isObject, nDims, dims, itemSize, type, dataSize, data, numSlices, sliceOffsets);
+    	    internalFlush(expIdx, cpoPath, path, timeBasePath, isSliced, isObject, nDims, dims, itemSize, type, dataSize, data, numSlices, sliceOffsets);
     	    delete [] path;
 	}
     }
@@ -966,7 +984,7 @@ int getInfoWithData(int expIdx, char *cpoPath, char *path, int *exists, int *nDi
     return getInfoLocal(expIdx, cpoPath, path, exists, nDims, dims, itemSize, type, dataSize, data);
 }
 
-void appendSlice(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
+void appendSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
 {
 
     pthread_mutex_lock(&mutex);
@@ -974,7 +992,7 @@ void appendSlice(int expIdx, char *cpoPath, char *path, int nDims, int *dims, in
     {
 	if(cpos[idx]->corresponds(expIdx, cpoPath))
 	{
-	    cpos[idx]->appendSlice(path, nDims, dims, itemSize, type, sliceSize, slice);
+	    cpos[idx]->appendSlice(path, timeBasePath, nDims, dims, itemSize, type, sliceSize, slice);
 	    pthread_mutex_unlock(&mutex);
 	    return;
 	}
@@ -982,14 +1000,14 @@ void appendSlice(int expIdx, char *cpoPath, char *path, int nDims, int *dims, in
     pthread_mutex_unlock(&mutex);
 }
 
-void appendSliceSet(int expIdx, char *cpoPath, char *path, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
+void appendSliceSet(int expIdx, char *cpoPath, char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice, int numSlices)
 {
     pthread_mutex_lock(&mutex);
     for(int idx = 0; idx < numCpos; idx++)
     {
 	if(cpos[idx]->corresponds(expIdx, cpoPath))
 	{
-	    cpos[idx]->appendSliceSet(path, nDims, dims, itemSize, type, sliceSize, slice, numSlices);
+	    cpos[idx]->appendSliceSet(path, timeBasePath, nDims, dims, itemSize, type, sliceSize, slice, numSlices);
 	    pthread_mutex_unlock(&mutex);
 	    return;
 	}
