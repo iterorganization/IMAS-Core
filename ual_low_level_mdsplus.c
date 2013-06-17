@@ -788,12 +788,12 @@ static int counter;
     if(cacheLevel > 0 && getInfoData(expIdx, cpoPath, path, &exists, &nDims, dims, retXd))
     {
 //static int count;
-// printf("DATA HIT %s %s\n", cpoPath, path);
+ //printf("DATA HIT %s %s\n", cpoPath, path);
 	if(exists)
-        { //printf("getData : data exists according to getInfoData %s %s\n",cpoPath, path); This part is correct but is not traversed by the time dependent quantities in this test
+        { //printf("getData : data exists according to getInfoData %s %s\n",cpoPath, path);// This part is correct but is not traversed by the time dependent quantities in this test
 	    return 0;}
 	else
-        { //printf("getData : data DOES NOT EXIST according to getInfoData %s %s\n",cpoPath, path);; This part is correct but is not traversed by the time dependent quantities in this test
+        { //printf("getData : data DOES NOT EXIST according to getInfoData %s %s\n",cpoPath, path); //; This part is correct but is not traversed by the time dependent quantities in this test
 	    return -1;}
     }
 //////////////////////////////////////////////////    
@@ -7474,7 +7474,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 				}
 				break;
 			case PREVIOUS_SAMPLE:
-				//printf("Previous_sample \n");
+				/* printf("Previous_sample \n");*/
 				retData[i] = y1[i];
 				*retTime = sliceTime1;
 				break;
