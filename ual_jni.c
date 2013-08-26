@@ -2607,7 +2607,7 @@ JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getString
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
     char *data;
     jstring retString;
-    printf("getSTRING idx= %d, %s, %s\n", expIdx, idsPath, path);
+    //printf("getSTRING idx= %d, %s, %s\n", expIdx, idsPath, path);
     int status = getString(expIdx, (char *)idsPath, (char *)path, &data);
     
     (*env)->ReleaseStringUTFChars(env, jIdsPath, idsPath);
