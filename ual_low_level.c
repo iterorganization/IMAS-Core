@@ -349,14 +349,14 @@ EXPORT int imas_close(int idx)
     logOperation("imas_close", 0, 0, idx, 0, 0, 0,0,0,0,0, 0, 0);
     if(isMds(idx, &currIdx))
     {
-        status = mdsimasClose(currIdx, "imas", getShot(idx), getRun(idx));
+        status = mdsimasClose(currIdx, "ids", getShot(idx), getRun(idx));
     	closeExpInfo(idx);
 	return status;
     }
 #ifdef HDF5
     else
     {
-        status = hdf5imasClose(currIdx, "imas", getShot(idx), getRun(idx));
+        status = hdf5imasClose(currIdx, "ids", getShot(idx), getRun(idx));
     	closeExpInfo(idx);
 	return status;
     }
@@ -3307,9 +3307,9 @@ int ual_copy_cpo_env(char *tokamakFrom, char *versionFrom, char *userFrom, int s
     char *tokamakTo, char *versionTo, char *userTo, int shotTo, int runTo, int occurrenceTo, char *cpoName)
 {
     int fromIdx, toIdx, status;
-    status = imas_open_env("imas", shotFrom, runFrom, &fromIdx, userFrom, tokamakFrom, versionFrom);
+    status = imas_open_env("ids", shotFrom, runFrom, &fromIdx, userFrom, tokamakFrom, versionFrom);
     if(status) return status;
-    status = imas_open_env("imas", shotTo, runTo, &toIdx, userTo, tokamakTo, versionTo);
+    status = imas_open_env("ids", shotTo, runTo, &toIdx, userTo, tokamakTo, versionTo);
     if(status) {
         imas_close(fromIdx);
         return status;
