@@ -10405,7 +10405,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     MdsFree1Dx(&xd, 0);
     if(!(status & 1))
     {
-    	printf("INTERNAL ERROR: Cannot deserialize data eturned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
+    	printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
 	unlock();
 	return -1;
     }
