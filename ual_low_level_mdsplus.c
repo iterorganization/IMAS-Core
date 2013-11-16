@@ -8942,7 +8942,7 @@ static void releaseObject(void *obj)
     }
     else
     {
-	printf("FATAL: unexpected descriptor in mdsReleaseObject\n");
+	printf("FATAL: unexpected descriptor in mdsReleaseObject. Class %d\n", apdPtr->class);
 	exit(0);
     }
 }
@@ -8974,8 +8974,8 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	return -1;
     }
     
-    reportInfo("PUT OBJECT SEGMENT 1\n", "");
-    reportInfo(cpoPath, path); 
+    printf("PUT OBJECT SEGMENT 1\n");
+    printf("%s %s \n",cpoPath, path); 
     
     status = TreeGetNumSegments(nid, &idx);
     if(!(status & 1))
@@ -8985,9 +8985,10 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	return -1;
     }
 
-    reportInfo("PUT OBJECT SEGMENT 1 \n", "");
+    printf("PUT OBJECT SEGMENT 1 \n");
     apd = (struct descriptor_a *) objSegment;
     numSamples = apd->arsize / sizeof(struct descriptor *);
+    printf("numSamples = %d\n",numSamples);
     if(numSamples == 1) //The object has been passed by put/replaceObjectSlice and therefore it is an array with 1 elements
         status = MdsSerializeDscOut(((struct descriptor **)apd->pointer)[0], &serializedXd);
     else //The object has been passed by putObject
@@ -8999,7 +9000,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	unlock();
 	return -1;
     }
-    reportInfo("PUT OBJECT SEGMENT 3\n", "");
+    printf("PUT OBJECT SEGMENT 3\n");
     if(segIdx == -1)
     {
             reportInfo("PUT OBJECT SEGMENT MAKE SEGMENT %s\n", decompileDsc(arrD));
@@ -9012,16 +9013,16 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     }
     if(status & 1)
     {
-        reportInfo("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
+        printf("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
 	//exit(0);
     }
     else
-        reportInfo("PUT OBJECT SEGMENT 4 FAILURE %s\n", TreeGetPath(nid));
+        printf("PUT OBJECT SEGMENT 4 FAILURE %s\n", TreeGetPath(nid));
     
     MdsFree1Dx(&serializedXd, 0);
     if(!(status & 1))
     {
-	sprintf(errmsg, "Error Writing Object Segment: %s", MdsGetMsg(status));
+	printf("Error Writing Object Segment: %s", MdsGetMsg(status));
 	unlock();
 	return -1;
     }
@@ -9522,7 +9523,9 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 //    DESCRIPTOR_APD(apd, DTYPE_DSC, 0, 0);
     DESCRIPTOR_APD(apd, DTYPE_L, 0, 0);
     char *fullPath;
+    
 
+    printf("Entering getObjectLocal\n");
     fullPath = malloc(strlen(path) + 11);
     if(expand)
     {
@@ -9538,8 +9541,10 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
     lock("getObjectLocal");
     checkExpIndex(expIdx);
 
-        nid = getNid(cpoPath, path);
+    nid = getNid(cpoPath, fullPath); // CORRECTION FI 16/11/2013
+
     free(fullPath);
+    printf("In GetObjectLocal, nid = %d, timed = %d\n",nid,isTimed);
     if(nid == -1)
     {
 	unlock();
@@ -9549,9 +9554,11 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
     if(!(status & 1))
     {
         sprintf(errmsg, "Error getting number of segments at path %s/%s ", cpoPath, path);
+        printf("Error getting number of segments at path %s/%s \n", cpoPath, path);
 	unlock();
 	return -1;
     }
+    printf("Number of segments read %d\n", numSegments);
     if(numSegments == 0)
     {
     	retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
@@ -9560,6 +9567,8 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	if(!(status & 1))
 	{
             sprintf(errmsg, "Error reading object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
+            printf("Error reading object at path %s/%s: %s \n", cpoPath, path, MdsGetMsg(status));
+
 	    unlock();
 	    free((char *)retXd);
 	    return -1;
@@ -9568,7 +9577,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	*obj = retXd;
 	return 0;
     }
-	
+    printf("In Get ObjectLocal: we are there already ");
     xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSegments);
     dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSegments);
     for(segIdx = 0; segIdx < numSegments; segIdx++)
