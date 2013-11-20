@@ -69,8 +69,8 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     struct descriptor_xd *retTimesXd, int all);
 
 static int getNid(char *cpoPath, char *path);
-static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx);
-static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand);
+static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *path, void *objSegment, int segIdx);
+static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  void **obj, int isTimed, int expand);
 
 //Status reporting:
 //0: success
@@ -8955,7 +8955,7 @@ int putObjectSegment(int expIdx, char *cpoPath, char *path, void *objSegment, in
         return putObjectSegmentLocal(expIdx, cpoPath, path, objSegment, segIdx);
 }
 
-static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx)
+static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *path, void *objSegment, int segIdx)
 {
     int idx;
     struct descriptor idxD = {4, DTYPE_L, CLASS_S, (char *)&idx};
@@ -9510,7 +9510,7 @@ void mdsReleaseObject(void *obj)
     free((char *)xd);
 }
 
-static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand)
+static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  void **obj, int isTimed, int expand)
 {
     int nid, numSegments, segIdx, status;
     EMPTYXD(xd);
