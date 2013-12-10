@@ -2189,6 +2189,7 @@ int put_object_(int *expIdx, char *cpoPath, char *path, int *handle, int *isTime
     int status = putObject(*expIdx, intCpoPath, intPath, obj, *isTimed);
     free(intCpoPath);
     free(intPath);
+    printf("Put_Object status = %d\n",status);
     if(status)
         printf("%s\n",imas_last_errmsg());
     return status;
