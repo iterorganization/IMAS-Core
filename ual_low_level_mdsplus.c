@@ -8974,8 +8974,8 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	return -1;
     }
     
-    printf("PUT OBJECT SEGMENT 1\n");
-    printf("%s %s \n",cpoPath, path); 
+    //printf("PUT OBJECT SEGMENT 1\n");
+    //printf("%s %s \n",cpoPath, path); 
     
     status = TreeGetNumSegments(nid, &idx);
     if(!(status & 1))
@@ -8985,10 +8985,10 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	return -1;
     }
 
-    printf("PUT OBJECT SEGMENT 1 \n");
+    //printf("PUT OBJECT SEGMENT 1 \n");
     apd = (struct descriptor_a *) objSegment;
     numSamples = apd->arsize / sizeof(struct descriptor *);
-    printf("numSamples = %d\n",numSamples);
+    //printf("numSamples = %d\n",numSamples);
     if(numSamples == 1) //The object has been passed by put/replaceObjectSlice and therefore it is an array with 1 elements
         status = MdsSerializeDscOut(((struct descriptor **)apd->pointer)[0], &serializedXd);
     else //The object has been passed by putObject
@@ -9000,7 +9000,7 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	unlock();
 	return -1;
     }
-    printf("PUT OBJECT SEGMENT 3\n");
+    //printf("PUT OBJECT SEGMENT 3\n");
     if(segIdx == -1)
     {
             reportInfo("PUT OBJECT SEGMENT MAKE SEGMENT %s\n", decompileDsc(arrD));
@@ -9013,7 +9013,7 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
     }
     if(status & 1)
     {
-        printf("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
+        //printf("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
 	//exit(0);
     }
     else
