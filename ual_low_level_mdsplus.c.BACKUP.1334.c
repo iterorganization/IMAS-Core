@@ -3606,11 +3606,17 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
 	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
         for(i = 0; i < dim; i++)
+<<<<<<< HEAD
 	{
 	printf("mdsPutVect1DString.. strlen %d, max: %d\n",strlen(data[i]), maxLen);
             if(strlen(data[i]) > maxLen)
                 maxLen = strlen(data[i]);
 	}
+=======
+	{ //printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
+            if(strlen(data[i]) > maxLen)
+                maxLen = strlen(data[i]); }
+>>>>>>> cf082d08183e1e67c0c27c27b6eb76bc2c9d231f
         strPtr = malloc(dim * maxLen);
         memset(strPtr, ' ', dim * maxLen);
         for(i = 0; i < dim; i++)

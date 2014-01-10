@@ -3600,8 +3600,8 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	DESCRIPTOR_A(dataD, 0, DTYPE_T, 0, 0);
         char *strPtr;
         int maxLen = 0;
-	//printf("mdsPutVect1DString. cpopath: %s, path: %s, timebase: %s, data: %s \n",cpoPath, path, timeBasePath, *data);
-	//printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
+	printf("mdsPutVect1DString. cpopath: %s, path: %s, timebase: %s, data: %s \n",cpoPath, path, timeBasePath, *data);
+	printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
         if(isTimed)
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
 	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
@@ -3618,7 +3618,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
         dataD.arsize = dim*maxLen;
         dataD.pointer = strPtr;
         dataD.length = maxLen;
-	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
+	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
 	if(dim > 0)
 	    status = putData(expIdx, cpoPath, path, (struct descriptor *)&dataD);
         else
