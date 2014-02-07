@@ -69,8 +69,12 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     struct descriptor_xd *retTimesXd, int all);
 
 static int getNid(char *cpoPath, char *path);
-static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *path, void *objSegment, int segIdx);
-static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  void **obj, int isTimed, int expand);
+static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx);
+static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand);
+
+static void dumpObjElement(struct descriptor_a *apd, int numSpaces);
+
+
 
 //Status reporting:
 //0: success
@@ -2126,8 +2130,6 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 
 	    if(isObject)
 	    {
-		printf("IS OBJECT: %s %s\n", cpoPath, path);
-
 		status = getObjectLocal(expIdx, cpoPath, path,  (void **)&xdPtr, 0, 0);
 		*retXd = *xdPtr;
 		free((char *)xdPtr);
@@ -3017,6 +3019,7 @@ static void getLeftItems(int nid, int *leftItems, int *leftRows)
     *leftItems = (dims[dimct-1] - nextRow)*rowSize;
     *leftRows = dims[dimct-1] - nextRow;
 }
+
 // User for passing path to GetCheckedSegment
 static char *oldconvertPath(char *path)
 {
@@ -8942,7 +8945,7 @@ static void releaseObject(void *obj)
     }
     else
     {
-	printf("FATAL: unexpected descriptor in mdsReleaseObject. Class %d\n", apdPtr->class);
+	printf("FATAL: unexpected descriptor in mdsReleaseObject\n");
 	exit(0);
     }
 }
@@ -8955,7 +8958,7 @@ int putObjectSegment(int expIdx, char *cpoPath, char *path, void *objSegment, in
         return putObjectSegmentLocal(expIdx, cpoPath, path, objSegment, segIdx);
 }
 
-static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *path, void *objSegment, int segIdx)
+static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx)
 {
     int idx;
     struct descriptor idxD = {4, DTYPE_L, CLASS_S, (char *)&idx};
@@ -8974,8 +8977,8 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	return -1;
     }
     
-    //printf("PUT OBJECT SEGMENT 1\n");
-    //printf("%s %s \n",cpoPath, path); 
+    reportInfo("PUT OBJECT SEGMENT 1\n", "");
+    reportInfo(cpoPath, path); 
     
     status = TreeGetNumSegments(nid, &idx);
     if(!(status & 1))
@@ -8985,10 +8988,9 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	return -1;
     }
 
-    //printf("PUT OBJECT SEGMENT 1 \n");
+    reportInfo("PUT OBJECT SEGMENT 1 \n", "");
     apd = (struct descriptor_a *) objSegment;
     numSamples = apd->arsize / sizeof(struct descriptor *);
-    //printf("numSamples = %d\n",numSamples);
     if(numSamples == 1) //The object has been passed by put/replaceObjectSlice and therefore it is an array with 1 elements
         status = MdsSerializeDscOut(((struct descriptor **)apd->pointer)[0], &serializedXd);
     else //The object has been passed by putObject
@@ -9000,7 +9002,7 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
 	unlock();
 	return -1;
     }
-    //printf("PUT OBJECT SEGMENT 3\n");
+    reportInfo("PUT OBJECT SEGMENT 3\n", "");
     if(segIdx == -1)
     {
             reportInfo("PUT OBJECT SEGMENT MAKE SEGMENT %s\n", decompileDsc(arrD));
@@ -9013,16 +9015,232 @@ static int putObjectSegmentLocal(int expIdx, const char *cpoPath, const char *pa
     }
     if(status & 1)
     {
-        //printf("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
+        reportInfo("PUT OBJECT SEGMENT 4 SUCCESS %s\n", TreeGetPath(nid));
 	//exit(0);
     }
     else
-        printf("PUT OBJECT SEGMENT 4 FAILURE %s\n", TreeGetPath(nid));
+        reportInfo("PUT OBJECT SEGMENT 4 FAILURE %s\n", TreeGetPath(nid));
     
     MdsFree1Dx(&serializedXd, 0);
     if(!(status & 1))
     {
-	printf("Error Writing Object Segment: %s", MdsGetMsg(status));
+	sprintf(errmsg, "Error Writing Object Segment: %s", MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    unlock();
+    return 0;
+}
+ 
+//If a serialized object is larger than the treshold, a single segment is created for it
+#define SEGMENT_OBJECT_TRESHOLD 10000
+//Defaut dimension of a created segment when multiple objects may be put in the same segment
+#define SEGMENT_OBJECT_SIZE 30000   
+
+static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx)
+{
+    int startSegIdx, endSegIdx, numSegments;
+    struct descriptor startSegIdxD = {4, DTYPE_L, CLASS_S, (char *)&startSegIdx};
+    struct descriptor endSegIdxD = {4, DTYPE_L, CLASS_S, (char *)&endSegIdx};
+    EMPTYXD(serializedXd);
+    EMPTYXD(startXd);
+    EMPTYXD(endXd);
+    int status;
+    struct descriptor_a *arrD;
+    struct descriptor_a *apd;
+    int numSamples, nid;
+    int leftRows, leftItems, leftBytes;
+    char *extSerialized;
+    DESCRIPTOR_A(extSerializedDsc, 1, DTYPE_B, 0, 0);
+    EMPTYXD(retSegmentXd);
+    EMPTYXD(retDimXd);
+    char *fillArray;
+    DESCRIPTOR_A(fillArrayDsc, 1, DTYPE_B, 0, 0);
+    struct descriptor_a *currArrD;
+
+    lock("putObjectSegmentLocal");
+    checkExpIndex(expIdx);
+        nid = getNid(cpoPath, path);
+    if(nid == -1)
+    {
+	unlock();
+	return -1;
+    }
+
+//Accessory segment information: 
+//	startTime: initial index of objects in this segment
+//	endTime: final index of objects in this segment
+
+//Get number of segment. If segments are present, get lastIdx of last segment
+    status = TreeGetNumSegments(nid, &numSegments);
+    if(!(status & 1))
+    {
+        sprintf(errmsg, "Error reading number of segments at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    if(numSegments == 0)
+    {
+	startSegIdx = -1;
+	endSegIdx = -1;
+    }
+    else
+    {
+	status = TreeGetSegmentLimits(nid, numSegments - 1, &startXd, &endXd);   
+    	if(!(status & 1))
+    	{
+             sprintf(errmsg, "Error reading nsegment limits at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	    unlock();
+	    return -1;
+    	}
+	startSegIdx = *((int *)startXd.pointer->pointer);
+	endSegIdx = *((int *)endXd.pointer->pointer);
+	MdsFree1Dx(&startXd, 0);
+	MdsFree1Dx(&endXd, 0);
+    }
+
+// Serialize object
+    apd = (struct descriptor_a *) objSegment;
+    numSamples = apd->arsize / sizeof(struct descriptor *);
+    if(numSamples == 1) //The object has been passed by put/replaceObjectSlice and therefore it is an array with 1 elements
+        status = MdsSerializeDscOut(((struct descriptor **)apd->pointer)[0], &serializedXd);
+    else //The object has been passed by putObject
+         status = MdsSerializeDscOut((struct descriptor *)apd, &serializedXd);
+    arrD = (struct descriptor_a *)serializedXd.pointer;
+    if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    {
+	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    if(segIdx != -1) 
+//ReplaceLastObject case: decrease number of slices for this segment and write a new straight segment for this slice
+    {
+	endSegIdx--;
+	status = TreeUpdateSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, numSegments-1);//Dimension field
+	if(!(status & 1))
+    	{
+	    sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
+	    unlock();
+	    return -1;
+    	}
+	if(endSegIdx != -1 && endSegIdx == startSegIdx) //If only one slice for this segment is left, change its content in the "traditional" way, i.e. without 4 byte length in front of serialized
+	{
+	    status = TreeGetSegment(nid, -1, &retSegmentXd, &retDimXd);
+	    if(!(status & 1))
+    	    {
+	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
+	    	unlock();
+	    	return -1;
+    	    }
+	    currArrD = (struct descriptor_a *)retSegmentXd.pointer;
+	    currArrD->pointer += sizeof(int);
+	    currArrD->arsize -= sizeof(int);
+	    status = TreePutSegment(nid, 0, (struct descriptor_a *)retSegmentXd.pointer);
+	    if(!(status & 1))
+    	    {
+	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
+	    	unlock();
+	    	return -1;
+    	    }
+	    currArrD->pointer -= sizeof(int);
+	    currArrD->arsize += sizeof(int);
+	    MdsFree1Dx(&retSegmentXd, 0);
+	    MdsFree1Dx(&retDimXd, 0);
+	}
+	startSegIdx = endSegIdx = endSegIdx+1;
+	status = TreeMakeSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, arrD, -1, arrD->arsize);
+    	MdsFree1Dx(&serializedXd, 0);
+	unlock();
+	return 0;
+    }
+
+    if(numSegments > 0)
+    {
+    	getLeftItems(nid, &leftItems, &leftRows);
+    	leftBytes = leftItems; //Serialized objects are saves as byte arays
+    //4 additional bytes to store serialized object length when multiple 
+    //serialized objects are stored in the same segment
+    }
+    else
+	leftBytes = 0;
+
+    if(leftBytes > arrD->arsize + 4)  //In this case the (length + serialized object) is put in the current segment 
+    {
+	
+	extSerialized = malloc(arrD->arsize + sizeof(int));
+	memcpy(extSerialized, &arrD->arsize, sizeof(int));
+	memcpy(&extSerialized[sizeof(int)], arrD->pointer, arrD->arsize);
+	extSerializedDsc.pointer = extSerialized;
+	extSerializedDsc.arsize = sizeof(int) + arrD->arsize;
+    	status = TreePutSegment(nid, -1, (struct descriptor_a *)&extSerializedDsc);
+	free(extSerialized);
+	if(status & 1)
+	{
+	    endSegIdx++;
+	    status = TreeUpdateSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, numSegments-1);//Dimension field not useful
+	}
+    }
+    else //a new segment must be created
+    {
+//Check if the last segment contains only one slice, in which case change it in "traditional" storage
+	if(endSegIdx != -1 && leftBytes >0 && startSegIdx == endSegIdx)
+	{
+	    status = TreeGetSegment(nid, -1, &retSegmentXd, &retDimXd);
+	    if(!(status & 1))
+    	    {
+	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT GET SEGMENT : %s", MdsGetMsg(status));
+	    	unlock();
+	    	return -1;
+    	    }
+	    currArrD = (struct descriptor_a *)retSegmentXd.pointer;
+	    currArrD->pointer += sizeof(int);
+	    currArrD->arsize -= sizeof(int);
+	    status = TreePutSegment(nid, 0, (struct descriptor_a *)retSegmentXd.pointer);
+	    if(!(status & 1))
+    	    {
+	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT PUT SEGMENT : %s", MdsGetMsg(status));
+	    	unlock();
+	    	return -1;
+    	    }
+	    currArrD->pointer -= sizeof(int);
+	    currArrD->arsize += sizeof(int);
+	    MdsFree1Dx(&retSegmentXd, 0);
+	    MdsFree1Dx(&retDimXd, 0);
+	}	
+	if((arrD->arsize + sizeof(int)) >= SEGMENT_OBJECT_TRESHOLD)
+/* Note that in this case the situation in which a single slice fits in a segment in "non traditional" 
+   way is avoided */
+	{
+//Large object slice, make a segment only for it
+	    startSegIdx = endSegIdx = endSegIdx+1;
+	    status = TreeMakeSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, arrD, -1, arrD->arsize);
+	}
+	else
+	{
+//Create a new segment large SEGMENT_OBJECT_SIZE
+	    extSerialized = calloc(SEGMENT_OBJECT_SIZE, 1);
+	    extSerializedDsc.pointer = extSerialized;
+	    extSerializedDsc.arsize = SEGMENT_OBJECT_SIZE;
+	    startSegIdx = endSegIdx = endSegIdx+1;
+	    status = TreeBeginSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, (struct descriptor_a *)&extSerializedDsc, -1);
+	    free(extSerialized);
+	    if(status & 1)
+	    {
+		extSerialized = malloc(arrD->arsize + sizeof(int));
+		memcpy(extSerialized, &arrD->arsize, sizeof(int));
+		memcpy(&extSerialized[sizeof(int)], arrD->pointer, arrD->arsize);
+		extSerializedDsc.pointer = extSerialized;
+		extSerializedDsc.arsize = sizeof(int) + arrD->arsize;
+    		status = TreePutSegment(nid, -1, (struct descriptor_a *)&extSerializedDsc);
+		free(extSerialized);
+	    }
+	}
+    }
+    MdsFree1Dx(&serializedXd, 0);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Error Writing Object Segment: %s", MdsGetMsg(status));
 	unlock();
 	return -1;
     }
@@ -9510,7 +9728,7 @@ void mdsReleaseObject(void *obj)
     free((char *)xd);
 }
 
-static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  void **obj, int isTimed, int expand)
+static int getObjectLocalOLD(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand)
 {
     int nid, numSegments, segIdx, status;
     EMPTYXD(xd);
@@ -9523,9 +9741,7 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
 //    DESCRIPTOR_APD(apd, DTYPE_DSC, 0, 0);
     DESCRIPTOR_APD(apd, DTYPE_L, 0, 0);
     char *fullPath;
-    
 
-    printf("Entering getObjectLocal\n");
     fullPath = malloc(strlen(path) + 11);
     if(expand)
     {
@@ -9541,10 +9757,8 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
     lock("getObjectLocal");
     checkExpIndex(expIdx);
 
-    nid = getNid(cpoPath, fullPath); // CORRECTION FI 16/11/2013
-
+        nid = getNid(cpoPath, path);
     free(fullPath);
-    printf("In GetObjectLocal, nid = %d, timed = %d\n",nid,isTimed);
     if(nid == -1)
     {
 	unlock();
@@ -9554,11 +9768,9 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
     if(!(status & 1))
     {
         sprintf(errmsg, "Error getting number of segments at path %s/%s ", cpoPath, path);
-        printf("Error getting number of segments at path %s/%s \n", cpoPath, path);
 	unlock();
 	return -1;
     }
-    printf("Number of segments read %d\n", numSegments);
     if(numSegments == 0)
     {
     	retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
@@ -9567,8 +9779,6 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
 	if(!(status & 1))
 	{
             sprintf(errmsg, "Error reading object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
-            printf("Error reading object at path %s/%s: %s \n", cpoPath, path, MdsGetMsg(status));
-
 	    unlock();
 	    free((char *)retXd);
 	    return -1;
@@ -9577,7 +9787,7 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
 	*obj = retXd;
 	return 0;
     }
-    printf("In Get ObjectLocal: we are there already ");
+	
     xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSegments);
     dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSegments);
     for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -9618,6 +9828,179 @@ static int getObjectLocal(int expIdx, const char *cpoPath, const char *path,  vo
 	MdsFree1Dx(&xds[segIdx], 0);
     free((char *)xds);
     free((char *)dscPtrs);
+    unlock();
+    *obj = retXd;
+    return 0;
+}
+
+static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand)
+{
+    int nid, numSegments, segIdx, status;
+    EMPTYXD(xd);
+    struct descriptor_xd *retXd;
+    EMPTYXD(emptyXd);
+    EMPTYXD(dimXd);
+    struct descriptor_xd *xds;
+    struct descriptor **dscPtrs;
+    struct descriptor_a *arrD;
+//    DESCRIPTOR_APD(apd, DTYPE_DSC, 0, 0);
+    DESCRIPTOR_APD(apd, DTYPE_L, 0, 0);
+    char *fullPath;
+
+    int numSlices, sliceIdx, currSliceIdx;
+    int startSegId, endSegId;
+    int *slicesPerSegment;
+    EMPTYXD(startSegIdXd);
+    EMPTYXD(endSegIdXd);
+    char *currSlicePtr;
+    int leftItems, leftRows;
+
+
+    fullPath = malloc(strlen(path) + 11);
+    if(expand)
+    {
+        if(isTimed)
+    	    sprintf(fullPath, "%s/timed", path);
+        else
+            sprintf(fullPath, "%s/non_timed", path);
+    }
+    else //Used when retrieving object data from getCpoDataServer
+    {
+	strcpy(fullPath, path);
+    }
+    lock("getObjectLocal");
+    checkExpIndex(expIdx);
+
+        nid = getNid(cpoPath, path);
+    free(fullPath);
+    if(nid == -1)
+    {
+	unlock();
+	return -1;
+    }
+    status = TreeGetNumSegments(nid, &numSegments);
+    if(!(status & 1))
+    {
+        sprintf(errmsg, "Error getting number of segments at path %s/%s ", cpoPath, path);
+	unlock();
+	return -1;
+    }
+    if(numSegments == 0)
+    {
+    	retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
+    	*retXd = emptyXd;
+	status = TreeGetRecord(nid, retXd);
+	if(!(status & 1))
+	{
+            sprintf(errmsg, "Error reading object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
+	    unlock();
+	    free((char *)retXd);
+	    return -1;
+    	}
+	unlock();
+	*obj = retXd;
+	return 0;
+    }
+
+//Count first actual number of slices
+    numSlices = 0;
+    slicesPerSegment = (int *)malloc(numSegments * sizeof(int));
+    for(segIdx = 0; segIdx < numSegments; segIdx++)
+    {
+	status = TreeGetSegmentLimits(nid, segIdx, &startSegIdXd, &endSegIdXd);
+	if(!(status & 1))
+	{
+            sprintf(errmsg, "Error reading egment limits for object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
+	    unlock();
+	    free((char *)retXd);
+	    return -1;
+    	}
+	startSegId = *(int *)(startSegIdXd.pointer->pointer);
+	endSegId = *(int *)(endSegIdXd.pointer->pointer);
+	MdsFree1Dx(&startSegIdXd, 0);
+	MdsFree1Dx(&endSegIdXd, 0);
+	slicesPerSegment[segIdx] = endSegId - startSegId + 1;
+	numSlices += endSegId - startSegId + 1;
+    }
+
+	
+    xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSlices);
+    dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSlices);
+    for(segIdx = 0; segIdx < numSlices; segIdx++)
+    	xds[segIdx] = emptyXd;
+
+    sliceIdx = 0;
+    for(segIdx = 0; segIdx < numSegments; segIdx++)
+    {
+        status = TreeGetSegment(nid, segIdx, &xd, &dimXd);
+	MdsFree1Dx(&dimXd, 0);
+	if(!(status & 1))
+	{
+            sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
+	    unlock();
+	    return -1;
+    	}
+	if(!xd.pointer || xd.pointer->class != CLASS_A)
+	{
+            sprintf(errmsg, "Wrong segment data returned at path %s/%s", cpoPath, path);
+	    unlock();
+	    return -1;
+    	}
+	arrD = (struct descriptor_a *)xd.pointer;
+	if(slicesPerSegment[segIdx] == 0) continue; //In case the segment sdoes not contain slices (replaceLastSegment)
+
+	/* If it is the last segment and it contains only one slice, check if the segment is 
+	   completely filled. If yes, it is stored in the "traditional way" othewise the length
+ 	   of the serialized slice is stored in front
+	*/
+	if(segIdx == numSegments - 1 && slicesPerSegment[segIdx] == 1)
+    	    getLeftItems(nid, &leftItems, &leftRows);
+	else
+	    leftRows = 0;
+
+	if(slicesPerSegment[segIdx] == 1 && leftRows == 0) 
+//One slice in the segment, stored in the "traditional" way
+	{
+	    status = MdsSerializeDscIn(arrD->pointer, &xds[sliceIdx]);
+	    MdsFree1Dx(&xd, 0);
+    	    if(!(status & 1))
+    	    {
+        	printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", cpoPath, path, MdsGetMsg(status));
+		unlock();
+		return -1;
+    	    }
+	    dscPtrs[sliceIdx] = xds[sliceIdx].pointer;
+	    sliceIdx++;
+	}
+	else //Multiple slices per segment, the dimension (4 bytes) is stored before the serialized slice
+	{
+	    currSlicePtr = arrD->pointer;
+	    for(currSliceIdx = 0; currSliceIdx < slicesPerSegment[segIdx]; currSliceIdx++)
+	    {
+		status = MdsSerializeDscIn(currSlicePtr + sizeof(int), &xds[sliceIdx]);
+   	    	if(!(status & 1))
+    	    	{
+        	    printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", cpoPath, path, MdsGetMsg(status));
+		    unlock();
+		    return -1;
+    	    	}
+	    	dscPtrs[sliceIdx] = xds[sliceIdx].pointer;
+	    	sliceIdx++;
+		currSlicePtr += *(int *)currSlicePtr + sizeof(int); //advance pointer to next serialized slice in segment
+	    }
+	    MdsFree1Dx(&xd, 0);
+	}
+    }
+    apd.arsize = numSlices * sizeof(struct descriptor *);
+    apd.pointer = (void *)dscPtrs;
+    retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
+    *retXd = emptyXd;
+    MdsCopyDxXd((struct descriptor *)&apd, retXd);
+    for(segIdx = 0; segIdx < numSlices; segIdx++)
+	MdsFree1Dx(&xds[segIdx], 0);
+    free((char *)xds);
+    free((char *)dscPtrs);
+    free((char *)slicesPerSegment);
     unlock();
     *obj = retXd;
     return 0;
@@ -10324,7 +10707,7 @@ int mdsGetObjectSlice(int expIdx, char *cpoPath, char *path,  double time, void 
 
 //Array of structures Slice Management
 //NOTE For the moment only local data access is supported
-static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double time, void **obj, int expand)
+static int getObjectSliceLocalOLD(int expIdx, char *cpoPath, char *path,  double time, void **obj, int expand)
 {
     double *times;
     int nTimes;
@@ -10371,7 +10754,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     else
    	sprintf(fullPath, "%s", path);
 
-/* Check Cache. Only for IN THIS CASE this is performed withing "local" routine */
+/* Check Cache. Only for IN THIS CASE this is performed within "local" routine */
 
     cacheLevel = getCacheLevel(expIdx);
     if(cacheLevel > 0 && getInfoObjectSlice(expIdx, cpoPath, fullPath, segIdx, &exists, obj))
@@ -10414,7 +10797,193 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     MdsFree1Dx(&xd, 0);
     if(!(status & 1))
     {
-    	printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
+    	printf("INTERNAL ERROR: Cannot deserialize data eturned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    retApd.arsize = retApd.length = sizeof(struct descriptor *);
+    retApd.pointer = &deserializedXd.pointer;
+    status = MdsCopyDxXd((struct descriptor *)&retApd, retXd);
+    MdsFree1Dx(&deserializedXd, 0);
+    *obj = retXd;
+    unlock();
+    return 0;
+}
+
+//Array of structures Slice Management
+//NOTE For the moment only local data access is supported
+static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double time, void **obj, int expand)
+{
+    double *times;
+    int nTimes;
+    int status, i, sliceIdx, nid;
+    char *fullPath;
+    EMPTYXD(xd);
+    EMPTYXD(deserializedXd);
+    EMPTYXD(emptyXd);
+    EMPTYXD(dimXd);
+    struct descriptor_a *arrD;
+    DESCRIPTOR_APD(retApd, DTYPE_L, 0, 0);
+    struct descriptor_xd *retXd;
+    int cacheLevel;
+    int exists;
+    int nDims, dims[16];
+    void *tempObj;
+    int numSegments, actSegmentIdx, segStartIdx, segEndIdx;
+    EMPTYXD(segStartXd); 
+    EMPTYXD(segEndXd); 
+    char *objectPtr, *multiObjectPtr;
+    int currOffset, leftItems, leftRows;
+
+    status = mdsGetVect1DDouble(expIdx, cpoPath, "time", &times, &nTimes);
+    if(status) return status;
+//Find Idx
+    if(time <= times[0])
+	sliceIdx = 0;
+    else if (time >= times[nTimes - 1])
+	sliceIdx = nTimes - 1;
+    else
+    {
+    	for(i = sliceIdx = 0; i < nTimes - 1; i++)
+    	{
+	    if(times[i] <= time && times[i+1] >= time) //Closest sample
+	    {
+	    	if(time - times[i] < times[i+1] - time)
+	   	    sliceIdx = i;
+	    	else
+		    sliceIdx = i+1;
+	    	break;
+	    }
+	}
+
+    }
+    free((char *)times);
+    fullPath = malloc(strlen(path) + 7);
+    if(expand)
+    	sprintf(fullPath, "%s/timed", path);
+    else
+   	sprintf(fullPath, "%s", path);
+
+/* Check Cache. Only for IN THIS CASE this is performed within "local" routine */
+
+    cacheLevel = getCacheLevel(expIdx);
+    if(cacheLevel > 0 && getInfoObjectSlice(expIdx, cpoPath, fullPath, sliceIdx, &exists, obj))
+    {
+    	free(fullPath);
+	if(exists)
+	    return 0;
+	else
+	    return -1;
+    }
+	
+    lock("getObjectSliceLocal");
+    checkExpIndex(expIdx);      
+        nid = getNid(cpoPath, path);
+    free(fullPath);
+    if(nid == -1)
+    {
+	unlock();
+	return -1;
+    }
+/***********Change single TreeGetSegment with the search of the right segment *************
+    status = TreeGetSegment(nid, segIdx, &xd, &dimXd);
+
+    MdsFree1Dx(&dimXd, 0);
+    if(!(status & 1))
+    {
+        sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    if(!xd.pointer || xd.pointer->class != CLASS_A)
+    {
+        sprintf(errmsg, "Wrong segment data returned at path %s/%s", path, cpoPath);
+	unlock();
+	return -1;
+    }
+    arrD = (struct descriptor_a *)xd.pointer;
+    retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
+    *retXd = emptyXd;
+    status = MdsSerializeDscIn(arrD->pointer, &deserializedXd);
+*******************************************************************************************/
+    status = TreeGetNumSegments(nid, &numSegments);
+    if(!(status & 1))
+    {
+        sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    for(actSegmentIdx = numSegments - 1; actSegmentIdx >= 0; actSegmentIdx--)
+    {
+	status = TreeGetSegmentLimits(nid, actSegmentIdx, &segStartXd, &segEndXd);
+    	if(!(status & 1))
+    	{
+            sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	    unlock();
+	    return -1;
+    	}
+	segStartIdx = *((int *)segStartXd.pointer->pointer);
+	segEndIdx = *((int *)segEndXd.pointer->pointer);
+	MdsFree1Dx(&segStartXd, 0);
+	MdsFree1Dx(&segEndXd, 0);
+	if(segEndIdx < segStartIdx) //This happens only for a replace last slice in case a segmment with one struct array is dismissed
+	    continue;
+	if(sliceIdx >= segStartIdx && sliceIdx <= segEndIdx)
+	    break;
+    }
+    if(actSegmentIdx < 0)
+    {
+        sprintf(errmsg, "INTERNAL ERROR in getObjectSliceLocal: segment not found");
+	unlock();
+	return -1;
+    }
+    status = TreeGetSegment(nid, actSegmentIdx, &xd, &dimXd);
+    if(!(status & 1))
+    {
+        sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+	unlock();
+	return -1;
+    }
+    MdsFree1Dx(&dimXd, 0);
+    if(!xd.pointer || xd.pointer->class != CLASS_A)
+    {
+        sprintf(errmsg, "Wrong segment data returned at path %s/%s", path, cpoPath);
+	unlock();
+	return -1;
+    }
+/*If segStartIdx == segEndIdx  and the segment is not the last one, than it will contain for sure 
+one slice ine the traditional way. If it is the last segment, segment may either contain one slice 
+in traditional way or only one of multiple slices (i.e. the last slice) */
+    if(actSegmentIdx == numSegments - 1)
+    	getLeftItems(nid, &leftItems, &leftRows);
+    else
+	leftRows = 0;
+    if(segStartIdx == segEndIdx && leftRows == 0) //the segment contains only that slice in traditional way
+    {
+	objectPtr = ((struct descriptor_a *)xd.pointer)->pointer;
+    }
+    else
+    {
+	multiObjectPtr = ((struct descriptor_a *)xd.pointer)->pointer;
+	currOffset = 0;
+	for(i = 0; i < sliceIdx - segStartIdx; i++)
+	    currOffset += *((int *)(&multiObjectPtr[currOffset])) + sizeof(int);
+	currOffset += sizeof(int);
+	objectPtr = &multiObjectPtr[currOffset];
+    }
+
+
+
+/*******************************************************************************************/
+
+    retXd = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd));
+    *retXd = emptyXd;
+//    status = MdsSerializeDscIn(arrD->pointer, &deserializedXd);
+    status = MdsSerializeDscIn(objectPtr, &deserializedXd);
+    MdsFree1Dx(&xd, 0);
+    if(!(status & 1))
+    {
+    	printf("INTERNAL ERROR: Cannot deserialize data eturned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
 	unlock();
 	return -1;
     }
@@ -10457,6 +11026,7 @@ int mdsPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void *
 	}
     }	    
     status = putObjectSegment(expIdx, cpoPath, fullPath, obj, -1);
+
     releaseObject(obj);
     free(fullPath);
     return status;
@@ -10498,7 +11068,6 @@ static char *decompileDsc(void *ptr)
 	MdsFree1Dx(&xd, NULL);
 	return buf;
 }
-static void dumpObjElement(struct descriptor_a *apd, int numSpaces);
 
 static void dumpApd(struct descriptor_a *apd, int spaces)
 {
