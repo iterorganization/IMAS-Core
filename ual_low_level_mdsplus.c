@@ -3602,8 +3602,22 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
         int maxLen = 0;
 	//printf("mdsPutVect1DString. cpopath: %s, path: %s, timebase: %s, data: %s \n",cpoPath, path, timeBasePath, *data);
 	//printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
+	if(!data || !dim)
+	{
+	   return 0;
+	}
+	
         if(isTimed)
+	{
+	    if(dim != nPutTimes)
+	    {
+	        sprintf(errmsg, "Internal error: data size and time vector length differ for timed data at IDS %s field %s.  ", cpoPath, path);
+		return -1;
+	    }
+	
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
+	}
+	
 	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
         for(i = 0; i < dim; i++)
 	{ //printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
