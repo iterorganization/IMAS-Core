@@ -3604,7 +3604,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	//printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
         if(isTimed)
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
-	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
+	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
         for(i = 0; i < dim; i++)
 	{ //printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
             if(strlen(data[i]) > maxLen)

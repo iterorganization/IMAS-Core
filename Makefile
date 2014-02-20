@@ -53,42 +53,23 @@ ifeq "$(strip $(JAVA))" "yes"
 endif
 #-----------------------------------------------
 
-#------------- Options for python --------------
-ifeq "$(strip $(PYTHON))" "yes"
-  TARGETS += pythonbinding
-endif
-#-----------------------------------------------
-
 all: $(TARGETS)
 
 install: all
 	cp *.so $(INSTALL)/lib
 	cp ual_low_level.h $(INSTALL)/include
-ifeq "$(strip $(PYTHON))" "yes"
-	python setup.py install --install-lib=$(INSTALL)/python_pk/python$(PYTHONVERSION)/ual
-#	The Python lowlevel module is Python version dependent
-#	Instead of lib/, it is installed in python_pk/pythonX.Y/ual
-#	The copy in lib/ is deleted to avoid confusion
-	-rm $(INSTALL)/lib/_ual_low_level.so
-endif
 
 clean:
 	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
 	rm -rf build
 
 clean-src: clean
-	rm -f $(INSTALL)/python_pk/ual/*
-
 
 libUALLowLevel.so: $(COMMON_OBJECTS)  
 	$(LD) -g -o $@ -shared $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
 libUALLowLevel.a: $(COMMON_OBJECTS)
 	ar rs $@ $^
-
-pythonbinding: libUALLowLevel.so
-	python setup.py build_ext --inplace > /dev/null
-	python setup.py build > /dev/null
 
 .c.o:
 	$(CC) $(INCDIR) $(CFLAGS) -c $< 
