@@ -9871,7 +9871,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
     lock("getObjectLocal");
     checkExpIndex(expIdx);
 
-        nid = getNid(cpoPath, path);
+        nid = getNid(cpoPath, fullPath);
     free(fullPath);
     if(nid == -1)
     {
