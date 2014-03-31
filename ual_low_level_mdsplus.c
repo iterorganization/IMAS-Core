@@ -70,6 +70,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
 
 static int getNid(char *cpoPath, char *path);
 static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx);
+static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **objSlices, int numSlices);
 static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, int isTimed, int expand);
 
 static void dumpObjElement(struct descriptor_a *apd, int numSpaces);
@@ -2283,7 +2284,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
     longTimes = (_int64u *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
-        MdsTimeToDouble(longTimes[i], &currTime);
+        MdsTimeToDouble(longTimes[i], (void *)&currTime);
         times[i] = currTime;
     }
     timeD.arsize = nTimes * sizeof(double);
@@ -2331,7 +2332,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     longTimes = (_int64u *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
-        MdsTimeToDouble(longTimes[i], &currTime);
+        MdsTimeToDouble(longTimes[i], (void *)&currTime);
         times[i] = currTime;
     }
     timeD.arsize = nTimes * sizeof(double);
@@ -3385,28 +3386,6 @@ int mdsDeleteData(int expIdx, char *cpoPath, char *path)
 {
     int status;
     EMPTYXD(emptyXd);
-/* Gabriele June 2012 Final FIX 
-<<<<<<< .mine
-=======
-    // Force data deletion on disk, regardless the fact the cache is enabled
-    if (getCacheLevel(expIdx) > 0) {
-        char *timedStructArrays[] = {
-            #include "timed_struct_array.h"
-            0
-        };
-        char **ptr = timedStructArrays;
-        while (*ptr != 0) {
-            if (strcmp(path, *ptr) == 0) {
-                char fullPath[strlen(path) + 7];
-                sprintf(fullPath, "%s/timed", path);
-                removeAllInfoObjectSlices(expIdx, cpoPath, fullPath);
-                break;
-            }
-            ptr++;
-        }
-    }
->>>>>>> .r554
-*/
     status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
     return status;
 }
@@ -9037,6 +9016,134 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
 //Defaut dimension of a created segment when multiple objects may be put in the same segment
 #define SEGMENT_OBJECT_SIZE 30000   
 
+
+static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **objSlices, int numSlices)
+{
+    EMPTYXD(emptyXd);
+    struct descriptor_xd *serializedXds;
+    int nid, status, i, sliceIdx, segmentSize, numSegmentSlices, totSize;
+    struct descriptor_a **apds, *arrD;
+    int *sliceSizes, *segmentTimes;
+    int startSegIdx, endSegIdx, currIdx;
+    struct descriptor startSegIdxD = {4, DTYPE_L, CLASS_S, (char *)&startSegIdx};
+    struct descriptor endSegIdxD = {4, DTYPE_L, CLASS_S, (char *)&endSegIdx};
+    char *segmentData, *segmentTemplate;
+    DESCRIPTOR_A(segmentDataDsc, 1, DTYPE_B, 0, 0);
+    DESCRIPTOR_A(segmentTemplateDsc, 1, DTYPE_B, 0, 0);
+    DESCRIPTOR_A(segmentTimesDsc, sizeof(int), DTYPE_L, 0, 0);
+
+
+    lock("putObjectSegmentLocal");
+    checkExpIndex(expIdx);
+        nid = getNid(cpoPath, path);
+    if(nid == -1)
+    {
+	unlock();
+	return -1;
+    }
+    if(!isEmpty(nid))
+    {
+	status = TreePutRecord(nid, (struct descriptor *)&emptyXd, 0);
+	if(!(status & 1))
+    	{
+	    unlock();
+	    sprintf(errmsg, "INTERNAL ERROR:CANNOT DELETE DATA : %s", MdsGetMsg(status));
+	    return -1;
+    	}
+    }
+    apds = (struct descriptor_a **)objSlices;
+    serializedXds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSlices);
+    sliceSizes = (int *)malloc(sizeof(int) * numSlices);
+    for(sliceIdx = 0; sliceIdx < numSlices; sliceIdx++)
+    {
+	serializedXds[sliceIdx] = emptyXd;
+	status = MdsSerializeDscOut((struct descriptor *)apds[sliceIdx], &serializedXds[sliceIdx]);
+    	arrD = (struct descriptor_a *)(serializedXds[sliceIdx].pointer);
+    	if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    	{
+	    sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
+	    unlock();
+	    return -1;
+    	}
+	sliceSizes[sliceIdx] = arrD->arsize;
+    }
+
+    sliceIdx = 0;
+    while(sliceIdx < numSlices)
+    {
+	if(sliceSizes[sliceIdx] >= SEGMENT_OBJECT_TRESHOLD)
+	{
+   	    arrD = (struct descriptor_a *)(serializedXds[sliceIdx].pointer);
+	    startSegIdx = endSegIdx = sliceIdx;
+	    status = TreeMakeSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, arrD, -1, arrD->arsize);
+	    sliceIdx++;
+	}
+	else
+	{
+	    totSize = 0;
+	    numSegmentSlices = 0;
+	    startSegIdx = sliceIdx;
+	    for(i = sliceIdx; i < numSlices && totSize < SEGMENT_OBJECT_SIZE ; i++)
+	    {
+		totSize += (sizeof(int)+sliceSizes[i]);
+		numSegmentSlices++;
+	    }
+	    endSegIdx = sliceIdx + numSegmentSlices - 1;
+	    segmentData = malloc(totSize);
+	    segmentDataDsc.pointer = segmentData;
+	    segmentDataDsc.arsize = totSize;
+	    currIdx = 0;
+	    for(i = 0; i < numSegmentSlices; i++)
+	    {
+   	    	arrD = (struct descriptor_a *)(serializedXds[sliceIdx + i].pointer);
+		memcpy(&segmentData[currIdx], &sliceSizes[sliceIdx +i], sizeof(int));
+		currIdx += sizeof(int);
+		memcpy(&segmentData[currIdx],arrD->pointer, sliceSizes[sliceIdx +i]);
+		currIdx += sliceSizes[sliceIdx +i];
+	    }
+	    if(totSize >= SEGMENT_OBJECT_SIZE) //A whole segment is filled
+	      	status = TreeMakeSegment(nid, &startSegIdxD, &endSegIdxD, &endSegIdxD, (struct descriptor_a *)&segmentDataDsc, -1, totSize);
+	    else
+	    {
+		segmentTemplate = malloc(SEGMENT_OBJECT_SIZE);
+		segmentTemplateDsc.pointer = segmentTemplate;
+		segmentTemplateDsc.arsize = SEGMENT_OBJECT_SIZE;
+		segmentTimes = (int *)malloc(sizeof(int) * numSegmentSlices);
+		for(i = 0; i < numSegmentSlices; i++)
+		    segmentTimes[i] = sliceIdx + i;
+		segmentTimesDsc.pointer = (char *)segmentTimes;
+		segmentTimesDsc.arsize = sizeof(int) * numSegmentSlices;
+                status = TreeBeginSegment(nid, &startSegIdxD, &endSegIdxD, (struct descriptor *)&segmentTimesDsc, (struct descriptor_a *)&segmentTemplateDsc, -1);
+               	if(status & 1) status = TreePutSegment(nid, -1, (struct descriptor_a *)&segmentDataDsc);
+		free(segmentTemplate);
+		free(segmentTimes);
+	    }
+	    sliceIdx += numSegmentSlices;
+	    free((char *)segmentData);
+	}
+        if(!(status & 1))
+        {
+            sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
+	    //Free stuff
+	    for(i = 0; i < numSlices; i++)
+		MdsFree1Dx(&serializedXds[i], 0);
+	    free((char *)serializedXds);
+	    free((char *)sliceSizes);
+ 	    unlock();
+            return -1;
+        }
+    }//endwhile
+    //Free stuff
+    for(i = 0; i < numSlices; i++)
+	MdsFree1Dx(&serializedXds[i], 0);
+    free((char *)serializedXds);
+    free((char *)sliceSizes);
+    unlock();
+    return 0;
+}
+
+
+
 static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx)
 {
     int startSegIdx, endSegIdx, numSegments;
@@ -9278,20 +9385,29 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
     }
 
     fullPath = malloc(strlen(path) + 7);
+
     sprintf(fullPath, "%s/timed", path);
+// For test only    sprintf(fullPath, "%s", path);
+   
 
     numSamples = apd->arsize / apd->length;
     currPtr = (void **)apd->pointer;
 
 //printf ("PUT TIME OBJECT: %d Samples\n", numSamples);
 
-    for(i = 0; i < numSamples; i++)
+//Gabriele 2014: a more performing version of putTimedObject is provided only for local access
+    if(!isExpRemote(expIdx))
+	putTimedObjectLocal(expIdx, cpoPath, fullPath, currPtr, numSamples);
+    else //remote access, use the old approach
     {
-	status = putObjectSegment(expIdx, cpoPath, fullPath, currPtr[i], -1);
-	if(status) 
-	{
-	    return status;
-	}
+    	for(i = 0; i < numSamples; i++)
+    	{
+	    status = putObjectSegment(expIdx, cpoPath, fullPath, currPtr[i], -1);
+	    if(status) 
+	    {
+	    	return status;
+	    }
+    	}
     }
     releaseObject(obj);
     free(fullPath);
