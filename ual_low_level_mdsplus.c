@@ -11039,7 +11039,9 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 
     if(numSegments == 0)
     {
-        sprintf(errmsg, "Missing data at path %s/%s", path, cpoPath);
+        sprintf(errmsg, "Missing data at path %s/%s", cpoPath, path);
+        printf("ERROR %s\n",errmsg);
+
 	unlock();
 	return -1;
     }
@@ -11049,8 +11051,10 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	status = TreeGetSegmentLimits(nid, actSegmentIdx, &segStartXd, &segEndXd);
     	if(!(status & 1))
     	{
-            sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+            sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
 	    unlock();
+        printf("ERROR %s\n",errmsg);
+
 	    return -1;
     	}
 	segStartIdx = *((int *)segStartXd.pointer->pointer);
