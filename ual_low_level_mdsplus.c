@@ -11037,6 +11037,13 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 
     printf("Here in low level 1\n");
 
+    if(numSegments == 0)
+    {
+        sprintf(errmsg, "Missing data at path %s/%s", path, cpoPath);
+	unlock();
+	return -1;
+    }
+
     for(actSegmentIdx = numSegments - 1; actSegmentIdx >= 0; actSegmentIdx--)
     {
 	status = TreeGetSegmentLimits(nid, actSegmentIdx, &segStartXd, &segEndXd);
