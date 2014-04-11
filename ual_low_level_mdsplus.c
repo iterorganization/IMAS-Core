@@ -10951,7 +10951,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     char *objectPtr, *multiObjectPtr;
     int currOffset, leftItems, leftRows;
 
-    status = mdsGetVect1DDouble(expIdx, cpoPath, "time", &times, &nTimes);
+    status = mdsGetVect1DDouble(expIdx, cpoPath, "time", &times, &nTimes); // This is wrong, the timebasepath must be passed here from the lowlevel
     if(status) return status;
 //Find Idx
     if(time <= times[0])
@@ -10973,12 +10973,17 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	}
 
     }
+    
+    printf("sliceIdx = %d\n",sliceIdx);
+
     free((char *)times);
     fullPath = malloc(strlen(path) + 7);
     if(expand)
     	sprintf(fullPath, "%s/timed", path);
     else
    	sprintf(fullPath, "%s", path);
+
+    printf("fullPath = %s\n",fullPath);
 
 /* Check Cache. Only for IN THIS CASE this is performed within "local" routine */
 
@@ -11029,6 +11034,9 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	unlock();
 	return -1;
     }
+
+    printf("Here in low level 1\n");
+
     for(actSegmentIdx = numSegments - 1; actSegmentIdx >= 0; actSegmentIdx--)
     {
 	status = TreeGetSegmentLimits(nid, actSegmentIdx, &segStartXd, &segEndXd);
@@ -11047,9 +11055,13 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	if(sliceIdx >= segStartIdx && sliceIdx <= segEndIdx)
 	    break;
     }
+    printf("Here in low level 2\n");
+
     if(actSegmentIdx < 0)
     {
         sprintf(errmsg, "INTERNAL ERROR in getObjectSliceLocal: segment not found");
+        printf("%s\n",errmsg);
+
 	unlock();
 	return -1;
     }
@@ -11057,6 +11069,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     if(!(status & 1))
     {
         sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
+        printf("%s\n",errmsg);
 	unlock();
 	return -1;
     }
@@ -11064,9 +11077,12 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     if(!xd.pointer || xd.pointer->class != CLASS_A)
     {
         sprintf(errmsg, "Wrong segment data returned at path %s/%s", path, cpoPath);
+        printf("%s\n",errmsg);
 	unlock();
 	return -1;
     }
+    printf("Here in low level 3\n");
+
 /*If segStartIdx == segEndIdx  and the segment is not the last one, than it will contain for sure 
 one slice ine the traditional way. If it is the last segment, segment may either contain one slice 
 in traditional way or only one of multiple slices (i.e. the last slice) */
@@ -11088,6 +11104,7 @@ in traditional way or only one of multiple slices (i.e. the last slice) */
 	objectPtr = &multiObjectPtr[currOffset];
     }
 
+    printf("Here in low level 4\n");
 
 
 /*******************************************************************************************/
