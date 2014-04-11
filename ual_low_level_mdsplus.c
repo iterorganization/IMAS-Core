@@ -10999,7 +10999,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	
     lock("getObjectSliceLocal");
     checkExpIndex(expIdx);      
-        nid = getNid(cpoPath, path);
+    nid = getNid(cpoPath, fullPath);
     free(fullPath);
     if(nid == -1)
     {
