@@ -405,7 +405,7 @@ static int getInfoData(int expIdx, char *cpoPath, char *path, int *exists, int *
     {
         if(dataSize == 0 || data == 0)
 	{
-	    printf("INTERNAL ERROR IN  getInfoData: Missing data in existing info\n");
+	    //printf("INTERNAL ERROR IN  getInfoData: Missing data in existing info\n");
 	    return 0;
 	}
 	if(*nDims == 0) //Scalar
@@ -830,6 +830,9 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
     EMPTYXD(xd);
 
     status = getData(expIdx, cpoPath, path, &xd, evaluate);
+     
+    //printf("status of getData = %d\n",status);
+
     if(!status)
     {
 	*retType = xd.pointer->dtype;
@@ -2097,7 +2100,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 
 //        nid = getNid(convertPath(cpoPath), convertAnotherPath(path));
         nid = getNid(cpoPath, path);
-//	printf("nid for %s %s = %d\n",cpoPath, path,nid);  
+	//printf("In getDataLocal: nid for %s %s = %d\n",cpoPath, path,nid);  
 	if(nid == -1)
 	{
 	    unlock();
@@ -2107,6 +2110,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
         if(!(status & 1))
         {
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
+                //printf("ERROR %s\n", errmsg);
 	    	unlock();
 		return -1;
         }    
@@ -2122,6 +2126,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 	    {
 		sprintf(errmsg, "Cannot get segment limits for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 		unlock();
+                printf("ERROR %s\n", errmsg);
 		return -1;
 	    }
 	    isObject = (startXd.pointer->dtype == DTYPE_L); 
@@ -2146,6 +2151,8 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
         if(!(status & 1) || retXd->l_length == 0) //Empty value has been written into the tree
 	{
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
+              //  printf("ERROR %s\n", errmsg);
+
 	    	unlock();
 		return -1;
 	}
@@ -5739,7 +5746,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
 	
-
+        //printf("status of getDataNoDescr = %d\n",status);
 
 	if(!status)
 	{
@@ -10207,9 +10214,12 @@ static struct descriptor *getDataFromObject(void *obj, char *path, int idx)
     if(!((struct descriptor **)apd->pointer)[idx]) return NULL;
     currPath = malloc(strlen(path) + 1);
     strcpy(currPath, path);
+    //printf("in getDataFromObject, currPath = %s\n",currPath);
     lock("getDataFromObject"); //strtok is not thread safe
     name = strtok(currPath, "/");
+   //printf("in getDataFromObject, name = %s, idx = %d\n",name, idx);
     retDsc = getDataFromApd(((struct descriptor_a **)apd->pointer)[idx], name);
+    //printf("in getDataFromObject 3\n");
     unlock();
     free(currPath);
     return retDsc;
@@ -10783,7 +10793,12 @@ int mdsGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *n
     ARRAY_COEFF(char *, 7) *arrDPtr;
     int i;
     *dim1 = *dim2 = *dim3 = *dim4 = *dim5 = *dim6 = *dim7 = 0;
+
+
+    //printf("in mdsGetDimensionFromObject, path = %s, idx =%d\n",path, idx);
     dscPtr = getDataFromObject(obj, path, idx);
+    //printf("in mdsGetDimensionFromObject 2\n");
+
     if(!dscPtr) return -1;
     if(dscPtr->class == CLASS_S)
     {
@@ -10934,6 +10949,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     int nTimes;
     int status, i, sliceIdx, nid;
     char *fullPath;
+    char *fullPathTime;
     EMPTYXD(xd);
     EMPTYXD(deserializedXd);
     EMPTYXD(emptyXd);
@@ -10951,7 +10967,16 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     char *objectPtr, *multiObjectPtr;
     int currOffset, leftItems, leftRows;
 
-    status = mdsGetVect1DDouble(expIdx, cpoPath, "time", &times, &nTimes); // This is wrong, the timebasepath must be passed here from the lowlevel
+    fullPathTime = malloc(strlen(path) + 5);
+    if(expand)
+    	sprintf(fullPathTime, "%s/time", path);
+    else
+   	sprintf(fullPathTime, "%s", path);
+
+    printf("fullPathTime = %s\n",fullPathTime);
+
+    status = mdsGetVect1DDouble(expIdx, cpoPath, fullPathTime, &times, &nTimes); // Changed w.r.t. to ITM: read the (user hidden) time array of the type 3 AoS
+    printf("Status of mdsGetVect1DDouble = %d\n", status);
     if(status) return status;
 //Find Idx
     if(time <= times[0])
