@@ -10973,7 +10973,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     else
    	sprintf(fullPathTime, "%s", path);
 
-    printf("fullPathTime = %s\n",fullPathTime);
+   // printf("fullPathTime = %s\n",fullPathTime);
 
     status = mdsGetVect1DDouble(expIdx, cpoPath, fullPathTime, &times, &nTimes); // Changed w.r.t. to ITM: read the (user hidden) time array of the type 3 AoS
     printf("Status of mdsGetVect1DDouble = %d\n", status);
@@ -10999,7 +10999,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 
     }
     
-    printf("sliceIdx = %d\n",sliceIdx);
+   // printf("sliceIdx = %d\n",sliceIdx);
 
     free((char *)times);
     fullPath = malloc(strlen(path) + 7);
@@ -11008,7 +11008,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     else
    	sprintf(fullPath, "%s", path);
 
-    printf("fullPath = %s\n",fullPath);
+   // printf("fullPath = %s\n",fullPath);
 
 /* Check Cache. Only for IN THIS CASE this is performed within "local" routine */
 
@@ -11060,7 +11060,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	return -1;
     }
 
-    printf("Here in low level 1\n");
+    //printf("Here in low level 1\n");
 
     if(numSegments == 0)
     {
@@ -11091,7 +11091,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	if(sliceIdx >= segStartIdx && sliceIdx <= segEndIdx)
 	    break;
     }
-    printf("Here in low level 2\n");
+    //printf("Here in low level 2\n");
 
     if(actSegmentIdx < 0)
     {
@@ -11117,7 +11117,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	unlock();
 	return -1;
     }
-    printf("Here in low level 3\n");
+    //printf("Here in low level 3\n");
 
 /*If segStartIdx == segEndIdx  and the segment is not the last one, than it will contain for sure 
 one slice ine the traditional way. If it is the last segment, segment may either contain one slice 
@@ -11140,7 +11140,7 @@ in traditional way or only one of multiple slices (i.e. the last slice) */
 	objectPtr = &multiObjectPtr[currOffset];
     }
 
-    printf("Here in low level 4\n");
+    //printf("Here in low level 4\n");
 
 
 /*******************************************************************************************/
