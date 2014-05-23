@@ -8758,7 +8758,7 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 
 	len = strlen(cpoPath) + 1;
 	mdsPath = malloc(len+20);
-	sprintf(mdsPath, "\\TOP.%s", cpoPath);
+	sprintf(mdsPath, "\\TOP.%s", convertPath(cpoPath));
 
 	len = strlen(mdsPath);
 	
