@@ -3589,15 +3589,29 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	DESCRIPTOR_A(dataD, 0, DTYPE_T, 0, 0);
         char *strPtr;
         int maxLen = 0;
-	printf("mdsPutVect1DString. cpopath: %s, path: %s, timebase: %s, data: %s \n",cpoPath, path, timeBasePath, *data);
-	printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
+	//printf("mdsPutVect1DString. cpopath: %s, path: %s, timebase: %s, data: %s \n",cpoPath, path, timeBasePath, *data);
+	//printf("mdsPutVect1DString. isTimed: %d \n",isTimed);
+	if(!data || !dim)
+	{
+	   return 0;
+	}
+	
         if(isTimed)
+	{
+	    if(dim != nPutTimes)
+	    {
+	        sprintf(errmsg, "Internal error: data size and time vector length differ for timed data at IDS %s field %s.  ", cpoPath, path);
+		return -1;
+	    }
+	
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
-	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
+	}
+	
+	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
         for(i = 0; i < dim; i++)
-	printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
+	{ //printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
             if(strlen(data[i]) > maxLen)
-                maxLen = strlen(data[i]);
+                maxLen = strlen(data[i]); }
         strPtr = malloc(dim * maxLen);
         memset(strPtr, ' ', dim * maxLen);
         for(i = 0; i < dim; i++)
@@ -3605,7 +3619,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
         dataD.arsize = dim*maxLen;
         dataD.pointer = strPtr;
         dataD.length = maxLen;
-	printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
+	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
 	if(dim > 0)
 	    status = putData(expIdx, cpoPath, path, (struct descriptor *)&dataD);
         else
@@ -3616,7 +3630,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 static int putTimedVect1DString(int expIdx, char *cpoPath, char *path, char *timeBasePath, char **data, double *times, int nTimes)
 {
 	EMPTYXD(emptyXd);
-	DESCRIPTOR_A(dataD, sizeof(char), DTYPE_BU, 0, 0);
+	DESCRIPTOR_A_COEFF(dataD, sizeof(char), DTYPE_BU, 0, 2, 0);
         char *strPtr;
         int maxLen = 0;
         int status, i;
@@ -3627,8 +3641,12 @@ static int putTimedVect1DString(int expIdx, char *cpoPath, char *path, char *tim
         memset(strPtr, ' ', nTimes * maxLen);
         for(i = 0; i < nTimes; i++)
             memcpy(&strPtr[i*maxLen], data[i], strlen(data[i]));
-        dataD.arsize = nTimes*maxLen;
-        dataD.pointer = strPtr;
+
+	dataD.arsize = nTimes*maxLen;
+	dataD.m[0] = maxLen;
+	dataD.m[1] = nTimes;
+	dataD.pointer = strPtr;
+
 	if(nTimes > 0)
         {
 		status =  putSegment(expIdx, cpoPath, path, timeBasePath,  (struct descriptor_a *)&dataD, times, nTimes);
@@ -5560,6 +5578,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 {
 	EMPTYXD(xd);
 	int status, nItems, i;
+    	ARRAY_COEFF(char, 16) *dataDPtr;
 
         char **retData;
         struct descriptor **descrPtr;
@@ -5568,6 +5587,16 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (struct descriptor_a *)xd.pointer;
+		if(dataD->class == CLASS_A && dataD->dtype == DTYPE_BU)
+		{
+		//Convert to String array (reshape and change dtype)
+		    dataDPtr = (void *)dataD;
+		    dataDPtr->length = dataDPtr->m[0];
+		    dataDPtr->m[0] = dataDPtr->arsize;
+		    dataDPtr->m[1] = 0;
+		    dataDPtr->dtype =DTYPE_T;
+		}
+
 		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T) 
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s.  Class= %d Type = %d\n", cpoPath, path,
