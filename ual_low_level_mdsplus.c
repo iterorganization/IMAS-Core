@@ -11005,7 +11005,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
    // printf("fullPathTime = %s\n",fullPathTime);
 
     status = mdsGetVect1DDouble(expIdx, cpoPath, fullPathTime, &times, &nTimes); // Changed w.r.t. to ITM: read the (user hidden) time array of the type 3 AoS
-    printf("Status of mdsGetVect1DDouble = %d\n", status);
+    //printf("Status of mdsGetVect1DDouble = %d\n", status);
     if(status) return status;
 //Find Idx
     if(time <= times[0])
