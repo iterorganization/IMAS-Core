@@ -461,6 +461,7 @@ static int collectDataInfo(int expIdx, char *path, char *cpoPath, struct descrip
     currPath = toUpperString(convertPath(cpoPath));
     for(i = 0; i < MAX_DATA_INFO; i++)
     {
+/*printf("collectDataInfo. i: %d path: %s, cpoPath: %s, getDataInfo[i].path: %s\n",i, path, cpoPath, getDataInfo[i].path);*/
         if(getDataInfo[i].expIdx == expIdx && !strcmp(path, getDataInfo[i].path))
 	{
     	    struct descriptor_a *arrDsc = (struct descriptor_a *)getDataInfo[i].xd.pointer;
