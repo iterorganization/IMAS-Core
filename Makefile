@@ -17,7 +17,7 @@ INCDIR=-I$(MDSPLUS_DIR)/include
 LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #-L$(MDSPLUS_DIR)/lib -L$(JAVA_DIR)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
-LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lz 
+LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 
 
 COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
