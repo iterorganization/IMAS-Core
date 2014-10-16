@@ -15,7 +15,7 @@ CXXFLAGS = -g -fPIC -I$(MDSPLUS_DIR)/include
 
 INCDIR=-I$(MDSPLUS_DIR)/include
 LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-#-L$(MDSPLUS_DIR)/lib -L$(JAVA_DIR)/jre/lib/i386
+#-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
 LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 
@@ -46,8 +46,8 @@ endif
 
 #-------------- Options for java ---------------
 ifeq "$(strip $(JAVA))" "yes"
- INCDIR+= -I$(JAVA_DIR)/include -I$(JAVA_DIR)/include/linux
- LIBDIR+= -L$(JAVA_DIR)/jre/lib/amd64
+ INCDIR+= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
+ LIBDIR+= -L$(JAVA_HOME)/jre/lib/amd64
  #LIBS+= -ljava
  COMMON_OBJECTS+= ual_jni.o
 endif
