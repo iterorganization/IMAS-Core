@@ -799,7 +799,7 @@ static int counter;
 	    return 0;}
 	else
         { //printf("getData : data DOES NOT EXIST according to getInfoData %s %s\n",cpoPath, path); //; This part is correct but is not traversed by the time dependent quantities in this test
-	    return -1;}
+	    return makeErrorStatus(0, READ_ERROR, -1);}
     }
 //////////////////////////////////////////////////    
 // printf("MISS %d %s %s\n", counter++, cpoPath, path);
@@ -840,7 +840,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
 	if(xd.pointer->class != CLASS_A)
 	{
 	    printf("INTERNAL ERROR: getDataNoDescr called for non aray data!!!\n");
-	    return -1;
+	    return makeErrorStatue(1, READ_ERROR, -1);
 	}
 	dataDPtr = (void *)xd.pointer;
     	*retDimsCt = dataDPtr->dimct;
@@ -1635,7 +1635,7 @@ int mdsimasConnect(char *ipAddr)
     if(currConnectionId <= 0)
     {
         sprintf(errmsg, "Cannot connect to %s", ipAddr);
-        return -1;
+        return makeErrorStatus(1, OPEN_ERROR, -1);
     }
     return 0;
 }
@@ -1684,7 +1684,7 @@ int mdsimasDisconnect()
 	    {
 		sprintf(errmsg, "Error opening pulse file %s shot: %d, run: %d. %s", name, shot, run, MdsGetMsg(mdsStatus));
 		printf("%s\n", errmsg);
-		return -1;
+		return makeErrorStatus(1, OPEN_ERROR, status);
 	    }
 	}
 	errmsg[0] = 0;
@@ -1756,13 +1756,13 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 	if(!(status & 1))
 	{
 		sprintf(errmsg, "Error opening model for %s pulse file creation: %s", name, MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, OPEN_ERROR, status);
 	}
 	status = TreeCreatePulseFile(getMdsShot(name, shot, run, 0), 0, NULL);
 	if(!(status & 1))
 	{
 		sprintf(errmsg, "Error creating pulse file: %s", MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, OPEN_ERROR, status);
 	}
 	TreeClose(name, -1);
 
@@ -1771,7 +1771,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 	if(!(status & 1))
 	{
 		sprintf(errmsg, "Error opening created pulse file %s: %s", name, MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, OPEN_ERROR, status);
 	}
         mdsStatus = status = _TreeFindNode(ctx, "topinfo:ref_shot", &refNid);
 	if(!(status & 1))
@@ -1781,14 +1781,14 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
             if(!(status & 1))
             {
 		sprintf(errmsg, "Internal error: treference information not found: %s", MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }  
             status = _TreePutRecord(ctx, refNid, (struct descriptor *)&refD, 0);
             if(!(status & 1))
             {
 		sprintf(errmsg, "Error writing reference shot: %s", MdsGetMsg(status));
-                return -1;
-            }
+		return makeErrorStatus(1, WRITE_ERROR, status);
+           }
         }
         else
         {    
@@ -1796,20 +1796,20 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
             if(!(status & 1))
             {
 		sprintf(errmsg, "Error writing reference shot: %s", MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }
 
             mdsStatus = status = _TreeFindNode(ctx, "topinfo:ref_entry", &refNid);
             if(!(status & 1))
             {
 		sprintf(errmsg, "Internal error: topinfo:ref_run not found: %s", MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }
             status = _TreePutRecord(ctx, refNid, (struct descriptor *)&refRunD, 0);
             if(!(status & 1))
             {
 		sprintf(errmsg, "Error writing reference run: %s", MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }
          }   
  
@@ -1829,7 +1829,7 @@ int mdsimasClose(int idx, char *name, int shot, int run)
     if(checkExpIndex(idx) < 0)
     {
     	unlock();
-	return -1;
+	return makeErrorStatus(1, CLOSE_ERROR, -1);
     }
     //MERGE
     invalidateAllCpoInfos(idx);
@@ -1852,7 +1852,7 @@ int mdsimasClose(int idx, char *name, int shot, int run)
     if(!(status & 1)) {
         sprintf(errmsg, "Error closing %s, shot: %d, run: %d: %s", name, shot, run, MdsGetMsg(status));
 	unlock();
-        return -1;
+        makeErrorStatus(1, CLOSE_ERROR, status);
     }
     unlock();
     return 0;
@@ -2071,7 +2071,7 @@ static int getNid(char *cpoPath, char *path)
 	{
 		free(mdsPath);
 		sprintf(errmsg, "Node at path %s not found: %s", path, MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, OPEN_ERROR, status);
 	}
 
 	free(mdsPath);
@@ -2093,8 +2093,11 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 	struct descriptor_xd *xdPtr;
 
        	lock("getDataLocal");
-        checkExpIndex(expIdx);      
-
+        if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+	    return makeErrorStatus(1, READ_ERROR, -1);
+	}
 //	printf("getDataLocal for %s %s\n",cpoPath, path);  
 //	printf("getDataLocal for %s %s\n",convertPath(cpoPath), convertAnotherPath(path));  
 
@@ -2104,7 +2107,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 	if(nid == -1)
 	{
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, OPEN_ERROR, status);
 	}
         status = TreeGetNumSegments(nid, &numSegments);
         if(!(status & 1))
@@ -2112,7 +2115,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
                 //printf("ERROR %s\n", errmsg);
 	    	unlock();
-		return -1;
+	    	return makeErrorStatus(0, READ_ERROR, status);
         }    
         if(numSegments > 0)
         {
@@ -2127,7 +2130,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 		sprintf(errmsg, "Cannot get segment limits for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 		unlock();
                 printf("ERROR %s\n", errmsg);
-		return -1;
+	    	return makeErrorStatus(1, READ_ERROR, status);
 	    }
 	    isObject = (startXd.pointer->dtype == DTYPE_L); 
 	    MdsFree1Dx(&startXd, 0);
@@ -2154,7 +2157,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
               //  printf("ERROR %s\n", errmsg);
 
 	    	unlock();
-		return -1;
+	    	return makeErrorStatus(0, READ_ERROR, status);
 	}
 	if((status & 1)&&evaluate && retXd->pointer->class != CLASS_APD) status = TdiData(retXd, retXd MDS_END_ARG);
 	unlock();
@@ -2173,22 +2176,25 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
     	ARRAY_COEFF(char, 16) *dataDPtr;
 
        	lock("getDataLocalNoDescr");
-        checkExpIndex(expIdx);      
-
+        if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+	    return makeErrorStatus(1, READ_ERROR, -1);      
+	}
 
         nid = getNid(cpoPath, path);
 /*	printf("nid for %s %s = %d\n",cpoPath, path,nid); */
 	if(nid == -1)
 	{
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, OPEN_ERROR, status);
 	}
         status = TreeGetNumSegments(nid, &numSegments);
         if(!(status & 1))
         {
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	    	unlock();
-		return -1;
+	    	return makeErrorStatus(0, READ_ERROR, status);
         }    
         if(numSegments > 0)
         {
@@ -2197,7 +2203,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
             status = getTimedDataNoDescr(expIdx, cpoPath, path, 0, 0, retData, retDims,  retDimsCt, retType, retClass, retLength, retArsize, &retTimesXd, 1);
             if(!status)
                 MdsFree1Dx(&retTimesXd, 0);
-            return status;
+ 	    return makeErrorStatus(1, READ_ERROR, status);
         }
         
         mdsStatus = status = TreeGetRecord(nid, &xd);
@@ -2206,20 +2212,20 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
 	{
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	    	unlock();
-		return -1;
+ 	    	return makeErrorStatus(0, READ_ERROR, status);
 	}
 	if((status & 1)&&evaluate) status = TdiData(&xd, &xd MDS_END_ARG);
 	if(!xd.pointer)
 	{
 	    unlock();
-	    return -1;
+ 	    return makeErrorStatus(0, READ_ERROR, status);
 	}
 	dataDPtr = (void *)xd.pointer;
 	if(dataDPtr->class != CLASS_A)
 	{
 	    printf("INTERNAL ERROR: getDataLocalNonDescr called for non array data!!!\n");
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, status);
 	}
 	*retType = dataDPtr->dtype;
 	*retClass = dataDPtr->class;
@@ -2233,7 +2239,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
 		else // No data
 		{
 		    MdsFree1Dx(&xd, 0);
-		    return -1;
+	    	    return makeErrorStatus(0, READ_ERROR, status);
 		}
 		/*
 		retDims[0] = dataDPtr->arsize/dataDPtr->length;
@@ -2275,7 +2281,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
     {
             sprintf(errmsg, "Non signal returned from timed data at path %s: %s ", path, cpoPath);
             MdsFree1Dx(&xd, 0);
-            return -1;
+	    return makeErrorStatus(1, READ_ERROR, status);
     }
     //Time conversion
     longTimesD = (struct descriptor_a *)signalD->dimensions[0];
@@ -2283,7 +2289,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
     {
             sprintf(errmsg, "Unexpected timebase data type at path %s: %s ", path, cpoPath);
             MdsFree1Dx(&xd, 0);
-            return -1;
+	    return makeErrorStatus(1, READ_ERROR, status);
     }
     
     nTimes = longTimesD->arsize/longTimesD->length;
@@ -2323,7 +2329,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     {
             sprintf(errmsg, "Non signal returned from timed data at path %s: %s ", path, cpoPath);
             MdsFree1Dx(&xd, 0);
-            return -1;
+	    return makeErrorStatus(1, READ_ERROR, -1);
     }
     //Time conversion
     longTimesD = (struct descriptor_a *)signalD->dimensions[0];
@@ -2331,8 +2337,8 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     {
             sprintf(errmsg, "Unexpected timebase data type at path %s: %s ", path, cpoPath);
             MdsFree1Dx(&xd, 0);
-            return -1;
-    }
+	    return makeErrorStatus(1, READ_ERROR, -1);
+     }
     
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
@@ -2400,16 +2406,20 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     
     lock("getTimedData");
-    checkExpIndex(expIdx);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, READ_ERROR, -1);
+    }
     
-        nid = getNid(cpoPath, path);
+    nid = getNid(cpoPath, path);
     //printf("In GetTimedData: cpopath, path, nid: %s, %s, %d \n",cpoPath, path, nid);
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
     {
 	sprintf(errmsg, "Error getting number of segments for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, status);
     }
     if(numSegments == 0)
     {
@@ -2431,7 +2441,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
             printf("Error in GetTimedData, due to TreeGetSegmentLimits\n");
             sprintf(errmsg, "Error getting segment limits for IDS: %s, field: %s", cpoPath, path);
 	    unlock();
-            return -1;
+            return makeErrorStatus(1, READ_ERROR, -1);
         }
         currStart = getDoubleTime(startXd.pointer);
         currEnd = getDoubleTime(endXd.pointer);
@@ -2450,8 +2460,8 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
              printf("Error in GetTimedData, due to TreeGetSegment\n");
                 sprintf(errmsg, "Error getting segment for IDS: %s, field: %s", cpoPath, path);
 	        unlock();
-                return -1;
-            }
+            	return makeErrorStatus(1, READ_ERROR, -1);
+             }
 
             dataDPtr = (void *)segDataXds[actSegments].pointer;
             if(dataDPtr->dimct == 1)
@@ -2467,7 +2477,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
             printf("Error in GetTimedData, due to TdiData evaluation\n"); 
                sprintf(errmsg, "Error getting segment time for IDS: %s, field: %s", cpoPath, path);
 	        unlock();
-                return -1;
+             	return makeErrorStatus(1, READ_ERROR, -1);
             }
 
             
@@ -2570,15 +2580,18 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     
     lock("getTimedDataNoDescr");
-    checkExpIndex(expIdx);
-    
-        nid = getNid(cpoPath, path);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+    	return makeErrorStatus(1, READ_ERROR, -1);
+    }
+    nid = getNid(cpoPath, path);
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
     {
 	sprintf(errmsg, "Error getting number of segments for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	unlock();
-	return -1;
+        return makeErrorStatus(0, READ_ERROR, -1);
     }
     if(numSegments == 0)
     {
@@ -2598,7 +2611,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         {
             sprintf(errmsg, "Error getting segment limits for IDS: %s, field: %s", cpoPath, path);
 	    unlock();
-            return -1;
+       	    return makeErrorStatus(1, READ_ERROR, -1);
         }
         currStart = getDoubleTime(startXd.pointer);
         currEnd = getDoubleTime(endXd.pointer);
@@ -2615,8 +2628,8 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
             {
                 sprintf(errmsg, "Error getting segment for IDS: %s, field: %s", cpoPath, path);
 	        unlock();
-                return -1;
-            }
+       	    	return makeErrorStatus(1, READ_ERROR, -1);
+             }
 
             dataDPtr = (void *)segDataXds[actSegments].pointer;
             if(dataDPtr->dimct == 1)
@@ -2631,7 +2644,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
             {
                 sprintf(errmsg, "Error getting segment time for IDS: %s, field: %s", cpoPath, path);
 	        unlock();
-                return -1;
+       	    	return makeErrorStatus(1, READ_ERROR, -1);
             }
 
             
@@ -2754,7 +2767,11 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     int nid, numSegments, currSegment, isObject;
 
     lock("getSlicedDataLocal");
-    checkExpIndex(expIdx);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, READ_ERROR, -1);
+    }
 
     
         nid = getNid(cpoPath, path);
@@ -2763,7 +2780,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     {
 	sprintf(errmsg, "Error getting number of segments for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
         unlock();
-	return -1;
+       	return makeErrorStatus(0, READ_ERROR, -1);
     }
     if(numSegments == 0)
     {
@@ -2778,7 +2795,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     {
 	sprintf(errmsg, "Cannot get segment limits for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	unlock();
-	return -1;
+       	return makeErrorStatus(1, READ_ERROR, -1);
     }
     isObject = (startXd.pointer->dtype == DTYPE_L); 
     if(isObject)
@@ -2808,7 +2825,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
         {
             sprintf(errmsg, "Error getting segment limits for IDS: %s, field: %s", cpoPath, path);
             unlock();
-            return -1;
+       	    return makeErrorStatus(1, READ_ERROR, -1);
         }
         currStart = getDoubleTime(startXd.pointer);
         currEnd = getDoubleTime(endXd.pointer);
@@ -2823,7 +2840,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     if(!(status & 1))
     {
         sprintf(errmsg, "Error getting segment for IDS: %s, field: %s", cpoPath, path);
-        return -1;
+       	return makeErrorStatus(1, READ_ERROR, -1);
     }
     //Times is now an expression
     status = TdiData(&timesXd, &timesXd MDS_END_ARG);
@@ -2831,7 +2848,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     {
         sprintf(errmsg, "Error getting segment time for IDS: %s, field: %s", cpoPath, path);
         unlock();
-        return -1;
+       	return makeErrorStatus(1, READ_ERROR, -1);
     }
     leftItems = 0;
     leftRows = 0;
@@ -2906,7 +2923,7 @@ int getDataAndSliceIdxs(int expIdx, char *cpoPath, char *path, char *timeBasePat
             sprintf(errmsg, "Unexpected timebase data type at path %s: %s ", path, cpoPath);
             MdsFree1Dx(xd, 0);
             MdsFree1Dx(&timesXd, 0);
-            return -1;
+       	    return makeErrorStatus(1, READ_ERROR, -1);
     }
     *retNTimes = nTimes = timesD->arsize / timesD->length;
 //Make sure nTimes does not exceed the number of data samples
@@ -2959,7 +2976,11 @@ static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 //printf("PUT DATA LOCAL %s %s\n", path, decompileDsc(dataD));
 //reportInfo("PUT DATA LOCAL\n", path);
 	lock("putDataLocal");
-	checkExpIndex(expIdx);
+	if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
+	}
 
 //reportInfo("PUT DATA LOCAL CHECK EXP INDEX\n", path);
         nid = getNid(cpoPath, path);
@@ -2967,7 +2988,7 @@ static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 	if(nid == -1)
 	{
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
 	}
 /* Check if dataD is an empty XD and the nid is already empty: simply return in this case */
 	if(dataD->class == CLASS_XD && ((struct descriptor_xd *)dataD)->l_length == 0)
@@ -3000,7 +3021,7 @@ static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
  	if(!(status & 1))
 	{
 		sprintf(errmsg, "Cannot write data at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
 	}
 	return 0;
 }
@@ -3061,7 +3082,11 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
         _int64u currEndL;
 
 	lock("putSegmentLocal");
-	checkExpIndex(expIdx);
+	if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
+	}
 //       printf("ual_low_level_mdsplus : putSegmentLocal user paths : %s , %s , %s\n", cpoPath, path,timeBasePath);
 
         nid = getNid(cpoPath, path);
@@ -3070,14 +3095,14 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
 	{
                 printf("Node not found, nid = -1");
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
         }
         status = TreeGetNumSegments(nid, &currSegment);
         if(!(status & 1))
 	{
 		sprintf(errmsg, "Cannot get num segments segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
 	}
 //    printf("ual_low_level_mdsplus : putSegmentLocal converted paths before CheckedSegment (cpopath, timebasepath) : %s , %s \n", convertPath(cpoPath),convertAnotherPath(timeBasePath));
         sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"%s:%s\"),%d))", convertPathDot(cpoPath),convertAnotherPathDot(timeBasePath), currSegment);
@@ -3091,7 +3116,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
 	{
 		sprintf(errmsg, "Internal error at path %s, IDS path %s: %s: cannot compile %s", path, cpoPath, MdsGetMsg(status), segmentExpr);
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
 	}
         if(currSegment == 0)
             leftItems = leftRows = 0;
@@ -3114,7 +3139,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             {
 		sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
             }
             prevPtr = dataD->pointer;
             //Need also to update end time for that segment.
@@ -3123,7 +3148,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             {
 		sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
             }
             if(endXd.pointer->dtype == DTYPE_Q || endXd.pointer->dtype == DTYPE_QU)
                 *(_int64 *)endXd.pointer->pointer = currEndL;
@@ -3134,7 +3159,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             {
 		sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
             }
             MdsFree1Dx(&startXd, 0);
             MdsFree1Dx(&endXd, 0);
@@ -3153,14 +3178,14 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
                     dataD->pointer = prevPtr;
                     sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		    unlock();
-                    return -1;
-                }
+		    return makeErrorStatus(1, WRITE_ERROR, status);;
+                 }
                 status = TreePutSegment(nid, -1, dataD);
                 if(!(status & 1))
                 {
                     sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		    unlock();
-                    return -1;
+		    return makeErrorStatus(1, WRITE_ERROR, status);;
                 }
                 //free(segDataD.pointer);
             }
@@ -3199,14 +3224,14 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             {
                 sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-                return -1;
-            }
+		return makeErrorStatus(1, WRITE_ERROR, status);;
+           }
             status = TreePutSegment(nid, -1, dataD);
             if(!(status & 1))
             {
                 sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-                return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }
         }
 
@@ -3218,8 +3243,9 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
 
 static int mdsbeginIdsPutSliceLocal(int expIdx, char *path)
 {
-    int status;
-    status = checkExpIndex(expIdx);
+    int status = checkExpIndex(expIdx);
+    if(status < 0)
+	status = makeErrorStatus(1, WRITE_ERROR, -1);
     return status;
 }
 
@@ -3230,8 +3256,9 @@ static int mdsendIdsPutSliceLocal(int expIdx, char *path)
 
 static int mdsbeginIdsReplaceLastSliceLocal(int expIdx, char *path)
 {
-    int status;
-    status = checkExpIndex(expIdx);
+    int status = checkExpIndex(expIdx);
+    if(status < 0)
+	status = makeErrorStatus(1, WRITE_ERROR, -1);
     return status;
 }
 
@@ -3266,13 +3293,16 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
             dataLen = dataD->length;
         
 	lock("putSliceLocal");
-	checkExpIndex(expIdx);
-        
+	if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+            return makeErrorStatus(1, WRITE_ERROR, status);
+	}
         nid = getNid(cpoPath, path);
 	if(nid == -1)
 	{
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, -1);
 	}
         
         status = TreeGetNumSegments(nid, &currSegment);
@@ -3280,7 +3310,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
 	{
 		sprintf(errmsg, "Cannot get num segments at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);;
 	}
 //        sprintf(segmentExpr, "data(GetCheckedSegment(%s:time,%d))", convertPath(cpoPath), currSegment);
         sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"%s:%s\"),%d))", convertPathDot(cpoPath),convertAnotherPathDot(timeBasePath), currSegment);
@@ -3291,7 +3321,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
 	{
 		sprintf(errmsg, "Internal error at path %s, IDS path %s: %s: cannot compile %s", path, cpoPath, MdsGetMsg(status), segmentExpr);
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
 	}
         currEnd = time;
         if(currSegment == 0)
@@ -3305,14 +3335,14 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
             {
 		sprintf(errmsg, "Internal error in putSlice at path %s, IDS path %s: %s: wrong segment size", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, -1);
             }
             status = TreePutSegment(nid, -1, (struct descriptor_a *)dataD);
            if(!(status & 1))
             {
 		sprintf(errmsg, "Cannot write segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, -1);
             }
             if(leftBytes == dataLen) //if last data in segment, need to update end time
             {
@@ -3321,7 +3351,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
                 {
                     sprintf(errmsg, "Cannot update segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		    unlock();
-                    return -1;
+		    return makeErrorStatus(1, WRITE_ERROR, status);
                 }
             }    
         }
@@ -3371,14 +3401,14 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
             {
                 sprintf(errmsg, "Cannot write data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-                return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
             }
             status = TreePutSegment(nid, -1, (struct descriptor_a *)dataD);
             if(!(status & 1))
             {
                 sprintf(errmsg, "Cannot append data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-                return -1;
+ 		return makeErrorStatus(1, WRITE_ERROR, status);
             }
             free(dataPtr);
         }
@@ -3416,13 +3446,16 @@ static int replaceLastSliceLocal(int expIdx, char *cpoPath, char *path, struct d
             dataLen = dataD->length;
         
  	lock("replaceLastSliceLocal");
-	checkExpIndex(expIdx);
-        
+	if(checkExpIndex(expIdx) < 0)
+	{
+	    unlock();
+	    return makeErrorStatus(1, WRITE_ERROR, -1); 
+	}       
         nid = getNid(cpoPath, path);
 	if(nid == -1)
 	{
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, -1);
 	}
         
         status = TreeGetNumSegments(nid, &currSegment);
@@ -3430,13 +3463,13 @@ static int replaceLastSliceLocal(int expIdx, char *cpoPath, char *path, struct d
 	{
 		sprintf(errmsg, "Cannot get num segments at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, status);
 	}
         if(currSegment == 0)
 	{
 		sprintf(errmsg, "No slice to be replaced %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 		unlock();
-		return -1;
+		return makeErrorStatus(1, WRITE_ERROR, -1);
 	}
 #ifdef OLD_MDS
         status = TreeGetSegmentInfo(nid, &dtype, &nDims, dims, &idx, &nextRow);
@@ -3447,14 +3480,14 @@ static int replaceLastSliceLocal(int expIdx, char *cpoPath, char *path, struct d
         {
             printf("Internal error TreeGetSegmentInfo!\n");
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, status);
         }
         status = TreePutSegment(nid, nextRow - 1, (struct descriptor_a *)dataD);
         if(!(status & 1))
         {
             sprintf(errmsg, "Cannot append data segment at path %s, IDS path %s: %s", path, cpoPath, MdsGetMsg(status));
 	    unlock();
-            return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, status);
         }
 	unlock();
         return 0;
@@ -3464,6 +3497,8 @@ static int mdsbeginIdsPutLocal(int expIdx, char *path)
 {
     int status;
     status = checkExpIndex(expIdx);
+    if(status < 0)
+	status = makeErrorStatus(1, WRITE_ERROR, -1);
     return status;
 }
 
@@ -3476,6 +3511,8 @@ static int mdsbeginIdsPutTimedLocal(int expIdx, char *path, int samples, double 
 {
     int status;
     status = checkExpIndex(expIdx);
+    if(status < 0)
+	status = makeErrorStatus(1, WRITE_ERROR, -1);
     return status;
 }
 
@@ -3488,6 +3525,8 @@ static int mdsbeginIdsPutNonTimedLocal(int expIdx, char *path)
 {
     int status;
     status = checkExpIndex(expIdx);
+    if(status < 0)
+	status = makeErrorStatus(1, WRITE_ERROR, -1);
     return status;
 }
 
@@ -5293,26 +5332,29 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
     EMPTYXD(xd);
     ARRAY_COEFF(char, 16) *dataDPtr;
     lock("mdsGetLocalDimension");
-    checkExpIndex(expIdx);      
-        nid = getNid(cpoPath, path);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();     
+	return makeErrorStatus(1, READ_ERROR, -1);
+    }
+    nid = getNid(cpoPath, path);
 /*	printf("nid for %s %s = %d\n",cpoPath, path,nid); */
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, status);
     }
     if(isEmpty(nid))
     {
 	unlock();
- 	return -1;
-    }
+	return makeErrorStatus(0, READ_ERROR, -1);
+     }
 //printf("NOT EMPTY\n");
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
     {
-	sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, status);
     }    
     if(numSegments > 0)
     {
@@ -5326,7 +5368,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	    {
 		printf("INTERNAL ERROR: Last Segment dimension is inconsistent!!!\n");
 		unlock();
-		return -1;
+		return makeErrorStatus(1, READ_ERROR, status);
 	    }
 	    lastDim += nextRow;
 	}
@@ -5339,14 +5381,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	{
 	    sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(0, READ_ERROR, status);
 	}
 	dataDPtr = (void *)xd.pointer;
 	if(dataDPtr->class != CLASS_A)
 	{
 	    printf("INTERNAL ERROR: getDataLocalNonDescr called for non array data!!!\n");
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, status);
 	}
 	if(dataDPtr->dimct == 1) //Single dimension array
 	{
@@ -5414,7 +5456,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	    {
 	    	nDims = 0;
             	*dim1 = *dim2 = *dim3 = *dim4 = *dim5 = *dim6 = *dim7 = 0;
-	    	return -1;
+	    	return makeErrorStatus(0, READ_ERROR, -1);
 	    }
 	    *numDims = nDims;
 	    *dim1 = dims[0];
@@ -5601,12 +5643,12 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s.  Class= %d Type = %d\n", cpoPath, path,
                             dataD->class, dataD->dtype);
-                        return -1;
+ 	    		return makeErrorStatus(1, READ_ERROR, -1);
 		}
 		if(dataD->length == 0)
 		{
 		    MdsFree1Dx(&xd, 0);
-		    return -1;
+ 	    	    return makeErrorStatus(0, READ_ERROR, -1);
 		}
                 nItems = dataD->arsize/dataD->length;
 		retData = (char **)malloc(sizeof(char *) * nItems);
@@ -6956,7 +6998,7 @@ static int mdsbeginIdsGetLocal(int expIdx, char *path, int isTimed, int *retSamp
         if(status)
         {
             mdsendIdsGet(expIdx, path);
-            return status;
+            return makeErrorStatus(1, READ_ERROR, -1);
         }
 	if(!isTimed)
 	{
@@ -6971,7 +7013,7 @@ static int mdsbeginIdsGetLocal(int expIdx, char *path, int isTimed, int *retSamp
                 printf("Error in beginIdsGetLocal\n");
 		sprintf(errmsg, "Internal error: Time not found for beginIdsGet at path %s: %s", path, MdsGetMsg(mdsStatus));
                 mdsendIdsGet(expIdx, path);
-                return -1;
+ 	    	return makeErrorStatus(1, READ_ERROR, -1);
 	    }
 	    arrayD = (struct descriptor_a *)xd.pointer;
 	    *retSamples = arrayD->arsize/arrayD->length;
@@ -7008,7 +7050,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
         if(status)
         {
             mdsendIdsGetSlice(expIdx, path);
-            return status;
+            return makeErrorStatus(1, READ_ERROR, -1);
         }
 
 	return status;
@@ -7105,12 +7147,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(status || !xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Error: not an int array at IDS:  %s, field %s", cpoPath, path);
-		return -1;
+		return makeErrorStatus(1, READ_ERROR, -1);
 	}
 	arrayD = (struct descriptor_a *)xd.pointer;
 	y1 = ((int *)arrayD->pointer)[sliceIdx1];
@@ -7158,12 +7200,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a float array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 	arrayD = (struct descriptor_a *)xd.pointer;
 	y1 = ((float *)arrayD->pointer)[sliceIdx1];
@@ -7210,12 +7252,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(status || !xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a double array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 	arrayD = (struct descriptor_a *)xd.pointer;
 	y1 = ((double *)arrayD->pointer)[sliceIdx1];
@@ -7263,12 +7305,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(status || !xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7329,12 +7371,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(status || !xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7391,12 +7433,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
         if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(status || !xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_BU)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7454,12 +7496,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7522,12 +7564,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7588,12 +7630,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(status));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7654,12 +7696,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7719,12 +7761,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
        	arrayD = (void *)xd.pointer;
@@ -7786,12 +7828,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(status));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7854,12 +7896,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -7920,12 +7962,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
        	arrayD = (void *)xd.pointer;
@@ -7989,12 +8031,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(status));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8059,12 +8101,12 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8127,12 +8169,12 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
        	arrayD = (void *)xd.pointer;
@@ -8197,12 +8239,12 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(status));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8268,12 +8310,12 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8337,12 +8379,12 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_L)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
        	arrayD = (void *)xd.pointer;
@@ -8408,12 +8450,12 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(status));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || xd.pointer->dtype != DTYPE_FLOAT)
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8480,12 +8522,12 @@ int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int in
 	if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
-		return -1;
+		return status;
 	}
 	if(!xd.l_length || xd.pointer->class != CLASS_A || (xd.pointer->dtype != DTYPE_DOUBLE && xd.pointer->dtype != DTYPE_FT))
 	{
 		sprintf(errmsg, "Internal error: not a int array at IDS path %s, path %s", cpoPath, path);
-		return -1;
+		makeErrorStatus(1, READ_ERROR, -1);
 	}
 
 	arrayD = (void *)xd.pointer;
@@ -8876,7 +8918,7 @@ int mdsIsSliced(int expIdx, char *cpoPath, char *path)
     int status, numSegments = 0, nid;
     lock("mdsIsSliced");
     checkExpIndex(expIdx);      
-        nid = getNid(cpoPath, path);
+    nid = getNid(cpoPath, path);
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
     {
@@ -8926,7 +8968,7 @@ void *mdsBeginObject()
 
 
 //Releases memory for array of structures
-static void releaseObject(void *obj)
+static void releaseObjectInternal(void *obj)
 {
     struct descriptor_a *apdPtr;
     struct descriptor *dPtr;
@@ -8940,7 +8982,7 @@ static void releaseObject(void *obj)
 	for(i = 0; i < nItems; i++)
 	  //OH: bug fix = test for un-allocated elements of a struct_array 
 	  if (((void **)apdPtr->pointer)[i] != NULL)
-	    releaseObject(((void **)apdPtr->pointer)[i]);
+	    releaseObjectInternal(((void **)apdPtr->pointer)[i]);
 	free((char *)apdPtr->pointer);
 	free((char *)apdPtr);
     }
@@ -8989,7 +9031,7 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     
     reportInfo("PUT OBJECT SEGMENT 1\n", "");
@@ -9000,7 +9042,7 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
     {
         sprintf(errmsg, "Error reading number of segments at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
 	unlock();
-	return -1;
+	return status;
     }
 
     reportInfo("PUT OBJECT SEGMENT 1 \n", "");
@@ -9070,12 +9112,17 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
 
 
     lock("putObjectSegmentLocal");
-    checkExpIndex(expIdx);
-        nid = getNid(cpoPath, path);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, WRITE_ERROR, -1);
+    }
+    nid = getNid(cpoPath, path);
+	
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     if(!isEmpty(nid))
     {
@@ -9084,7 +9131,7 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
     	{
 	    unlock();
 	    sprintf(errmsg, "INTERNAL ERROR:CANNOT DELETE DATA : %s", MdsGetMsg(status));
-	    return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
     	}
     }
     apds = (struct descriptor_a **)objSlices;
@@ -9099,7 +9146,7 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
     	{
 	    sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
     	}
 	sliceSizes[sliceIdx] = arrD->arsize;
     }
@@ -9166,7 +9213,7 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
 	    free((char *)serializedXds);
 	    free((char *)sliceSizes);
  	    unlock();
-            return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
         }
     }//endwhile
     //Free stuff
@@ -9202,12 +9249,16 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     struct descriptor_a *currArrD;
 
     lock("putObjectSegmentLocal");
-    checkExpIndex(expIdx);
-        nid = getNid(cpoPath, path);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, WRITE_ERROR, -1);
+    }
+    nid = getNid(cpoPath, path);
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
 
 //Accessory segment information: 
@@ -9220,7 +9271,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     {
         sprintf(errmsg, "Error reading number of segments at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     if(numSegments == 0)
     {
@@ -9234,7 +9285,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	{
              sprintf(errmsg, "Error reading nsegment limits at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
     	}
 	startSegIdx = *((int *)startXd.pointer->pointer);
 	endSegIdx = *((int *)endXd.pointer->pointer);
@@ -9254,7 +9305,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     {
 	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     if(segIdx != -1) 
 //ReplaceLastObject case: decrease number of slices for this segment and write a new straight segment for this slice
@@ -9265,7 +9316,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	{
 	    sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
     	}
 	if(endSegIdx != -1 && endSegIdx == startSegIdx) //If only one slice for this segment is left, change its content in the "traditional" way, i.e. without 4 byte length in front of serialized
 	{
@@ -9274,7 +9325,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	    {
 	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	    	unlock();
-	    	return -1;
+	    	return makeErrorStatus(1, WRITE_ERROR, -1);
     	    }
 	    currArrD = (struct descriptor_a *)retSegmentXd.pointer;
 	    currArrD->pointer += sizeof(int);
@@ -9284,8 +9335,8 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	    {
 	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	    	unlock();
-	    	return -1;
-    	    }
+	    	return makeErrorStatus(1, WRITE_ERROR, -1);
+   	    }
 	    currArrD->pointer -= sizeof(int);
 	    currArrD->arsize += sizeof(int);
 	    MdsFree1Dx(&retSegmentXd, 0);
@@ -9334,7 +9385,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	    {
 	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT GET SEGMENT : %s", MdsGetMsg(status));
 	    	unlock();
-	    	return -1;
+	    	return makeErrorStatus(1, WRITE_ERROR, -1);
     	    }
 	    currArrD = (struct descriptor_a *)retSegmentXd.pointer;
 	    currArrD->pointer += sizeof(int);
@@ -9344,7 +9395,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     	    {
 	    	sprintf(errmsg, "INTERNAL ERROR:CANNOT PUT SEGMENT : %s", MdsGetMsg(status));
 	    	unlock();
-	    	return -1;
+	    	return makeErrorStatus(1, WRITE_ERROR, -1);
     	    }
 	    currArrD->pointer -= sizeof(int);
 	    currArrD->arsize += sizeof(int);
@@ -9385,7 +9436,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     {
 	sprintf(errmsg, "Error Writing Object Segment: %s", MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     unlock();
     return 0;
@@ -9410,14 +9461,14 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
     	updateInfoTimedObject(expIdx, cpoPath, path, 1, obj);
     if(cacheLevel == 2)
     {
-        releaseObject(obj);
+        releaseObjectInternal(obj);
    	return 0;
     }
     apd = (struct descriptor_a *)obj;
     if(apd->class != CLASS_APD)
     {
 	sprintf(errmsg, "INTERNAL ERROR:Not an APD at path %s, IDS path %s", path, cpoPath);
-	return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
 
     fullPath = malloc(strlen(path) + 7);
@@ -9445,7 +9496,7 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
 	    }
     	}
     }
-    releaseObject(obj);
+    releaseObjectInternal(obj);
     free(fullPath);
     return 0;
 }
@@ -9469,7 +9520,7 @@ int mdsPutObject(int expIdx, char *cpoPath, char *path, void *obj, int isTimed)
     }
     if(cacheLevel == 2)
     {
-        releaseObject(obj);
+        releaseObjectInternal(obj);
     	free(fullPath);
     	return 0;
     }
@@ -9478,7 +9529,7 @@ int mdsPutObject(int expIdx, char *cpoPath, char *path, void *obj, int isTimed)
     else
     	status = putDataLocal(expIdx, cpoPath, fullPath, obj);
     free(fullPath);
-    releaseObject(obj);
+    releaseObjectInternal(obj);
     return status;
 }
 
@@ -9860,7 +9911,7 @@ int mdsGetObjectDim(void *obj)
     if(!apd || apd->class != CLASS_APD)
     {
 	sprintf(errmsg, "Invalid object in mdsGetObjectDim\n");
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     return apd->arsize/apd->length;
 }
@@ -9873,7 +9924,7 @@ void mdsReleaseObject(void *obj)
     xd = (struct descriptor_xd *)obj;
     if(xd->class != CLASS_XD)
     {
-	releaseObject(obj); //In the case an empty object has not been put in the pulse file
+	releaseObjectInternal(obj); //In the case an empty object has not been put in the pulse file
 	return;
     }
     MdsFree1Dx(xd, 0);
@@ -9907,14 +9958,18 @@ static int getObjectLocalOLD(int expIdx, char *cpoPath, char *path,  void **obj,
 	strcpy(fullPath, path);
     }
     lock("getObjectLocal");
-    checkExpIndex(expIdx);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatue(1, READ_ERROR, -1);
+    }
 
-        nid = getNid(cpoPath, path);
+    nid = getNid(cpoPath, path);
     free(fullPath);
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatue(1, READ_ERROR, -1);
     }
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
@@ -10021,21 +10076,25 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	strcpy(fullPath, path);
     }
     lock("getObjectLocal");
-    checkExpIndex(expIdx);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	makeErrorStatus(1, READ_ERROR, -1);
+    }
 
-        nid = getNid(cpoPath, fullPath);
+    nid = getNid(cpoPath, fullPath);
     free(fullPath);
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
     {
         sprintf(errmsg, "Error getting number of segments at path %s/%s ", cpoPath, path);
 	unlock();
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, -1);
     }
     if(numSegments == 0)
     {
@@ -10047,7 +10106,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
             sprintf(errmsg, "Error reading object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
 	    unlock();
 	    free((char *)retXd);
-	    return -1;
+	    return makeErrorStatus(0, READ_ERROR, -1);
     	}
 	unlock();
 	*obj = retXd;
@@ -10065,7 +10124,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
             sprintf(errmsg, "Error reading egment limits for object at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
 	    unlock();
 	    free((char *)retXd);
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, -1);
     	}
 	startSegId = *(int *)(startSegIdXd.pointer->pointer);
 	endSegId = *(int *)(endSegIdXd.pointer->pointer);
@@ -10090,13 +10149,13 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	{
             sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, -1);
     	}
 	if(!xd.pointer || xd.pointer->class != CLASS_A)
 	{
             sprintf(errmsg, "Wrong segment data returned at path %s/%s", cpoPath, path);
 	    unlock();
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, -1);
     	}
 	arrD = (struct descriptor_a *)xd.pointer;
 	if(slicesPerSegment[segIdx] == 0) continue; //In case the segment sdoes not contain slices (replaceLastSegment)
@@ -10119,7 +10178,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
     	    {
         	printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", cpoPath, path, MdsGetMsg(status));
 		unlock();
-		return -1;
+	    	return makeErrorStatus(1, READ_ERROR, -1);
     	    }
 	    dscPtrs[sliceIdx] = xds[sliceIdx].pointer;
 	    sliceIdx++;
@@ -10134,7 +10193,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
     	    	{
         	    printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", cpoPath, path, MdsGetMsg(status));
 		    unlock();
-		    return -1;
+	    	    return makeErrorStatus(1, READ_ERROR, -1);
     	    	}
 	    	dscPtrs[sliceIdx] = xds[sliceIdx].pointer;
 	    	sliceIdx++;
@@ -10173,7 +10232,7 @@ int mdsGetObject(int expIdx, char *cpoPath, char *path, void **obj, int isTimed)
 	if(exists)
 	    return 0;
 	else
-	    return -1;
+	    return makeErrorStatus(0, READ_ERROR, -1);
     }
     if(isExpRemote(expIdx))
         status = getObjectRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, obj, isTimed);
@@ -10263,11 +10322,12 @@ int mdsGetStringFromObject(void *obj, char *path, int idx, char **data)
     int status;
     struct descriptor_a *dataD = (struct descriptor_a *)getDataFromObject(obj, path, idx);
 	
-    if(!dataD) return -1;
+    if(!dataD) 	    
+	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_A || dataD->dtype != DTYPE_BU)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     *data = malloc(dataD->arsize + 1);
     memcpy(*data, dataD->pointer, dataD->arsize);
@@ -10279,11 +10339,12 @@ int mdsGetIntFromObject(void *obj, char *path, int idx, int *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
 	
-    if(!dataD) return -1;
+    if(!dataD) 	
+	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || dataD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     *data = *(int *)dataD->pointer;
     return 0;
@@ -10293,11 +10354,12 @@ int mdsGetFloatFromObject(void *obj, char *path, int idx, float *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
 	
-    if(!dataD) return -1;
+    if(!dataD) 
+	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || dataD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     *data = *(float *)dataD->pointer;
     return 0;
@@ -10307,11 +10369,11 @@ int mdsGetDoubleFromObject(void *obj, char *path, int idx, double *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
 	
-    if(!dataD) return -1;
+    if(!dataD) return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || (dataD->dtype != DTYPE_DOUBLE && dataD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     *data = *(double *)dataD->pointer;
     return 0;
@@ -10323,15 +10385,15 @@ int mdsGetVect1DStringFromObject(void *obj, char *path, int idx, char  ***data, 
     char **retData;
     struct descriptor_a *dataD = (struct descriptor_a *)getDataFromObject(obj, path, idx);
 	
-    if(!dataD) return -1;
+    if(!dataD) return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-        return -1;
+        return makeErrorStatus(1, READ_ERROR, -1);
     }
     if(dataD->length == 0)
     {
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, -1);
     }
     nItems = dataD->arsize/dataD->length;
     retData = (char **)malloc(sizeof(char *) * nItems);
@@ -10351,11 +10413,12 @@ int mdsGetVect1DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) 	
+	return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10371,11 +10434,11 @@ int mdsGetVect1DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10390,11 +10453,11 @@ int mdsGetVect1DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10409,11 +10472,11 @@ int mdsGetVect2DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10429,11 +10492,11 @@ int mdsGetVect2DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10449,11 +10512,11 @@ int mdsGetVect2DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10469,11 +10532,11 @@ int mdsGetVect3DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10490,11 +10553,11 @@ int mdsGetVect3DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10511,11 +10574,11 @@ int mdsGetVect3DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10532,11 +10595,11 @@ int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10554,11 +10617,11 @@ int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10576,11 +10639,11 @@ int mdsGetVect4DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10598,11 +10661,11 @@ int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10621,11 +10684,11 @@ int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10644,11 +10707,11 @@ int mdsGetVect5DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10667,11 +10730,11 @@ int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10691,11 +10754,11 @@ int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10714,11 +10777,11 @@ int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect6DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10739,11 +10802,11 @@ int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10764,11 +10827,11 @@ int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, in
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10789,11 +10852,11 @@ int mdsGetVect7DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
 	
-    if(!arrD) return -1;
+    if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
     if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     else
     {
@@ -10813,7 +10876,7 @@ int mdsGetVect7DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetObjectFromObject(void *obj, char *path, int idx, void **dataObj)
 {
     *dataObj = (void *)getDataFromObject(obj, path, idx);
-    if(!*dataObj) return -1;
+    if(!*dataObj) return makeErrorStatus(0, READ_ERROR, -1);
     return 0;
 }
 int mdsGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
@@ -10828,7 +10891,7 @@ int mdsGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *n
     dscPtr = getDataFromObject(obj, path, idx);
     //printf("in mdsGetDimensionFromObject 2\n");
 
-    if(!dscPtr) return -1;
+    if(!dscPtr) return makeErrorStatus(0, READ_ERROR, -1);
     if(dscPtr->class == CLASS_S)
     {
         *numDims = 0;
@@ -10927,8 +10990,12 @@ static int getObjectSliceLocalOLD(int expIdx, char *cpoPath, char *path,  double
     }
 	
     lock("getObjectSliceLocal");
-    checkExpIndex(expIdx);      
-        nid = getNid(cpoPath, path);
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, READ_ERROR, -1);
+    }
+    nid = getNid(cpoPath, path);
     free(fullPath);
     if(nid == -1)
     {
@@ -11048,17 +11115,22 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	if(exists)
 	    return 0;
 	else
-	    return -1;
+	    return makeErrorStatus(0, READ_ERROR, -1);
     }
 	
     lock("getObjectSliceLocal");
-    checkExpIndex(expIdx);      
+    if(checkExpIndex(expIdx) < 0)
+    {
+	unlock();
+	return makeErrorStatus(1, READ_ERROR, -1);
+    }    
+
     nid = getNid(cpoPath, fullPath);
     free(fullPath);
     if(nid == -1)
     {
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
 /***********Change single TreeGetSegment with the search of the right segment *************
     status = TreeGetSegment(nid, segIdx, &xd, &dimXd);
@@ -11086,7 +11158,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     {
         sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
 	unlock();
-	return -1;
+	makeErrorStatus(1, READ_ERROR, -1);
     }
 
     //printf("Here in low level 1\n");
@@ -11097,7 +11169,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
         printf("ERROR %s\n",errmsg);
 
 	unlock();
-	return -1;
+	return makeErrorStatus(0, READ_ERROR, -1);
     }
 
     for(actSegmentIdx = numSegments - 1; actSegmentIdx >= 0; actSegmentIdx--)
@@ -11107,9 +11179,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     	{
             sprintf(errmsg, "Error reading num object segment at path %s/%s: %s ", cpoPath, path, MdsGetMsg(status));
 	    unlock();
-        printf("ERROR %s\n",errmsg);
-
-	    return -1;
+	    return makeErrorStatus(1, READ_ERROR, -1);
     	}
 	segStartIdx = *((int *)segStartXd.pointer->pointer);
 	segEndIdx = *((int *)segEndXd.pointer->pointer);
@@ -11128,7 +11198,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
         printf("%s\n",errmsg);
 
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     status = TreeGetSegment(nid, actSegmentIdx, &xd, &dimXd);
     if(!(status & 1))
@@ -11136,7 +11206,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
         sprintf(errmsg, "Error reading object segment at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
         printf("%s\n",errmsg);
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     MdsFree1Dx(&dimXd, 0);
     if(!xd.pointer || xd.pointer->class != CLASS_A)
@@ -11144,7 +11214,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
         sprintf(errmsg, "Wrong segment data returned at path %s/%s", path, cpoPath);
         printf("%s\n",errmsg);
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     //printf("Here in low level 3\n");
 
@@ -11181,9 +11251,9 @@ in traditional way or only one of multiple slices (i.e. the last slice) */
     MdsFree1Dx(&xd, 0);
     if(!(status & 1))
     {
-    	printf("INTERNAL ERROR: Cannot deserialize data eturned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
+    	printf("INTERNAL ERROR: Cannot deserialize data returned at path %s/%s: %s\n", path, cpoPath, MdsGetMsg(status));
 	unlock();
-	return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     retApd.arsize = retApd.length = sizeof(struct descriptor *);
     retApd.pointer = &deserializedXd.pointer;
@@ -11213,19 +11283,19 @@ int mdsPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void *
     	{
 	    status = mdsGetObject(expIdx, cpoPath, path, &tempObj, 1);
 	    if(!status)
-	        releaseObject(tempObj);
+	        releaseObjectInternal(tempObj);
         }
 	updateInfoObjectSlice(expIdx, cpoPath, path, obj);
         if(cacheLevel == 2)
 	{
 	    free(fullPath);
-    	    releaseObject(obj);
+    	    releaseObjectInternal(obj);
     	    return 0;
 	}
     }	    
     status = putObjectSegment(expIdx, cpoPath, fullPath, obj, -1);
 
-    releaseObject(obj);
+    releaseObjectInternal(obj);
     free(fullPath);
     return status;
 }
@@ -11240,7 +11310,7 @@ int mdsReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
     sprintf(fullPath, "%s/timed", path);
 
     status = putObjectSegment(expIdx, cpoPath, fullPath, obj, 0);
-    releaseObject(obj);
+    releaseObjectInternal(obj);
     free(fullPath);
     return status;
 }
@@ -11366,14 +11436,14 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
     if(fromCtx == 0)
     {
         sprintf(errmsg, "Cannot get source pulse file");
-        return -1;
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     toCtx = getExpIndex(toIdx);
     if(toCtx == 0)
     {
         sprintf(errmsg, "Cannot get target pulse file");
-        return -1;
-    }
+	return makeErrorStatus(1, WRITE_ERROR, -1);
+     }
     _TreeGetDefaultNid(fromCtx, &fromDefNid);
     _TreeGetDefaultNid(toCtx, &toDefNid);
     cpoName = path2MDS(inputcpoName);
@@ -11399,13 +11469,13 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
     if(!(status & 1))
     {
         sprintf(errmsg, "Cannot find source IDS");
-        return -1;
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     status = _TreeSetDefault(toCtx, toNameBuf, &toBaseNid);
     if(!(status & 1))
     {
-        sprintf(errmsg, "Cannot find target IDS");
-        return -1;
+       sprintf(errmsg, "Cannot find target IDS");
+	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
 
     while(_TreeFindNodeWild(fromCtx, "***", &currNid, &wildCtx, usage) & 1)

@@ -1,3 +1,7 @@
+#ifndef _UAL_LOW_LEVEL_H
+#define _UAL_LOW_LEVEL_H
+
+
 #define INTERPOLATION 3
 #define CLOSEST_SAMPLE 1
 #define PREVIOUS_SAMPLE 2
@@ -283,3 +287,14 @@ int ual_copy_cpo_env(char *tokamakFrom, char *versionFrom, char *userFrom, int s
 //New memory cache settings
 void imas_set_cache_level(int expIdx, int level);
 int imas_get_cache_level(int expIdx);
+
+//Error Management support routine
+#define WRITE_ERROR 1
+#define READ_ERROR 2
+#define OPEN_ERROR 3
+#define CLOSE_ERROR 4
+int  makeErrorStatus(int isCritical, int type, int intStatus);
+int isCriticalError(int status);
+int getErrorType(int status);
+
+#endif

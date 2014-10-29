@@ -3320,3 +3320,17 @@ int ual_copy_cpo_env(char *tokamakFrom, char *versionFrom, char *userFrom, int s
     return status;
 }
 
+//Error Management support routine
+int makeErrorStatus(int isCritical, int type, int intStatus)
+{
+    return (isCritical << 24) | (type << 16) | (intStatus & 0x0000FFFF);
+}
+int isCriticalError(int status)
+{
+    return ((status & 0xFF000000) != 0);
+}
+int getErrorType(int status)
+{
+     return (status & 0x00FF0000) >> 16;
+}
+
