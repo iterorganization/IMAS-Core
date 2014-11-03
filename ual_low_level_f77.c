@@ -3165,3 +3165,21 @@ int replace_last_object_slice_(int *expIdx, char *cpoPath, char *path, int *hand
 ///////////////TEMPORARY!!!
 void imas_discard_cache_(){}
 void imas_flush_cache_(){}
+
+
+///////////////ERROR HANDLING
+int is_critical_error_(int *status)
+{
+    int retValue;
+    retValue = isCriticalError(*status);
+    return retValue;
+}
+
+
+int get_error_type_(int *status)
+{
+    int retValue;
+    retValue = getErrorType(*status); 
+    return retValue;
+}
+

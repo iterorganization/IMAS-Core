@@ -840,7 +840,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
 	if(xd.pointer->class != CLASS_A)
 	{
 	    printf("INTERNAL ERROR: getDataNoDescr called for non aray data!!!\n");
-	    return makeErrorStatue(1, READ_ERROR, -1);
+	    return makeErrorStatus(1, READ_ERROR, -1);
 	}
 	dataDPtr = (void *)xd.pointer;
     	*retDimsCt = dataDPtr->dimct;
@@ -9961,7 +9961,7 @@ static int getObjectLocalOLD(int expIdx, char *cpoPath, char *path,  void **obj,
     if(checkExpIndex(expIdx) < 0)
     {
 	unlock();
-	return makeErrorStatue(1, READ_ERROR, -1);
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
 
     nid = getNid(cpoPath, path);
@@ -9969,7 +9969,7 @@ static int getObjectLocalOLD(int expIdx, char *cpoPath, char *path,  void **obj,
     if(nid == -1)
     {
 	unlock();
-	return makeErrorStatue(1, READ_ERROR, -1);
+	return makeErrorStatus(1, READ_ERROR, -1);
     }
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
