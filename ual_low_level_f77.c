@@ -69,6 +69,7 @@ int put_int_(int *expIdx, char *cpoPath, char *path, int *data, int *stat, int c
     char *intPath = allocateC(path, pathLen);
 
     status = putInt(*expIdx, intCpoPath, intPath, *data);
+    *stat = status; 
     free(intCpoPath);
     free(intPath);
 
