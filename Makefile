@@ -56,6 +56,7 @@ endif
 all: $(TARGETS)
 
 install: all
+	mkdir -p $(INSTALL)/lib $(INSTALL)/include
 	cp *.so $(INSTALL)/lib
 	cp ual_low_level.h $(INSTALL)/include
 
