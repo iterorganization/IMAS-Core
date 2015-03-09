@@ -218,6 +218,24 @@ static void closeExpInfo(int idx)
     expInfo[idx].mode = IS_NONE;
 }
 
+/** 
+ * Checks if shot and run indexes fit within valid range 
+ */
+
+static int checkShotRun(int shot, int run)
+{
+    if(shot >= 214748 || shot < 0)
+        {
+                sprintf(errmsg, "Invalid shot number %d. Must be between 0 and 214748", shot);
+                      return 0;
+                        }
+      if(run < 0 || run > 9999)
+          {
+                  sprintf(errmsg, "Invalid run number %d. Must be between 0 and 9999", shot);
+                        return 0;
+                          }
+        return 1;
+}
 
 int imas_connect(char *ip)
 {
@@ -243,7 +261,11 @@ char *imas_exec(char *ip, char *command)
 
 EXPORT int imas_open(char *name, int shot, int run, int *retIdx)
 {
-    int idx, status;
+    int idx = -1, status = -1;
+    *retIdx = -1;
+
+    if(!checkShotRun(shot, run)) return -1;
+    
     status = mdsimasOpen(name, shot, run, &idx);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
@@ -257,7 +279,11 @@ EXPORT int imas_open(char *name, int shot, int run, int *retIdx)
 
 EXPORT int imas_open_env(char *name, int shot, int run, int *retIdx, char *user, char *tokamak, char *version)
 {
-    int idx, status;
+  int idx = -1, status = -1;
+  *retIdx = -1;
+    
+     if(!checkShotRun(shot, run)) return -1;
+
     status = mdsimasOpenEnv(name, shot, run, &idx, user, tokamak, version);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
@@ -274,7 +300,11 @@ EXPORT int imas_open_env(char *name, int shot, int run, int *retIdx, char *user,
 EXPORT int imas_open_hdf5(char *name, int shot, int run, int *retIdx)
 {
 #ifdef HDF5    
-    int idx, status;
+  int idx = -1, status = -1;
+  *retIdx = -1;
+
+    if(!checkShotRun(shot, run)) return -1;
+
     status = hdf5imasOpen(name, shot, run, &idx);
     if(status) return status;
     *retIdx = setHdf5Idx(shot, run, idx);
@@ -294,7 +324,11 @@ EXPORT int imas_open_hdf5(char *name, int shot, int run, int *retIdx)
 
 EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
 {
-    int idx, status;
+    int idx = -1, status = -1;
+    *retIdx = -1;
+   
+    if(!checkShotRun(shot, run)) return -1;
+    
     status = mdsimasCreate(name, shot, run, refShot, refRun, &idx);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
@@ -308,7 +342,11 @@ EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, i
 }
 EXPORT int imas_create_env(char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version)
 {
-    int idx, status;
+    int idx = -1, status = -1;
+    *retIdx = -1;
+
+    if(!checkShotRun(shot, run)) return -1;
+
     status = mdsimasCreateEnv(name, shot, run, refShot, refRun, &idx, user, tokamak, version);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
@@ -323,8 +361,12 @@ EXPORT int imas_create_env(char *name, int shot, int run, int refShot, int refRu
 
 EXPORT int imas_create_hdf5(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
 {
+    *retIdx = -1;
 #ifdef HDF5
-    int idx, status;
+    int idx = -1, status = -1;
+
+     if(!checkShotRun(shot, run)) return -1;
+
     status = hdf5imasCreate(name, shot, run, refShot, refRun, &idx);
     if(status) return status;
     *retIdx = setHdf5Idx(shot, run, idx);
