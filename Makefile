@@ -57,7 +57,12 @@ all: $(TARGETS)
 
 install: all
 	mkdir -p $(INSTALL)/lib $(INSTALL)/include
-	cp *.so $(INSTALL)/lib
+	for OBJECT in *.so ;do \
+		cp -v $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
+		ln -svf $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
+		ln -svf $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR); \
+		ln -svf $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT; \
+	done
 	cp ual_low_level.h $(INSTALL)/include
 
 clean:
@@ -67,7 +72,7 @@ clean:
 clean-src: clean
 
 libUALLowLevel.so: $(COMMON_OBJECTS)  
-	$(LD) -g -o $@ -shared $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
+	$(LD) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
 libUALLowLevel.a: $(COMMON_OBJECTS)
 	ar rs $@ $^
