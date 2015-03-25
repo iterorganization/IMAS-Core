@@ -1,0 +1,11 @@
+prefix=__PREFIX__
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: imas-lowlevel
+Description: IMAS Low Level libraries for C.
+URL: https://portal.iter.org/departments/POP/Pages/IM-Users-and-Developers.aspx
+Version: __VERSION__
+Libs: -L${libdir} -lUALLowLevel
+Cflags: -I${includedir}

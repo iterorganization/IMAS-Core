@@ -19,7 +19,6 @@ LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
 LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 
-
 COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
 
 TARGETS = timed_struct_array.h libUALLowLevel.so libUALLowLevel.a
@@ -53,9 +52,9 @@ ifeq "$(strip $(JAVA))" "yes"
 endif
 #-----------------------------------------------
 
-all: $(TARGETS)
+all: $(TARGETS) pkgconfig
 
-install: all
+install: all pkgconfig_install
 	mkdir -p $(INSTALL)/lib $(INSTALL)/include
 	for OBJECT in *.so ;do \
 		cp -v $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
@@ -65,7 +64,7 @@ install: all
 	done
 	cp ual_low_level.h $(INSTALL)/include
 
-clean:
+clean: pkgconfig_clean
 	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
 	rm -rf build
 
@@ -82,3 +81,7 @@ libUALLowLevel.a: $(COMMON_OBJECTS)
 
 timed_struct_array.h:
 	./timed_struct_array.sh
+
+# add pkgconfig pkgconfig_install targets
+PC_FILES = imas-lowlevel.pc
+include ../Makefile.pkgconfig
