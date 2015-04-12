@@ -197,7 +197,7 @@ void *getObjectFromList(int idx);
 void *beginObject(int expIdx, void *obj, int index, const char *relPath, int isTimed);
 
 //Releases memory for array of structures
-void releaseObject(int expIdx, void *obj);
+//void releaseObject(void *obj);
 
 
 //Writes an array of objects array of structures

@@ -6,7 +6,7 @@ int getDataRemote(int connId, int expIdx, char *cpoPath, char *path, struct desc
 int getObjectRemote(int connId, int expIdx, char *cpoPath, char *path, void **obj, int isTimed);
 int mdsbeginIdsGetRemote(int connId, int expIdx, char *path, int isTimed, int *retSamples);
 int mdsendIdsGetRemote(int connId, int expIdx, char *path);
-struct descriptor_xd* getCpoSlicedDataServer(int *expIdx, char *path, char *timeBasePath, double *time);
+struct descriptor_xd* getCpoSlicedDataServer(int *expIdx, char *path, double *time);
 int getSlicedDataRemote(int connId, int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd, 
     struct descriptor_xd *retTimesXd);
 int getObjectSliceRemote(int connId, int expIdx, char *cpoPath, char *path, double time, void **obj);
@@ -19,11 +19,11 @@ int mdsendIdsPutTimedRemote(int connId, int expIdx, char *path);
 int mdsbeginIdsPutNonTimedRemote(int connId, int expIdx, char *path);
 int mdsendIdsPutNonTimedRemote(int connId, int expIdx, char *path);
 int putDataRemote(int connId, int expIdx, char *cpoPath, char *path, struct descriptor *dataD);
-int putSegmentRemote(int connId, int expIdx, char *cpoPath, char *path, struct descriptor_a *dataD, double *times, int nTimes);
+int putSegmentRemote(int connId, int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor_a *dataD, double *times, int nTimes);
 int putObjectSegmentRemote(int connId, int expIdx, char *cpoPath, char *path, void *objSegment, int segIdx);
 int mdsbeginIdsPutSliceRemote(int connId, int expIdx, char *path);
 int mdsendIdsPutSliceRemote(int connId, int expIdx, char *path);
-int putSliceRemote(int connId, int expIdx, char *cpoPath, char *path, struct descriptor *dataDsc, double time);
+int putSliceRemote(int connId, int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor *dataDsc, double time);
 int mdsbeginIdsReplaceLastSliceRemote(int connId, int expIdx, char *path);
 int mdsendIdsReplaceLastSliceRemote(int connId, int expIdx, char *path);
 int mdsimasOpenEnvServer(char *name, int *shot, int *run, char *user, char *tokamak, char *version);
