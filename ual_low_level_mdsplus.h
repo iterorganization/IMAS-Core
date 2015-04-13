@@ -1,5 +1,4 @@
 #include <mdsdescrip.h>
-#include "ual_low_level.h"
 #define INTERPOLATION 3
 #define CLOSEST_SAMPLE 1
 #define PREVIOUS_SAMPLE 2
