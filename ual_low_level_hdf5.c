@@ -31,7 +31,7 @@ typedef struct obj_t {
 static int findFirstHdf5Idx()
 {
     int i;
-    
+
     for(i = 0; i < MAX_FILES && hdf5Files[i]; i++);
     if(i == MAX_FILES)
     {
@@ -76,7 +76,7 @@ int hdf5EuitmCreate(char *name, int shot, int run, int refShot, int refRun, int 
     int idx = findFirstHdf5Idx();
 
     static char cpCommand[2048];
-    
+
     sprintf(cpCommand, "cp %s %s", getHdf5ModelName(name), getHdf5FileName(name, shot, run));
     system(cpCommand);
 
@@ -113,7 +113,7 @@ int hdf5EuitmClose(int idx, char *name, int shot, int run)
     }
     hdf5Files[idx] = 0;
     return 0;
-    
+
 }
 
 
@@ -125,11 +125,11 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     hid_t group, dataset, datatype, inDatatype, dataspace;
     int exists;
     hsize_t hdims[32], maxDims[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32];
     int totSize = 0;
 
-    
+
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
     if(i < 0) //no slashes in path
     {
@@ -143,7 +143,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[idx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -152,7 +152,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists < 0)
     {
         sprintf(errmsg, "Error checking dataset existence for %s", dataName);
@@ -162,7 +162,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     }
     if(exists)
     {
-        if(H5Ldelete(group, dataName, H5P_DEFAULT) < 0)        
+        if(H5Ldelete(group, dataName, H5P_DEFAULT) < 0)
         {
             sprintf(errmsg, "Error deleting dataset  %s", dataName);
             free(groupName);
@@ -170,7 +170,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
             return -1;
         }
     }
-    
+
     for(i = 0, totSize = 1; i < nDims; i++)
         totSize *= dims[i];
     if(totSize == 0)
@@ -179,8 +179,8 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return 0;
     }
-        
-    
+
+
     //Ready to create a new dataset: first define the datatype
     switch(type)
     {
@@ -197,21 +197,21 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
             inDatatype = H5Tcopy(H5T_NATIVE_DOUBLE);
             break;
         case STRING:
-            datatype = H5Tcopy (H5T_C_S1); 
+            datatype = H5Tcopy (H5T_C_S1);
             H5Tset_size (datatype,132);
             inDatatype = H5Tcopy(H5T_C_S1);
             H5Tset_size (inDatatype,132);
-            
+
             //Ricordarsi alla fine H5Dvlen_reclaim!!!!
             break;
     }
-    
+
     //then the dataspace
     for(i = 0; i < nDims; i++)
         hdims[i] = dims[i];
     if(!isTimed)
     {
-        dataspace = H5Screate_simple(nDims, hdims, NULL); 
+        dataspace = H5Screate_simple(nDims, hdims, NULL);
     }
     else
     {
@@ -223,9 +223,9 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         //    maxDims[nDims - 1] = dims[nDims - 1];
         //else
             maxDims[nDims - 1] = H5S_UNLIMITED;
-        dataspace = H5Screate_simple(nDims, hdims, maxDims); 
+        dataspace = H5Screate_simple(nDims, hdims, maxDims);
     }
-    
+
     if(isTimed)
     {
         cParms = H5Pcreate (H5P_DATASET_CREATE);
@@ -243,7 +243,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-    
+
     //Write in the dataset
     if(H5Dwrite(dataset, inDatatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)<0)
     {
@@ -254,10 +254,10 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     }
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Tclose(datatype); 
-    H5Tclose(inDatatype); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Tclose(datatype);
+    H5Tclose(inDatatype);
+    H5Dclose(dataset);
     H5Sclose(dataspace);
     return 0;
 }
@@ -268,12 +268,12 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
     char *dataName = malloc(strlen(path)+1);
     hid_t group, dataset, datatype, inDatatype, dataspace, memDataspace;
     int exists;
-    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32], 
+    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32],
         strideOut[32], blockOut[32], countOut[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32], extSize[32];
-    
-    
+
+
     for(i = 0, totSize = 1; i < nDims; i++)
         totSize *= dims[i];
     if(totSize == 0)
@@ -283,8 +283,8 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         return 0;
     }
 
-    
-    
+
+
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
     if(i < 0) //no slashes in path
     {
@@ -298,7 +298,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[idx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -307,7 +307,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists < 0)
     {
         sprintf(errmsg, "Error checking dataset existence for %s", dataName);
@@ -331,15 +331,15 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
             inDatatype = H5Tcopy(H5T_NATIVE_DOUBLE);
             break;
         case STRING:
-            datatype = H5Tcopy (H5T_C_S1); 
+            datatype = H5Tcopy (H5T_C_S1);
             H5Tset_size (datatype,H5T_VARIABLE);
             inDatatype = H5Tcopy(H5T_C_S1);
             H5Tset_size (inDatatype,H5T_VARIABLE);
-            
+
             //Ricordarsi alla fine H5Dvlen_reclaim!!!!
             break;
     }
-    
+
     if(!exists) //The first time we need to create the dataset
     {
         for(i = 0; i < nDims; i++)
@@ -350,7 +350,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         }
         hdims[nDims] = 1;
         maxDims[nDims] = H5S_UNLIMITED;
-        dataspace = H5Screate_simple(nDims+1, hdims, maxDims); 
+        dataspace = H5Screate_simple(nDims+1, hdims, maxDims);
 
         cParms = H5Pcreate (H5P_DATASET_CREATE);
         for(i = 0; i < nDims; i++)
@@ -369,7 +369,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
     }
     else //get the dataset
     {
-        dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+        dataset = H5Dopen(group, dataName, H5P_DEFAULT);
         if(dataset < 0)
         {
             sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -377,7 +377,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
             free(dataName);
             return -1;
         }
-        dataspace = H5Dget_space(dataset); 
+        dataspace = H5Dget_space(dataset);
         if(dataspace < 0)
         {
             sprintf(errmsg, "Error getting dataset %s in group %s", dataName, groupName);
@@ -395,7 +395,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         free(dataName);
         return -1;
     }
-    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0) 
+    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0)
     {
         sprintf(errmsg, "Error in H5Sget_simple_extent_dims in %s, group %s", dataName, groupName);
         free(groupName);
@@ -425,7 +425,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         H5Sset_extent_simple(memDataspace,nDims,hdims,hdims);
     }
    //Select out hyperslab
-    
+
     for(i = 0; i < nDims; i++)
     {
         startOut[i] = 0;
@@ -452,7 +452,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
             return -1;
         }
         H5Sclose(dataspace);
-        dataspace = H5Dget_space(dataset); 
+        dataspace = H5Dget_space(dataset);
     }
     else //The first time the dataset is created
     {
@@ -461,9 +461,9 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         strideOut[nDims] = 1;
         countOut[nDims] = 1;
     }
-            
-        
-    
+
+
+
     if(H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, startOut, strideOut, countOut, blockOut) < 0)
     {
         sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", dataName, groupName);
@@ -471,7 +471,7 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
         free(dataName);
         return -1;
     }
-    
+
     //Write in the dataset
     if(H5Dwrite(dataset, inDatatype, memDataspace, dataspace, H5P_DEFAULT, data)<0)
     {
@@ -482,10 +482,10 @@ static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims,
     }
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Tclose(datatype); 
-    H5Tclose(inDatatype); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Tclose(datatype);
+    H5Tclose(inDatatype);
+    H5Dclose(dataset);
     H5Sclose(dataspace);
     H5Sclose(memDataspace);
     return 0;
@@ -497,11 +497,11 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
     char *dataName = malloc(strlen(path)+1);
     hid_t group, dataset, datatype, inDatatype, dataspace, memDataspace;
     int exists;
-    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32], 
+    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32],
         strideOut[32], blockOut[32], countOut[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32], extSize[32];
-    
+
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
     if(i < 0) //no slashes in path
     {
@@ -515,7 +515,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[idx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -524,7 +524,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists <= 0)
     {
         sprintf(errmsg, "Error checking dataset existence for %s", dataName);
@@ -548,17 +548,17 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
             inDatatype = H5Tcopy(H5T_NATIVE_DOUBLE);
             break;
         case STRING:
-            datatype = H5Tcopy (H5T_C_S1); 
+            datatype = H5Tcopy (H5T_C_S1);
             H5Tset_size (datatype,H5T_VARIABLE);
             inDatatype = H5Tcopy(H5T_C_S1);
             H5Tset_size (inDatatype,H5T_VARIABLE);
-            
+
             //Ricordarsi alla fine H5Dvlen_reclaim!!!!
             break;
     }
-    
+
 //get the dataset
-    dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+    dataset = H5Dopen(group, dataName, H5P_DEFAULT);
     if(dataset < 0)
     {
         sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -566,7 +566,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         free(dataName);
         return -1;
     }
-    dataspace = H5Dget_space(dataset); 
+    dataspace = H5Dget_space(dataset);
     if(dataspace < 0)
     {
         sprintf(errmsg, "Error getting dataset %s in group %s", dataName, groupName);
@@ -583,7 +583,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         free(dataName);
         return -1;
     }
-    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0) 
+    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0)
     {
         sprintf(errmsg, "Error in H5Sget_simple_extent_dims in %s, group %s", dataName, groupName);
         free(groupName);
@@ -613,7 +613,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         H5Sset_extent_simple(memDataspace,nDims,hdims,hdims);
     }
    //Select out hyperslab
-    
+
     for(i = 0; i < nDims; i++)
     {
         startOut[i] = 0;
@@ -625,7 +625,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
     blockOut[nDims] = 1;
     strideOut[nDims] = 1;
     countOut[nDims] = 1;
-    
+
     if(H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, startOut, strideOut, countOut, blockOut) < 0)
     {
         sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", dataName, groupName);
@@ -633,7 +633,7 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
         free(dataName);
         return -1;
     }
-    
+
     //Write in the dataset
     if(H5Dwrite(dataset, inDatatype, memDataspace, dataspace, H5P_DEFAULT, data)<0)
     {
@@ -644,10 +644,10 @@ static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, in
     }
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Tclose(datatype); 
-    H5Tclose(inDatatype); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Tclose(datatype);
+    H5Tclose(inDatatype);
+    H5Dclose(dataset);
     H5Sclose(dataspace);
     H5Sclose(memDataspace);
     return 0;
@@ -662,7 +662,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     hid_t group, dataset, datatype, inDatatype, savedDatatype, savedDataspace;
     int exists;
     hsize_t hdims[32], savedDims[32], savedMaxdims[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32];
 
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
@@ -678,7 +678,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
      }
-    
+
     group = H5Gopen( hdf5Files[idx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -687,7 +687,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists <= 0)
     {
         sprintf(errmsg, "Error: dataset %s not found", dataName);
@@ -695,7 +695,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-    
+
     //Ready to create a new dataset: first define the datatype
     switch(type)
     {
@@ -718,15 +718,15 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
             H5Tset_size (inDatatype,132);
 	  break;
         case STRING_VECTOR:
-            datatype = H5Tcopy (H5T_C_S1); 
+            datatype = H5Tcopy (H5T_C_S1);
             H5Tset_size (datatype,H5T_VARIABLE);
             inDatatype = H5Tcopy(H5T_C_S1);
             H5Tset_size (inDatatype,H5T_VARIABLE);
-            
+
             //Ricordarsi alla fine H5Dvlen_reclaim!!!!
             break;
     }
-    dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+    dataset = H5Dopen(group, dataName, H5P_DEFAULT);
     if(dataset < 0)
     {
         sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -734,9 +734,9 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-        
+
     /*    savedDatatype = H5Dget_type(dataset);
-    if(! H5Tequal(savedDatatype, datatype))   
+    if(! H5Tequal(savedDatatype, datatype))
     {
         sprintf(errmsg, "Error: invalid datatype for %s, using saved datatype ", dataName);
 	//free(groupName);
@@ -746,7 +746,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     */
     //Check dataspace
     savedDataspace = H5Dget_space(dataset);
-    savedNDims = H5Sget_simple_extent_ndims(savedDataspace); 
+    savedNDims = H5Sget_simple_extent_ndims(savedDataspace);
     if(nDims != savedNDims)
     {
         sprintf(errmsg, "Error: wrong number of dimensions for %s ", dataName);
@@ -754,7 +754,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
         free(dataName);
         return -1;
     }
-    
+
     if(H5Sget_simple_extent_dims(savedDataspace, savedDims, savedMaxdims) < 0)
     {
         sprintf(errmsg, "Error in H5Sget_simple_extent_dims for %s ", dataName);
@@ -770,8 +770,8 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     //Allocate space for data
     dataSize = H5Dget_storage_size(dataset);
     outData = malloc(dataSize);
-    
-    
+
+
     //Check passed, read data
     if(H5Dread(dataset, inDatatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, outData) < 0)
     {
@@ -783,12 +783,12 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     }
 
     if(type == STRING)
-    {        
+    {
 
       strLen = strlen(outData);
       *data = malloc(strLen+1);
       strcpy(*data, outData);
-      
+
       free(outData);
 
     }
@@ -808,14 +808,14 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
     {
         *data = outData;
     }
-    
-    
+
+
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Tclose(datatype); 
-    H5Tclose(inDatatype); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Tclose(datatype);
+    H5Tclose(inDatatype);
+    H5Dclose(dataset);
     H5Sclose(savedDataspace);
     return 0;
 }
@@ -828,9 +828,9 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
     char *dataName = malloc(strlen(path)+1);
     hid_t group, dataset, datatype, inDatatype, dataspace, memDataspace;
 
-    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32], 
+    hsize_t hdims[32], maxDims[32], currHDims[32], currMaxDims[32], startOut[32],
         strideOut[32], blockOut[32], countOut[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32], extSize[32];
 
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
@@ -846,7 +846,7 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[idx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -885,8 +885,8 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
             return -1;
             break;
     }
-    
-    dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+
+    dataset = H5Dopen(group, dataName, H5P_DEFAULT);
     if(dataset < 0)
     {
         sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -895,7 +895,7 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         return -1;
     }
     /*    savedDatatype = H5Dget_type(dataset);
-    if(! H5Tequal(savedDatatype, datatype))   
+    if(! H5Tequal(savedDatatype, datatype))
     {
         sprintf(errmsg, "Error: invalid datatype for %s, using saved datatype ", dataName);
 	printf("Datatype does not match...\n");
@@ -905,7 +905,7 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
 	return -1;
     }
     */
-    dataspace = H5Dget_space(dataset); 
+    dataspace = H5Dget_space(dataset);
     if(dataspace < 0)
     {
         sprintf(errmsg, "Error getting dataset  %s in group %s", dataName, groupName);
@@ -913,7 +913,7 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         free(dataName);
         return -1;
     }
- 
+
     //Get last dimension
     currNDims = H5Sget_simple_extent_ndims(dataspace);
     if(currNDims != nDims + 1)
@@ -923,14 +923,14 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         free(dataName);
         return -1;
     }
-    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0) 
+    if(H5Sget_simple_extent_dims(dataspace, currHDims, maxDims) < 0)
     {
         sprintf(errmsg, "Error in H5Sget_simple_extent_dims in %s, group %s", dataName, groupName);
         free(groupName);
         free(dataName);
         return -1;
     }
-    
+
     for(i = 0; i < nDims; i++)
     {
         dims[i] = currHDims[i];
@@ -942,11 +942,11 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         free(dataName);
         return -1;
     }
-    
+
     memDataspace = H5Scopy(dataspace);
 
     //Select out hyperslab
-    
+
     for(i = 0; i < nDims; i++)
     {
         startOut[i] = 0;
@@ -962,7 +962,7 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
     countOut[nDims] = 1;
     hdims[nDims] = numSlices;
     dataSize *= numSlices;
-    
+
     if(H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, startOut, strideOut, countOut, blockOut) < 0)
     {
         sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", dataName, groupName);
@@ -970,10 +970,10 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
         free(dataName);
         return -1;
     }
-    
-    memDataspace = H5Screate_simple(nDims+1, hdims, NULL); 
 
-    
+    memDataspace = H5Screate_simple(nDims+1, hdims, NULL);
+
+
     //Write in the dataset
     *data = malloc(dataSize);
     if(H5Dread(dataset, inDatatype, memDataspace, dataspace, H5P_DEFAULT, *data)<0)
@@ -986,10 +986,10 @@ static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims
     }
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Tclose(datatype); 
-    H5Tclose(inDatatype); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Tclose(datatype);
+    H5Tclose(inDatatype);
+    H5Dclose(dataset);
     H5Sclose(dataspace);
     H5Sclose(memDataspace);
     return 0;
@@ -1002,7 +1002,7 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
 {
     double *times;
     int status, dim, i;
-    
+
     status = hdf5GetVect1DDouble(expIdx, cpoPath, "time", &times, &dim);
     if(status) return status;
     if(dim == 1 || time <= times[0])
@@ -1036,28 +1036,28 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
 //Low level function prototypes
 int hdf5PutString(int expIdx, char *cpoPath, char *path, char *data,int strlen)
 {
-    int dims = 1; 
+    int dims = 1;
     dims = (strlen / 132) +1;
     return putData(expIdx, cpoPath, path, STRING, 1, &dims, 0, data);
 
 }
 int hdf5PutInt(int expIdx, char *cpoPath, char *path, int data)
 {
-    int dims = 1; 
+    int dims = 1;
     return putData(expIdx, cpoPath, path, INT, 1, &dims, 0, &data);
 
 }
 
 int hdf5PutFloat(int expIdx, char *cpoPath, char *path, float data)
 {
-    int dims = 1; 
+    int dims = 1;
     return putData(expIdx, cpoPath, path, FLOAT, 1, &dims, 0, &data);
 
 }
 
 int hdf5PutDouble(int expIdx, char *cpoPath, char *path, double data)
 {
-    int dims = 1; 
+    int dims = 1;
     return putData(expIdx, cpoPath, path, DOUBLE, 1, &dims, 0, &data);
 
 }
@@ -1129,7 +1129,7 @@ int hdf5PutVect3DDouble(int expIdx, char *cpoPath, char *path, double *data, int
     dims[0] = dim1;
     dims[1] = dim2;
     dims[2] = dim3;
-    
+
     return putData(expIdx, cpoPath, path, DOUBLE, 3, dims, isTimed, data);
 }
 
@@ -1196,7 +1196,7 @@ int hdf5PutVect5DDouble(int expIdx, char *cpoPath, char *path, double *data, int
     return putData(expIdx, cpoPath, path, DOUBLE, 5, dims, isTimed, data);
 }
 
-int hdf5PutVect6DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect6DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int isTimed)
 {
     int dims[6];
@@ -1209,7 +1209,7 @@ int hdf5PutVect6DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1,
     return putData(expIdx, cpoPath, path, INT, 6, dims, isTimed, data);
 }
 
-int hdf5PutVect6DFloat(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect6DFloat(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int isTimed)
 {
     int dims[6];
@@ -1222,7 +1222,7 @@ int hdf5PutVect6DFloat(int expIdx, char *cpoPath, char *path, float *data, int d
     return putData(expIdx, cpoPath, path, FLOAT, 6, dims, isTimed, data);
 }
 
-int hdf5PutVect6DDouble(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect6DDouble(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int isTimed)
 {
     int dims[6];
@@ -1235,7 +1235,7 @@ int hdf5PutVect6DDouble(int expIdx, char *cpoPath, char *path, double *data, int
     return putData(expIdx, cpoPath, path, DOUBLE, 6, dims, isTimed, data);
 }
 
-int hdf5PutVect7DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect7DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int dim7, int isTimed)
 {
     int dims[7];
@@ -1249,7 +1249,7 @@ int hdf5PutVect7DInt(int expIdx, char *cpoPath, char *path, int *data, int dim1,
     return putData(expIdx, cpoPath, path, INT, 7, dims, isTimed, data);
 }
 
-int hdf5PutVect7DFloat(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect7DFloat(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int dim7, int isTimed)
 {
     int dims[7];
@@ -1263,7 +1263,7 @@ int hdf5PutVect7DFloat(int expIdx, char *cpoPath, char *path, float *data, int d
     return putData(expIdx, cpoPath, path, FLOAT, 7, dims, isTimed, data);
 }
 
-int hdf5PutVect7DDouble(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, int dim4, 
+int hdf5PutVect7DDouble(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int dim7, int isTimed)
 {
     int dims[7];
@@ -1392,7 +1392,7 @@ int hdf5PutVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data
     return putDataSlice(expIdx, cpoPath, path, DOUBLE, 4, dims, data);
 }
 
-int hdf5PutVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
     int dims[5];
@@ -1404,7 +1404,7 @@ int hdf5PutVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int 
     return putDataSlice(expIdx, cpoPath, path, INT, 5, dims, data);
 }
 
-int hdf5PutVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
     int dims[5];
@@ -1415,7 +1415,7 @@ int hdf5PutVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, 
     dims[4] = dim5;
     return putDataSlice(expIdx, cpoPath, path, FLOAT, 5, dims, data);
 }
-int hdf5PutVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
     int dims[5];
@@ -1428,7 +1428,7 @@ int hdf5PutVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data
 }
 
 
-int hdf5PutVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
     int dims[6];
@@ -1441,7 +1441,7 @@ int hdf5PutVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int 
     return putDataSlice(expIdx, cpoPath, path, INT, 6, dims, data);
 }
 
-int hdf5PutVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
     int dims[6];
@@ -1453,7 +1453,7 @@ int hdf5PutVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, 
     dims[5] = dim5;
     return putDataSlice(expIdx, cpoPath, path, FLOAT, 6, dims, data);
 }
-int hdf5PutVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, 
+int hdf5PutVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
     int dims[6];
@@ -1582,7 +1582,7 @@ int hdf5ReplaceLastVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, doub
     return replaceLastDataSlice(expIdx, cpoPath, path, DOUBLE, 4, dims, data);
 }
 
-int hdf5ReplaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, 
+int hdf5ReplaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5)
 {
     int dims[5];
@@ -1595,7 +1595,7 @@ int hdf5ReplaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *da
 }
 
 
-int hdf5ReplaceLastVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, 
+int hdf5ReplaceLastVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5)
 {
     int dims[5];
@@ -1619,7 +1619,7 @@ int hdf5ReplaceLastVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, doub
 }
 
 
-int hdf5ReplaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, 
+int hdf5ReplaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6)
 {
     int dims[6];
@@ -1633,7 +1633,7 @@ int hdf5ReplaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *da
 }
 
 
-int hdf5ReplaceLastVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, 
+int hdf5ReplaceLastVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6)
 {
     int dims[6];
@@ -1837,7 +1837,7 @@ int hdf5GetVect5DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim
     return status;
 }
 
-int hdf5GetVect5DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect5DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
     int dims[5];
@@ -1851,7 +1851,7 @@ int hdf5GetVect5DFloat(int expIdx, char *cpoPath, char *path, float **data, int 
     return status;
 }
 
-int hdf5GetVect5DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect5DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
     int dims[5];
@@ -1864,7 +1864,7 @@ int hdf5GetVect5DDouble(int expIdx, char *cpoPath, char *path, double **data, in
     *dim5 = dims[4];
     return status;
 }
-int hdf5GetVect6DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, int *dim4, 
+int hdf5GetVect6DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, int *dim4,
     int *dim5, int *dim6)
 {
     int dims[6];
@@ -1879,7 +1879,7 @@ int hdf5GetVect6DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim
     return status;
 }
 
-int hdf5GetVect6DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect6DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
     int dims[6];
@@ -1894,7 +1894,7 @@ int hdf5GetVect6DFloat(int expIdx, char *cpoPath, char *path, float **data, int 
     return status;
 }
 
-int hdf5GetVect6DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect6DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
     int dims[6];
@@ -1908,7 +1908,7 @@ int hdf5GetVect6DDouble(int expIdx, char *cpoPath, char *path, double **data, in
     *dim6 = dims[5];
     return status;
 }
-int hdf5GetVect7DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, int *dim4, 
+int hdf5GetVect7DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, int *dim4,
     int *dim5, int *dim6, int *dim7)
 {
     int dims[7];
@@ -1924,7 +1924,7 @@ int hdf5GetVect7DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim
     return status;
 }
 
-int hdf5GetVect7DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect7DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
     int dims[7];
@@ -1940,7 +1940,7 @@ int hdf5GetVect7DFloat(int expIdx, char *cpoPath, char *path, float **data, int 
     return status;
 }
 
-int hdf5GetVect7DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect7DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
     int dims[7];
@@ -1991,11 +1991,11 @@ int hdf5GetIntSlice(int expIdx, char *cpoPath, char *path, int *data, double tim
     y2 = currData[1];
     if(status) return status;
     	switch(interpolMode) {
-		case INTERPOLATION: 
-			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+		case INTERPOLATION:
+			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 			*retTime = time;
 			break;
-		case CLOSEST_SAMPLE: 
+		case CLOSEST_SAMPLE:
 			if(time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
@@ -2039,11 +2039,11 @@ int hdf5GetFloatSlice(int expIdx, char *cpoPath, char *path, float *data, double
     y2 = currData[1];
     if(status) return status;
     	switch(interpolMode) {
-		case INTERPOLATION: 
-			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+		case INTERPOLATION:
+			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 			*retTime = time;
 			break;
-		case CLOSEST_SAMPLE: 
+		case CLOSEST_SAMPLE:
 			if(time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
@@ -2087,11 +2087,11 @@ int hdf5GetDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, doub
     y2 = currData[1];
     if(status) return status;
     	switch(interpolMode) {
-		case INTERPOLATION: 
-			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+		case INTERPOLATION:
+			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 			*retTime = time;
 			break;
-		case CLOSEST_SAMPLE: 
+		case CLOSEST_SAMPLE:
 			if(time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
@@ -2114,13 +2114,13 @@ int hdf5GetDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, doub
 
 int hdf5GetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 1, dims, sliceIdx1, 1, (char **)data);
@@ -2134,18 +2134,18 @@ int hdf5GetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2170,13 +2170,13 @@ int hdf5GetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
 }
 int hdf5GetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 1, dims, sliceIdx1, 1, (char **)data);
@@ -2190,18 +2190,18 @@ int hdf5GetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2226,13 +2226,13 @@ int hdf5GetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
 }
 
 int hdf5GetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim, double time, double *retTime, int interpolMode)
-{    
+{
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 1, dims, sliceIdx1, 1, (char **)data);
@@ -2246,18 +2246,18 @@ int hdf5GetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2283,13 +2283,13 @@ int hdf5GetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
 
 int hdf5GetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 2, dims, sliceIdx1, 1, (char **)data);
@@ -2304,18 +2304,18 @@ int hdf5GetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2342,13 +2342,13 @@ int hdf5GetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
 
 int hdf5GetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 2, dims, sliceIdx1, 1, (char **)data);
@@ -2363,18 +2363,18 @@ int hdf5GetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2401,13 +2401,13 @@ int hdf5GetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
 
 int hdf5GetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
 {
-    
+
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 2, dims, sliceIdx1, 1, (char **)data);
@@ -2422,18 +2422,18 @@ int hdf5GetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2460,13 +2460,13 @@ int hdf5GetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
 
 int hdf5GetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 3, dims, sliceIdx1, 1, (char **)data);
@@ -2482,18 +2482,18 @@ int hdf5GetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2521,13 +2521,13 @@ int hdf5GetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
 
 int hdf5GetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 3, dims, sliceIdx1, 1, (char **)data);
@@ -2543,18 +2543,18 @@ int hdf5GetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2582,13 +2582,13 @@ int hdf5GetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
 
 int hdf5GetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
 {
-    
+
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 3, dims, sliceIdx1, 1, (char **)data);
@@ -2604,18 +2604,18 @@ int hdf5GetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2641,16 +2641,16 @@ int hdf5GetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     return 0;
 }
 //////////////////
-int hdf5GetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3,
     int *dim4, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 4, dims, sliceIdx1, 1, (char **)data);
@@ -2667,18 +2667,18 @@ int hdf5GetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]* dims[3];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2705,16 +2705,16 @@ int hdf5GetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     return 0;
 }
 
-int hdf5GetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 4, dims, sliceIdx1, 1, (char **)data);
@@ -2731,18 +2731,18 @@ int hdf5GetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2769,16 +2769,16 @@ int hdf5GetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     return 0;
 }
 
-int hdf5GetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, double time, double *retTime, int interpolMode)
 {
-    
+
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 4, dims, sliceIdx1, 1, (char **)data);
@@ -2795,18 +2795,18 @@ int hdf5GetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2833,16 +2833,16 @@ int hdf5GetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     return 0;
 }
 ///////////////
-int hdf5GetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 5, dims, sliceIdx1, 1, (char **)data);
@@ -2860,18 +2860,18 @@ int hdf5GetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]* dims[3]*dims[4];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2899,16 +2899,16 @@ int hdf5GetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     return 0;
 }
 
-int hdf5GetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 5, dims, sliceIdx1, 1, (char **)data);
@@ -2926,18 +2926,18 @@ int hdf5GetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3]*dims[4];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -2965,16 +2965,16 @@ int hdf5GetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     return 0;
 }
 
-int hdf5GetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
-    
+
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 5, dims, sliceIdx1, 1, (char **)data);
@@ -2992,18 +2992,18 @@ int hdf5GetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3]*dims[4];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -3032,16 +3032,16 @@ int hdf5GetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
 }
 
 
-int hdf5GetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
-    
+
     int *y1, *y2;
     int status;
     int dims[16];
     int *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 6, dims, sliceIdx1, 1, (char **)data);
@@ -3060,18 +3060,18 @@ int hdf5GetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]* dims[3]*dims[4]*dims[5];
     retData = (int *)malloc(sizeof(int) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -3100,16 +3100,16 @@ int hdf5GetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     return 0;
 }
 
-int hdf5GetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
-    
+
     float *y1, *y2;
     int status;
     int dims[16];
     float *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 6, dims, sliceIdx1, 1, (char **)data);
@@ -3128,18 +3128,18 @@ int hdf5GetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3]*dims[4]*dims[5];
     retData = (float *)malloc(sizeof(float) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -3168,16 +3168,16 @@ int hdf5GetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     return 0;
 }
 
-int hdf5GetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, 
+int hdf5GetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
-    
+
     double *y1, *y2;
     int status;
     int dims[16];
     double *currData, *retData;
     int nItems, i;
-    
+
     if(sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 6, dims, sliceIdx1, 1, (char **)data);
@@ -3196,18 +3196,18 @@ int hdf5GetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     if(status) return status;
     y1 = currData;
     y2 = &currData[1];
-    
+
     nItems = dims[0]*dims[1]*dims[2]*dims[3]*dims[4]*dims[5];
     retData = (double *)malloc(sizeof(double) * nItems);
 
     for(i = 0; i < nItems; i++)
     {
             switch(interpolMode) {
-                    case INTERPOLATION: 
-                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                    case INTERPOLATION:
+                            retData[i] = y1[2*i] + (y2[2*i] - y1[2*i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                             *retTime = time;
                             break;
-                    case CLOSEST_SAMPLE: 
+                    case CLOSEST_SAMPLE:
                             if(time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
@@ -3248,9 +3248,9 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
     hid_t group, dataset, datatype, inDatatype, savedDatatype, savedDataspace;
     int exists;
     hsize_t hdims[32], savedDims[32], savedMaxdims[32];
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t chunkDims[32];
-    
+
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
     if(i < 0) //no slashes in path
     {
@@ -3264,7 +3264,7 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[expIdx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -3273,7 +3273,7 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists <= 0)
     {
         sprintf(errmsg, "Error: dataset %s not found", dataName);
@@ -3281,7 +3281,7 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
         free(dataName);
         return -1;
     }
-    dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+    dataset = H5Dopen(group, dataName, H5P_DEFAULT);
     if(dataset < 0)
     {
         sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -3289,10 +3289,10 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
         free(dataName);
         return -1;
     }
-        
+
     //Check dataspace
     savedDataspace = H5Dget_space(dataset);
-    savedNDims = H5Sget_simple_extent_ndims(savedDataspace); 
+    savedNDims = H5Sget_simple_extent_ndims(savedDataspace);
     if(H5Sget_simple_extent_dims(savedDataspace, savedDims, savedMaxdims) < 0)
     {
         sprintf(errmsg, "Error in H5Sget_simple_extent_dims for %s ", dataName);
@@ -3316,11 +3316,11 @@ hdf5GetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1,
     if(savedNDims > 6)
         *dim7 = savedDims[6];
 
-    
+
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
-    H5Dclose(dataset); 
+    H5Gclose(group);
+    H5Dclose(dataset);
     H5Sclose(savedDataspace);
     return 0;
 }
@@ -3334,7 +3334,7 @@ int hdf5DeleteData(int expIdx, char *cpoPath, char *path)
     char currPath[1024];
     hid_t group;
     int exists;
-    
+
     for(i = strlen(path) - 1; i >= 0 && path[i] != '/'; i--);
     if(i < 0) //no slashes in path
     {
@@ -3348,7 +3348,7 @@ int hdf5DeleteData(int expIdx, char *cpoPath, char *path)
         sprintf(groupName, "%s/%s", cpoPath, currPath);
         strcpy(dataName, &path[i+1]);
     }
-    
+
     group = H5Gopen( hdf5Files[expIdx], (const char *)groupName, H5P_DEFAULT);
     if(group < 0)
     {
@@ -3357,7 +3357,7 @@ int hdf5DeleteData(int expIdx, char *cpoPath, char *path)
         free(dataName);
         return -1;
     }
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(exists < 0)
     {
         sprintf(errmsg, "Error checking dataset existence for %s", dataName);
@@ -3367,7 +3367,7 @@ int hdf5DeleteData(int expIdx, char *cpoPath, char *path)
     }
     if(exists)
     {
-        if(H5Ldelete(group, dataName, H5P_DEFAULT) < 0)        
+        if(H5Ldelete(group, dataName, H5P_DEFAULT) < 0)
         {
             sprintf(errmsg, "Error deleting dataset  %s", dataName);
             free(groupName);
@@ -3377,17 +3377,17 @@ int hdf5DeleteData(int expIdx, char *cpoPath, char *path)
     }
     free(groupName);
     free(dataName);
-    H5Gclose(group); 
+    H5Gclose(group);
     return 0;
 
 }
 
-int hdf5BeginCPOGet(int expIdx, char *path, int isTimed, int *retSamples) 
+int hdf5BeginCPOGet(int expIdx, char *path, int isTimed, int *retSamples)
 {
     int status;
     double *times;
     int dim;
-    
+
     if(!isTimed)
             *retSamples = 1;
     else
@@ -3413,7 +3413,7 @@ int hdf5EndCPOPutNonTimed(int expIdx, char *path) {return 0;}
 int hdf5BeginCPOPutSlice(int expIdx, char *path)
 {
     int nDims,dim1;
-    
+
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
@@ -3429,7 +3429,7 @@ int hdf5EndCPOPutSlice(int expIdx, char *path) {return 0;}
 int hdf5BeginCPOReplaceLastSlice(int expIdx, char *path)
 {
     int nDims,dim1;
-    
+
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
@@ -3512,18 +3512,18 @@ static hid_t openGroup(hid_t root, const char *relPath, int create_flag, int cle
  * nDims should be 0 for scalars
  * If the specified slice is not the next slice to be filled
  * then we insert empty slices */
-static int putDataSliceInObject(void *obj, char *path, int index, int type, int nDims, int *dims, void *data) 
+static int putDataSliceInObject(void *obj, char *path, int index, int type, int nDims, int *dims, void *data)
 {
     obj_t *object = (obj_t *)obj;
     hid_t hObj = object->handle;
-    
+
     int i, totSize;
     int exists;
     char tmpstr[1024], dataName[1024], groupName[1024], sizeName[1024];
     hid_t group, dataset, datatype, memDatatype, dataspace, memDataspace;
     hid_t sizeset, sizetype, memSizetype, sizespace,memSizespace;
     hid_t stringType;
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t hdims[1], extDims[1], startOut[1];
     hsize_t countOut[1];
     hsize_t maxDims[1];
@@ -3565,7 +3565,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
     //====================================
 
     if (nDims != 0) {
-    
+
         // create field name to store the dimensions
         sprintf(sizeName,"%s_size",dataName);
 
@@ -3613,7 +3613,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
                 return -1;
             }
         }
-        
+
         // get current size
         if(H5Sget_simple_extent_dims(sizespace, hdims, maxDims) < 0)
         {
@@ -3621,7 +3621,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
             return -1;
         }
         lastIdx = (long)hdims[0]-1;
-        
+
         if (object->timeIdx<lastIdx)
         {
             sprintf(errmsg, "Internal error: trying to overwrite a slice in %s, group %s", sizeName, groupName);
@@ -3635,24 +3635,24 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         }
         else
         {   // we are writing a new slice
-        
+
             // increase size
             extDims[0] = object->timeIdx+1;
-            
+
             if(H5Dset_extent(sizeset, extDims) < 0)
             {
                 sprintf(errmsg, "Internal error: extend failed in %s, group %s", sizeName, groupName);
                 return -1;
             }
-    
+
             // get new dataspace
             H5Sclose(sizespace);
             sizespace = H5Dget_space(sizeset);
-    
+
             startOut[0] = hdims[0];
             countOut[0] = object->timeIdx+1-hdims[0];
         }
-        
+
         // select only last slices for writing
         // including those that are going to be created empty
         if(H5Sselect_hyperslab(sizespace, H5S_SELECT_SET, startOut, NULL, countOut, NULL) < 0)
@@ -3660,14 +3660,14 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
             sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", sizeName, groupName);
             return -1;
         }
-        
+
         // the memory dataspace will contain all the new slices
         memSizespace = H5Screate(H5S_SIMPLE);
         H5Sset_extent_simple(memSizespace,1,countOut,countOut);
-        
+
         // prepare buffer for writing
         vl_size = (hvl_t *)malloc(countOut[0]*sizeof(hvl_t));
-        
+
         // if the current index is not the next one in the dataset
         // then we need to fill with empty rows
         for (i=0; i<countOut[0]-1; i++) {
@@ -3676,7 +3676,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         }
         vl_size[i].len = nDims;
         vl_size[i].p = dims;
-        
+
         //Write in the sizeset
         if(H5Dwrite(sizeset, memSizetype, memSizespace, sizespace, H5P_DEFAULT, vl_size)<0)
         {
@@ -3721,9 +3721,9 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
             H5Tclose(stringType);
             break;
     }
-    
+
     // open/create the dataset
-    exists = H5Lexists(group, dataName, H5P_DEFAULT); 
+    exists = H5Lexists(group, dataName, H5P_DEFAULT);
     if(!exists) //The first time we need to create the dataset
     {
         // create and empty but extendible dataspace
@@ -3735,7 +3735,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         chunkDims[0] = SLICE_BLOCK;
         cParms = H5Pcreate (H5P_DATASET_CREATE);
         H5Pset_chunk( cParms, 1, chunkDims);
-        
+
         // create dataset
         dataset = H5Dcreate(group, dataName, datatype, dataspace, H5P_DEFAULT,  cParms, H5P_DEFAULT);
         if(dataset < 0)
@@ -3744,11 +3744,11 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
             return -1;
         }
         H5Pclose(cParms);
-        
+
    }
     else //open the dataset
     {
-        dataset = H5Dopen(group, dataName, H5P_DEFAULT); 
+        dataset = H5Dopen(group, dataName, H5P_DEFAULT);
         if(dataset < 0)
         {
             sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
@@ -3756,15 +3756,15 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         }
 
         // get dataspace
-        dataspace = H5Dget_space(dataset); 
+        dataspace = H5Dget_space(dataset);
         if(dataspace < 0)
         {
             sprintf(errmsg, "Error getting dataset %s in group %s", dataName, groupName);
             return -1;
         }
-        
+
     }
-    
+
     // get current size
     if(H5Sget_simple_extent_dims(dataspace, hdims, maxDims) < 0)
     {
@@ -3772,13 +3772,13 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         return -1;
     }
     lastIdx = (long)hdims[0]-1;
-    
+
     if (object->timeIdx<lastIdx)
     {
         sprintf(errmsg, "Internal error: trying to overwrite a slice in %s, group %s", dataName, groupName);
         return -1;
     }
-        
+
     if (object->timeIdx==lastIdx)
     {   // we are replacing the last slice
         startOut[0] = lastIdx;
@@ -3786,7 +3786,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
     }
     else
     {   // we are writing a new slice
-        
+
         // increase size
         extDims[0] = object->timeIdx+1;
         if(H5Dset_extent(dataset, extDims) < 0)
@@ -3794,15 +3794,15 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
             sprintf(errmsg, "Internal error: extend failed in %s, group %s", dataName, groupName);
             return -1;
         }
-        
+
         // get new dataspace
         H5Sclose(dataspace);
         dataspace = H5Dget_space(dataset);
-        
+
         startOut[0] = hdims[0];
         countOut[0] = object->timeIdx+1-hdims[0];
     }
-    
+
     // select only last slices for writing
     // including those that are going to be created empty
     if(H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, startOut, NULL, countOut, NULL) < 0)
@@ -3810,11 +3810,11 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", dataName, groupName);
         return -1;
     }
-    
+
     // the memory dataspace will contain all the new slices
     memDataspace = H5Screate(H5S_SIMPLE);
     H5Sset_extent_simple(memDataspace,1,countOut,countOut);
-    
+
     // prepare buffer for writing
     vl_data = (hvl_t *)malloc(countOut[0]*sizeof(hvl_t));
     // if the current index is not the next one in the dataset
@@ -3825,7 +3825,7 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
     }
     vl_data[i].len = totSize;
     vl_data[i].p = data;
-    
+
     //Write in the dataset
     if(H5Dwrite(dataset, memDatatype, memDataspace, dataspace, H5P_DEFAULT, vl_data)<0)
     {
@@ -3833,13 +3833,13 @@ static int putDataSliceInObject(void *obj, char *path, int index, int type, int 
         free(vl_data);
         return -1;
     }
-    
+
     // clean up
     free(vl_data);
     H5Gclose(group);
     H5Tclose(datatype);
     H5Tclose(memDatatype);
-    H5Dclose(dataset); 
+    H5Dclose(dataset);
     H5Sclose(dataspace);
     H5Sclose(memDataspace);
     return 0;
@@ -3857,13 +3857,13 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
     obj_t *object = (obj_t *)obj;
     hid_t hObj = object->handle;
     int timeIdx = object->timeIdx;
-    
+
     int i, totSize;
     char tmpstr[1024], dataName[1024], groupName[1024], sizeName[1024];
     hid_t group, dataset, datatype, memDatatype, dataspace, memDataspace;
     hid_t sizeset, sizetype, memSizetype, sizespace,memSizespace;
     hid_t stringType;
-    hid_t cParms; 
+    hid_t cParms;
     hsize_t hdims[1], startOut[1];
     hsize_t countOut[1];
     hsize_t maxDims[1];
@@ -3876,7 +3876,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
     strcpy(groupName, path);
     groupName[i] = 0;
     strcpy(dataName, &path[i+1]);
-    
+
     // Generate correct group path by substituting leading field by index number
     for (i=0; groupName[i]!='/' && groupName[i]!=0; i++);
     if (groupName[i]==0)
@@ -3887,7 +3887,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
 
     // open container group
     group = openGroup(hObj,groupName,NO_CREATE,NO_CLEAR);
-    
+
     // if the field cannot be opened then consider that it is empty
     if(group < 0 || !H5Lexists(group, dataName, H5P_DEFAULT))
     {
@@ -3901,21 +3901,21 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
         //===================================
         // Read dimensions (for arrays only)
         //===================================
-    
+
         if (nDims>0) {
-    
+
             // create field name to read dimensions from
             sprintf(sizeName,"%s_size",dataName);
-        
+
             // define datatypes
             sizetype = H5Tvlen_create(H5T_STD_I32BE);
             memSizetype = H5Tvlen_create(H5T_NATIVE_INT);
-            
+
             // memory dataspace is a single set of dimensions (single slice)
             hdims[0] = 1;
             memSizespace = H5Screate(H5S_SIMPLE);
             H5Sset_extent_simple(memSizespace,1,hdims,hdims);
-        
+
             // open the dataset
             sizeset = H5Dopen(group, sizeName, H5P_DEFAULT);
             if(sizeset < 0)
@@ -3923,7 +3923,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                 sprintf(errmsg, "Error opening dataset %s in group %s", sizeName, groupName);
                 return -1;
             }
-        
+
             // get dataspace
             sizespace = H5Dget_space(sizeset);
             if(sizespace < 0)
@@ -3931,21 +3931,21 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                 sprintf(errmsg, "Error getting dataset %s in group %s", sizeName, groupName);
                 return -1;
             }
-            
+
             //Get last dimension
             if(H5Sget_simple_extent_dims(sizespace, hdims, maxDims) < 0)
             {
                 sprintf(errmsg, "Error in H5Sget_simple_extent_dims in %s, group %s", dataName, groupName);
                 return -1;
             }
-    
+
             if (timeIdx>=hdims[0]) // we are trying to read a non existing slice
             {
                 for (i=0; i<nDims; i++) {
                     dims[i] = 0;
                 }
             } else {
-            
+
                 //Select only one slice for reading
                 startOut[0] = timeIdx;
                 countOut[0] = 1;
@@ -3954,14 +3954,14 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                     sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", sizeName, groupName);
                     return -1;
                 }
-                
+
                 // Read from the sizeset
                 if(H5Dread(sizeset, memSizetype, memSizespace, sizespace, H5P_DEFAULT, &vl_size)<0)
                 {
                     sprintf(errmsg, "Error reading dataset %s in group %s", dataName, groupName);
                     return -1;
                 }
-            
+
                 // extract dimensions
                 nDimsRead = vl_size.len;
                 for (i=0, totSize=1; i<nDimsRead; i++) {
@@ -3970,7 +3970,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                 }
                 H5Dvlen_reclaim(memSizetype, memSizespace, H5P_DEFAULT, &vl_size);
             }
-            
+
             // clean up
             H5Tclose(sizetype);
             H5Tclose(memSizetype);
@@ -3978,7 +3978,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
             H5Sclose(sizespace);
             H5Sclose(memSizespace);
         }
-    
+
         // if we only want the dimensions of the array, then stop here
         if (type==DIMENSION) {
             H5Gclose(group);
@@ -3986,11 +3986,11 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
             **(int **)data = nDimsRead; // return the number of dimensions as data
             return 0;
         }
-        
+
         //===================================
         //            Read data
         //===================================
-        
+
         // define datatypes
         switch(type)
         {
@@ -4014,12 +4014,12 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                 H5Tclose(stringType);
                 break;
         }
-    
+
         // memory dataspace is a single set of dimensions (single slice)
         hdims[0] = 1;
         memDataspace = H5Screate(H5S_SIMPLE);
         H5Sset_extent_simple(memDataspace,1,hdims,hdims);
-    
+
         // open the dataset
         dataset = H5Dopen(group, dataName, H5P_DEFAULT);
         if(dataset < 0)
@@ -4027,7 +4027,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
             sprintf(errmsg, "Error opening dataset %s in group %s", dataName, groupName);
             return -1;
         }
-    
+
         // get dataspace
         dataspace = H5Dget_space(dataset);
         if(dataspace < 0)
@@ -4035,19 +4035,19 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
             sprintf(errmsg, "Error getting dataset %s in group %s", dataName, groupName);
             return -1;
         }
-    
+
         //Get last dimension
         if(H5Sget_simple_extent_dims(dataspace, hdims, maxDims) < 0)
         {
             sprintf(errmsg, "Error in H5Sget_simple_extent_dims in %s, group %s", dataName, groupName);
             return -1;
         }
-    
+
         if (timeIdx>=hdims[0]) // we are trying to read a non existing slice
         {
             *data = NULL;
         } else {
-        
+
             //Select only one slice for reading
             startOut[0] = timeIdx;
             countOut[0] = 1;
@@ -4056,7 +4056,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
                 sprintf(errmsg, "Error in H5Sselect_hyperslab in %s, group %s", dataName, groupName);
                 return -1;
             }
-        
+
             // Read from the dataset
             if(H5Dread(dataset, memDatatype, memDataspace, dataspace, H5P_DEFAULT, &vl_data)<0)
             {
@@ -4065,12 +4065,12 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
             }
             *data = vl_data.p;
         }
-    
+
         // clean up
         H5Gclose(group);
-        H5Tclose(datatype); 
+        H5Tclose(datatype);
         H5Tclose(memDatatype);
-        H5Dclose(dataset); 
+        H5Dclose(dataset);
         H5Sclose(dataspace);
         H5Sclose(memDataspace);
     }
@@ -4103,7 +4103,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
 }
 
 /** Find the last element in the list of objects
- *  that are contained in the root object */ 
+ *  that are contained in the root object */
 static obj_t *lastDescendant(obj_t *root)
 {
     obj_t *obj;
@@ -4144,7 +4144,7 @@ void *hdf5BeginObject(int expIdx, void *obj, int index, const char *relPath, int
         // if this object is a slice of a time-dependent object, then the group
         // was already opened and initialized by the containing object (that contains all the times).
         // We recognize this case because the field name is, by convention, "ALLTIMES"
-        
+
         if (!strcmp(relPath,"ALLTIMES")) {
             output->handle = object->handle;
             output->dim = -99;       // not used for output objects
@@ -4157,7 +4157,7 @@ void *hdf5BeginObject(int expIdx, void *obj, int index, const char *relPath, int
             free(groupName);
             return output;
         }
-        
+
         // other cases correspond to real nesting of arrays of structures,
         // so we can proceed
         sprintf(groupName,"%s",relPath);
@@ -4193,7 +4193,7 @@ void *hdf5BeginObject(int expIdx, void *obj, int index, const char *relPath, int
         free(output);
         return NULL;
     }
-    
+
     // store handle and return it
     output->handle = group;
     output->dim = -99;       // not used for output objects
@@ -4210,7 +4210,7 @@ void *hdf5BeginObject(int expIdx, void *obj, int index, const char *relPath, int
     } else { // for nested objects, inherit the slice index
         output->timeIdx = object->timeIdx;
     }
-    
+
     // if this object is not at the top level, then add it to the list
     // of descendants of the containing object
     if (obj!=NULL) {
@@ -4283,14 +4283,14 @@ int hdf5GetObjectSlice(int expIdx, char *hdf5Path, char *cpoPath, double time, v
 {
     char fullPath[1024];
     obj_t *newObj = (obj_t *)malloc(sizeof(obj_t));
-    
+
     // timed and non-timed objects are kept in different fields
     // here we are dealing with timed fields
     sprintf(fullPath,"%s/%s/timed",hdf5Path,cpoPath);
-    
+
     // try to open the group corresponding to the object
     newObj->handle = openGroup(hdf5Files[expIdx],fullPath,NO_CREATE,NO_CLEAR);
-    
+
     if (newObj->handle<0) {
         // if it could not be read, then return an empty object
         newObj->dim = 0;
@@ -4298,7 +4298,7 @@ int hdf5GetObjectSlice(int expIdx, char *hdf5Path, char *cpoPath, double time, v
         // otherwise this object contains a single slice
         newObj->dim = 1;
     }
-    
+
     // The slice to be read by the next hdf5GetObjectFromObject is the closest slice in time
     if(sliceIdx2<0 || time - sliceTime1 < sliceTime2 - time)
     {
@@ -4308,7 +4308,7 @@ int hdf5GetObjectSlice(int expIdx, char *hdf5Path, char *cpoPath, double time, v
     {
         newObj->timeIdx = sliceIdx2;
     }
-    
+
     // This is necessarily a top-level object,
     // we yet have to read the contained objects
     newObj->nextObj = NULL;
@@ -4331,7 +4331,7 @@ int hdf5GetObjectFromObject(void *obj, char *hdf5Path, int idx, void **dataObj)
     // (in this case it is contained in a bigger object that contains all the times).
     // We recognize this case because the field name is, by convention, "ALLTIMES"
     //------------------------------------------------------------------------------
-    
+
     if (!strcmp(hdf5Path,"ALLTIMES")) {
 
         // we have already opened the HDF5 group when opening the containing object,
@@ -4346,7 +4346,7 @@ int hdf5GetObjectFromObject(void *obj, char *hdf5Path, int idx, void **dataObj)
             return -1;
         }
         newObj->dim = group_info.nlinks;
-        
+
         // by convention, timeIdx has been set to -1 if we are dealing with a get rather than a getSlice.
         // In that case, use the given index.
         // Otherwise, timeIdx has been set to the index of the slice to read
@@ -4355,11 +4355,11 @@ int hdf5GetObjectFromObject(void *obj, char *hdf5Path, int idx, void **dataObj)
         } else {
             newObj->timeIdx = ((obj_t *)obj)->timeIdx;
         }
-        
+
     //------------------------------------------------------------------------------
     // other cases correspond to real nesting of arrays of structures
     //------------------------------------------------------------------------------
-    
+
     } else {
         // Generate correct path by substituting leading field by index number
         for (subName=hdf5Path; *subName!='/' && *subName!=0; subName++);
@@ -4374,7 +4374,7 @@ int hdf5GetObjectFromObject(void *obj, char *hdf5Path, int idx, void **dataObj)
 
         // try to open the group corresponding to the object
         newObj->handle = openGroup(((obj_t *)obj)->handle,groupName,NO_CREATE,NO_CLEAR);
-        
+
         if (newObj->handle<0) {
             // if it could not be read, then return an empty object
             newObj->dim = 0;
@@ -4388,18 +4388,18 @@ int hdf5GetObjectFromObject(void *obj, char *hdf5Path, int idx, void **dataObj)
             }
             newObj->dim = group_info.nlinks;
         }
-    
+
         // Inherit the time to be read from the containing object
         newObj->timeIdx = ((obj_t *)obj)->timeIdx;
     }
-    
+
     newObj->nextObj = NULL;  // this is the last object for now
-    
+
     // add this object to the list of descendants of the containing object
     lastDescendant((obj_t *)obj)->nextObj = newObj;
 
     *dataObj = (void *)newObj;
-    
+
     return 0;
 }
 
@@ -4410,7 +4410,7 @@ void hdf5ReleaseObject(void *obj)
     obj_t *currentObj, *nextObj;
     hid_t handle=-1;
     hid_t topHandle = ((obj_t *)obj)->handle;
-    
+
     for (currentObj=(obj_t *)obj; currentObj!=NULL;) {
         nextObj = currentObj->nextObj;
         handle = currentObj->handle;

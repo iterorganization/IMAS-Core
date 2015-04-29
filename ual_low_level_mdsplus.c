@@ -31,7 +31,7 @@ extern int TdiData();
 #endif
 static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retXd, int evaluate);
 static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize, int evaluate);
-static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd, 
+static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd, int expand);
 static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor_a *dataD, double *times, int nTimes);
 static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor *dataD);
@@ -61,11 +61,11 @@ static int putTimedVect6DFloat(int expIdx, char *cpoPath, char *path, char *time
 static int putTimedVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1, int dim2, int dim3, int dim4, int dim5);
 static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *times, int nTimes, int dim1, int dim2,
 int dim3, int dim4, int dim5, int dim6);
-static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *times, int nTimes, int dim1, 
+static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *times, int nTimes, int dim1,
 int dim2, int dim3, int dim4, int dim5, int dim6);
-static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1, 
+static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1,
 int dim2, int dim3, int dim4, int dim5, int dim6);
-static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize, 
+static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize,
     struct descriptor_xd *retTimesXd, int all);
 
 static int getNid(char *cpoPath, char *path);
@@ -176,11 +176,11 @@ static int isExpRemote(int id)
 {
     return openExperimentInfo[id].isRemote;
 }
-static int getExpConnectionId(int id)    
+static int getExpConnectionId(int id)
 {
     return openExperimentInfo[id].connectionId;
 }
-static int getExpRemoteIdx(int id)    
+static int getExpRemoteIdx(int id)
 {
     return openExperimentInfo[id].remoteIdx;
 }
@@ -196,7 +196,7 @@ static int mdsStatus;
 ///////Local-remote stuff
 static int mdsbeginIdsPutSliceLocal(int expIdx, char *path);
 
-static int mdsendIdsPutSliceLocal(int expIdx, char *path); 
+static int mdsendIdsPutSliceLocal(int expIdx, char *path);
 static int mdsbeginIdsReplaceLastSliceLocal(int expIdx, char *path);
 static int mdsendIdsReplaceLastSliceLocal(int expIdx, char *path);
 static int mdsbeginIdsPutLocal(int expIdx, char *path);
@@ -253,15 +253,15 @@ static void updateInfo(int expIdx, char *cpoPath, char *path, struct descriptor 
     {
 	printf("FATAL ERROR IN UpdateInfo: Unexpected nonempty XD\n");
 	exit(0);
-    }	
- 
+    }
+
     if(dataD->class == CLASS_S)
     {
     	if(isObject)
     	{
 	    printf("FATAL ERROR IN UpdateInfo: isObject for Non array XD\n");
 	    exit(0);
-    	}	
+    	}
 	putInfoWithData(expIdx, cpoPath, path, 1, 0, dims, dataD->length, dataD->dtype, dataD->length, dataD->pointer, 0); //Cannot be a serialized object
 	return;
     }
@@ -316,17 +316,17 @@ static void updateInfoObjectSlice(int expIdx, char *cpoPath, char *path, void *o
     int dims[16];
     struct descriptor_a *apd;
     int numSamples;
- 
+
     fullPath = malloc(strlen(path) + 11);
     sprintf(fullPath, "%s/timed", path);
-    
+
      apd = (struct descriptor_a *) obj;
      numSamples = apd->arsize / sizeof(struct descriptor *);
      if(numSamples == 1) //The object has been passed by put/replaceObjectSlice and therefore it is an array with 1 elements
          status = MdsSerializeDscOut(((struct descriptor **)apd->pointer)[0], &serializedXd);
      else //The object has been passed by putObject
           status = MdsSerializeDscOut((struct descriptor *)apd, &serializedXd);
-   
+
     arrD = (struct descriptor_a *)serializedXd.pointer;
     if(!(status & 1) || !arrD || arrD->class != CLASS_A)
     {
@@ -397,9 +397,9 @@ static int getInfoData(int expIdx, char *cpoPath, char *path, int *exists, int *
     DESCRIPTOR_A_COEFF(arrayD, 0, 0, 0, 0, 0);
 
     infoExists = getInfoWithData(expIdx, cpoPath, path, exists, nDims, dims, &itemSize, &dtype, &dataSize, &data);
-    
+
     //printf("GET INFO DATA %s/%s infoExists: %d\n", cpoPath, path, infoExists);
-    
+
     if(!infoExists) return 0;
     if(*exists) // why is this an input argument of the function ??
     {
@@ -436,7 +436,7 @@ static int getInfoData(int expIdx, char *cpoPath, char *path, int *exists, int *
     return 1;
 }
 static int getInfoObjectSlice(int expIdx, char *cpoPath, char *path, int sliceIdx, int *exists, void **obj)
-//Return 0 if info not in cache, 1 otherwise. The actual presence of data is reflected in argument exists 
+//Return 0 if info not in cache, 1 otherwise. The actual presence of data is reflected in argument exists
 {
     int infoExists;
     int status;
@@ -445,7 +445,7 @@ static int getInfoObjectSlice(int expIdx, char *cpoPath, char *path, int sliceId
     EMPTYXD(emptyXd);
     DESCRIPTOR_APD(retApd, DTYPE_L, 0, 0);
     EMPTYXD(deserializedXd);
-  
+
     infoExists = getInfoSlice(expIdx, cpoPath, path, sliceIdx, exists, &data);
     if(!infoExists) return 0;
     if(*exists)
@@ -495,7 +495,7 @@ static int getInfoObject(int expIdx, char *cpoPath, char *path, int *exists, voi
     if(!isTimed)
     {
         infoExists = getInfoWithData(expIdx, cpoPath, fullPath, exists, &nDims, dims, &itemSize, &dtype, &dataSize, &data);
-        if(!infoExists) 
+        if(!infoExists)
 	{
 	    free(fullPath);
 	    return 0;
@@ -570,7 +570,7 @@ static int getInfoObject(int expIdx, char *cpoPath, char *path, int *exists, voi
 }
 
 /* internal Flush is called when traversing the cached data structure for a given pulse file */
-void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  int isSliced, int isObject, int nDims, int *dims, int itemSize, int dtype, int dataSize, 
+void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  int isSliced, int isObject, int nDims, int *dims, int itemSize, int dtype, int dataSize,
 	char *data, int numSlices, int *sliceOffsets)
 {
     int status = 0, i;
@@ -585,7 +585,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 
 
     //reportInfo("START INTERNAL FLUSH %s\n", path);
-    //printf("Internal Flush %s %s\n", cpoPath, path);    
+    //printf("Internal Flush %s %s\n", cpoPath, path);
     if(dataSize == 0 || data == 0)
     {
 	   // printf("INTERNAL ERROR IN  internalFlush: Missing data in existing info\n");
@@ -595,7 +595,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
     {
     	if(isSliced)
 	{
-// Remove previous data, if any	        
+// Remove previous data, if any
             if(isExpRemote(expIdx))
         	status = putDataRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, (struct descriptor *)&emptyXd);
     	    else
@@ -617,7 +617,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 		    return;
 	    	}
 		status = putObjectSegment(expIdx, cpoPath, path, obj, -1);
-		if(status) 
+		if(status)
 	    	{
 	    	    printf("FATAL ERROR in internalFlush: Cannot write object slice\n");
 		    return;
@@ -646,7 +646,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 	}
     	return;
     }
-//Non Object management follows  
+//Non Object management follows
     //printf("Reached here in InternalFlush \n");
     if(nDims == 0) //Scalar
     {
@@ -680,7 +680,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
 	    }
             //printf("Passed getInfoWithDataNoLock in InternalFlush \n");
 
-// Remove previous data, if any	        
+// Remove previous data, if any
             if(isExpRemote(expIdx))
         	status = putDataRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, (struct descriptor *)&emptyXd);
     	    else
@@ -692,7 +692,7 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
       		printf("ERROR in internalFlush: Cannot delete data %s  %s\n", cpoPath, path);
 		return;
 	    }
-//Write ALL slices as a unique segment	    
+//Write ALL slices as a unique segment
             if(isExpRemote(expIdx))
                 status = putSegmentRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, (void *)&arrayD, times, timeDims[0]);
             else
@@ -725,8 +725,8 @@ static void appendSliceData(int expIdx, char *cpoPath, char *path, char *timeBas
     {
 	printf("FATAL ERROR IN appendSliceData: Unexpected nonempty XD\n");
 	exit(0);
-    }	
- 
+    }
+
     if(dataD->class == CLASS_S)
     {
 	appendSlice(expIdx, cpoPath, path, timeBasePath, 0, dims, dataD->length, dataD->dtype, dataD->length, dataD->pointer);
@@ -754,13 +754,13 @@ static void appendSliceSetData(int expIdx, char *cpoPath, char *path, char *time
     {
 	printf("FATAL ERROR IN appendSliceData: Unexpected nonempty XD\n");
 	exit(0);
-    }	
- 
+    }
+
     if(dataD->class == CLASS_S)
     {
 	printf("FATAL ERROR IN appendSliceData: Scalar data passed\n");
 	exit(0);
-    }	
+    }
     arrayDPtr = (void *)dataD;
     nDims = arrayDPtr->dimct;
     if(nDims == 1)
@@ -778,7 +778,7 @@ static void appendSliceSetData(int expIdx, char *cpoPath, char *path, char *time
 
 
 
-int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end, struct descriptor_xd *retDataXd, 
+int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd, int all);
 
 
@@ -801,7 +801,7 @@ static int counter;
         { //printf("getData : data DOES NOT EXIST according to getInfoData %s %s\n",cpoPath, path); //; This part is correct but is not traversed by the time dependent quantities in this test
 	    return makeErrorStatus(0, READ_ERROR, -1);}
     }
-//////////////////////////////////////////////////    
+//////////////////////////////////////////////////
 // printf("MISS %d %s %s\n", counter++, cpoPath, path);
 
     if(isExpRemote(expIdx))
@@ -830,7 +830,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
     EMPTYXD(xd);
 
     status = getData(expIdx, cpoPath, path, &xd, evaluate);
-     
+
     //printf("status of getData = %d\n",status);
 
     if(!status)
@@ -859,7 +859,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
     	memcpy(*retData, dataDPtr->pointer, dataDPtr->arsize);
 	MdsFree1Dx(&xd, 0);
     }
-    return status;	    
+    return status;
 }
 
 //NOTE: getDataNoDescr will be called ONLY for arrays
@@ -898,7 +898,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
     	    memcpy(*retData, dataDPtr->pointer, dataDPtr->arsize);
 	    MdsFree1Dx(&xd, 0);
 	}
-	return status;	    
+	return status;
     }
     else
     	return getDataLocalNoDescr(expIdx, cpoPath, path, retData, retDims,  retDimsCt, retType, retClass, retLength,  retArsize,  evaluate);
@@ -935,7 +935,7 @@ int putSegment(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct
     {
     	if(!getInfo(expIdx, cpoPath, path, &exists, &nDims, dims))
     	{
-//Argument time is no more used in getSlicedData()     
+//Argument time is no more used in getSlicedData()
  	    getSlicedData(expIdx, cpoPath,path, timeBasePath, 0., &dataXd, &timeXd, 0);
 	    MdsFree1Dx(&dataXd, 0);
 	    MdsFree1Dx(&timeXd, 0);
@@ -969,7 +969,7 @@ int putSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct d
         appendSliceData(expIdx, cpoPath, path, timeBasePath, dataD);
         if(cacheLevel == 2)
     	    return 0;
-    }	    
+    }
     if(isExpRemote(expIdx))
         return putSliceRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), cpoPath, path, dataD, time);
     else
@@ -983,15 +983,15 @@ int replaceLastSlice(int expIdx, char *cpoPath, char *path, struct descriptor *d
     	return replaceLastSliceLocal(expIdx, cpoPath, path, dataD);
 }
 
-int getSlicedData(int expIdx, char *cpoPath, char *path, char *timeBasePath, double time, struct descriptor_xd *retDataXd, 
+int getSlicedData(int expIdx, char *cpoPath, char *path, char *timeBasePath, double time, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd, int expandObject)
 {
     int status;
 
     status = getData(expIdx, cpoPath, path, retDataXd, 0);
     //printf("GetSlicedData 1. status getData %s = %d\n",path,status);
-    if(!status) 
-	status = getData(expIdx, cpoPath, timeBasePath, retTimesXd, 0); 
+    if(!status)
+	status = getData(expIdx, cpoPath, timeBasePath, retTimesXd, 0);
     //printf("GetSlicedData 2. status getData %s = %d\n",timeBasePath,status);
     return status;
 
@@ -1015,7 +1015,7 @@ int mdsbeginIdsPutSlice(int expIdx, char *path)
         return mdsbeginIdsPutSliceLocal(expIdx, path);
 }
 
-int mdsendIdsPutSlice(int expIdx, char *path) 
+int mdsendIdsPutSlice(int expIdx, char *path)
 {
 //reportInfo("END IDS PUT SLICE %s\n", path);
     int status;
@@ -1036,7 +1036,7 @@ int mdsbeginIdsReplaceLastSlice(int expIdx, char *path)
         return mdsbeginIdsReplaceLastSliceLocal(expIdx, path);
 }
 
-int mdsendIdsReplaceLastSlice(int expIdx, char *path) 
+int mdsendIdsReplaceLastSlice(int expIdx, char *path)
 {
     int status;
     if(isExpRemote(expIdx))
@@ -1083,7 +1083,7 @@ int mdsbeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes)
         return mdsbeginIdsPutTimedLocal(expIdx, path, samples, inTimes);
 }
 
-int mdsendIdsPutTimed(int expIdx, char *path) 
+int mdsendIdsPutTimed(int expIdx, char *path)
 {
 //reportInfo("END IDS PUT TIMED %s\n", path);
     int status;
@@ -1091,7 +1091,7 @@ int mdsendIdsPutTimed(int expIdx, char *path)
         free((char *)putTimes);
 	nPutTimes = 0;
     }
-    
+
     if(isExpRemote(expIdx))
         status = mdsendIdsPutTimedRemote(getExpConnectionId(expIdx), getExpRemoteIdx(expIdx), path);
     else
@@ -1110,7 +1110,7 @@ int mdsbeginIdsPutNonTimed(int expIdx, char *path)
         return mdsbeginIdsPutNonTimedLocal(expIdx, path);
 }
 
-int mdsendIdsPutNonTimed(int expIdx, char *path) 
+int mdsendIdsPutNonTimed(int expIdx, char *path)
 {
 //reportInfo("END IDS PUT NON TIMED %s\n", path);
     int status;
@@ -1234,7 +1234,7 @@ static void setDataEnv(char *user, char *tokamak, char *version)
     */
     //MERGE
     char first[2];
-    
+
     if(!strcmp(user, "public"))
     {
       //MERGE
@@ -1300,7 +1300,7 @@ static void setDataEnv(char *user, char *tokamak, char *version)
     strcpy(prevTreeBase7,getenv("MDSPLUS_TREE_BASE_7"));
     strcpy(prevTreeBase8,getenv("MDSPLUS_TREE_BASE_8"));
     strcpy(prevTreeBase9,getenv("MDSPLUS_TREE_BASE_9"));
-    
+
     // Set new values of the paths
     setenv("MDSPLUS_TREE_BASE_0",treeBase0,1);
     setenv("MDSPLUS_TREE_BASE_1",treeBase1,1);
@@ -1325,7 +1325,7 @@ static void setDataEnv(char *user, char *tokamak, char *version)
     putenv(treeBase9);
     */
     //MERGE
-}  
+}
 
 //imas_path env valus before calling getMdsShot
 static char *prevEnv;
@@ -1338,7 +1338,7 @@ static void restoreEnv(char *name)
 	restoreDataEnv();
 }
 
-  
+
 static int getMdsShot(char *name, int shot, int run, int translate)
 {
 	static int translated = 0;
@@ -1376,7 +1376,7 @@ static int getMdsShot(char *name, int shot, int run, int translate)
 				if (currPattern = strstr(prevLog,currTrans = getenv(baseName)))	// imas_path already contains the correct path?
 				{
 			//Yes, move it to the head of the list
-					substrOfs = currPattern - prevLog; 
+					substrOfs = currPattern - prevLog;
 					command=malloc(strlen(prevLog)+4);
 					sprintf(command, "%s;", currTrans);
 					currLen = strlen(command);
@@ -1475,7 +1475,7 @@ void refreshExpCtx(char *name, int shot, int run)
     lock("refreshExpCtx");
     for(i = 0; i < MAX_EXPERIMENTS; i++)
     {
-        if(openExperimentInfo[i].name && openExperimentInfo[i].shot == currShot && !strcmp(openExperimentInfo[i].name, name)) 
+        if(openExperimentInfo[i].name && openExperimentInfo[i].shot == currShot && !strcmp(openExperimentInfo[i].name, name))
 	{
 	    int status = _TreeOpen(&openExperimentInfo[i].ctx, name, currShot, 0);
 	    printf("REFRESHED %s Shot: %d Run: %d status: %d\n", name, shot, run, status);
@@ -1489,7 +1489,7 @@ static void *getExpCtx(char *name, int shot)
 {
     int i;
     for(i = 0; i < MAX_EXPERIMENTS; i++)
-        if(openExperimentInfo[i].name && openExperimentInfo[i].shot == shot && !strcmp(openExperimentInfo[i].name, name)) 
+        if(openExperimentInfo[i].name && openExperimentInfo[i].shot == shot && !strcmp(openExperimentInfo[i].name, name))
 	    return openExperimentInfo[i].ctx;
     return 0;
 }
@@ -1499,7 +1499,7 @@ static int setExpIndex(char *name, int shot, void *ctx)
     int i;
     for(i = 0; i < MAX_EXPERIMENTS; i++)
         if(!openExperimentInfo[i].name) break;
-    if(i < MAX_EXPERIMENTS) 
+    if(i < MAX_EXPERIMENTS)
     {
         openExperimentInfo[i].name = malloc(strlen(name) + 1);
         strcpy(openExperimentInfo[i].name, name);
@@ -1517,7 +1517,7 @@ static int setExpIndexRemote(char *name, int shot, int connectionId, int remoteI
     int i;
     for(i = 0; i < MAX_EXPERIMENTS; i++)
         if(!openExperimentInfo[i].name) break;
-    if(i < MAX_EXPERIMENTS) 
+    if(i < MAX_EXPERIMENTS)
     {
         openExperimentInfo[i].name = malloc(strlen(name) + 1);
         strcpy(openExperimentInfo[i].name, name);
@@ -1656,7 +1656,7 @@ int mdsimasDisconnect()
 
 #ifdef MONITOR
 	checkCacheMonitor();
-#endif	
+#endif
 
 
     	if(currConnectionId > 0)
@@ -1669,16 +1669,16 @@ int mdsimasDisconnect()
 		return 0;
 
     	}
-	
+
 /*	ctx = getExpCtx(name, getMdsShot(name, shot, run, 0));
 	if(ctx)
 	{
-	    oldCtx = TreeSwitchDbid(ctx); 
+	    oldCtx = TreeSwitchDbid(ctx);
 	    printf("OPEN RETURNED CTX %X\n", oldCtx);
 	}
 	else REMOVED!! LET MDSPlus create a new context every tome it is open
 */	{
-            //oldCtx = TreeSwitchDbid((void *)0); 
+            //oldCtx = TreeSwitchDbid((void *)0);
 	    status = _TreeOpen(&ctx, name, getMdsShot(name, shot, run,1), 0);
 	    if(!(status & 1))
 	    {
@@ -1709,10 +1709,10 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 	return 0;
 
     }
-    
+
     lock("mdsimasCreateEnv");
     setDataEnv(user, tokamak, version);
-    
+
      status = mdsimasCreate(expName, shot, run, refShot, refRun, retIdx);
     //MERGE
     restoreEnv(expName);
@@ -1720,15 +1720,15 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
     unlock();
     return status;
 }
-    
-        
-	
+
+
+
  int mdsimasCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
 {
 	int status, remoteIdx;
 	int nid, nid1, refNid, currMdsShot;
 	void *ctx = 0, *oldCtx;
-        
+
 	int refs[2];
     	DESCRIPTOR_A(refD, sizeof(int), DTYPE_L, (char *)refs, 2 * sizeof(int));
         struct descriptor refShotD = {4, DTYPE_L, CLASS_S, (char *)&refShot};
@@ -1751,7 +1751,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
         refs[0] = refShot;
 	refs[1] = refRun;
 	getMdsShot(name, shot, run, 1); //Initial setting logical names
-	oldCtx=TreeSwitchDbid((void *)0); 
+	oldCtx=TreeSwitchDbid((void *)0);
 	status = TreeOpen(name, -1, 0);
 	if(!(status & 1))
 	{
@@ -1766,7 +1766,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 	}
 	TreeClose(name, -1);
 
-	oldCtx=TreeSwitchDbid((void *)0); 
+	oldCtx=TreeSwitchDbid((void *)0);
 	status = _TreeOpen(&ctx, name, getMdsShot(name, shot, run, 0), 0);
 	if(!(status & 1))
 	{
@@ -1782,7 +1782,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
             {
 		sprintf(errmsg, "Internal error: treference information not found: %s", MdsGetMsg(status));
 		return makeErrorStatus(1, WRITE_ERROR, status);
-            }  
+            }
             status = _TreePutRecord(ctx, refNid, (struct descriptor *)&refD, 0);
             if(!(status & 1))
             {
@@ -1791,7 +1791,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
            }
         }
         else
-        {    
+        {
             status = _TreePutRecord(ctx, refNid, (struct descriptor *)&refShotD, 0);
             if(!(status & 1))
             {
@@ -1811,8 +1811,8 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 		sprintf(errmsg, "Error writing reference run: %s", MdsGetMsg(status));
 		return makeErrorStatus(1, WRITE_ERROR, status);
             }
-         }   
- 
+         }
+
         currMdsShot = getMdsShot(name, shot, run, 0);
 	strcpy(currExpName, name);
         *retIdx = setExpIndex(name, currMdsShot, ctx);
@@ -1824,7 +1824,7 @@ int mdsimasClose(int idx, char *name, int shot, int run)
 {
     int status;
     void *ctx;
-    
+
     lock("mdsimasClose");
     if(checkExpIndex(idx) < 0)
     {
@@ -1880,7 +1880,7 @@ static char *path2MDS(char *path)
     strncat(MDSpath,SUM,4);
     for (i=0;i<12;i++) {
 	MDSpath[i] = tolower(MDSpath[i]);
-    } 
+    }
 //    printf("path = %s, MDSpath = %s\n",path, MDSpath);
     return  MDSpath;
 }
@@ -1892,7 +1892,7 @@ static char *convertPath(char *inputpath)
     char  path[2048];;
     char *ptr;
 
-    strcpy(path,inputpath); 
+    strcpy(path,inputpath);
 //    printf("For debugging. initial path: %s\n",path);
     ptr=strtok(path, SEPARATORS);
     if (ptr == NULL) return "";
@@ -1921,8 +1921,8 @@ static char *convertAnotherPath(char *inputpath)
     static char mdsAnotherPath[2048];
     char  path[2048];;
     char *ptr;
-     
-    strcpy(path,inputpath); 
+
+    strcpy(path,inputpath);
 //    printf("For debugging. another initial path: %s\n",path);
     ptr=strtok(path, SEPARATORS);
     if (ptr == NULL) return "";
@@ -1953,7 +1953,7 @@ static char *convertPathDot(char *inputpath)
     char  path[2048];;
     char *ptr;
 
-    strcpy(path,inputpath); 
+    strcpy(path,inputpath);
 //    printf("For debugging. initial path: %s\n",path);
     ptr=strtok(path, SEPARATORS);
     if (ptr == NULL) return "";
@@ -1982,8 +1982,8 @@ static char *convertAnotherPathDot(char *inputpath)
     static char mdsAnotherPath[2048];
     char  path[2048];;
     char *ptr;
-     
-    strcpy(path,inputpath); 
+
+    strcpy(path,inputpath);
 //    printf("For debugging. another initial path: %s\n",path);
     ptr=strtok(path, SEPARATORS);
     if (ptr == NULL) return "";
@@ -2013,7 +2013,7 @@ static char *getTruncated(char *path)
     int len = strlen(path);
     char *trunc = malloc(len + 1);
     memset(trunc, 0, len+1);
-    
+
     count = 0;
     j = 0;
     for(i = 0; i < len; i++)
@@ -2026,7 +2026,7 @@ static char *getTruncated(char *path)
 	    count++;
     }
     return trunc;
-}    
+}
 
 static int getNid(char *cpoPath, char *path)
 {
@@ -2035,7 +2035,7 @@ static int getNid(char *cpoPath, char *path)
 //	char *truncPath = getTruncated(path);
 //        printf("ual_low_level_mdsplus: GetNid : %s, %s\n", cpoPath, path);
 	char *truncPath = getTruncated(convertPath(path));
-        
+
 
 //	len = strlen(cpoPath) + strlen(truncPath)+ 1;
 	len = strlen(convertPath(cpoPath)) + strlen(truncPath)+ 1;
@@ -2062,9 +2062,9 @@ static int getNid(char *cpoPath, char *path)
         for(i = strlen(mdsPath) -1; i >=0 && mdsPath[i] != ':'; i--);
         if(strlen(mdsPath) - i - 1 > 12)
             mdsPath[i+13] = 0;
-        
+
  //       printf("ual_low_level_mdsplus: mdspath in GetNid : %s\n", mdsPath);
-       
+
 	status = TreeFindNode(mdsPath, &nid);
  //       printf("ual_low_level_mdsplus: status in GetNid : %d\n", status);
 	if(!(status & 1))
@@ -2098,12 +2098,12 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 	    unlock();
 	    return makeErrorStatus(1, READ_ERROR, -1);
 	}
-//	printf("getDataLocal for %s %s\n",cpoPath, path);  
-//	printf("getDataLocal for %s %s\n",convertPath(cpoPath), convertAnotherPath(path));  
+//	printf("getDataLocal for %s %s\n",cpoPath, path);
+//	printf("getDataLocal for %s %s\n",convertPath(cpoPath), convertAnotherPath(path));
 
 //        nid = getNid(convertPath(cpoPath), convertAnotherPath(path));
         nid = getNid(cpoPath, path);
-	//printf("In getDataLocal: nid for %s %s = %d\n",cpoPath, path,nid);  
+	//printf("In getDataLocal: nid for %s %s = %d\n",cpoPath, path,nid);
 	if(nid == -1)
 	{
 	    unlock();
@@ -2116,10 +2116,10 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
                 //printf("ERROR %s\n", errmsg);
 	    	unlock();
 	    	return makeErrorStatus(0, READ_ERROR, status);
-        }    
+        }
         if(numSegments > 0)
         {
-//NOTE Segmented data encountered only when getDataLocal is called by getCpoDataServer in remote IDS access	
+//NOTE Segmented data encountered only when getDataLocal is called by getCpoDataServer in remote IDS access
 
             EMPTYXD(retTimesXd);
 //Check the dtype of start segment: if DTYPE_DOUBLE it is a segment containing normal slices
@@ -2132,7 +2132,7 @@ static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
                 printf("ERROR %s\n", errmsg);
 	    	return makeErrorStatus(1, READ_ERROR, status);
 	    }
-	    isObject = (startXd.pointer->dtype == DTYPE_L); 
+	    isObject = (startXd.pointer->dtype == DTYPE_L);
 	    MdsFree1Dx(&startXd, 0);
 	    MdsFree1Dx(&endXd, 0);
 	    unlock();
@@ -2179,7 +2179,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
         if(checkExpIndex(expIdx) < 0)
 	{
 	    unlock();
-	    return makeErrorStatus(1, READ_ERROR, -1);      
+	    return makeErrorStatus(1, READ_ERROR, -1);
 	}
 
         nid = getNid(cpoPath, path);
@@ -2195,7 +2195,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
 		sprintf(errmsg, "Missing data for IDS: %s, field: %s - %s", cpoPath, path, MdsGetMsg(status));
 	    	unlock();
 	    	return makeErrorStatus(0, READ_ERROR, status);
-        }    
+        }
         if(numSegments > 0)
         {
             EMPTYXD(retTimesXd);
@@ -2205,7 +2205,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
                 MdsFree1Dx(&retTimesXd, 0);
  	    return makeErrorStatus(1, READ_ERROR, status);
         }
-        
+
         mdsStatus = status = TreeGetRecord(nid, &xd);
 
         if(!(status & 1) || xd.l_length == 0) //If empty value has been written into the tree, do not scal reference list
@@ -2262,7 +2262,7 @@ static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **ret
 
 
 
-static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retDataXd, 
+static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd)
 {
     struct descriptor_signal *signalD;
@@ -2273,7 +2273,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
     _int64u *longTimes;
-    
+
     status = getData(expIdx, cpoPath, path, &xd, 0);
     if(status) return status;
     signalD = (struct descriptor_signal *)xd.pointer;
@@ -2291,7 +2291,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
             MdsFree1Dx(&xd, 0);
 	    return makeErrorStatus(1, READ_ERROR, status);
     }
-    
+
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
     longTimes = (_int64u *)longTimesD->pointer;
@@ -2321,7 +2321,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     double *times;
     _int64u *longTimes;
     ARRAY_COEFF(char, 16) *dataDPtr;
-    
+
     status = getData(expIdx, cpoPath, path, &xd, 0);
     if(status) return status;
     signalD = (struct descriptor_signal *)xd.pointer;
@@ -2339,7 +2339,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
             MdsFree1Dx(&xd, 0);
 	    return makeErrorStatus(1, READ_ERROR, -1);
      }
-    
+
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
     longTimes = (_int64u *)longTimesD->pointer;
@@ -2351,7 +2351,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     timeD.arsize = nTimes * sizeof(double);
     timeD.pointer = (char *)times;
     MdsCopyDxXd((struct descriptor *)&timeD, retTimesXd);
-    
+
     dataDPtr =  (void *)signalD->data;
     *retDimsCt = dataDPtr->dimct;
     for(i = 0; i < dataDPtr->dimct; i++)
@@ -2362,9 +2362,9 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     *retClass = dataDPtr->class;
     *retData = malloc(dataDPtr->arsize);
     memcpy(*retData, dataDPtr->pointer, dataDPtr->arsize);
-    
 
-    
+
+
     //MdsCopyDxXd((struct descriptor *)signalD->data, retDataXd);
     free((char *)times);
     MdsFree1Dx(&xd, 0);
@@ -2374,7 +2374,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
 static double getDoubleTime(struct descriptor *timeD)
 {
     double retTime;
-    
+
     if(timeD->dtype == DTYPE_Q || timeD->dtype == DTYPE_QU)
         MdsTimeToDouble(*(_int64u *)timeD->pointer, &retTime);
     else
@@ -2384,7 +2384,7 @@ static double getDoubleTime(struct descriptor *timeD)
 
 
 
-int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end, struct descriptor_xd *retDataXd, 
+int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd, int all)
 {
     struct descriptor_a *longTimesD;
@@ -2404,14 +2404,14 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
     //ARRAY_COEFF(char, 16) dataD;
     ARRAY_COEFF(char, 16) *dataDPtr;
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
-    
+
     lock("getTimedData");
     if(checkExpIndex(expIdx) < 0)
     {
 	unlock();
 	return makeErrorStatus(1, READ_ERROR, -1);
     }
-    
+
     nid = getNid(cpoPath, path);
     //printf("In GetTimedData: cpopath, path, nid: %s, %s, %d \n",cpoPath, path, nid);
     status = TreeGetNumSegments(nid, &numSegments);
@@ -2427,7 +2427,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         status = getNonSegmentedTimedData(expIdx, cpoPath, path, retDataXd, retTimesXd);
 	return status;
     }
-    
+
     segTimesXds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd)*numSegments);
     segDataXds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd)*numSegments);
     actSegments = 0;
@@ -2468,19 +2468,19 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
                 lastDim += dataDPtr->arsize/dataDPtr->length;
             else
                 lastDim += dataDPtr->m[dataDPtr->dimct - 1];
-            
-            
+
+
             //Times is now an expression
             status = TdiData( &segTimesXds[actSegments],  &segTimesXds[actSegments] MDS_END_ARG);
             if(!(status & 1))
             {
-            printf("Error in GetTimedData, due to TdiData evaluation\n"); 
+            printf("Error in GetTimedData, due to TdiData evaluation\n");
                sprintf(errmsg, "Error getting segment time for IDS: %s, field: %s", cpoPath, path);
 	        unlock();
              	return makeErrorStatus(1, READ_ERROR, -1);
             }
 
-            
+
             actSegments++;
         }
     }
@@ -2497,7 +2497,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
 // The last dimension is multiplied fir the number of segments QUESTO CONTO LO DEVO FARE COME SOMMA DELL'ULTIMA DIMENSIONE!!
 //    dataD.m[dataD.dimct-1] *= numSegments;
     dataD.m[dataD.dimct-1] = lastDim;
-    
+
     for(currSegment = 0; currSegment < actSegments; currSegment++)
     {
         dataLen += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize;
@@ -2520,7 +2520,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
             getLeftItems(nid, &leftItems, &leftRows);
             lastSegmentOffset = leftItems * ((struct descriptor_a *)segDataXds[currSegment].pointer)->length;
         }
-            
+
         memcpy(&data[dataOfs], ((struct descriptor_a *)segDataXds[currSegment].pointer)->pointer,
             ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize);
         dataOfs += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize - lastSegmentOffset;
@@ -2540,7 +2540,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         }
     }
 
-    
+
     dataD.arsize -= lastSegmentOffset;
     dataD.m[dataD.dimct - 1] -= leftRows;
     MdsCopyDxXd((struct descriptor *)&dataD, retDataXd);
@@ -2557,17 +2557,17 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
     free((char *)segTimesXds);
     unlock();
     return 0;
-}  
-    
+}
 
-static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize, 
+
+static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize,
     struct descriptor_xd *retTimesXd, int all)
 {
     struct descriptor_a *longTimesD;
     EMPTYXD(emptyXd);
     EMPTYXD(startXd);
     EMPTYXD(endXd);
-    int status, i; 
+    int status, i;
     int lastSegmentOffset, leftItems, leftRows, lastDim;
     double *times, *doubleTimes;
     _int64u *longTimes;
@@ -2578,7 +2578,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     char *data;
     ARRAY_COEFF(char, 16) *dataDPtr;
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
-    
+
     lock("getTimedDataNoDescr");
     if(checkExpIndex(expIdx) < 0)
     {
@@ -2599,7 +2599,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         status = getNonSegmentedTimedDataNoDescr(expIdx, cpoPath, path, retData, retDims,  retDimsCt, retType, retClass, retLength,  retArsize, retTimesXd);
 	return status;
     }
-    
+
     segTimesXds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd)*numSegments);
     segDataXds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd)*numSegments);
     actSegments = 0;
@@ -2636,8 +2636,8 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
                 lastDim += dataDPtr->arsize/dataDPtr->length;
             else
                 lastDim += dataDPtr->m[dataDPtr->dimct - 1];
-            
-            
+
+
             //Times is now an expression
             status = TdiData( &segTimesXds[actSegments],  &segTimesXds[actSegments] MDS_END_ARG);
             if(!(status & 1))
@@ -2647,14 +2647,14 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
        	    	return makeErrorStatus(1, READ_ERROR, -1);
             }
 
-            
+
             actSegments++;
         }
     }
     //Merge data and times, converted to double
     dataLen = timesLen = 0;
     dataDPtr = (void *)segDataXds[0].pointer;
-    
+
     *retType = dataDPtr->dtype;
     *retClass = dataDPtr->class;
     *retLength = segDataXds[0].pointer->length;
@@ -2662,9 +2662,9 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     for(i = 0; i < dataDPtr->dimct; i++)
         retDims[i] = dataDPtr->m[i];
     retDims[dataDPtr->dimct-1] = lastDim;
-    
-    
-/*    
+
+
+/*
     dataD.class = CLASS_A;
     dataD.dtype = dataDPtr->dtype;
     dataD.length = segDataXds[0].pointer->length;
@@ -2673,7 +2673,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         dataD.m[i] = dataDPtr->m[i];
 // The last dimension is multiplied fir the number of segments QUESTO CONTO LO DEVO FARE COME SOMMA DELL'ULTIMA DIMENSIONE!!
     dataD.m[dataD.dimct-1] = lastDim;
-    
+
 */
 
 
@@ -2687,7 +2687,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
 
     *retData = data = malloc(dataLen);
     *retArsize = dataLen;
-    
+
 /*    dataD.arsize = dataLen;
     dataD.pointer = data;
 */
@@ -2705,7 +2705,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
             getLeftItems(nid, &leftItems, &leftRows);
             lastSegmentOffset = leftItems * ((struct descriptor_a *)segDataXds[currSegment].pointer)->length;
         }
-            
+
         memcpy(&data[dataOfs], ((struct descriptor_a *)segDataXds[currSegment].pointer)->pointer,
             ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize);
         dataOfs += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize - lastSegmentOffset;
@@ -2727,7 +2727,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
 
     *retArsize -= lastSegmentOffset;
     retDims[dataDPtr->dimct - 1] -= leftRows;
-    
+
 /*    dataD.arsize -= lastSegmentOffset;
     dataD.m[dataD.dimct - 1] -= leftRows;
     MdsCopyDxXd((struct descriptor *)&dataD, retDataXd);
@@ -2746,11 +2746,11 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     free((char *)segTimesXds);
     unlock();
     return 0;
-}  
-    
+}
 
 
-static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd, 
+
+static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd,
     struct descriptor_xd *retTimesXd, int expandObject)
 {
     struct descriptor_a *longTimesD, *doubleTimesD;
@@ -2763,7 +2763,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     struct descriptor_a *dataD;
     double *times, start, end, currStart, currEnd;
     _int64u *longTimes;
-    
+
     int nid, numSegments, currSegment, isObject;
 
     lock("getSlicedDataLocal");
@@ -2773,7 +2773,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
 	return makeErrorStatus(1, READ_ERROR, -1);
     }
 
-    
+
         nid = getNid(cpoPath, path);
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
@@ -2797,7 +2797,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
 	unlock();
        	return makeErrorStatus(1, READ_ERROR, -1);
     }
-    isObject = (startXd.pointer->dtype == DTYPE_L); 
+    isObject = (startXd.pointer->dtype == DTYPE_L);
     if(isObject)
     {
 	printf("FATAL ERROR: Unexpected Object found in getSlicedData()!!!!\n");
@@ -2886,18 +2886,18 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
         MdsCopyDxXd(timesXd.pointer, retTimesXd);
         doubleTimesD->arsize = oldLen;
     }
-    
+
 //printf("GET SLICED DATA LOCAL %s %s %s\n", cpoPath, path, decompileDsc(retDataXd));
-    
-    
-    
-    
+
+
+
+
     MdsFree1Dx(&timesXd, 0);
     unlock();
     return 0;
-    
-}  
-    
+
+}
+
 
 
 int getDataAndSliceIdxs(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor_xd *xd, double time, int *sliceId1, int *sliceId2,
@@ -2910,7 +2910,7 @@ int getDataAndSliceIdxs(int expIdx, char *cpoPath, char *path, char *timeBasePat
     int nTimes;
     int status, startIdx;
     int nItems, i, itemSize;
-    
+
 //Read Segment corresponding to time
     status = getSlicedData(expIdx, cpoPath, path, timeBasePath, time, xd, &timesXd, 1);
     if(status)
@@ -2939,10 +2939,10 @@ int getDataAndSliceIdxs(int expIdx, char *cpoPath, char *path, char *timeBasePat
     }
     if(nTimes > nItems)
     	*retNTimes = nTimes = nItems;
-	 
-    
-    
-    
+
+
+
+
     times = (double *)timesD->pointer;
     for(startIdx = 0; startIdx < nTimes && times[startIdx] <= time; startIdx++);
     if(startIdx == nTimes)
@@ -3008,14 +3008,14 @@ static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor
 		free(newPath);
 		return 0;
 	    }
-	    if(isEmpty(nid)) 
+	    if(isEmpty(nid))
 	      {
 		unlock();
 	    	return 0;
 	      }
-	}	
+	}
 //reportInfo("PUT DATA LOCAL CALL PUT RECORD\n", path);
-	
+
 	status = TreePutRecord(nid, dataD, 0);
 	unlock();
  	if(!(status & 1))
@@ -3033,7 +3033,7 @@ static void getLeftItems(int nid, int *leftItems, int *leftRows)
     char dimct;
     int dims[64];
     int idx, nextRow, status, rowSize, i;
-#ifdef OLD_MDS    
+#ifdef OLD_MDS
     status = TreeGetSegmentInfo(nid, &dtype, &dimct, dims, &idx, &nextRow);
 #else
     status = TreeGetSegmentInfo(nid, -1, &dtype, &dimct, dims, &nextRow);
@@ -3108,7 +3108,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
         sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"%s:%s\"),%d))", convertPathDot(cpoPath),convertAnotherPathDot(timeBasePath), currSegment);
 //        sprintf(segmentExpr, "data(GetCheckedSegment(build_path(\"pf0:coils0.1.current0.timebase0\"),0))");
 // segmentExpr = data(GetCheckedSegment(build_path("pf0:coils0/1/current0/timebase0"),0))
-       // printf("segmentExpr = %s\n",segmentExpr);  
+       // printf("segmentExpr = %s\n",segmentExpr);
 	exprD.length = strlen(segmentExpr);
         exprD.pointer = segmentExpr;
         status = TdiCompile(&exprD, &timeExprXd MDS_END_ARG);
@@ -3163,8 +3163,8 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             }
             MdsFree1Dx(&startXd, 0);
             MdsFree1Dx(&endXd, 0);
-            
-            
+
+
             if(prevArsize > leftBytes) //Write remaining segment
             {
                 currStart = times[leftRows];
@@ -3218,7 +3218,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
             segDataD.arsize = len;
             segDataD.pointer = malloc(len);
             memset(segDataD.pointer, 0, len);
-*/                
+*/
             status = TreeBeginSegment(nid, &startD, &endD, timeExprXd.pointer, dataD, -1);
             if(!(status & 1))
             {
@@ -3249,7 +3249,7 @@ static int mdsbeginIdsPutSliceLocal(int expIdx, char *path)
     return status;
 }
 
-static int mdsendIdsPutSliceLocal(int expIdx, char *path) 
+static int mdsendIdsPutSliceLocal(int expIdx, char *path)
 {
     return 0;
 }
@@ -3262,7 +3262,7 @@ static int mdsbeginIdsReplaceLastSliceLocal(int expIdx, char *path)
     return status;
 }
 
-static int mdsendIdsReplaceLastSliceLocal(int expIdx, char *path) 
+static int mdsendIdsReplaceLastSliceLocal(int expIdx, char *path)
 {
     return 0;
 }
@@ -3291,7 +3291,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
             dataLen = ((struct descriptor_a *)dataD)->arsize;
         else
             dataLen = dataD->length;
-        
+
 	lock("putSliceLocal");
 	if(checkExpIndex(expIdx) < 0)
 	{
@@ -3304,7 +3304,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
 		unlock();
 		return makeErrorStatus(1, WRITE_ERROR, -1);
 	}
-        
+
         status = TreeGetNumSegments(nid, &currSegment);
         if(!(status & 1))
 	{
@@ -3353,9 +3353,9 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
 		    unlock();
 		    return makeErrorStatus(1, WRITE_ERROR, status);
                 }
-            }    
+            }
         }
-        else //no space left in segment, need to create a new segment 
+        else //no space left in segment, need to create a new segment
         {
             dataPtr = malloc(dataLen * DEFAULT_SEGMENT_ROWS);
             memset(dataPtr, 0, dataLen * DEFAULT_SEGMENT_ROWS);
@@ -3392,9 +3392,9 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
                 segDataD.pointer = dataPtr;
                 segDataD.arsize = currSize * DEFAULT_SEGMENT_ROWS;
             }
-            
-            
-            
+
+
+
             status = TreeBeginSegment(nid,
 	    	&endD, &endD, (struct descriptor *)timeExprXd.pointer, (struct descriptor_a *)&segDataD, -1);
             if(!(status & 1))
@@ -3414,7 +3414,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
         }
         MdsFree1Dx(&timeExprXd, 0);
  	unlock();
-       
+
         return 0;
 }
 
@@ -3438,26 +3438,26 @@ static int replaceLastSliceLocal(int expIdx, char *cpoPath, char *path, struct d
 
         DESCRIPTOR_A_COEFF(segDataD, 0, 0, 0, 5, 0);
         ARRAY_COEFF(char *, 5) *segDataPtr;
-        
-        
+
+
         if(dataD->class == CLASS_A)
             dataLen = ((struct descriptor_a *)dataD)->arsize;
         else
             dataLen = dataD->length;
-        
+
  	lock("replaceLastSliceLocal");
 	if(checkExpIndex(expIdx) < 0)
 	{
 	    unlock();
-	    return makeErrorStatus(1, WRITE_ERROR, -1); 
-	}       
+	    return makeErrorStatus(1, WRITE_ERROR, -1);
+	}
         nid = getNid(cpoPath, path);
 	if(nid == -1)
 	{
 		unlock();
 		return makeErrorStatus(1, WRITE_ERROR, -1);
 	}
-        
+
         status = TreeGetNumSegments(nid, &currSegment);
         if(!(status & 1))
 	{
@@ -3502,7 +3502,7 @@ static int mdsbeginIdsPutLocal(int expIdx, char *path)
     return status;
 }
 
-static int mdsendIdsPutLocal(int expIdx, char *path) 
+static int mdsendIdsPutLocal(int expIdx, char *path)
 {
     return 0;
 }
@@ -3516,7 +3516,7 @@ static int mdsbeginIdsPutTimedLocal(int expIdx, char *path, int samples, double 
     return status;
 }
 
-static int mdsendIdsPutTimedLocal(int expIdx, char *path) 
+static int mdsendIdsPutTimedLocal(int expIdx, char *path)
 {
     return 0;
 }
@@ -3530,7 +3530,7 @@ static int mdsbeginIdsPutNonTimedLocal(int expIdx, char *path)
     return status;
 }
 
-static int mdsendIdsPutNonTimedLocal(int expIdx, char *path) 
+static int mdsendIdsPutNonTimedLocal(int expIdx, char *path)
 {
     return 0;
 }
@@ -3620,7 +3620,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	return status;
 }
 
-	
+
  int mdsPutVect1DString(int expIdx, char *cpoPath, char *path, char *timeBasePath, char **data, int dim, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -3634,7 +3634,7 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	{
 	   return 0;
 	}
-	
+
         if(isTimed)
 	{
 	    if(dim != nPutTimes)
@@ -3642,10 +3642,10 @@ static int putTimedVect1DInt(int expIdx, char *cpoPath, char *path, char * timeB
 	        sprintf(errmsg, "Internal error: data size and time vector length differ for timed data at IDS %s field %s.  ", cpoPath, path);
 		return -1;
 	    }
-	
+
             return putTimedVect1DString(expIdx, cpoPath, path, timeBasePath,  data, putTimes, nPutTimes);
 	}
-	
+
 	//printf("mdsPutVect1DString. is not Timed: dim %d\n",dim);
         for(i = 0; i < dim; i++)
 	{ //printf("mdsPutVect1DString. strlen %d, max: %d\n",strlen(data[i]), maxLen);
@@ -3751,7 +3751,7 @@ static int putTimedVect1DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A(dataD, sizeof(float), DTYPE_FLOAT, 0, 0);
-	int status;   
+	int status;
 	dataD.arsize = sizeof(float) * nTimes;
 	dataD.pointer = (char *)data;
 	if(nTimes > 0)
@@ -3763,7 +3763,7 @@ static int putTimedVect1DFloat(int expIdx, char *cpoPath, char *path, char *time
 	return status;
 }
 
-	
+
  int mdsPutVect2DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -3786,7 +3786,7 @@ static int putTimedVect2DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 2, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = nTimes;
@@ -3820,7 +3820,7 @@ static int putTimedVect2DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 2, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = nTimes;
@@ -3857,7 +3857,7 @@ static int putTimedVect2DDouble(int expIdx, char *cpoPath, char *path, char *tim
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 2, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = nTimes;
@@ -3891,12 +3891,12 @@ static int putTimedVect2DDouble(int expIdx, char *cpoPath, char *path, char *tim
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
-static int putTimedVect3DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *times, int nTimes, int dim1, 
+static int putTimedVect3DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *times, int nTimes, int dim1,
     int dim2)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 3, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -3930,12 +3930,12 @@ static int putTimedVect3DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
-static int putTimedVect3DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *times, int nTimes, int dim1, 
+static int putTimedVect3DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *times, int nTimes, int dim1,
     int dim2)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 3, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -3943,7 +3943,7 @@ static int putTimedVect3DFloat(int expIdx, char *cpoPath, char *path, char *time
 	dataD.pointer = (char *)data;
 	if(dim1 * dim2 * nTimes> 0)
 		status = putSegment(expIdx, cpoPath, path, timeBasePath, (struct descriptor_a *)&dataD, times, nTimes);
-	else 
+	else
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
@@ -3969,12 +3969,12 @@ static int putTimedVect3DFloat(int expIdx, char *cpoPath, char *path, char *time
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
-static int putTimedVect3DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1, 
+static int putTimedVect3DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1,
     int dim2)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 3, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4014,7 +4014,7 @@ static int putTimedVect4DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 4, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4023,7 +4023,7 @@ static int putTimedVect4DFloat(int expIdx, char *cpoPath, char *path, char *time
 	dataD.pointer = (char *)data;
 	if(dim1 * dim2 * dim3 * nTimes> 0)
 		status =  putSegment(expIdx, cpoPath, path, timeBasePath, (struct descriptor_a *)&dataD, times, nTimes);
-	else 
+	else
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
@@ -4054,7 +4054,7 @@ static int putTimedVect4DDouble(int expIdx, char *cpoPath, char *path, char *tim
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 4, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4094,7 +4094,7 @@ static int putTimedVect4DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 4, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4134,7 +4134,7 @@ static int putTimedVect5DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 5, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4176,7 +4176,7 @@ static int putTimedVect5DDouble(int expIdx, char *cpoPath, char *path, char *tim
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 5, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4214,13 +4214,13 @@ static int putTimedVect5DDouble(int expIdx, char *cpoPath, char *path, char *tim
 	return status;
 }
 
-static int putTimedVect5DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *times, int nTimes, int dim1, 
+static int putTimedVect5DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *times, int nTimes, int dim1,
     int dim2, int dim3, int dim4)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 5, 0);
 	int status;
-		
+
 	dataD.arsize = dim1*dim2*dim3*dim4*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4235,7 +4235,7 @@ static int putTimedVect5DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
- int mdsPutVect6DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect6DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
 int dim4, int dim5, int dim6, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4263,7 +4263,7 @@ static int putTimedVect6DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 6, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4282,7 +4282,7 @@ static int putTimedVect6DFloat(int expIdx, char *cpoPath, char *path, char *time
 
 
 
- int mdsPutVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4300,16 +4300,16 @@ static int putTimedVect6DFloat(int expIdx, char *cpoPath, char *path, char *time
 	dataD.pointer = (char *)data;
 	if(dim1 * dim2 * dim3 * dim4*dim5*dim6> 0)
 		status =  putData(expIdx, cpoPath, path, (struct descriptor *)&dataD);
-	else 
+	else
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
-static int putTimedVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, 
+static int putTimedVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes,
     int dim1, int dim2, int dim3, int dim4, int dim5)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 6, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4327,7 +4327,7 @@ static int putTimedVect6DDouble(int expIdx, char *cpoPath, char *path, char *tim
 
 
 
- int mdsPutVect6DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, 
+ int mdsPutVect6DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4355,7 +4355,7 @@ static int putTimedVect6DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 6, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4373,7 +4373,7 @@ static int putTimedVect6DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 
 ///////////////////////7D
 
- int mdsPutVect7DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect7DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
 int dim4, int dim5, int dim6, int dim7, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4402,7 +4402,7 @@ static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *time
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(float), DTYPE_FLOAT, 0, 7, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*dim6*nTimes*sizeof(float);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4422,7 +4422,7 @@ static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *time
 
 
 
- int mdsPutVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, int dim7, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4441,16 +4441,16 @@ static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *time
 	dataD.pointer = (char *)data;
 	if(dim1 * dim2 * dim3 * dim4*dim5*dim6*dim7> 0)
 		status =  putData(expIdx, cpoPath, path, (struct descriptor *)&dataD);
-	else 
+	else
 		status = putData(expIdx, cpoPath, path, (struct descriptor *)&emptyXd);
 	return status;
 }
-static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, 
+static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes,
     int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(double), DTYPE_DOUBLE, 0, 7, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*dim6*nTimes*sizeof(double);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4469,7 +4469,7 @@ static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *tim
 
 
 
- int mdsPutVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, 
+ int mdsPutVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4,
     int dim5, int dim6, int dim7, int isTimed)
 {
 	EMPTYXD(emptyXd);
@@ -4498,7 +4498,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 7, 0);
-	int status;   
+	int status;
 	dataD.arsize = dim1*dim2*dim3*dim4*dim5*dim6*nTimes*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4520,7 +4520,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
  int mdsPutStringSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double time)
 {
 	DESCRIPTOR_A(dataD, 1, DTYPE_BU, 0, 0);
-	int status;   
+	int status;
         if(strlen(data) == 0)
             data = " ";
  	dataD.arsize = strlen(data);
@@ -4531,7 +4531,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
  int mdsPutFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float data, double time)
 {
 	struct descriptor dataD = {0, DTYPE_FLOAT, CLASS_S, 0};
-	int status;   
+	int status;
 	dataD.length = sizeof(float);
 	dataD.pointer = (char *)&data;
 	status = putSlice(expIdx, cpoPath, path, timeBasePath, &dataD, time);
@@ -4541,7 +4541,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
  int mdsPutIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int data, double time)
 {
 	struct descriptor dataD = {0, DTYPE_L, CLASS_S, 0};
-	int status;   
+	int status;
 	dataD.length = sizeof(int);
 	dataD.pointer = (char *)&data;
 	status =  putSlice(expIdx, cpoPath, path, timeBasePath, &dataD, time);
@@ -4551,7 +4551,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
  int mdsPutDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double data, double time)
 {
 	struct descriptor dataD = {0, DTYPE_DOUBLE, CLASS_S, 0};
-	int status;   
+	int status;
 	dataD.length = sizeof(double);
 	dataD.pointer = (char *)&data;
 	status = putSlice(expIdx, cpoPath, path, timeBasePath, &dataD, time);
@@ -4562,7 +4562,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A(dataD, sizeof(int), DTYPE_L, 0, 0);
-	int status;   
+	int status;
 	dataD.arsize = sizeof(int) * dim;
 	dataD.pointer = (char *)data;
 	if(dim > 0)
@@ -4572,13 +4572,13 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
-	
+
 
  int mdsPutVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim, double time)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A(dataD, sizeof(double), DTYPE_DOUBLE, 0, 0);
-	int status;   
+	int status;
 	dataD.arsize = sizeof(double) * dim;
 	dataD.pointer = (char *)data;
 	if(dim > 0)
@@ -4592,7 +4592,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A(dataD, sizeof(float), DTYPE_FLOAT, 0, 0);
-	int status;   
+	int status;
 	dataD.arsize = sizeof(float) * dim;
 	dataD.pointer = (char *)data;
 	if(dim > 0)
@@ -4602,12 +4602,12 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
-	
+
  int mdsPutVect2DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, double time)
 {
 	EMPTYXD(emptyXd);
 	DESCRIPTOR_A_COEFF(dataD, sizeof(int), DTYPE_L, 0, 2, 0);
- 	int status;   
+ 	int status;
 	dataD.arsize = dim1*dim2*sizeof(int);
 	dataD.m[0] = dim1;
 	dataD.m[1] = dim2;
@@ -4758,7 +4758,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
- int mdsPutVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4777,7 +4777,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	    status = 0;
 	return status;
 }
- int mdsPutVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4798,7 +4798,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 
- int mdsPutVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4819,7 +4819,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 /////6D Slice
- int mdsPutVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4839,7 +4839,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	    status = 0;
 	return status;
 }
- int mdsPutVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4861,7 +4861,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 
- int mdsPutVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, 
+ int mdsPutVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3,
     int dim4, int dim5, int dim6, double time)
 {
 	EMPTYXD(emptyXd);
@@ -4942,7 +4942,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
-	
+
 
  int mdsReplaceLastVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim)
 {
@@ -4972,7 +4972,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 
-	
+
  int mdsReplaceLastVect2DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2)
 {
 	EMPTYXD(emptyXd);
@@ -5129,7 +5129,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 
- int mdsReplaceLastVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, 
+ int mdsReplaceLastVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2,
     int dim3, int dim4, int dim5)
 {
 	EMPTYXD(emptyXd);
@@ -5148,7 +5148,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 		status = 0;
 	return status;
 }
- int mdsReplaceLastVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, 
+ int mdsReplaceLastVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2,
     int dim3, int dim4, int dim5)
 {
 	EMPTYXD(emptyXd);
@@ -5169,7 +5169,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 
- int mdsReplaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, 
+ int mdsReplaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2,
     int dim3, int dim4, int dim5)
 {
 	EMPTYXD(emptyXd);
@@ -5189,7 +5189,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 	return status;
 }
 //////////6D Slice
- int mdsReplaceLastVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, 
+ int mdsReplaceLastVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2,
     int dim3, int dim4, int dim5, int dim6)
 {
 	EMPTYXD(emptyXd);
@@ -5209,7 +5209,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 		status = 0;
 	return status;
 }
- int mdsReplaceLastVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, 
+ int mdsReplaceLastVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2,
     int dim3, int dim4, int dim5, int dim6)
 {
 	EMPTYXD(emptyXd);
@@ -5231,7 +5231,7 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 }
 
 
- int mdsReplaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, 
+ int mdsReplaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2,
     int dim3, int dim4, int dim5, int dim6)
 {
 	EMPTYXD(emptyXd);
@@ -5262,9 +5262,9 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
         int status;
 	ARRAY_BOUNDS(char, 7) *dataD;
         int i;
-        
+
         *dim1 = *dim2 = *dim3 = *dim4 = *dim5 = *dim6 = *dim7 = 0;
-	
+
 	status = getData(expIdx, cpoPath, path, &xd, 1);
         if(status) return status;
         if(xd.pointer->class != CLASS_A)
@@ -5273,24 +5273,24 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
             MdsFree1Dx(&xd, 0);
             return 0;
         }
-        dataD = (void *)xd.pointer;   
+        dataD = (void *)xd.pointer;
         *numDims = dataD->dimct;
-	if (dataD->dimct == 1)   
+	if (dataD->dimct == 1)
 	   *dim1 = dataD->arsize/dataD->length;
-	else 
-           *dim1 = dataD->m[0];   // m array not declared if not a multidimensional array 
+	else
+           *dim1 = dataD->m[0];   // m array not declared if not a multidimensional array
         if(dataD->dimct > 1)
             *dim2 = dataD->m[1];
         if(dataD->dimct > 2)
             *dim3 = dataD->m[2];
 	if(dataD->dimct > 3)
-            *dim4 = dataD->m[3];    
+            *dim4 = dataD->m[3];
 	if(dataD->dimct > 4)
-            *dim5 = dataD->m[4];    
+            *dim5 = dataD->m[4];
 	if(dataD->dimct > 5)
-            *dim6 = dataD->m[5];    
+            *dim6 = dataD->m[5];
 	if(dataD->dimct > 6)
-            *dim7 = dataD->m[6];    
+            *dim7 = dataD->m[6];
 
         MdsFree1Dx(&xd, 0);
         return 0;
@@ -5301,9 +5301,9 @@ static int putTimedVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBa
 static int isEmpty(int nid)
 {
     int retLen, len = 0, retRecLen, recLen = 0, status;
-    struct nci_itm nciList[] = 
-	{{sizeof(int), NciLENGTH, (char *)&len, &retLen}, 
-	{sizeof(int), NciRLENGTH, (char *)&recLen, &retRecLen}, 
+    struct nci_itm nciList[] =
+	{{sizeof(int), NciLENGTH, (char *)&len, &retLen},
+	{sizeof(int), NciRLENGTH, (char *)&recLen, &retRecLen},
 	{NciEND_OF_LIST, 0, 0, 0}};
 
     status = TreeGetNci(nid, nciList);
@@ -5313,8 +5313,8 @@ static int isEmpty(int nid)
 static int hasMembers(int nid)
 {
     int retLen, nMembers = 0, status;
-    struct nci_itm nciList[] = 
-	{{sizeof(int), NciNUMBER_OF_MEMBERS, (char *)&nMembers, &retLen}, 
+    struct nci_itm nciList[] =
+	{{sizeof(int), NciNUMBER_OF_MEMBERS, (char *)&nMembers, &retLen},
 	{NciEND_OF_LIST, 0, 0, 0}};
 
     status = TreeGetNci(nid, nciList);
@@ -5334,7 +5334,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
     lock("mdsGetLocalDimension");
     if(checkExpIndex(expIdx) < 0)
     {
-	unlock();     
+	unlock();
 	return makeErrorStatus(1, READ_ERROR, -1);
     }
     nid = getNid(cpoPath, path);
@@ -5355,7 +5355,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
     {
 	unlock();
 	return makeErrorStatus(0, READ_ERROR, status);
-    }    
+    }
     if(numSegments > 0)
     {
 
@@ -5411,13 +5411,13 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
     if(dimct > 2)
         *dim3 = dims[2];
     if(dimct > 3)
-        *dim4 = dims[3];    
+        *dim4 = dims[3];
     if(dimct > 4)
-        *dim5 = dims[4];    
+        *dim5 = dims[4];
     if(dimct > 5)
-        *dim6 = dims[5];    
+        *dim6 = dims[5];
     if(dimct > 6)
-        *dim7 = dims[6];    
+        *dim7 = dims[6];
     return 0;
 }
 
@@ -5440,7 +5440,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int length;
 	_int64 arsize;
 	char *data;
-	 
+
 /////////////Memory-Based dimension / existence info management///////////////
     int infoPresent;
     int exists, nDims;
@@ -5506,20 +5506,20 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	*dim1 = arsize/length;
 	*/
       }
-    else 
+    else
         *dim1 = dims[0];   /* m array not declared if not a multidimensional array */
     if(dimCt > 1)
         *dim2 = dims[1];
     if(dimCt > 2)
         *dim3 = dims[2];
     if(dimCt > 3)
-        *dim4 = dims[3];    
+        *dim4 = dims[3];
     if(dimCt > 4)
-        *dim5 = dims[4];    
+        *dim5 = dims[4];
     if(dimCt > 5)
-        *dim6 = dims[5];    
+        *dim6 = dims[5];
     if(dimCt > 6)
-        *dim7 = dims[6];    
+        *dim7 = dims[6];
 
 	/*printf("m0,m1,arsize,length in C : %d,%d,%d,%d\n",dataD->m[0],dataD->m[1],dataD->arsize,dataD->length);
         printf("dim1,dim2,dim3 in C : %d,%d,%d\n",*dim1,*dim2,*dim3);*/
@@ -5536,7 +5536,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 
 	struct descriptor_a *dataD;
 	status = getData(expIdx, cpoPath, path, &xd, 1);
-	if(!status) 
+	if(!status)
 	{
 		dataD = (void *)xd.pointer;
 		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_BU)
@@ -5560,7 +5560,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 
 	struct descriptor *dataD;
 	status = getData(expIdx, cpoPath, path, &xd, 1);
-	if(!status) 
+	if(!status)
 	{
 		dataD = xd.pointer;
 		if(dataD->class != CLASS_S || dataD->dtype != DTYPE_FLOAT)
@@ -5581,7 +5581,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 
 	struct descriptor *dataD;
 	status = getData(expIdx, cpoPath, path, &xd, 1);
-	if(!status) 
+	if(!status)
 	{
 		dataD = xd.pointer;
 		if(dataD->class != CLASS_S || dataD->dtype != DTYPE_L)
@@ -5602,7 +5602,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 
 	struct descriptor *dataD;
 	status = getData(expIdx, cpoPath, path, &xd, 1);
-	if(!status) 
+	if(!status)
 	{
 		dataD = xd.pointer;
 		if(dataD->class != CLASS_S || (dataD->dtype != DTYPE_DOUBLE && dataD->dtype != DTYPE_FT))
@@ -5639,7 +5639,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 		    dataDPtr->dtype =DTYPE_T;
 		}
 
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s.  Class= %d Type = %d\n", cpoPath, path,
                             dataD->class, dataD->dtype);
@@ -5676,7 +5676,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (struct descriptor_a *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5700,14 +5700,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5733,7 +5733,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (struct descriptor_a *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5758,12 +5758,12 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5786,9 +5786,9 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (struct descriptor_a *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE)
 		{
-		
+
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
 		}
@@ -5812,18 +5812,18 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
         //printf("status of getDataNoDescr = %d\n",status);
 
 	if(!status)
 	{
 		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
-		printf("Expected class: %d Class: %d Expected type: %d Type:%d\n", CLASS_A, class, DTYPE_DOUBLE,dtype); 
+		printf("Expected class: %d Class: %d Expected type: %d Type:%d\n", CLASS_A, class, DTYPE_DOUBLE,dtype);
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
 		}
@@ -5846,7 +5846,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 2) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 2)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5870,14 +5870,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5901,7 +5901,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 2) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 2)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5926,14 +5926,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5957,7 +5957,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 2) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 2)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -5982,14 +5982,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6013,7 +6013,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 3) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 3)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6039,14 +6039,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6071,7 +6071,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 3) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 3)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6098,14 +6098,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6130,7 +6130,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 3) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 3)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6156,14 +6156,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6179,7 +6179,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 }
 
 /////////////////
-/* int mdsGetVect4DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect4DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4)
 {
 	EMPTYXD(xd);
@@ -6190,7 +6190,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 4) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 4)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6210,7 +6210,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 }
 */
 
- int mdsGetVect4DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect4DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4)
 {
 	int status;
@@ -6219,14 +6219,14 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6243,7 +6243,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 }
 
 
-/* int mdsGetVect4DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect4DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4)
 {
 	EMPTYXD(xd);
@@ -6254,7 +6254,7 @@ int *dim4)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 4) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 4)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6273,7 +6273,7 @@ int *dim4)
 	return status;
 }
 */
- int mdsGetVect4DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect4DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4)
 {
 	int status;
@@ -6282,14 +6282,14 @@ int *dim4)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6305,7 +6305,7 @@ int *dim4)
 	return status;
 }
 
-/* int mdsGetVect4DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect4DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4)
 {
 	EMPTYXD(xd);
@@ -6316,7 +6316,7 @@ int *dim4)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 4) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 4)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6335,7 +6335,7 @@ int *dim4)
 	return status;
 }
 */
- int mdsGetVect4DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect4DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4)
 {
 	int status;
@@ -6344,14 +6344,14 @@ int *dim4)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6368,7 +6368,7 @@ int *dim4)
 }
 
 /////////////
-/* int mdsGetVect5DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect5DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
 	EMPTYXD(xd);
@@ -6379,7 +6379,7 @@ int *dim4)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 5) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 5)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6400,7 +6400,7 @@ int *dim4)
 }
 */
 
- int mdsGetVect5DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect5DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
 	int status;
@@ -6409,14 +6409,14 @@ int *dim4)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6435,7 +6435,7 @@ int *dim4)
 
 
 
-/* int mdsGetVect5DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect5DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5)
 {
 	EMPTYXD(xd);
@@ -6446,7 +6446,7 @@ int *dim4, int *dim5)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 5) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 5)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6468,7 +6468,7 @@ int *dim4, int *dim5)
 
 */
 
- int mdsGetVect5DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect5DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5)
 {
 	int status;
@@ -6477,14 +6477,14 @@ int *dim4, int *dim5)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6502,7 +6502,7 @@ int *dim4, int *dim5)
 }
 
 
-/* int mdsGetVect5DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect5DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
 	EMPTYXD(xd);
@@ -6513,7 +6513,7 @@ int *dim4, int *dim5)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 5) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 5)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6533,7 +6533,7 @@ int *dim4, int *dim5)
 	return status;
 }
 */
- int mdsGetVect5DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect5DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5)
 {
 	int status;
@@ -6542,14 +6542,14 @@ int *dim4, int *dim5)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6567,7 +6567,7 @@ int *dim4, int *dim5)
 }
 
 //
-/* int mdsGetVect6DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect6DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
 	EMPTYXD(xd);
@@ -6578,7 +6578,7 @@ int *dim4, int *dim5)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 6) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 6)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6599,7 +6599,7 @@ int *dim4, int *dim5)
 	return status;
 }
 */
- int mdsGetVect6DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect6DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
 	int status;
@@ -6608,14 +6608,14 @@ int *dim4, int *dim5)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6633,7 +6633,7 @@ int *dim4, int *dim5)
 	return status;
 }
 
-/* int mdsGetVect6DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect6DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5, int *dim6)
 {
 	EMPTYXD(xd);
@@ -6644,7 +6644,7 @@ int *dim4, int *dim5, int *dim6)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 6) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 6)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6665,7 +6665,7 @@ int *dim4, int *dim5, int *dim6)
 	return status;
 }
 */
- int mdsGetVect6DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect6DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5, int *dim6)
 {
 	int status;
@@ -6674,14 +6674,14 @@ int *dim4, int *dim5, int *dim6)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6699,7 +6699,7 @@ int *dim4, int *dim5, int *dim6)
 	return status;
 }
 
-/* int mdsGetVect6DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect6DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
 	EMPTYXD(xd);
@@ -6710,7 +6710,7 @@ int *dim4, int *dim5, int *dim6)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 6) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 6)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6731,7 +6731,7 @@ int *dim4, int *dim5, int *dim6)
 	return status;
 }
 */
- int mdsGetVect6DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect6DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6)
 {
 	int status;
@@ -6740,14 +6740,14 @@ int *dim4, int *dim5, int *dim6)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6767,7 +6767,7 @@ int *dim4, int *dim5, int *dim6)
 
 ////////////////////7D
 
-/* int mdsGetVect7DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+/* int mdsGetVect7DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	EMPTYXD(xd);
@@ -6778,7 +6778,7 @@ int *dim4, int *dim5, int *dim6)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 7) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_DOUBLE || dataD->dimct != 7)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6801,7 +6801,7 @@ int *dim4, int *dim5, int *dim6)
 }
 */
 
- int mdsGetVect7DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect7DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	int status;
@@ -6810,14 +6810,14 @@ int *dim4, int *dim5, int *dim6)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) ) 
+		if(class != CLASS_A || (dtype != DTYPE_DOUBLE && dtype != DTYPE_FT) )
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6839,7 +6839,7 @@ int *dim4, int *dim5, int *dim6)
 
 /*
 
- int mdsGetVect7DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect7DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	EMPTYXD(xd);
@@ -6850,7 +6850,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 7) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_FLOAT || dataD->dimct != 7)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6873,7 +6873,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 }
 */
 
- int mdsGetVect7DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect7DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
 int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	int status;
@@ -6882,14 +6882,14 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_FLOAT) 
+		if(class != CLASS_A || dtype != DTYPE_FLOAT)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6909,7 +6909,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 }
 
 /*
- int mdsGetVect7DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect7DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	EMPTYXD(xd);
@@ -6920,7 +6920,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	if(!status)
 	{
 		dataD = (void *)xd.pointer;
-		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 7) 
+		if(dataD->class != CLASS_A || dataD->dtype != DTYPE_L || dataD->dimct != 7)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -6943,7 +6943,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 }
 
 */
- int mdsGetVect7DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect7DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, int *dim7)
 {
 	int status;
@@ -6952,14 +6952,14 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	int dimCt;
 	int length;
 	_int64 arsize;
-	 
+
 
 	struct descriptor_a *dataD;
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
-	
+
 	if(!status)
 	{
-		if(class != CLASS_A || dtype != DTYPE_L) 
+		if(class != CLASS_A || dtype != DTYPE_L)
 		{
 			sprintf(errmsg, "Internal error: unexpected data type at IDS %s field %s", cpoPath, path);
 			status = -1;
@@ -7020,8 +7020,8 @@ static int mdsbeginIdsGetLocal(int expIdx, char *path, int isTimed, int *retSamp
          //   printf("retSamples in BeingIDSGetLocal : %d \n",*retSamples);
 	    MdsFree1Dx(&xd, 0);
 	}
-        
-        
+
+
 	return 0;
 }
 
@@ -7128,7 +7128,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 
 */
 }
-		
+
 
 
 
@@ -7159,11 +7159,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	y2 = ((int *)arrayD->pointer)[sliceIdx2];
 	interpolMode = PREVIOUS_SAMPLE; //Force to previous sample for integers
 	switch(interpolMode) {
-		case INTERPOLATION: 
-			*data = (sliceTime1 == sliceTime2)?y1:y1 + ((double)y2 - (double)y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+		case INTERPOLATION:
+			*data = (sliceTime1 == sliceTime2)?y1:y1 + ((double)y2 - (double)y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 			*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 			break;
-		case CLOSEST_SAMPLE: 
+		case CLOSEST_SAMPLE:
 			if(time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
@@ -7211,11 +7211,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	y1 = ((float *)arrayD->pointer)[sliceIdx1];
 	y2 = ((float *)arrayD->pointer)[sliceIdx2];
         switch(interpolMode) {
-                case INTERPOLATION: 
-                        *data = (sliceTime1 == sliceTime2)?y1:y1 + ((double)y2 - (double)y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                case INTERPOLATION:
+                        *data = (sliceTime1 == sliceTime2)?y1:y1 + ((double)y2 - (double)y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                         *retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
                         break;
-                case CLOSEST_SAMPLE: 
+                case CLOSEST_SAMPLE:
                         if(time - sliceTime1 < sliceTime2 - time)
                         {
                                 *data = y1;
@@ -7263,11 +7263,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	y1 = ((double *)arrayD->pointer)[sliceIdx1];
 	y2 = ((double *)arrayD->pointer)[sliceIdx2];
         switch(interpolMode) {
-                case INTERPOLATION: 
-                        *data = (sliceTime1 == sliceTime2)?y1:y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+                case INTERPOLATION:
+                        *data = (sliceTime1 == sliceTime2)?y1:y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1);
                         *retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
                         break;
-                case CLOSEST_SAMPLE: 
+                case CLOSEST_SAMPLE:
                         if(time - sliceTime1 < sliceTime2 - time)
                         {
                                 *data = y1;
@@ -7325,11 +7325,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7353,7 +7353,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 }
 
 
-	
+
  int mdsGetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 2) *arrayD;
@@ -7389,11 +7389,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7427,9 +7427,9 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
         double sliceTime1, sliceTime2;
 	int sliceIdx1, sliceIdx2;
         int nTimes;
-        
+
 	status = getDataAndSliceIdxs(expIdx, cpoPath, path, timeBasePath, &xd, time, &sliceIdx1, &sliceIdx2, &sliceTime1, &sliceTime2, &nTimes);
-       
+
         if(status)
 	{
 		sprintf(errmsg, "Error reading IDS: %s, field: %s. %s", cpoPath, path, MdsGetMsg(mdsStatus));
@@ -7443,7 +7443,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 
 	arrayD = (void *)xd.pointer;
         nItems = arrayD->arsize/nTimes;
-        
+
 	y1 = &((char *)arrayD->pointer)[sliceIdx1 * nItems];
 	y2 = &((char *)arrayD->pointer)[sliceIdx2 * nItems];
 	retData = malloc(nItems+1);
@@ -7451,8 +7451,8 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-			case CLOSEST_SAMPLE: 
+			case INTERPOLATION:
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7491,7 +7491,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 
 	EMPTYXD(xd);
  	status = getDataAndSliceIdxs(expIdx, cpoPath, path, timeBasePath, &xd, time, &sliceIdx1, &sliceIdx2, &sliceTime1, &sliceTime2, &nTimes);
-	
+
 	//printf("sliceIdx1, sliceIdx2, sliceTime1, sliceTime2 = %d, %d, %lf, %lf\n", sliceIdx1, sliceIdx2, sliceTime1, sliceTime2);
 	if(status)
 	{
@@ -7515,12 +7515,12 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
+			case INTERPOLATION:
 				//printf("Interpolation \n");
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				//printf("Closest_sample %lf, %lf\n", time - sliceTime1, sliceTime2 - time);
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
@@ -7546,7 +7546,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 }
 
 
-	
+
  int mdsGetVect2DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 2) *arrayD;
@@ -7586,11 +7586,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7612,7 +7612,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	*data = retData;
 	return 0;
 }
-	
+
  int mdsGetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 2) *arrayD;
@@ -7651,11 +7651,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7717,11 +7717,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7784,11 +7784,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7810,7 +7810,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	*data = retData;
 	return 0;
 }
-	
+
  int mdsGetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 3) *arrayD;
@@ -7850,11 +7850,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7918,11 +7918,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -7986,11 +7986,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] -(double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] -(double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8012,8 +8012,8 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	*data = retData;
 	return 0;
 }
-	
- int mdsGetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, 
+
+ int mdsGetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2,
     int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 4) *arrayD;
@@ -8054,11 +8054,11 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8083,7 +8083,7 @@ static int mdsbeginIdsGetSliceLocal(int expIdx, char *path, double time)
 
 
 
- int mdsGetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, 
+ int mdsGetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2,
 int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 4) *arrayD;
@@ -8124,11 +8124,11 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8151,7 +8151,7 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	return 0;
 }
 ///////////
- int mdsGetVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 5) *arrayD;
@@ -8194,11 +8194,11 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8220,8 +8220,8 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	*data = retData;
 	return 0;
 }
-	
- int mdsGetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, 
+
+ int mdsGetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2,
     int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 5) *arrayD;
@@ -8263,11 +8263,11 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8292,7 +8292,7 @@ int *dim3, int *dim4, double time, double *retTime, int interpolMode)
 
 
 
- int mdsGetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, 
+ int mdsGetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2,
 int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 5) *arrayD;
@@ -8334,11 +8334,11 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + (y2[i] - y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8361,7 +8361,7 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	return 0;
 }
 //////////6D Slice
- int mdsGetVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3, 
+ int mdsGetVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3,
     int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 6) *arrayD;
@@ -8405,11 +8405,11 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8431,8 +8431,8 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	*data = retData;
 	return 0;
 }
-	
- int mdsGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, 
+
+ int mdsGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2,
     int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 6) *arrayD;
@@ -8475,11 +8475,11 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8504,7 +8504,7 @@ int *dim3, int *dim4, int *dim5, double time, double *retTime, int interpolMode)
 
 
 
- int mdsGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, 
+ int mdsGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2,
 int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
 {
 	ARRAY_BOUNDS(int, 6) *arrayD;
@@ -8547,11 +8547,11 @@ int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int in
 	for(i = 0; i < nItems; i++)
 	{
 		switch(interpolMode) {
-			case INTERPOLATION: 
-				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
+			case INTERPOLATION:
+				retData[i] = (sliceTime1 == sliceTime2)?y1[i]:y1[i] + ((double)y2[i] - (double)y1[i])*(time - sliceTime1)/(sliceTime2 - sliceTime1);
 				*retTime = (sliceTime1 == sliceTime2)?sliceTime1:time;
 				break;
-			case CLOSEST_SAMPLE: 
+			case CLOSEST_SAMPLE:
 				if(time - sliceTime1 < sliceTime2 - time)
 				{
 					retData[i] = y1[i];
@@ -8588,7 +8588,7 @@ int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int in
     EMPTYXD(shotXd);
     EMPTYXD(runXd);
     int retRun;
-    
+
     status = TreeOpenEdit("runs", -1);
     if(!(status & 1))
     {
@@ -8621,7 +8621,7 @@ int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int in
     }
     else
         numItems = 0;
-    
+
     status = TreeGetRecord(runNid, &runXd);
     if((status & 1)&& runXd.l_length > 0)
     {
@@ -8638,7 +8638,7 @@ int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int in
     else
         numItems = 0;
 
-    
+
     for(i = 0; i < numItems; i++)
     {
         if(shots[i] == shot)
@@ -8705,7 +8705,7 @@ static int isAnotherInstance(char *path)
     }
     free(firstPart);
     return isNumeric;
-}    
+}
 
 
 static sem_t *wildSem;
@@ -8730,8 +8730,8 @@ static void unlockWild()
     sem_close(wildSem);
 
 }
-    
-     
+
+
 char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegments)
 {
 	int i, len, status, nid, usage, numNids, nidIdx, totNumNids;
@@ -8742,11 +8742,11 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	int recLen = 0;
 	int retLen, numSegments;
 	char *currPath;
-	struct nci_itm nciList[] = 
-		{{sizeof(int), NciLENGTH, (char *)&recLen, &retLen}, 
+	struct nci_itm nciList[] =
+		{{sizeof(int), NciLENGTH, (char *)&recLen, &retLen},
 		{NciEND_OF_LIST, 0, 0, 0}};
-		
-	int *wildNids;	
+
+	int *wildNids;
         lock("getMdsCpoFields");
         if(checkExpIndex(expIdx) < 0)
         {
@@ -8761,14 +8761,14 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	sprintf(mdsPath, "\\TOP.%s", cpoPath);
 
 	len = strlen(mdsPath);
-	
+
 	for(i = 3; i < len; i++)
 	{
 		if(mdsPath[i] == '/')
 			mdsPath[i] = '.';
 	}
 //   	lockWild();
-        
+
 
 //printf("MDSPATH: %s\n", mdsPath);
 	status = TreeFindNode(mdsPath, &nid);
@@ -8782,7 +8782,7 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	}
 	free(mdsPath);
 
-	
+
 	status = TreeGetDefaultNid(&defNid);
 	if(!(status & 1))
 	{
@@ -8791,7 +8791,7 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	    unlock();
 	    return 0;
 	}
-	
+
 	status = TreeSetDefaultNid(nid);
 	if(!(status & 1))
 	{
@@ -8800,13 +8800,13 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	    unlock();
 	    return 0;
 	}
-	
-	
-	
+
+
+
 	usage = 1 << TreeUSAGE_NUMERIC;
 	usage |= 1 << TreeUSAGE_SIGNAL;
 	usage |= 1 << TreeUSAGE_TEXT;
-	
+
 	numNids = 0;
 	ctx = 0;
 
@@ -8815,7 +8815,7 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
   	while ((status = TreeFindNodeWild("***",&currNid,&ctx,usage)) & 1)
 	    numNids++;
 	TreeFindNodeEnd(&ctx);
-	  
+
 	retNames = (char **)malloc(numNids * sizeof(char *));
 	wildNids = (int *)malloc(sizeof(int) * numNids);
 	numNids = 0;
@@ -8826,16 +8826,16 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	    numNids++;
 	}
 	TreeFindNodeEnd(&ctx);
-	
+
 	//unlockWild();
-	
-	
+
+
 	totNumNids = numNids;
 	numNids = 0;
 	for(nidIdx = 0; nidIdx < totNumNids; nidIdx++)
 	{
 	    currNid = wildNids[nidIdx];
-	
+
 	    recLen = 0;
 	    status = TreeGetNci(currNid, nciList);
 	    if(!(status & 1))
@@ -8848,7 +8848,7 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 	    if(recLen > 0)
 	    {
 	        currPath = TreeGetMinimumPath(&nid, currNid);
-		
+
 		if(!isAnotherInstance(currPath))
 		{
 		    status = TreeGetNumSegments(wildNids[nidIdx], &numSegments);
@@ -8870,34 +8870,34 @@ char **getMdsCpoFields(int expIdx, char *cpoPath, int *numFields, int checkSegme
 		    	{
 		           if(retNames[numNids][i] == ':' || retNames[numNids][i] == '.')
 		           	retNames[numNids][i]  = '/';
-		    	}  
+		    	}
 	    	    	numNids++;
 		    }
 		}
 		TreeFree(currPath);
 	    }
 	}
-	TreeSetDefaultNid(defNid);	
+	TreeSetDefaultNid(defNid);
 	/*DEBUG
 	for(i = 0; i < numNids; i++)
 	    printf("%s\n", retNames[i]);
-*/	   
+*/
   	*numFields = numNids;
 	free((char *)wildNids);
 	unlock();
 	return retNames;
-  	
+
 }
 
 void mdsDeleteAllFields(int expIdx, char *cpoPath)
 {
     int numFields = 0, i, nid, status;
-    
+
     char **paths = getMdsCpoFields(expIdx, cpoPath, &numFields, 0);
     EMPTYXD(emptyXd);
-      
- //printf("DELETE ALL FIELDS %d %s %d\n", expIdx, cpoPath, numFields);     
-       
+
+ //printf("DELETE ALL FIELDS %d %s %d\n", expIdx, cpoPath, numFields);
+
     for(i = 0; i < numFields; i++)
     {
     	status = putDataLocal(expIdx, cpoPath, paths[i], (struct descriptor *)&emptyXd);
@@ -8910,14 +8910,14 @@ void mdsDeleteAllFields(int expIdx, char *cpoPath)
     free((char *)paths);
 
 
-//printf("DELETED\n");    
+//printf("DELETED\n");
 }
 
 int mdsIsSliced(int expIdx, char *cpoPath, char *path)
 {
     int status, numSegments = 0, nid;
     lock("mdsIsSliced");
-    checkExpIndex(expIdx);      
+    checkExpIndex(expIdx);
     nid = getNid(cpoPath, path);
     status = TreeGetNumSegments(nid, &numSegments);
     if(!(status & 1))
@@ -8980,7 +8980,7 @@ static void releaseObjectInternal(void *obj)
     {
 	nItems = apdPtr->arsize/apdPtr->length;
 	for(i = 0; i < nItems; i++)
-	  //OH: bug fix = test for un-allocated elements of a struct_array 
+	  //OH: bug fix = test for un-allocated elements of a struct_array
 	  if (((void **)apdPtr->pointer)[i] != NULL)
 	    releaseObjectInternal(((void **)apdPtr->pointer)[i]);
 	free((char *)apdPtr->pointer);
@@ -9033,10 +9033,10 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
 	unlock();
 	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
-    
+
     reportInfo("PUT OBJECT SEGMENT 1\n", "");
-    reportInfo(cpoPath, path); 
-    
+    reportInfo(cpoPath, path);
+
     status = TreeGetNumSegments(nid, &idx);
     if(!(status & 1))
     {
@@ -9077,7 +9077,7 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
     }
     else
         reportInfo("PUT OBJECT SEGMENT 4 FAILURE %s\n", TreeGetPath(nid));
-    
+
     MdsFree1Dx(&serializedXd, 0);
     if(!(status & 1))
     {
@@ -9088,11 +9088,11 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
     unlock();
     return 0;
 }
- 
+
 //If a serialized object is larger than the treshold, a single segment is created for it
 #define SEGMENT_OBJECT_TRESHOLD 10000
 //Defaut dimension of a created segment when multiple objects may be put in the same segment
-#define SEGMENT_OBJECT_SIZE 30000   
+#define SEGMENT_OBJECT_SIZE 30000
 
 
 static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **objSlices, int numSlices)
@@ -9118,7 +9118,7 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
 	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
     nid = getNid(cpoPath, path);
-	
+
     if(nid == -1)
     {
 	unlock();
@@ -9261,7 +9261,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
 
-//Accessory segment information: 
+//Accessory segment information:
 //	startTime: initial index of objects in this segment
 //	endTime: final index of objects in this segment
 
@@ -9280,7 +9280,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     }
     else
     {
-	status = TreeGetSegmentLimits(nid, numSegments - 1, &startXd, &endXd);   
+	status = TreeGetSegmentLimits(nid, numSegments - 1, &startXd, &endXd);
     	if(!(status & 1))
     	{
              sprintf(errmsg, "Error reading nsegment limits at path %s/%s: %s ", path, cpoPath, MdsGetMsg(status));
@@ -9307,7 +9307,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	unlock();
 	return makeErrorStatus(1, WRITE_ERROR, -1);
     }
-    if(segIdx != -1) 
+    if(segIdx != -1)
 //ReplaceLastObject case: decrease number of slices for this segment and write a new straight segment for this slice
     {
 	endSegIdx--;
@@ -9353,15 +9353,15 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     {
     	getLeftItems(nid, &leftItems, &leftRows);
     	leftBytes = leftItems; //Serialized objects are saves as byte arays
-    //4 additional bytes to store serialized object length when multiple 
+    //4 additional bytes to store serialized object length when multiple
     //serialized objects are stored in the same segment
     }
     else
 	leftBytes = 0;
 
-    if(leftBytes > arrD->arsize + 4)  //In this case the (length + serialized object) is put in the current segment 
+    if(leftBytes > arrD->arsize + 4)  //In this case the (length + serialized object) is put in the current segment
     {
-	
+
 	extSerialized = malloc(arrD->arsize + sizeof(int));
 	memcpy(extSerialized, &arrD->arsize, sizeof(int));
 	memcpy(&extSerialized[sizeof(int)], arrD->pointer, arrD->arsize);
@@ -9401,9 +9401,9 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
 	    currArrD->arsize += sizeof(int);
 	    MdsFree1Dx(&retSegmentXd, 0);
 	    MdsFree1Dx(&retDimXd, 0);
-	}	
+	}
 	if((arrD->arsize + sizeof(int)) >= SEGMENT_OBJECT_TRESHOLD)
-/* Note that in this case the situation in which a single slice fits in a segment in "non traditional" 
+/* Note that in this case the situation in which a single slice fits in a segment in "non traditional"
    way is avoided */
 	{
 //Large object slice, make a segment only for it
@@ -9441,7 +9441,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     unlock();
     return 0;
 }
-    
+
 
 
 
@@ -9454,9 +9454,9 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
     char *fullPath;
     int cacheLevel = getCacheLevel(expIdx);
 
- 
+
     reportInfo("PUT TIMED OBJECT\n", "");
- 
+
     if(cacheLevel > 0)
     	updateInfoTimedObject(expIdx, cpoPath, path, 1, obj);
     if(cacheLevel == 2)
@@ -9475,7 +9475,7 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
 
     sprintf(fullPath, "%s/timed", path);
 // For test only    sprintf(fullPath, "%s", path);
-   
+
 
     numSamples = apd->arsize / apd->length;
     currPtr = (void **)apd->pointer;
@@ -9490,7 +9490,7 @@ static int putTimedObject(int expIdx, char *cpoPath, char *path, void *obj)
     	for(i = 0; i < numSamples; i++)
     	{
 	    status = putObjectSegment(expIdx, cpoPath, fullPath, currPtr[i], -1);
-	    if(status) 
+	    if(status)
 	    {
 	    	return status;
 	    }
@@ -9507,7 +9507,7 @@ int mdsPutObject(int expIdx, char *cpoPath, char *path, void *obj, int isTimed)
     char *fullPath;
     EMPTYXD(serializedXd);
     struct descriptor_a *arrD;
-    
+
     if(isTimed)
 	return putTimedObject(expIdx, cpoPath, path, obj);
     fullPath = malloc(strlen(path) + 11);
@@ -9548,7 +9548,7 @@ static char *getApdName(struct descriptor_a *apd)
     retName[strD->length] = 0;
     return retName;
 }
-    
+
 
 static struct descriptor *makeStringDescriptor(char *name)
 {
@@ -9568,7 +9568,7 @@ static void putInApd(struct descriptor_a *apd, char *prevName, struct descriptor
     char *name, *currName;
     struct descriptor *newNameD;
     int numChildren, i;
-	
+
     name = strtok(NULL, "/");
     numChildren = apd->arsize / apd->length - 1;
     if(name) //This is not the last name in the path
@@ -9608,8 +9608,8 @@ static void putInApd(struct descriptor_a *apd, char *prevName, struct descriptor
 	addApdSlot(apd, dataD);
     }
 }
-	 
-     
+
+
 static void putInObject(void *obj, char *path, int idx, struct descriptor *dataD)
 {
     int pathLen = strlen(path);
@@ -9635,7 +9635,7 @@ static void putInObject(void *obj, char *path, int idx, struct descriptor *dataD
     for(i = 0; i < idx - numElements + 1; i++)
 	addApdSlot(apd, NULL);
     currApd = ((struct descriptor_a **)apd->pointer)[idx];
-    if(!currApd) //not yet existing 
+    if(!currApd) //not yet existing
     {
 	((struct descriptor_a **)apd->pointer)[idx] = currApd = mdsBeginObject();
 	addApdSlot(currApd, makeStringDescriptor(currName));
@@ -9661,7 +9661,7 @@ static void *allocateDescr(int type, void *data, int size, int totSize, int nDim
     DESCRIPTOR_A_COEFF(arrD, size, type, 0, 7, 0);
     ARRAY_COEFF(char *, 7) *arrDPtr;
     struct descriptor *descrPtr;
-    char *dataPtr = 0; 
+    char *dataPtr = 0;
     int i;
 
     if(totSize > 0)
@@ -9694,7 +9694,7 @@ static void *allocateDescr(int type, void *data, int size, int totSize, int nDim
 	memcpy(arrDPtr, &arrD, sizeof(arrD));
 	return arrDPtr;
     }
-}	
+}
 
 
 //Add elements to the structure array. Note: returns the new pointer to the object, possibly changed (if object reallocated)
@@ -9904,7 +9904,7 @@ int mdsGetObjectDim(void *obj)
     struct descriptor_a *apd;
 
     if(xdPtr->class == CLASS_XD)
-	apd = (struct descriptor_a *)xdPtr->pointer; 
+	apd = (struct descriptor_a *)xdPtr->pointer;
     else
 	apd = (struct descriptor_a *)xdPtr;
 
@@ -9915,7 +9915,7 @@ int mdsGetObjectDim(void *obj)
     }
     return apd->arsize/apd->length;
 }
-	
+
 //releaseOject is called only for read objects, which are represented by a XD pointer pointing to the startAPD descriptor
 void mdsReleaseObject(void *obj)
 {
@@ -9994,7 +9994,7 @@ static int getObjectLocalOLD(int expIdx, char *cpoPath, char *path,  void **obj,
 	*obj = retXd;
 	return 0;
     }
-	
+
     xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSegments);
     dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSegments);
     for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -10134,7 +10134,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	numSlices += endSegId - startSegId + 1;
     }
 
-	
+
     xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSlices);
     dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSlices);
     for(segIdx = 0; segIdx < numSlices; segIdx++)
@@ -10160,7 +10160,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	arrD = (struct descriptor_a *)xd.pointer;
 	if(slicesPerSegment[segIdx] == 0) continue; //In case the segment sdoes not contain slices (replaceLastSegment)
 
-	/* If it is the last segment and it contains only one slice, check if the segment is 
+	/* If it is the last segment and it contains only one slice, check if the segment is
 	   completely filled. If yes, it is stored in the "traditional way" othewise the length
  	   of the serialized slice is stored in front
 	*/
@@ -10169,7 +10169,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 	else
 	    leftRows = 0;
 
-	if(slicesPerSegment[segIdx] == 1 && leftRows == 0) 
+	if(slicesPerSegment[segIdx] == 1 && leftRows == 0)
 //One slice in the segment, stored in the "traditional" way
 	{
 	    status = MdsSerializeDscIn(arrD->pointer, &xds[sliceIdx]);
@@ -10218,7 +10218,7 @@ static int getObjectLocal(int expIdx, char *cpoPath, char *path,  void **obj, in
 }
 
 
- 
+
 //Read the array of structures from the pulse file. Status indicates as always success (0) or error (!= 0)
 int mdsGetObject(int expIdx, char *cpoPath, char *path, void **obj, int isTimed)
 {
@@ -10267,7 +10267,7 @@ static struct descriptor *getDataFromApd(struct descriptor_a *apd, char *prevNam
     {
 	for(i = 0; i < numChildren; i++)
 	{
-	    if(((struct descriptor **)apd->pointer)[i+1]) 
+	    if(((struct descriptor **)apd->pointer)[i+1])
 	    {
 		currName = getApdName(((struct descriptor_a **)apd->pointer)[i+1]);
 		if(!strcmp(name, currName))
@@ -10311,7 +10311,7 @@ static struct descriptor *getDataFromObject(void *obj, char *path, int idx)
     unlock();
     free(currPath);
     return retDsc;
-} 
+}
 
 
 
@@ -10321,8 +10321,8 @@ int mdsGetStringFromObject(void *obj, char *path, int idx, char **data)
 {
     int status;
     struct descriptor_a *dataD = (struct descriptor_a *)getDataFromObject(obj, path, idx);
-	
-    if(!dataD) 	    
+
+    if(!dataD)
 	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_A || dataD->dtype != DTYPE_BU)
     {
@@ -10338,8 +10338,8 @@ int mdsGetStringFromObject(void *obj, char *path, int idx, char **data)
 int mdsGetIntFromObject(void *obj, char *path, int idx, int *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
-	
-    if(!dataD) 	
+
+    if(!dataD)
 	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || dataD->dtype != DTYPE_L)
     {
@@ -10353,8 +10353,8 @@ int mdsGetIntFromObject(void *obj, char *path, int idx, int *data)
 int mdsGetFloatFromObject(void *obj, char *path, int idx, float *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
-	
-    if(!dataD) 
+
+    if(!dataD)
 	return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || dataD->dtype != DTYPE_FLOAT)
     {
@@ -10368,7 +10368,7 @@ int mdsGetFloatFromObject(void *obj, char *path, int idx, float *data)
 int mdsGetDoubleFromObject(void *obj, char *path, int idx, double *data)
 {
     struct descriptor *dataD = getDataFromObject(obj, path, idx);
-	
+
     if(!dataD) return makeErrorStatus(0, READ_ERROR, -1);
     if(dataD->class != CLASS_S || (dataD->dtype != DTYPE_DOUBLE && dataD->dtype != DTYPE_FT))
     {
@@ -10384,9 +10384,9 @@ int mdsGetVect1DStringFromObject(void *obj, char *path, int idx, char  ***data, 
     int nItems, i;
     char **retData;
     struct descriptor_a *dataD = (struct descriptor_a *)getDataFromObject(obj, path, idx);
-	
+
     if(!dataD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T) 
+    if(dataD->class != CLASS_A || dataD->dtype != DTYPE_T)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
         return makeErrorStatus(1, READ_ERROR, -1);
@@ -10412,10 +10412,10 @@ int mdsGetVect1DStringFromObject(void *obj, char *path, int idx, char  ***data, 
 int mdsGetVect1DIntFromObject(void *obj, char *path, int idx, int **data, int *dim)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
-    if(!arrD) 	
+
+    if(!arrD)
 	return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10433,9 +10433,9 @@ int mdsGetVect1DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect1DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10452,9 +10452,9 @@ int mdsGetVect1DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect1DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10471,9 +10471,9 @@ int mdsGetVect1DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect2DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10491,9 +10491,9 @@ int mdsGetVect2DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect2DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10511,9 +10511,9 @@ int mdsGetVect2DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect2DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10531,9 +10531,9 @@ int mdsGetVect2DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect3DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10552,9 +10552,9 @@ int mdsGetVect3DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect3DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10573,9 +10573,9 @@ int mdsGetVect3DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect3DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10594,9 +10594,9 @@ int mdsGetVect3DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10616,9 +10616,9 @@ int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10638,9 +10638,9 @@ int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect4DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10660,9 +10660,9 @@ int mdsGetVect4DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10683,9 +10683,9 @@ int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10706,9 +10706,9 @@ int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect5DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10729,9 +10729,9 @@ int mdsGetVect5DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10753,9 +10753,9 @@ int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10778,7 +10778,7 @@ int mdsGetVect6DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10801,9 +10801,9 @@ int mdsGetVect6DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10826,9 +10826,9 @@ int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT) 
+    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10851,9 +10851,9 @@ int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect7DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-	
+
     if(!arrD) return makeErrorStatus(0, READ_ERROR, -1);
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
+    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return makeErrorStatus(1, READ_ERROR, -1);
@@ -10947,7 +10947,7 @@ static int getObjectSliceLocalOLD(int expIdx, char *cpoPath, char *path,  double
     int exists;
     int nDims, dims[16];
     void *tempObj;
- 
+
     status = mdsGetVect1DDouble(expIdx, cpoPath, "time", &times, &nTimes);
     if(status) return status;
 //Find Idx
@@ -10988,7 +10988,7 @@ static int getObjectSliceLocalOLD(int expIdx, char *cpoPath, char *path,  double
 	else
 	    return -1;
     }
-	
+
     lock("getObjectSliceLocal");
     if(checkExpIndex(expIdx) < 0)
     {
@@ -11058,8 +11058,8 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     int nDims, dims[16];
     void *tempObj;
     int numSegments, actSegmentIdx, segStartIdx, segEndIdx;
-    EMPTYXD(segStartXd); 
-    EMPTYXD(segEndXd); 
+    EMPTYXD(segStartXd);
+    EMPTYXD(segEndXd);
     char *objectPtr, *multiObjectPtr;
     int currOffset, leftItems, leftRows;
 
@@ -11094,7 +11094,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	}
 
     }
-    
+
    // printf("sliceIdx = %d\n",sliceIdx);
 
     free((char *)times);
@@ -11117,13 +11117,13 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
 	else
 	    return makeErrorStatus(0, READ_ERROR, -1);
     }
-	
+
     lock("getObjectSliceLocal");
     if(checkExpIndex(expIdx) < 0)
     {
 	unlock();
 	return makeErrorStatus(1, READ_ERROR, -1);
-    }    
+    }
 
     nid = getNid(cpoPath, fullPath);
     free(fullPath);
@@ -11218,8 +11218,8 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     }
     //printf("Here in low level 3\n");
 
-/*If segStartIdx == segEndIdx  and the segment is not the last one, than it will contain for sure 
-one slice ine the traditional way. If it is the last segment, segment may either contain one slice 
+/*If segStartIdx == segEndIdx  and the segment is not the last one, than it will contain for sure
+one slice ine the traditional way. If it is the last segment, segment may either contain one slice
 in traditional way or only one of multiple slices (i.e. the last slice) */
     if(actSegmentIdx == numSegments - 1)
     	getLeftItems(nid, &leftItems, &leftRows);
@@ -11292,7 +11292,7 @@ int mdsPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void *
     	    releaseObjectInternal(obj);
     	    return 0;
 	}
-    }	    
+    }
     status = putObjectSegment(expIdx, cpoPath, fullPath, obj, -1);
 
     releaseObjectInternal(obj);
@@ -11366,7 +11366,7 @@ static void dumpApd(struct descriptor_a *apd, int spaces)
     {
 	currDsc = ((struct descriptor **)apd->pointer)[1];
 	if(currDsc->class == CLASS_A && currDsc->dtype == DTYPE_BU) //UAL String representation
-	{	
+	{
 	    struct descriptor_a *currArr = (struct descriptor_a *)currDsc;
 	    char *currName = malloc(currArr->arsize + 1);
 	    memcpy(currName, currArr->pointer, currArr->arsize);
@@ -11390,7 +11390,7 @@ static void dumpObjElement(struct descriptor_a *apd, int numSpaces)
     for(i = 0; i < numChildren; i++)
     {
 	for(j = 0; j < numSpaces; j++)
-	    printf(" "); 
+	    printf(" ");
 	printf("%d:\n", i);
 	dumpApd(((struct descriptor_a **)apd->pointer)[i], numSpaces + 2);
 	printf("\n");
@@ -11427,11 +11427,11 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
     EMPTYXD(dimXd);
     EMPTYXD(startXd);
     EMPTYXD(endXd);
-    EMPTYXD(emptyXd);	
+    EMPTYXD(emptyXd);
 
-    DESCRIPTOR_A_COEFF(initArrDsc, 0, 0, 0, 0, 0); 
+    DESCRIPTOR_A_COEFF(initArrDsc, 0, 0, 0, 0, 0);
     ARRAY_COEFF(char, 16) *currSegmentDPtr;
-    
+
     fromCtx = getExpIndex(fromIdx);
     if(fromCtx == 0)
     {
@@ -11491,7 +11491,7 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
 	{
 	    printf("Warning: cannot find target %s in copy cpo\n", currName);
 	    continue;
-	} 
+	}
 //Make sure that the node content is deleted if containing segments
 	status  = _TreeGetNumSegments(toCtx, toNid, &numSegments);
 	if((status & 1) && numSegments > 0)
@@ -11529,7 +11529,7 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
 		if(status & 1)
 		    status = _TreeGetSegmentLimits(fromCtx, currNid, currSegment, &startXd, &endXd);
 		if(status & 1)
-		    status = _TreeGetSegmentInfo(fromCtx, currNid, -1, &dtype, &dimct, dims, &next_row); 
+		    status = _TreeGetSegmentInfo(fromCtx, currNid, -1, &dtype, &dimct, dims, &next_row);
 	    	if(!(status & 1))
 		{
 		    printf("Internal error: Cannot read segment in cpo field %s\n", currName);
@@ -11560,7 +11560,7 @@ int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int
 		    	currSegmentDPtr->m[currSegmentDPtr->dimct - 1] = next_row;
 			for(currSize = 1, i = 0; i < currSegmentDPtr->dimct - 1; currSize *= currSegmentDPtr->m[i], i++);
 			currSegmentDPtr->arsize = next_row * currSize * currSegmentDPtr->length;
-			
+
 		    }
 		    status = _TreePutSegment(toCtx, toNid, -1, (struct descriptor_a *)segmentXd.pointer);
 	    	}
