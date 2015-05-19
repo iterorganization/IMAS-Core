@@ -30,7 +30,7 @@ static char *doLocalShellCommand(char *command)
 {
     try {
 	String *commandData = new String(command);
-	Data *retAnswer = executeWithArgs("UALLowLevel->doShellCommand:DSC($)",1, commandData);
+	Data *retAnswer = executeWithArgs("imas->doShellCommand:DSC($)",1, commandData);
 	if(!retAnswer) return NULL;
 	char *answ = retAnswer->getString();
 	deleteData(commandData);
@@ -46,7 +46,7 @@ static char *doRemoteShellCommand(char *command, char *ipAddress)
 	Connection *conn = new Connection(ipAddress);
 	Data **args = new Data *[1];
 	args[0] = new String(command);
-	const char *cmd = "UALLowLevel->doShellCommand:DSC($)";
+	const char *cmd = "imas->doShellCommand:DSC($)";
 	Data *retAnswer = conn->get(cmd, args, 1);
 	if(!retAnswer) return NULL;
 	char *answ = retAnswer->getString();

@@ -621,7 +621,7 @@ int mdsbeginIdsGetRemote(int connId, int remoteExpIdx, char *path, int isTimed, 
     DESCRIPTOR_A(serializedDsc, 1, DTYPE_BU, 0, 0);
     struct descriptor_a *arrDsc;
 
-    sprintf(expr, "UALLowLevel->getCpoDataServer:DSC($1, $2)");
+    sprintf(expr, "imas->getCpoDataServer:DSC($1, $2)");
     memset(&ansarg, 0, sizeof(ansarg));
     MakeDescrip((struct descrip *)&pathDsc,DTYPE_CSTRING,0,0,path);
     MakeDescrip((struct descrip *)&remoteExpIdxDsc,DTYPE_LONG,0,0,&remoteExpIdx);
@@ -806,8 +806,8 @@ int mdsbeginIdsGetSliceRemote(int connId, int remoteExpIdx, char *path, double t
     MakeDescrip((struct descrip *)&remoteExpIdxDsc,DTYPE_LONG,0,0,&remoteExpIdx);
     MakeDescrip((struct descrip *)&timeDsc,DTYPE_DOUBLE,0,0,&time);
 
-/*    sprintf(expr, "UALLowLevel->getCpoSlicedDataServer:DSC($1, $2, $3)");*/
-    sprintf(expr, "UALLowLevel->getCpoDataServer:DSC($1, $2)");
+/*    sprintf(expr, "imas->getCpoSlicedDataServer:DSC($1, $2, $3)");*/
+    sprintf(expr, "imas->getCpoDataServer:DSC($1, $2)");
     memset(&ansarg, 0, sizeof(ansarg));
     status = MdsValue(connId, expr, &remoteExpIdxDsc, &pathDsc, &timeDsc, &ansarg, NULL);
 
@@ -1161,7 +1161,7 @@ int mdsendIdsPutRemote(int connId, int remoteExpIdx, char *path)
     EMPTYXD(serObjSegmentXd);
     int status;
 
-    sprintf(expr, "UALLowLevel->putDataServer($1, $2, $3, $4, $5, $6, $7, $8)"); //
+    sprintf(expr, "imas->putDataServer($1, $2, $3, $4, $5, $6, $7, $8)"); //
     //printf("mdsendIdsPutRemote 1. path: %s, remoteExpIdx: %d\n",path, remoteExpIdx);
     memset(&ansarg, 0, sizeof(ansarg));
 
@@ -1302,7 +1302,7 @@ int mdsendIdsPutSliceRemote(int connId, int remoteExpIdx, char *path)
     EMPTYXD(serObjSegmentXd);
     int status, currLen;
 
-    sprintf(expr, "UALLowLevel->putSliceServer($1, $2, $3, $4, $5, $6)");
+    sprintf(expr, "imas->putSliceServer($1, $2, $3, $4, $5, $6)");
     memset(&ansarg, 0, sizeof(ansarg));
 
     terminatePutDataInfo(remoteExpIdx, path, timeBasePath, &dataXd, &segmentXd, &objSegmentXd);
@@ -1382,7 +1382,7 @@ int mdsendIdsReplaceLastSliceRemote(int connId, int remoteExpIdx, char *path)
 
     MakeDescrip((struct descrip *)&pathDsc,DTYPE_CSTRING,0,0,path);
     MakeDescrip((struct descrip *)&remoteExpIdxDsc,DTYPE_LONG,0,0,&remoteExpIdx);
-    sprintf(expr, "UALLowLevel->replaceLastSliceServer($1, $2, $3, $4)");
+    sprintf(expr, "imas->replaceLastSliceServer($1, $2, $3, $4)");
     memset(&ansarg, 0, sizeof(ansarg));
 
     terminatePutDataInfo(remoteExpIdx, path, timeBasePath, &dataXd, &segmentXd, &objSegmentXd);
@@ -1490,7 +1490,7 @@ int mdsimasOpenEnvRemote(int connId, char *name, int shot, int run, int *retIdx,
     struct descrip tokamakDsc;
     struct descrip versionDsc;
 
-    sprintf(expr, "UALLowLevel->mdsimasOpenEnvServer($1, $2, $3, $4, $5, $6)");
+    sprintf(expr, "imas->mdsimasOpenEnvServer($1, $2, $3, $4, $5, $6)");
     MakeDescrip((struct descrip *)&nameDsc,DTYPE_CSTRING,0,0,name);
     MakeDescrip((struct descrip *)&shotDsc,DTYPE_LONG,0,0,&shot);
     MakeDescrip((struct descrip *)&runDsc,DTYPE_LONG,0,0,&run);
@@ -1536,7 +1536,7 @@ int mdsimasOpenRemote(int connId, char *name, int shot, int run, int *retIdx)
     struct descrip shotDsc;
     struct descrip runDsc;
 
-    sprintf(expr, "UALLowLevel->mdsimasOpenServer($1, $2, $3)");
+    sprintf(expr, "imas->mdsimasOpenServer($1, $2, $3)");
     MakeDescrip((struct descrip *)&nameDsc,DTYPE_CSTRING,0,0,name);
     MakeDescrip((struct descrip *)&shotDsc,DTYPE_LONG,0,0,&shot);
     MakeDescrip((struct descrip *)&runDsc,DTYPE_LONG,0,0,&run);
@@ -1582,7 +1582,7 @@ int mdsimasCreateEnvRemote(int connId, char *name, int shot, int run, int *retId
     struct descrip tokamakDsc;
     struct descrip versionDsc;
 
-    sprintf(expr, "UALLowLevel->mdsimasCreateEnvServer($1, $2, $3, $4, $5, $6)");
+    sprintf(expr, "imas->mdsimasCreateEnvServer($1, $2, $3, $4, $5, $6)");
     MakeDescrip((struct descrip *)&nameDsc,DTYPE_CSTRING,0,0,name);
     MakeDescrip((struct descrip *)&shotDsc,DTYPE_LONG,0,0,&shot);
     MakeDescrip((struct descrip *)&runDsc,DTYPE_LONG,0,0,&run);
@@ -1625,7 +1625,7 @@ int mdsimasCreateRemote(int connId, char *name, int shot, int run, int *retIdx)
     struct descrip shotDsc;
     struct descrip runDsc;
 
-    sprintf(expr, "UALLowLevel->mdsimasCreateServer($1, $2, $3)");
+    sprintf(expr, "imas->mdsimasCreateServer($1, $2, $3)");
     MakeDescrip((struct descrip *)&nameDsc,DTYPE_CSTRING,0,0,name);
     MakeDescrip((struct descrip *)&shotDsc,DTYPE_LONG,0,0,&shot);
     MakeDescrip((struct descrip *)&runDsc,DTYPE_LONG,0,0,&run);
@@ -1666,7 +1666,7 @@ int mdsimasCloseRemote(int connId, int idx, char *name, int shot, int run)
     struct descrip runDsc;
     struct descrip idxDsc;
 
-    sprintf(expr, "UALLowLevel->mdsimasClose(val($1), $2, $3, $4)");
+    sprintf(expr, "imas->mdsimasClose(val($1), $2, $3, $4)");
     MakeDescrip((struct descrip *)&nameDsc,DTYPE_CSTRING,0,0,name);
     MakeDescrip((struct descrip *)&shotDsc,DTYPE_LONG,0,0,&shot);
     MakeDescrip((struct descrip *)&runDsc,DTYPE_LONG,0,0,&run);
