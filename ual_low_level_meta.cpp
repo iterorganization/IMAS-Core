@@ -122,7 +122,7 @@ public:
 		   break;
 		}
 	    }
-	    if(childIdx == numChildren) 
+	    if(childIdx == numChildren)
 	    {
 	    	children[numChildren++] = retLeaf = (PathNode *)createPathLeaf(this, path, &exists, 0, dims, 0, 0, 0, 0);
 		return retLeaf;
@@ -141,7 +141,7 @@ public:
 		   break;
 		}
 	    }
-	    if(childIdx == numChildren) 
+	    if(childIdx == numChildren)
 	    {
 	    	children[numChildren] = new PathNode(this, name1);
 		retLeaf = children[numChildren]->getLeaf(&path[idx+1]);
@@ -151,14 +151,14 @@ public:
 	    return retLeaf;
 	}
     }
-    
+
 
 
     virtual void putInfo(char *path, bool exists, int nDims, int *dims, int itemSize, char type, int dataSize, char *data, bool isObject)
     {
-//When deleting data (exists false) do not create new nodes    
+//When deleting data (exists false) do not create new nodes
        	PathNode *currLeaf = getLeaf(path);
-//Gabriele June 2012Handle deletion of object node containing timed and non timed children	
+//Gabriele June 2012Handle deletion of object node containing timed and non timed children
 	if(currLeaf->numChildren > 0)
 	{
 	    for(int i = 0; i < currLeaf->numChildren; i++)
@@ -169,7 +169,7 @@ public:
 	else
 	    currLeaf->putInfo("", exists, nDims, dims, itemSize, type, dataSize, data, isObject);
     }
-    
+
     virtual bool getInfo(char *path, bool *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data)
     {
    	int idx;
@@ -203,7 +203,7 @@ public:
         PathNode *leaf = getLeaf(path);
 	leaf->appendSliceSet("", timeBasePath, nDims, dims, itemSize, type, sliceSize, slice, numSlices);
     }
-    
+
     virtual void appendSlice(char *path, char *timeBasePath, int nDims, int *dims, int itemSize, char type, int sliceSize, char *slice)
     {
         PathNode *leaf = getLeaf(path);
@@ -215,7 +215,7 @@ public:
         PathNode *leaf = getLeaf(path);
 	leaf->removeAllInfoObjectSlices("");
     }
-    
+
 
     virtual void appendInfoObjectSlice(char *path, char *buf, int size)
     {
@@ -262,7 +262,7 @@ public:
 	}
 	delete[]name1; //Not found, who cares
     }
-    
+
     virtual int getNumSlices(char *path)
     {
    	int idx;
@@ -290,7 +290,7 @@ public:
 	delete[]name1;
 	return -1;
     }
-    
+
     virtual bool getInfoSlice(char *path, int sliceIdx, bool *exists, char **data)
     {
    	int idx;
@@ -319,7 +319,7 @@ public:
 	return false;
     }
 
-#ifdef MONITOR        
+#ifdef MONITOR
     virtual char *getCpoPath()
     {
     	if(!parent)
@@ -355,8 +355,8 @@ public:
 	    delete [] parentPath;
 	}
 	return retPath;
-    }	
-	
+    }
+
     virtual void flush(int expIdx, char *cpoPath)
     {
 	for(int i = 0; i < numChildren; i++)
@@ -378,7 +378,7 @@ public:
     int itemSize;
     char *data;
     bool isSliced;
-//Arrays of objects are stored in a different way: no control on dimension and variable slice dimension    
+//Arrays of objects are stored in a different way: no control on dimension and variable slice dimension
     bool isObject;
     int numSlices;
     int *sliceOffsets;
@@ -484,7 +484,7 @@ public:
     }
     virtual bool getInfo(char *name, bool *exists, int *nDims, int *dims, int *itemSize, char *type, int *dataSize, char **data)
     {
- 
+
     //printf("virtual GET INFO FOR %s EXISTS: %d dataSIze: %d NUM CHILDREN: %d\n", this->name, this->exists, this->dataSize, numChildren);
     	if(numChildren > 0) //Handle object components which may be created as leaf even when having timed and nontimed children
 	{
@@ -511,7 +511,7 @@ public:
 	    printf("FATAL INTERNAL ERROR IN METADATA MANAGEMENT: PathLeaf::appendSlice\n");
 	    exit(0);
 	}
-*/	
+*/
 	if(!exists)
 	{
 //printf("APPEND %s SLICE FROM SCRATCH!!!!!!!\n", this->name);
@@ -537,7 +537,7 @@ public:
 
 	}
 	else
-	{ 	    
+	{
 	//Test consistency
 	    int currSliceSize = itemSize;
 	    for(int i = 0; i < this->nDims - 1; i++)
@@ -579,8 +579,8 @@ public:
 	    printf("FATAL INTERNAL ERROR IN METADATA MANAGEMENT: PathLeaf::appendSlice\n");
 	    exit(0);
 	}
-*/	
-	
+*/
+
 	if(!exists)
 	{
 //printf("APPEND SLICE SET FROM SCRATCH!!!!!!!\n");
@@ -606,7 +606,7 @@ public:
 
 	}
 	else
-	{ 	    
+	{
 	//Test consistency
 	    int currSliceSize = itemSize;
 	    for(int i = 0; i < this->nDims - 1; i++)
@@ -652,7 +652,7 @@ public:
 	exists = true;
 	isObject = true;
 	isSliced = true;
-	
+
 	if(sliceOffsetSize < numSlices + 1)
 	{
 	    int *newSliceOffsets = new int[sliceOffsetSize + STEP_SLICES];
@@ -681,16 +681,16 @@ public:
 	dataSize += size;
 	numSlices++;
     }
-	
-    
-    
+
+
+
     virtual void invalidate(char *name)
     {
 	printf("FATAL ERROR IN METADATA MANAGEMENT: Invalidate called for leaf\n");
 	exit(0);
     }
     virtual void flush(int expIdx, char *cpoPath)
-    {      
+    {
     	if(numChildren > 0) //Handle object components which may be created as leaf even when having timed and nontimed children
 	{
 	    for(int i = 0; i < numChildren; i++)
@@ -707,8 +707,8 @@ public:
     	    delete [] path;
 	}
     }
-    
-    virtual int getNumSlices(char *name) 
+
+    virtual int getNumSlices(char *name)
     {
     	if(numChildren > 0) //Handle object components which may be created as leaf even when having timed and nontimed children
 	{
@@ -723,7 +723,7 @@ public:
 	    }
 	    return numSlices;
 	}
-    }    
+    }
     virtual bool getInfoSlice(char *path, int sliceIdx, bool *exists, char **retData)
     {
     	if(numChildren > 0) //Handle object components which may be created as leaf even when having timed and nontimed children
@@ -779,7 +779,7 @@ public:
 	    children[i]->flush(treeIdx, name);
 	}
     }
-    	
+
 };
 
 ////////////////////////////End Class Definitions///////////////////////////
@@ -1106,7 +1106,7 @@ class CacheMonitor
     int port;
     int sock;
     char *name;
-    
+
     public:
     	CacheMonitor(char *name)
 	{
@@ -1116,7 +1116,7 @@ class CacheMonitor
 	}
     	bool report(char *cpoPath, char *path, bool exists, bool isSliced, bool isObject, int dataSize, int numSlices)
 	{
-	//Used protocol: name length(4 bytes), name, exists(1 byte), isSliced(1 byte), dataSize(4 bytes) numSlices(4 bytes) 
+	//Used protocol: name length(4 bytes), name, exists(1 byte), isSliced(1 byte), dataSize(4 bytes) numSlices(4 bytes)
 	    unsigned int pathLenH, cpoPathLenH, dataSizeH, numSlicesH;
 	    cpoPathLenH = htonl(strlen(cpoPath));
 	    pathLenH = htonl(strlen(path));

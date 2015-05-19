@@ -21,7 +21,7 @@ LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 
 COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
 
-TARGETS = timed_struct_array.h libUALLowLevel.so libUALLowLevel.a
+TARGETS = timed_struct_array.h libimas.so libimas.a
 
 #---------- Options for the catalog ------------
 ifeq "$(strip $(ITM_CATALOG))" "yes"
@@ -70,14 +70,14 @@ clean: pkgconfig_clean
 
 clean-src: clean
 
-libUALLowLevel.so: $(COMMON_OBJECTS)  
+libimas.so: $(COMMON_OBJECTS)
 	$(LD) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
-libUALLowLevel.a: $(COMMON_OBJECTS)
+libimas.a: $(COMMON_OBJECTS)
 	ar rs $@ $^
 
 .c.o:
-	$(CC) $(INCDIR) $(CFLAGS) -c $< 
+	$(CC) $(INCDIR) $(CFLAGS) -c $<
 
 timed_struct_array.h:
 	./timed_struct_array.sh

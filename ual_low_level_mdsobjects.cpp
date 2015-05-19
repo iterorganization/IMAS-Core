@@ -22,7 +22,7 @@ char *spawnCommand(char *command, char *ipAddress)
     answ = (char *)malloc(strlen(cppAnsw)+1);
     strcpy(answ, cppAnsw);
     delete[] cppAnsw;
-    return answ;	
+    return answ;
 }
 
 
@@ -36,7 +36,7 @@ static char *doLocalShellCommand(char *command)
 	deleteData(commandData);
 	deleteData(retAnswer);
 	return answ;
-    }catch(MdsException *exc) {printf("%s\n", exc->what());} 
+    }catch(MdsException *exc) {printf("%s\n", exc->what());}
     return NULL;
 }
 
@@ -55,7 +55,7 @@ static char *doRemoteShellCommand(char *command, char *ipAddress)
 	delete[] args;
 	delete conn;
 	return answ;
-    }catch(MdsException *exc) {printf("%s\n", exc->what());} 
+    }catch(MdsException *exc) {printf("%s\n", exc->what());}
     return NULL;
 }
 
