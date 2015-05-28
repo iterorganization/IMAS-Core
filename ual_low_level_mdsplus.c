@@ -2382,7 +2382,8 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
     double currStart, currEnd;
     int nid, numSegments, currSegment, actSegments;
     struct descriptor_xd *segTimesXds, *segDataXds;
-    int dataLen, timesLen, dataOfs, timesOfs, currNTimes;
+    _int64u dataLen;
+    _int64u timesLen, dataOfs, timesOfs, currNTimes;
     char *data;
     DESCRIPTOR_A_COEFF(dataD, 0, 0, 0, 100, 0);
     //ARRAY_COEFF(char, 16) dataD;
