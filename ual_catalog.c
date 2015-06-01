@@ -26,19 +26,19 @@ static MYSQL *initCatalog()
     }
     //NOTE: DB Server, user and password are cabled in the code
     if(!mysql_real_connect(mysql,"itmmysql1","ual_user",0,"itm_catalog",0,NULL,0))
-    
+
     {
         fprintf(stderr, "Failed to connect to database: Error: %s\n", mysql_error(mysql));
     }
-    else    
+    else
         printf("Connected!\n");
- 
+
     printf("MySQL Server Version is %s\n",mysql_get_server_info(mysql));
     connected = 1;
     return mysql;
 }
 
-int ual_get_entry_id(char *user, char *machine, int shot, int run, 
+int ual_get_entry_id(char *user, char *machine, int shot, int run,
 	long *retId, char *retDataV)
 {
     ITM_UBIGINT id;
@@ -69,7 +69,7 @@ int ual_create_new_run(char *user, char *machine, int shot, char *dataV, int *re
     return status;
 }
 
-int ual_create_new_run_parent(char *user, char *machine, int shot, char *dataV, int *retRun, 
+int ual_create_new_run_parent(char *user, char *machine, int shot, char *dataV, int *retRun,
 	char *parentUser, char *parentMachine, int parentShot, int parentRun)
 {
     int status;
@@ -166,7 +166,7 @@ int ual_put_cpo(char *user, char *machine, int shot, int run, char *cpoName, int
     status = itm_get_entry_id(mysql, machine, shot, run, user,  &id, retDataV);
     if(status)
 	return status;
-	
+
     if(isRef == 1) //explicit storage
     {
     	runId = run/10000;
@@ -179,38 +179,38 @@ int ual_put_cpo(char *user, char *machine, int shot, int run, char *cpoName, int
 	for(i = 0; i < strlen(pulseDir); i++)
 	{
 	    if(redDir[i] == ';')
-	    { 
+	    {
 	        redDir[i] = 0;
 		break;
 	    }
 	}
 	status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "isref", "1",cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "putinfo/putlocation", redDir,cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "putinfo/putmethod", "mds+",cpoOccurrence);
     }
-    else //isRef ==2, reference to existing storage  
+    else //isRef ==2, reference to existing storage
     {
         sprintf(runStr, "%d", refRun);
         sprintf(shotStr, "%d", refShot);
         sprintf(occurrenceStr, "%d", refOccurrence);
 	status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "isref", "2",cpoOccurrence);
-	if(!status ) 
+	if(!status )
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "whatref/user", refUser,cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "whatref/machine", refMachine, cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "whatref/shot", shotStr, cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "whatref/run", runStr, cpoOccurrence);
-	if(!status) 
+	if(!status)
 	    status = itm_insert_cpo_finder_by_value(mysql, id, cpoName, "whatref/occurrence", occurrenceStr, cpoOccurrence);
     }
     return status;
-}                 
+}
 
-int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName, int cpoOccurrence, 
+int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName, int cpoOccurrence,
   int *isRef, char *refUser, char *refMachine, int *refShot, int *refRun, int *refOccurrence)
 {
     char retDataV[512];
@@ -225,12 +225,12 @@ int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName,
     status = itm_get_entry_id(mysql, machine, shot, run, user,  &id, retDataV);
     if(status)
 	return status;
-     
+
     status = itm_get_cpo_finder_field_value( mysql, id, cpoName, "isref", fieldVal, cpoOccurrence);
     if(status)
       return status;
     *isRef = atoi(fieldVal);
-    if(*isRef == 1) //Not a reference 
+    if(*isRef == 1) //Not a reference
     {
         strcpy(refUser, user);
 	strcpy(refMachine, machine);
@@ -260,7 +260,7 @@ int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName,
  }
 
 #else
-int ual_get_entry_id(char *user, char *machine, int shot, int run, 
+int ual_get_entry_id(char *user, char *machine, int shot, int run,
 	long *retId, char *retDataV)
 {
     return 0;
@@ -271,7 +271,7 @@ int ual_create_new_run(char *user, char *machine, int shot, char *dataV, int *re
     return 0;
 }
 
-int ual_create_new_run_parent(char *user, char *machine, int shot, char *dataV, int *retRun, 
+int ual_create_new_run_parent(char *user, char *machine, int shot, char *dataV, int *retRun,
 	char *parentUser, char *parentMachine, int parentShot, int parentRun)
 {
     return 0;
@@ -295,7 +295,7 @@ int ual_put_cpo(char *user, char *machine, int shot, int run, char *cpoName, int
 }
 
 
-int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName, int cpoOccurrence, 
+int ual_get_cpo_ref(char *user, char *machine, int shot, int run, char *cpoName, int cpoOccurrence,
   int *isRef, char *refUser, char *refMachine, int *refShot, int *refRun, int *refOccurrence)
 {
     return 0;

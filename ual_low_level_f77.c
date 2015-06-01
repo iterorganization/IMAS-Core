@@ -18,7 +18,7 @@ static char *allocateC(char *in, int len)
     outStr[len] = 0;
     trim(outStr);
     return outStr;
-} 
+}
 
 int get_last_errmsg_(char *errmsg, int errmsgLen)
 {
@@ -27,8 +27,8 @@ int get_last_errmsg_(char *errmsg, int errmsgLen)
     len = strlen(msg);
     for(i = 0; i < len && i < errmsgLen; i++)
         errmsg[i] = msg[i];
-    for(;i < errmsgLen; i++) 
-        errmsg[i] = ' '; 
+    for(;i < errmsgLen; i++)
+        errmsg[i] = ' ';
     return 0;
 }
 
@@ -39,14 +39,14 @@ int delete_data_(int *expIdx, char *cpoPath, char *path, int cpoPathLen, int pat
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
-    
+
     status = deleteData(*expIdx, intCpoPath, intPath);
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int put_string_(int *expIdx, char *cpoPath, char *path, char *data, int cpoPathLen, int pathLen, int dataLen)
+int put_string_(int *expIdx, char *cpoPath, char *path, char *data, int *stat, int cpoPathLen, int pathLen, int dataLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
@@ -54,6 +54,7 @@ int put_string_(int *expIdx, char *cpoPath, char *path, char *data, int cpoPathL
     char *intData = allocateC(data, dataLen);
 
     status = putString(*expIdx, intCpoPath, intPath, intData,dataLen);
+   *stat = status;
     free(intCpoPath);
     free(intPath);
 
@@ -61,71 +62,79 @@ int put_string_(int *expIdx, char *cpoPath, char *path, char *data, int cpoPathL
     return status;
 }
 
-int put_int_(int *expIdx, char *cpoPath, char *path, int *data, int cpoPathLen, int pathLen)
+int put_int_(int *expIdx, char *cpoPath, char *path, int *data, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
 
     status = putInt(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
     free(intCpoPath);
     free(intPath);
 
     return status;
 }
 
-int put_float_(int *expIdx, char *cpoPath, char *path, float *data, int cpoPathLen, int pathLen)
+int put_float_(int *expIdx, char *cpoPath, char *path, float *data, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
 
     status = putFloat(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
     free(intCpoPath);
     free(intPath);
 
    return status;
 }
 
-int put_double_(int *expIdx, char *cpoPath, char *path, double *data, int cpoPathLen, int pathLen)
+int put_double_(int *expIdx, char *cpoPath, char *path, double *data, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
 
     status = putDouble(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
 
    return status;
 }
 
-int put_vect1d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect1DInt(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect1d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect1DFloat(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect1d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
 
@@ -134,35 +143,39 @@ int put_vect1d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePat
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
 
     status =putVect1DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect1d_string_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, int *dim, int *dimtab, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_string_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, int *dim, int *dimtab, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     int i;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
-    
+
     char** tabchar;
     tabchar=malloc(*dim*sizeof(char *));
-    
+
     for(i = 0; i < *dim; i++)
     {
        tabchar[i] = allocateC(data + i*132, dimtab[i]);
-       /*printf("Line %d : %s\n",i,tabchar[i]); */   
+       /*printf("Line %d : %s\n",i,tabchar[i]); */
     }
     /* Old version without dimtab The drawback of this is that we store 132 characters for each line, whatever the real length of the line */
     /*for(i = 0; i < *dim; i++)
     {
-       tabchar[i] = allocateC(data + i*132, 132);    
+       tabchar[i] = allocateC(data + i*132, 132);
     } */
-    
+
     status =putVect1DString(*expIdx, intCpoPath, intPath, intTimeBasePath, tabchar, *dim, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -171,37 +184,43 @@ int put_vect1d_string_(int *expIdx, char *cpoPath, char *path, char *timeBasePat
     return status;
 }
 
-int put_vect2d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect2DInt(*expIdx, intCpoPath, intPath, intTimeBasePath,  data, *dim1, *dim2, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect2d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putVect2DFloat(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect2d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect2DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -209,89 +228,103 @@ int put_vect2d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePat
 }
 
 
-int put_vect3d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_int_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect3DInt(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect3d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_float_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect3DFloat(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect3d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect3DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect4d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect4d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect4DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect5d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect5d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect5DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect6d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect6d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect6DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect7d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, int *dim7, int *isTimed, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect7d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, int *dim7, int *isTimed, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect7DDouble(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6, *dim7, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -304,7 +337,7 @@ int put_vect7d_double_(int *expIdx, char *cpoPath, char *path, char *timeBasePat
 
 
 
-int put_string_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double *time, int cpoPathLen, int pathLen, int timeBasePathLen, int dataLen)
+int put_string_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen, int dataLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
@@ -312,6 +345,8 @@ int put_string_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath
     char *intData = allocateC(data, dataLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putStringSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, intData, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -319,114 +354,132 @@ int put_string_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath
     return status;
 }
 
-int put_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, *data, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, *data, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, *data, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, double *time,  int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect1DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
    return status;
 }
-int put_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect1DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect1DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect2DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status = putVect2DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect2DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -434,117 +487,135 @@ int put_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
 }
 
 
-int put_vect3d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect3DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect3d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
-    status =putVect3DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *time);
+    status = putVect3DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, double *time,  int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect3DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect4d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect4d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect4DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 int put_vect4d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3,
-    int *dim4, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+    int *dim4, double *time,  int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect4DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect4DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 
-int put_vect5d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect5d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect5DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 int put_vect5d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+    int *dim4, int *dim5, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect5DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, double *time,  int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect5DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -552,40 +623,46 @@ int put_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
 }
 
 
-int put_vect6d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect6d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect6DIntSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
 int put_vect6d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+    int *dim4, int *dim5, int *dim6, double *time,  int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect6DFloatSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
     return status;
 }
-int put_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, double *time, int cpoPathLen, int pathLen, int timeBasePathLen)
+int put_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, double *time, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intTimeBasePath = allocateC(timeBasePath, timeBasePathLen);
     status =putVect6DDoubleSlice(*expIdx, intCpoPath, intPath, intTimeBasePath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6, *time);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intTimeBasePath);
@@ -596,210 +673,248 @@ int put_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
 
 
 
-int replace_last_string_slice_(int *expIdx, char *cpoPath, char *path, char *data, int cpoPathLen, int pathLen, int dataLen)
+int replace_last_string_slice_(int *expIdx, char *cpoPath, char *path, char *data,  int *stat, int cpoPathLen, int pathLen, int dataLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     char *intData = allocateC(data, dataLen);
     status = replaceLastStringSlice(*expIdx, intCpoPath, intPath, intData);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     free(intData);
     return status;
 }
 
-int replace_last_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int cpoPathLen, int pathLen)
+int replace_last_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastIntSlice(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int cpoPathLen, int pathLen)
+int replace_last_float_slice_(int *expIdx, char *cpoPath, char *path, float *data,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastFloatSlice(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int cpoPathLen, int pathLen)
+int replace_last_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastDoubleSlice(*expIdx, intCpoPath, intPath, *data);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim, int cpoPathLen, int pathLen)
+int replace_last_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim,  int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect1DIntSlice(*expIdx, intCpoPath, intPath, data, *dim);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim, int cpoPathLen, int pathLen)
+int replace_last_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim, int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect1DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim, int cpoPathLen, int pathLen)
+int replace_last_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim,  int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect1DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int cpoPathLen, int pathLen)
+int replace_last_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect2DIntSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, int cpoPathLen, int pathLen)
+int replace_last_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2,  int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect2DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int cpoPathLen, int pathLen)
+int replace_last_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int *stat, int cpoPathLen, int pathLen)
 {
      int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect2DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
 
-int replace_last_vect3d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3, int cpoPathLen, int pathLen)
+int replace_last_vect3d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect3DIntSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect3d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, int *dim3, int cpoPathLen, int pathLen)
+int replace_last_vect3d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, int *dim3, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect3DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int *dim3, int cpoPathLen, int pathLen)
+int replace_last_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int *dim3,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect3DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
 
-int replace_last_vect4d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int cpoPathLen, int pathLen)
+int replace_last_vect4d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect4DIntSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect4d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int cpoPathLen, int pathLen)
+int replace_last_vect4d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2,
+    int *dim3, int *dim4,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect4DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int cpoPathLen, int pathLen)
+int replace_last_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2,
+    int *dim3, int *dim4, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect4DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect5d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int cpoPathLen, int pathLen)
+int replace_last_vect5d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect5DIntSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect5d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int *dim5, int cpoPathLen, int pathLen)
+int replace_last_vect5d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2,
+    int *dim3, int *dim4, int *dim5, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect5DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int *dim5, int cpoPathLen, int pathLen)
+int replace_last_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2,
+    int *dim3, int *dim4, int *dim5,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect5DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
@@ -807,35 +922,41 @@ int replace_last_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, do
 
 
 
-int replace_last_vect6d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, int cpoPathLen, int pathLen)
+int replace_last_vect6d_int_slice_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect6DIntSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect6d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int *dim5, int *dim6, int cpoPathLen, int pathLen)
+int replace_last_vect6d_float_slice_(int *expIdx, char *cpoPath, char *path, float *data, int *dim1, int *dim2,
+    int *dim3, int *dim4, int *dim5, int *dim6,  int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect6DFloatSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
 }
-int replace_last_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, 
-    int *dim3, int *dim4, int *dim5, int *dim6, int cpoPathLen, int pathLen)
+int replace_last_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2,
+    int *dim3, int *dim4, int *dim5, int *dim6, int *stat, int cpoPathLen, int pathLen)
 {
     int status;
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     status = replaceLastVect6DDoubleSlice(*expIdx, intCpoPath, intPath, data, *dim1, *dim2, *dim3, *dim4, *dim5, *dim6);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
     return status;
@@ -870,7 +991,7 @@ int get_string_(int *expIdx, char *cpoPath, char *path, char *data, int *stat, i
     free(intCpoPath);
     free(intPath);
     if(status) return status;
-    
+
     if (intData) {
         len = strlen(intData);
         for(i = 0; i < len && i < dataLen; i++)
@@ -880,7 +1001,7 @@ int get_string_(int *expIdx, char *cpoPath, char *path, char *data, int *stat, i
         free(intData);
     }
     return status;
-    
+
 }
 int get_int_(int *expIdx, char *cpoPath, char *path, int *data, int *stat, int cpoPathLen, int pathLen)
 {
@@ -920,7 +1041,7 @@ int get_vect1d_int_(int *expIdx, char *cpoPath, char *path, int *data, int *dim,
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     if (intData) {
         memcpy(data, intData, *retDim * sizeof(int));
         free((char *)intData);
@@ -942,7 +1063,7 @@ int get_vect1d_float_(int *expIdx, char *cpoPath, char *path, float *data, int *
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(float));
     free((char *)intData);
     return status;
@@ -987,20 +1108,20 @@ int get_vect1d_string_(int *expIdx, char *cpoPath, char *path, char *data, int *
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     for(i = 0; i < *dim; i++)
     {
-    
+
         for(j = 0; j < strlen(intData[i]) && j < 132; j++)
             data[i*132+j] = intData[i][j];
-        
-        for(;j < 132; j++)   /* necessary to pad the end of the string with blanks for string vectors, tested */ 
+
+        for(;j < 132; j++)   /* necessary to pad the end of the string with blanks for string vectors, tested */
             data[i*132+j] = ' ';
-        
-       /*printf("Line %d : %s\n",i,intData[i]);  
-       printf("Line length %d : %d\n",i,strlen(intData[i])); */   
+
+       /*printf("Line %d : %s\n",i,intData[i]);
+       printf("Line length %d : %d\n",i,strlen(intData[i])); */
     }
-    
+
     for(i = 0; i < *dim; i++) free(intData[i]);
     free(intData);
     return status;
@@ -1023,7 +1144,7 @@ int get_vect2d_int_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1052,7 +1173,7 @@ int get_vect2d_float_(int *expIdx, char *cpoPath, char *path, float *data, int *
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1081,7 +1202,7 @@ int get_vect2d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1116,7 +1237,7 @@ int get_vect3d_int_(int *expIdx, char *cpoPath, char *path, int *data, int *dim1
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1151,7 +1272,7 @@ int get_vect3d_float_(int *expIdx, char *cpoPath, char *path, float *data, int *
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1187,7 +1308,7 @@ int get_vect3d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1225,7 +1346,7 @@ int get_vect4d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim3 = *dim3;
     if(*retDim4 > *dim4)
         *retDim4 = *dim4;
-	   
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1237,7 +1358,7 @@ int get_vect4d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
                    data[i* outDim2 * outDim3 * outDim4 + j*outDim3 *outDim4 + k*outDim4 + l] =
 		    intData[i* outDim2 * outDim3 * outDim4 + j*outDim3 *outDim4 + k*outDim4 + l];
 		}
-	    }	
+	    }
         }
     }
     free((char *)intData);
@@ -1271,7 +1392,7 @@ int get_vect5d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim4 = *dim4;
     if(*retDim5 > *dim5)
         *retDim5 = *dim5;
-	   
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1282,13 +1403,13 @@ int get_vect5d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
 		{
                     for(m = 0; m < *retDim5; m++)
                     {
-                        data[i* outDim2 * outDim3 * outDim4 * outDim5 + j*outDim3 *outDim4*outDim5 + k*outDim4 * outDim5 + 
+                        data[i* outDim2 * outDim3 * outDim4 * outDim5 + j*outDim3 *outDim4*outDim5 + k*outDim4 * outDim5 +
                             l * outDim5 + m] =
-                            intData[i* outDim2 * outDim3 * outDim4 * outDim5 + j*outDim3 *outDim4*outDim5 + k*outDim4 * outDim5 + 
+                            intData[i* outDim2 * outDim3 * outDim4 * outDim5 + j*outDim3 *outDim4*outDim5 + k*outDim4 * outDim5 +
                             l * outDim5 + m];
                     }
 		}
-	    }	
+	    }
         }
     }
     free((char *)intData);
@@ -1296,7 +1417,7 @@ int get_vect5d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
 }
 
 int get_vect6d_double_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, 
+    int *dim4, int *dim5, int *dim6, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5,
     int *retDim6, int *stat, int cpoPathLen, int pathLen)
 {
     int status, i, j, k, l, m, n;
@@ -1327,7 +1448,7 @@ int get_vect6d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim5 = *dim5;
     if(*retDim6 > *dim6)
         *retDim6 = *dim6;
-	   
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1347,7 +1468,7 @@ int get_vect6d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
                          }
                     }
 		}
-	    }	
+	    }
         }
     }
     free((char *)intData);
@@ -1355,7 +1476,7 @@ int get_vect6d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
 }
 
 int get_vect7d_double_(int *expIdx, char *cpoPath, char *path, double *data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, int *dim7, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, 
+    int *dim4, int *dim5, int *dim6, int *dim7, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5,
     int *retDim6, int *retDim7, int *stat, int cpoPathLen, int pathLen)
 {
     int status, i, j, k, l, m, n, p;
@@ -1390,7 +1511,7 @@ int get_vect7d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
         *retDim6 = *dim6;
     if(*retDim7 > *dim7)
         *retDim7 = *dim7;
-	   
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1413,14 +1534,14 @@ int get_vect7d_double_(int *expIdx, char *cpoPath, char *path, double *data, int
                         }
                     }
 		}
-	    }	
+	    }
         }
     }
     free((char *)intData);
     return status;
 }
 
-int get_int_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *time, double *retTime, 
+int get_int_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1435,7 +1556,7 @@ int get_int_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, 
     return status;
 }
 
-int get_string_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double *time, double *retTime, 
+int get_string_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen, int dataLen)
 {
 /* was added for IMAS, not fully tested yet */
@@ -1464,7 +1585,7 @@ int get_string_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePat
     return status;
 }
 
-int get_float_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *time, double *retTime, 
+int get_float_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1479,7 +1600,7 @@ int get_float_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath
     return status;
 }
 
-int get_double_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *time, double *retTime, 
+int get_double_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1493,7 +1614,7 @@ int get_double_slice_ (int *expIdx, char *cpoPath, char *path, char *timeBasePat
     free(intTimeBasePath);
     return status;
 }
-int get_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, int *retDim, 
+int get_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim, int *retDim,
         double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1511,12 +1632,12 @@ int get_vect1d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBase
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(int));
     free((char *)intData);
     return status;
 }
-int get_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, int *retDim, 
+int get_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim, int *retDim,
         double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1534,12 +1655,12 @@ int get_vect1d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBa
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(float));
     free((char *)intData);
     return status;
 }
-int get_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, int *retDim, 
+int get_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim, int *retDim,
         double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status;
@@ -1557,13 +1678,13 @@ int get_vect1d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(double));
     free((char *)intData);
     return status;
 }
 
-int get_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2, 
+int get_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int *dim1, int *dim2,
     int *retDim1, int *retDim2, double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j;
@@ -1584,7 +1705,7 @@ int get_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBase
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1595,7 +1716,7 @@ int get_vect2d_int_slice_(int *expIdx, char *cpoPath, char *path, char *timeBase
     free((char *)intData);
     return status;
 }
-int get_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2, 
+int get_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int *dim1, int *dim2,
     int *retDim1, int *retDim2, double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j;
@@ -1616,7 +1737,7 @@ int get_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBa
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1627,7 +1748,7 @@ int get_vect2d_float_slice_(int *expIdx, char *cpoPath, char *path, char *timeBa
     free((char *)intData);
     return status;
 }
-int get_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, 
+int get_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2,
     int *retDim1, int *retDim2, double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j;
@@ -1648,7 +1769,7 @@ int get_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1660,7 +1781,7 @@ int get_vect2d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
     return status;
 }
 
-int get_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
+int get_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
     int *retDim1, int *retDim2, int *retDim3, double *time, double *retTime, int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j, k;
@@ -1684,7 +1805,7 @@ int get_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1692,15 +1813,15 @@ int get_vect3d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
             for(k = 0; k < *retDim3; k++)
             {
 	        data[i* outDim2 * outDim3 + j * outDim3 + k] = intData[i* outDim2 * outDim3 + j * outDim3 + k];
-	    }	
+	    }
         }
     }
     free((char *)intData);
     return status;
 }
 
-int get_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *retDim1, int *retDim2, int *retDim3, int *retDim4, double *time, double *retTime, 
+int get_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *retDim1, int *retDim2, int *retDim3, int *retDim4, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j, k, l;
@@ -1727,7 +1848,7 @@ int get_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
         *retDim3 = *dim3;
     if(*retDim4 > *dim4)
         *retDim4 = *dim4;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1736,7 +1857,7 @@ int get_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
             {
                 for(l = 0; l < *retDim4; l++)
                 {
-                    data[i* outDim2 * outDim3 * outDim4 + j * outDim3 * outDim4 + k * outDim4 + l] = 
+                    data[i* outDim2 * outDim3 * outDim4 + j * outDim3 * outDim4 + k * outDim4 + l] =
                         intData[i* outDim2 * outDim3 * outDim4 + j * outDim3 * outDim4 + k * outDim4 + l];
                 }
             }
@@ -1745,8 +1866,8 @@ int get_vect4d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
     free((char *)intData);
     return status;
 }
-int get_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, double *time, double *retTime, 
+int get_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j, k, l, m;
@@ -1776,7 +1897,7 @@ int get_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
         *retDim4 = *dim4;
     if(*retDim5 > *dim5)
         *retDim5 = *dim5;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1787,9 +1908,9 @@ int get_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
                 {
                     for(m = 0; m < *retDim5; m++)
                     {
-                        data[i* outDim2 * outDim3 * outDim4 * outDim5 + j * outDim3 * outDim4 * outDim5 + 
-                            k * outDim4 *outDim5 + l * outDim5 + m] = 
-                            intData[i* outDim2 * outDim3 * outDim4 * outDim5 + j * outDim3 * outDim4 * outDim5 + 
+                        data[i* outDim2 * outDim3 * outDim4 * outDim5 + j * outDim3 * outDim4 * outDim5 +
+                            k * outDim4 *outDim5 + l * outDim5 + m] =
+                            intData[i* outDim2 * outDim3 * outDim4 * outDim5 + j * outDim3 * outDim4 * outDim5 +
                             k * outDim4 *outDim5 + l * outDim5 + m];
                     }
                 }
@@ -1800,8 +1921,8 @@ int get_vect5d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
     return status;
 }
 
-int get_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3, 
-    int *dim4, int *dim5, int *dim6, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, int *retDim6, double *time, double *retTime, 
+int get_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int *dim1, int *dim2, int *dim3,
+    int *dim4, int *dim5, int *dim6, int *retDim1, int *retDim2, int *retDim3, int *retDim4, int *retDim5, int *retDim6, double *time, double *retTime,
     int *interpolMode, int *stat, int cpoPathLen, int pathLen, int timeBasePathLen)
 {
     int status, i, j, k, l, m, n;
@@ -1834,7 +1955,7 @@ int get_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
         *retDim5 = *dim5;
     if(*retDim6 > *dim6)
         *retDim6 = *dim6;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -1847,9 +1968,9 @@ int get_vect6d_double_slice_(int *expIdx, char *cpoPath, char *path, char *timeB
                     {
                         for(n = 0; n < *retDim6; m++)
                         {
-                          data[i* outDim2 * outDim3 * outDim4 * outDim5 * outDim6 + j * outDim3 * outDim4 * outDim5 * outDim6 + 
-                            k * outDim4 *outDim5 * outDim6 + l * outDim5 * outDim6 + m * outDim6 + n] = 
-                            intData[i* outDim2 * outDim3 * outDim4 * outDim5  * outDim6+ j * outDim3 * outDim4 * outDim5 * outDim6 + 
+                          data[i* outDim2 * outDim3 * outDim4 * outDim5 * outDim6 + j * outDim3 * outDim4 * outDim5 * outDim6 +
+                            k * outDim4 *outDim5 * outDim6 + l * outDim5 * outDim6 + m * outDim6 + n] =
+                            intData[i* outDim2 * outDim3 * outDim4 * outDim5  * outDim6+ j * outDim3 * outDim4 * outDim5 * outDim6 +
                             k * outDim4 *outDim5 * outDim6 + l * outDim5 * outDim6 + m * outDim6 + n];
 			}
                     }
@@ -1988,7 +2109,7 @@ void imas_last_errmsg_(char *errMsg, int len)
     minLen = strlen(intErr);
     if(minLen > len)
         minLen = len;
-    
+
     for(i = 0; i < minLen; i++)
         errMsg[i] = intErr[i];
     for(;i < len; i++)
@@ -2005,7 +2126,7 @@ int imas_create_(char *name, int *shot, int *run, int *refShot, int *refRun, int
     return status;
 }
 
-int imas_create_env_(char *name, int *shot, int *run, int *refShot, int *refRun, int *retIdx, 
+int imas_create_env_(char *name, int *shot, int *run, int *refShot, int *refRun, int *retIdx,
  char *user, char *tokamak, char *version, int nameLen, int userLen, int tokamakLen, int versionLen)
 {
     int status;
@@ -2099,7 +2220,7 @@ int imas_open_hdf5_(char *name, int *shot, int *run, int *retIdx, int nameLen)
 {
     int status;
     char *intName = allocateC(name, nameLen);
-    
+
     status = imas_open_hdf5(intName, *shot, *run, retIdx);
     free(intName);
     return status;
@@ -2109,7 +2230,7 @@ int imas_close_(int *idx)
 {
     int status;
     reportInfo("imas CLOSE START", "");
-    
+
     status = imas_close(*idx);
     /* printf("Closed: status  %d %s\n", status, imas_last_errmsg());*/
     reportInfo("imas CLOSE END", "");
@@ -2117,7 +2238,7 @@ int imas_close_(int *idx)
 }
 
 /* Deprecated
-//dummy routines 
+//dummy routines
 void imas_discard_cache_(int *expIdx, char *cpoPathm, char *path, int cpoPathLen, int pathLen){}
 void imas_flush_cache_(int *expIdx, char *cpoPathm, char *path, int cpoPathLen, int pathLen){}
 */
@@ -2181,14 +2302,17 @@ void release_object_(int *expIdx, int *handle)
     releaseObject(*expIdx, obj);
 }
 
-int put_object_(int *expIdx, char *cpoPath, char *path, int *handle, int *isTimed, int cpoPathLen, int pathLen)
+int put_object_(int *expIdx, char *cpoPath, char *path, int *handle, int *isTimed, int *stat, int cpoPathLen, int pathLen)
 {
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
     void *obj = getObjectFromList(*handle);
     int status = putObject(*expIdx, intCpoPath, intPath, obj, *isTimed);
+    *stat = status;
+
     free(intCpoPath);
     free(intPath);
+    //printf("Put_Object status = %d\n",status);
     if(status)
         printf("%s\n",imas_last_errmsg());
     return status;
@@ -2218,7 +2342,7 @@ int put_int_in_object_(int *expIdx, int *handle, char *path, int *idx, int *data
     return 0;
 }
 
-int put_float_in_object_(int *expIdx, int *handle, char *path, int *idx, float *data, int pathLen)
+int put_float_in_object_(int *expIdx, int *handle, char *path, int *idx, float *data,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2240,7 +2364,7 @@ int put_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double
     return 0;
 }
 
-int put_vect1d_int_in_object_(int *expIdx, int *handle, char *path, int *idx, int *data, int *dim, int pathLen)
+int put_vect1d_int_in_object_(int *expIdx, int *handle, char *path, int *idx, int *data, int *dim,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2279,15 +2403,15 @@ int put_vect1d_string_in_object_(int *expIdx, int *handle, char *path, int *idx,
     void *newObj;
     void *obj = getObjectFromList(*handle);
     char *intPath = allocateC(path, pathLen);
-    
+
     char** tabchar;
     tabchar=malloc(*dim*sizeof(char *));
-    
+
     for(i = 0; i < *dim; i++)
     {
        tabchar[i] = allocateC(data + i*132, dimtab[i]);
     }
-    
+
     newObj = putVect1DStringInObject(*expIdx, obj, intPath, *idx-1, tabchar, *dim);
     replaceObjectInList(*handle, newObj);
     free(intPath);
@@ -2296,7 +2420,7 @@ int put_vect1d_string_in_object_(int *expIdx, int *handle, char *path, int *idx,
     return 0;
 }
 
-int put_vect2d_int_in_object_(int *expIdx, int *handle, char *path, int *idx, int *data, int *dim1, int *dim2, int pathLen)
+int put_vect2d_int_in_object_(int *expIdx, int *handle, char *path, int *idx, int *data, int *dim1, int *dim2,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2316,7 +2440,7 @@ int put_vect2d_float_in_object_(int *expIdx, int *handle, char *path, int *idx, 
     free(intPath);
     return 0;
 }
-int put_vect2d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int pathLen)
+int put_vect2d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2338,7 +2462,7 @@ int put_vect3d_int_in_object_(int *expIdx, int *handle, char *path, int *idx, in
     free(intPath);
     return 0;
 }
-int put_vect3d_float_in_object_(int *expIdx, int *handle, char *path, int *idx, float *data, int *dim1, int *dim2, int *dim3, int pathLen)
+int put_vect3d_float_in_object_(int *expIdx, int *handle, char *path, int *idx, float *data, int *dim1, int *dim2, int *dim3,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2348,7 +2472,7 @@ int put_vect3d_float_in_object_(int *expIdx, int *handle, char *path, int *idx, 
     free(intPath);
     return 0;
 }
-int put_vect3d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int pathLen)
+int put_vect3d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2359,7 +2483,7 @@ int put_vect3d_double_in_object_(int *expIdx, int *handle, char *path, int *idx,
     return 0;
 }
 
-int put_vect4d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int pathLen)
+int put_vect4d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2369,7 +2493,7 @@ int put_vect4d_double_in_object_(int *expIdx, int *handle, char *path, int *idx,
     free(intPath);
     return 0;
 }
-int put_vect5d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int pathLen)
+int put_vect5d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2379,7 +2503,7 @@ int put_vect5d_double_in_object_(int *expIdx, int *handle, char *path, int *idx,
     free(intPath);
     return 0;
 }
-int put_vect6d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int pathLen)
+int put_vect6d_double_in_object_(int *expIdx, int *handle, char *path, int *idx, double *data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6,  int pathLen)
 {
     void *newObj;
     void *obj = getObjectFromList(*handle);
@@ -2400,7 +2524,7 @@ int put_vect7d_double_in_object_(int *expIdx, int *handle, char *path, int *idx,
     return 0;
 }
 
-int put_object_in_object_(int *expIdx, int *handle, char *path, int *idx, int *dataHandle, int pathLen)
+int put_object_in_object_(int *expIdx, int *handle, char *path, int *idx, int *dataHandle,  int pathLen)
 {
     char *intPath = allocateC(path, pathLen);
     void *obj = getObjectFromList(*handle);
@@ -2437,7 +2561,7 @@ int get_object_(int *expIdx, char *cpoPath, char *path, int *handle, int *isTime
     return 0;
 }
 
-int get_dimension_from_object_(int *expIdx, int *handle, char *path, int *idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7, int pathLen)
+int get_dimension_from_object_(int *expIdx, int *handle, char *path, int *idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7,  int pathLen)
 {
     int status;
     void *obj = getObjectFromList(*handle);
@@ -2457,7 +2581,7 @@ int get_string_from_object_(int *expIdx, int *handle, char *path, int *idx, char
     *stat = status;
     free(intPath);
     if(status) return status;
-    
+
     len = strlen(intData);
     for(i = 0; i < len && i < dataLen; i++)
         data[i] = intData[i];
@@ -2465,7 +2589,7 @@ int get_string_from_object_(int *expIdx, int *handle, char *path, int *idx, char
         data[i] = ' ';  */
     free(intData);
     return status;
-    
+
 }
 int get_int_from_object_(int *expIdx, int *handle, char *path, int *idx, int *data, int *stat, int pathLen)
 {
@@ -2502,7 +2626,7 @@ int get_vect1d_int_from_object_(int *expIdx, int *handle, char *path, int *idx, 
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(int));
     free((char *)intData);
     return status;
@@ -2521,7 +2645,7 @@ int get_vect1d_float_from_object_(int *expIdx, int *handle, char *path, int *idx
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(float));
     free((char *)intData);
     return status;
@@ -2540,7 +2664,7 @@ int get_vect1d_double_from_object_(int *expIdx, int *handle, char *path, int *id
     *retDim = outDim;
     if(*retDim > *dim)
         *retDim = *dim;
-    
+
     memcpy(data, intData, *retDim * sizeof(double));
     free((char *)intData);
     return status;
@@ -2565,14 +2689,14 @@ int get_vect1d_string_from_object_(int *expIdx, int *handle, char *path, int *id
 
     for(i = 0; i < *dim; i++)
     {
-    
+
         for(j = 0; j < strlen(intData[i]) && j < 132; j++)
             data[i*132+j] = intData[i][j];
-            
-        for(;j < 132; j++)   /* necessary to pad the end of the string with blanks for string vectors, tested */ 
+
+        for(;j < 132; j++)   /* necessary to pad the end of the string with blanks for string vectors, tested */
             data[i*132+j] = ' ';
     }
-    
+
     for(i = 0; i < *dim; i++) free(intData[i]);
     free(intData);
     return status;
@@ -2595,7 +2719,7 @@ int get_vect2d_int_from_object_(int *expIdx, int *handle, char *path, int *idx, 
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2623,7 +2747,7 @@ int get_vect2d_float_from_object_(int *expIdx, int *handle, char *path, int *idx
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2651,7 +2775,7 @@ int get_vect2d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim1 = *dim1;
     if(*retDim2 > *dim2)
         *retDim2 = *dim2;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2685,7 +2809,7 @@ int get_vect3d_int_from_object_(int *expIdx, int *handle, char *path, int *idx, 
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2718,7 +2842,7 @@ int get_vect3d_float_from_object_(int *expIdx, int *handle, char *path, int *idx
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2752,7 +2876,7 @@ int get_vect3d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim2 = *dim2;
     if(*retDim3 > *dim3)
         *retDim3 = *dim3;
-    
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2788,7 +2912,7 @@ int get_vect4d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim3 = *dim3;
     if(*retDim4 > *dim4)
         *retDim4 = *dim4;
-      
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2800,7 +2924,7 @@ int get_vect4d_double_from_object_(int *expIdx, int *handle, char *path, int *id
                    data[i* outDim2 * outDim3 * outDim4 + j*outDim3 *outDim4 + k*outDim4 + l] =
           intData[i* outDim2 * outDim3 * outDim4 + j*outDim3 *outDim4 + k*outDim4 + l];
       }
-       } 
+       }
         }
     }
     free((char *)intData);
@@ -2832,7 +2956,7 @@ int get_vect5d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim4 = *dim4;
     if(*retDim5 > *dim5)
         *retDim5 = *dim5;
-      
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2847,7 +2971,7 @@ int get_vect5d_double_from_object_(int *expIdx, int *handle, char *path, int *id
                             intData[i* outDim2 * outDim3 * outDim4 * outDim5 + j*outDim3 *outDim4*outDim5 + k*outDim4 * outDim5 + l * outDim5 + m];
                     }
       }
-       } 
+       }
         }
     }
     free((char *)intData);
@@ -2883,7 +3007,7 @@ int get_vect6d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim5 = *dim5;
     if(*retDim6 > *dim6)
         *retDim6 = *dim6;
-      
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2903,7 +3027,7 @@ int get_vect6d_double_from_object_(int *expIdx, int *handle, char *path, int *id
                          }
                     }
       }
-       } 
+       }
         }
     }
     free((char *)intData);
@@ -2943,7 +3067,7 @@ int get_vect7d_double_from_object_(int *expIdx, int *handle, char *path, int *id
         *retDim6 = *dim6;
     if(*retDim7 > *dim7)
         *retDim7 = *dim7;
-      
+
     for(i = 0; i < *retDim1; i++)
     {
         for(j = 0; j < *retDim2; j++)
@@ -2966,7 +3090,7 @@ int get_vect7d_double_from_object_(int *expIdx, int *handle, char *path, int *id
                         }
                     }
       }
-       } 
+       }
         }
     }
     free((char *)intData);
@@ -3011,7 +3135,7 @@ int get_object_slice_(int *expIdx, char *cpoPath, char *path, double *time, int 
     return 0;
 }
 
-int put_object_slice_(int *expIdx, char *cpoPath, char *path, double *time, int *handle, int cpoPathLen, int pathLen)
+int put_object_slice_(int *expIdx, char *cpoPath, char *path, double *time, int *handle, int *stat, int cpoPathLen, int pathLen)
 {
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
     char *intPath = allocateC(path, pathLen);
@@ -3042,3 +3166,21 @@ int replace_last_object_slice_(int *expIdx, char *cpoPath, char *path, int *hand
 ///////////////TEMPORARY!!!
 void imas_discard_cache_(){}
 void imas_flush_cache_(){}
+
+
+///////////////ERROR HANDLING
+int is_critical_error_(int *status)
+{
+    int retValue;
+    retValue = isCriticalError(*status);
+    return retValue;
+}
+
+
+int get_error_type_(int *status)
+{
+    int retValue;
+    retValue = getErrorType(*status);
+    return retValue;
+}
+

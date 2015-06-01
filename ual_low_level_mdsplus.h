@@ -1,5 +1,4 @@
 #include <mdsdescrip.h>
-
 #define INTERPOLATION 3
 #define CLOSEST_SAMPLE 1
 #define PREVIOUS_SAMPLE 2
@@ -260,3 +259,4 @@ int mdsReplaceLastObjectSlice(int expIdx, char *cpoPath, char *mdsPath, void *ob
 
 //cpo copy
 int mdsCopyCpo(int fromIdx, int toIdx, char *cpoName, int fromCpoOccur, int toCpoOccur);
+
