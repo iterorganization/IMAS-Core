@@ -5,8 +5,8 @@
 #include <jni.h>
 
 #include "ual_low_level.h"
-#include "ualmemory_javainterface_imas.h"
-#include "ualmemory_javainterface_UALLowLevel.h"
+#include "imasjava_imas.h"
+#include "imasjava_UALLowLevel.h"
 #ifdef USE_ITM_CATALOG
 #include "ual_catalog.h"
 #endif
@@ -35,19 +35,19 @@ static jobject make1DVect(JNIEnv *env, jclass cls, int type, int dim, void *data
         case INT:
             intArray = (*env)->NewIntArray(env, dim);
             (*env)->SetIntArrayRegion(env, intArray, 0, dim, (int *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect1DInt", "([I)Lualmemory/javainterface/Vect1DInt;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect1DInt", "([I)Limasjava/Vect1DInt;");
             args[0].l = intArray;
              return (*env)->CallStaticObjectMethodA(env, cls, method, args);
         case FLOAT:
             floatArray = (*env)->NewFloatArray(env, dim);
             (*env)->SetFloatArrayRegion(env, floatArray, 0, dim, (float *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect1DFloat", "([F)Lualmemory/javainterface/Vect1DFloat;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect1DFloat", "([F)Limasjava/Vect1DFloat;");
             args[0].l = floatArray;
            return (*env)->CallStaticObjectMethodA(env, cls, method, args);
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect1DDouble", "([D)Lualmemory/javainterface/Vect1DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect1DDouble", "([D)Limasjava/Vect1DDouble;");
             args[0].l = doubleArray;
           return (*env)->CallStaticObjectMethodA(env, cls, method, args);
         case BOOLEAN:
@@ -57,7 +57,7 @@ static jobject make1DVect(JNIEnv *env, jclass cls, int type, int dim, void *data
                 booleanNativeArray[i] = ((int *)data)[i];
             (*env)->SetBooleanArrayRegion(env, booleanArray, 0, dim, booleanNativeArray);
             free((char *)booleanNativeArray);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect1DBoolean", "([Z)Lualmemory/javainterface/Vect1DBoolean;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect1DBoolean", "([Z)Limasjava/Vect1DBoolean;");
             args[0].l = booleanArray;
             return (*env)->CallStaticObjectMethodA(env, cls, method, args);
         case STRING:
@@ -66,7 +66,7 @@ static jobject make1DVect(JNIEnv *env, jclass cls, int type, int dim, void *data
             stringPtr = (char **)data;
             for(i = 0; i < dim; i++)
                 (*env)->SetObjectArrayElement(env, objectArray, i, (jobject)(*env)->NewStringUTF(env, stringPtr[i]));
-            method = (*env)->GetStaticMethodID(env, cls, "getVect1DString", "([Ljava/lang/String;)Lualmemory/javainterface/Vect1DString;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect1DString", "([Ljava/lang/String;)Limasjava/Vect1DString;");
             args[0].l = objectArray;
             return (*env)->CallStaticObjectMethodA(env, cls, method, args);
     }
@@ -85,7 +85,7 @@ static jobject make2DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case INT:
             intArray = (*env)->NewIntArray(env, dim1*dim2);
             (*env)->SetIntArrayRegion(env, intArray, 0, dim1*dim2, (int *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect2DInt", "(II[I)Lualmemory/javainterface/Vect2DInt;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect2DInt", "(II[I)Limasjava/Vect2DInt;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].l = intArray;
@@ -93,7 +93,7 @@ static jobject make2DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case FLOAT:
             floatArray = (*env)->NewFloatArray(env, dim1*dim2);
             (*env)->SetFloatArrayRegion(env, floatArray, 0, dim1*dim2, (float *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect2DFloat", "(II[F)Lualmemory/javainterface/Vect2DFloat;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect2DFloat", "(II[F)Limasjava/Vect2DFloat;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].l = floatArray;
@@ -101,7 +101,7 @@ static jobject make2DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect2DDouble", "(II[D)Lualmemory/javainterface/Vect2DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect2DDouble", "(II[D)Limasjava/Vect2DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].l = doubleArray;
@@ -122,7 +122,7 @@ static jobject make3DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case INT:
             intArray = (*env)->NewIntArray(env, dim1*dim2*dim3);
             (*env)->SetIntArrayRegion(env, intArray, 0, dim1*dim2*dim3, (int *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect3DInt", "(III[I)Lualmemory/javainterface/Vect3DInt;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect3DInt", "(III[I)Limasjava/Vect3DInt;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -131,7 +131,7 @@ static jobject make3DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case FLOAT:
              floatArray = (*env)->NewFloatArray(env, dim1*dim2*dim3);
             (*env)->SetFloatArrayRegion(env, floatArray, 0, dim1*dim2*dim3, (float *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect3DFloat", "(III[F)Lualmemory/javainterface/Vect3DFloat;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect3DFloat", "(III[F)Limasjava/Vect3DFloat;");
            args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -142,7 +142,7 @@ static jobject make3DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2*dim3);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2*dim3, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect3DDouble", "(III[D)Lualmemory/javainterface/Vect3DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect3DDouble", "(III[D)Limasjava/Vect3DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -164,7 +164,7 @@ static jobject make4DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2*dim3*dim4);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2*dim3*dim4, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect4DDouble", "(IIII[D)Lualmemory/javainterface/Vect4DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect4DDouble", "(IIII[D)Limasjava/Vect4DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -187,7 +187,7 @@ static jobject make5DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2*dim3*dim4*dim5);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2*dim3*dim4*dim5, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect5DDouble", "(IIIII[D)Lualmemory/javainterface/Vect5DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect5DDouble", "(IIIII[D)Limasjava/Vect5DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -212,7 +212,7 @@ static jobject make6DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2*dim3*dim4*dim5*dim6);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2*dim3*dim4*dim5*dim6, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect6DDouble", "(IIIIII[D)Lualmemory/javainterface/Vect6DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect6DDouble", "(IIIIII[D)Limasjava/Vect6DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -239,7 +239,7 @@ static jobject make7DVect(JNIEnv *env, jclass cls, int type, int dim1, int dim2,
         case DOUBLE:
             doubleArray = (*env)->NewDoubleArray(env, dim1*dim2*dim3*dim4*dim5*dim6*dim7);
             (*env)->SetDoubleArrayRegion(env, doubleArray, 0, dim1*dim2*dim3*dim4*dim5*dim6*dim7, (double *)data);
-            method = (*env)->GetStaticMethodID(env, cls, "getVect7DDouble", "(IIIIIII[D)Lualmemory/javainterface/Vect7DDouble;");
+            method = (*env)->GetStaticMethodID(env, cls, "getVect7DDouble", "(IIIIIII[D)Limasjava/Vect7DDouble;");
             args[0].i = dim1;
             args[1].i = dim2;
             args[2].i = dim3;
@@ -276,7 +276,7 @@ static jobject makeVect(JNIEnv *env, jclass cls, int type, int numDims, int dim1
 
 static void raiseException(JNIEnv *env, char *msg)
 {
-    jclass exc = (*env)->FindClass(env, "ualmemory/javainterface/UALException");
+    jclass exc = (*env)->FindClass(env, "imasjava/UALException");
     (*env)->ThrowNew(env, exc, msg);
  }
 
@@ -289,7 +289,7 @@ static void raiseException(JNIEnv *env, char *msg)
  * Method:    beginIDSPutTimed
  * Signature: (ILjava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutTimed
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_beginIDSPutTimed
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath, jint samples, jdoubleArray jTimesArray)
 {
     /* printf("beginIDSPutTimed: samples= %d \n",samples);*/
@@ -309,7 +309,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutTimed
  * Method:    endIDSPutTimed
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutTimed
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSPutTimed
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -322,7 +322,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutTimed
  * Method:    beginIDSPut
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPut
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_beginIDSPut
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -338,7 +338,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPut
  * Method:    endIDSPut
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPut
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSPut
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -347,7 +347,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPut
 }
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutNonTimed
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_beginIDSPutNonTimed
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -363,7 +363,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutNonTi
  * Method:    endIDSPutNonTimed
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutNonTimed
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSPutNonTimed
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -373,7 +373,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutNonTime
 
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_beginIDSPutSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -389,7 +389,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSPutSlice
  * Method:    endIDSPut
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSPutSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -398,7 +398,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSPutSlice
 }
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSReplaceLastSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_beginIDSReplaceLastSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -414,7 +414,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSReplaceL
  * Method:    endIDSPut
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSReplaceLastSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSReplaceLastSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -428,7 +428,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSReplaceLas
  * Method:    beginIDSGet
  * Signature: (ILjava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSGet
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_beginIDSGet
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath, jboolean isTimed)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -447,7 +447,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSGet
  * Method:    endIDSGet
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSGet
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSGet
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -461,7 +461,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSGet
  * Method:    beginIDSGetSlice
  * Signature: (ILjava/lang/String;D)D
  */
-JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSGetSlice
+JNIEXPORT jdouble JNICALL Java_imasjava_UALLowLevel_beginIDSGetSlice
 (JNIEnv *env, jclass class, jint expIdx, jstring jPath, jdouble time)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -480,7 +480,7 @@ JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_beginIDSGetSl
  * Method:    endIDSGetSlice
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSGetSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_endIDSGetSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jPath)
 {
     const char *path = (*env)->GetStringUTFChars(env, jPath, 0);
@@ -495,7 +495,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_endIDSGetSlice
  * Method:    putString
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putString
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putString
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jData)
 {
     const char *idsPath;
@@ -533,7 +533,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putString
  * Method:    putInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putInt
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jint data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -550,7 +550,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putInt
  * Method:    putBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putBoolean
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putBoolean
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jboolean data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -567,7 +567,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putBoolean
  * Method:    putFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;F)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloat
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloat data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -584,7 +584,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloat
  * Method:    putDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;D)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdouble data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -601,7 +601,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDouble
  * Method:    putVect1DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DInt
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim, jboolean isTimed)
 {
     const char *idsPath;
@@ -635,7 +635,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DInt
  * Method:    putVect1DBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;[ZI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DBoolean
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DBoolean
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jbooleanArray jArray, jint dim, jboolean isTimed)
 {
     const char *idsPath;
@@ -677,7 +677,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DBoolean
  * Method:    putVect1DString
  * Signature: (ILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DString
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DString
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jobjectArray jArray, jint dim, jboolean isTimed)
 {
     const char *idsPath;
@@ -735,7 +735,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DString
  * Method:    putVect1DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloat
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim, jboolean isTimed)
 {
     const char *idsPath;
@@ -769,7 +769,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloat
  * Method:    putVect1DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim, jboolean isTimed)
 {
     const char *idsPath;
@@ -803,7 +803,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDouble
  * Method:    putVect2DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[III)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DInt
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2, jboolean isTimed)
   {
     const char *idsPath;
@@ -837,7 +837,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DInt
  * Method:    putVect2DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloat
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2, jboolean isTimed)
 {
     const char *idsPath;
@@ -871,7 +871,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloat
  * Method:    putVect2DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jboolean isTimed)
 {
     const char *idsPath;
@@ -905,7 +905,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDouble
  * Method:    putVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DInt
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2, jint dim3, jboolean isTimed)
   {
     const char *idsPath;
@@ -938,7 +938,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DInt
  * Method:    putVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloat
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2, jint dim3, jboolean isTimed)
 {
     const char *idsPath;
@@ -972,7 +972,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloat
  * Method:    putVect3DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jint dim3, jboolean isTimed)
 {
     const char *idsPath;
@@ -1008,7 +1008,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDouble
  * Method:    putVect4DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect4DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jint dim3, jint dim4, jboolean isTimed)
 {
     const char *idsPath;
@@ -1042,7 +1042,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDouble
  * Method:    putVect5DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect5DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5, jboolean isTimed)
 {
@@ -1077,7 +1077,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDouble
  * Method:    putVect6DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect6DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5, jint dim6, jboolean isTimed)
 {
@@ -1112,7 +1112,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDouble
  * Method:    putVect7DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect7DDouble
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect7DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5, jint dim6, jint dim7, jboolean isTimed)
 {
@@ -1147,7 +1147,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect7DDouble
  * Method:    AppendString
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putStringSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putStringSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jstring jData, jdouble time)
 {
     const char *idsPath;
@@ -1181,7 +1181,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putStringSlice
  * Method:    appendInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jint data, jdouble time)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1200,7 +1200,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIntSlice
  * Method:    appendBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putBooleanSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putBooleanSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jboolean data, jdouble time)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1219,7 +1219,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putBooleanSlice
  * Method:    appendFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;F)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloat data, jdouble time)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1238,7 +1238,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloatSlice
  * Method:    appendDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;D)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble data, jdouble time)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1257,7 +1257,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDoubleSlice
  * Method:    appendVect1DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim, jdouble time)
 {
     const char *idsPath;
@@ -1290,7 +1290,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DIntSlic
  * Method:    appendVect1DBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;[ZI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DBooleanSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DBooleanSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jbooleanArray jArray, jint dim, jdouble time)
 {
     const char *idsPath;
@@ -1332,7 +1332,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DBoolean
  * Method:    appendVect1DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim, jdouble time)
 {
     const char *idsPath;
@@ -1365,7 +1365,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloatSl
  * Method:    appendVect1DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim, jdouble time)
 {
     const char *idsPath;
@@ -1398,7 +1398,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDoubleS
  * Method:    appendVect2DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[III)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2, jdouble time)
   {
     const char *idsPath;
@@ -1431,7 +1431,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DIntSlic
  * Method:    appendVect2DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2, jdouble time)
 {
     const char *idsPath;
@@ -1464,7 +1464,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloatSl
  * Method:    appendVect2DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jdouble time)
 {
     const char *idsPath;
@@ -1497,7 +1497,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDoubleS
  * Method:    appendVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2, jint dim3, jdouble time)
   {
     const char *idsPath;
@@ -1529,7 +1529,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DIntSlic
  * Method:    appendVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2, jint dim3, jdouble time)
 {
     const char *idsPath;
@@ -1558,7 +1558,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloatSl
 }
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jint dim3, jdouble time)
 {
     const char *idsPath;
@@ -1595,7 +1595,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDoubleS
  * Method:    putVect4DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect4DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2,
      jint dim3, jint dim4, jdouble time)
   {
@@ -1628,7 +1628,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DIntSlic
  * Method:    appendVect4DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect4DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jdouble time)
 {
@@ -1657,7 +1657,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DFloatSl
         raiseException(env, imas_last_errmsg());
 }
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect4DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2, jint dim3, jint dim4, jdouble time)
 {
     const char *idsPath;
@@ -1692,7 +1692,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDoubleS
  * Method:    putVect5DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect5DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2,
      jint dim3, jint dim4, jint dim5, jdouble time)
   {
@@ -1725,7 +1725,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DIntSlic
  * Method:    putVect5DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect5DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jdouble time)
 {
@@ -1762,7 +1762,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DFloatSl
  * Method:    putVect4DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect5DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jdouble time)
 {
@@ -1797,7 +1797,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDoubleS
  * Method:    putVect6DFloatSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect6DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jint dim6, jdouble time)
 {
@@ -1834,7 +1834,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DFloatSl
  * Method:    putVect6DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect6DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdoubleArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jint dim6, jdouble time)
 {
@@ -1868,7 +1868,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDoubleS
  * Method:    putVect6DIntSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect6DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jintArray jArray, jint dim1, jint dim2,
      jint dim3, jint dim4, jint dim5, jint dim6, jdouble time)
   {
@@ -1903,7 +1903,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DIntSlic
  * Method:    replaceLastStringSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastStringSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastStringSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jData)
 {
     const char *idsPath;
@@ -1934,7 +1934,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastStrin
  * Method:    appendInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jint data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1951,7 +1951,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastIntSl
  * Method:    appendBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastBooleanSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastBooleanSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jboolean data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1968,7 +1968,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastBoole
  * Method:    appendFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;F)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloat data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -1985,7 +1985,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastFloat
  * Method:    appendDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;D)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdouble data)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2002,7 +2002,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastDoubl
  * Method:    appendVect1DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect1DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim)
 {
     const char *idsPath;
@@ -2033,7 +2033,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1
  * Method:    appendVect1DBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;[ZI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1DBooleanSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect1DBooleanSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jbooleanArray jArray, jint dim)
 {
     const char *idsPath;
@@ -2073,7 +2073,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1
  * Method:    appendVect1DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect1DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim)
 {
     const char *idsPath;
@@ -2104,7 +2104,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1
  * Method:    appendVect1DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect1DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim)
 {
     const char *idsPath;
@@ -2135,7 +2135,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect1
  * Method:    appendVect2DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[III)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect2DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim1, jint dim2)
   {
     const char *idsPath;
@@ -2166,7 +2166,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2
  * Method:    appendVect2DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect2DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim1, jint dim2)
 {
     const char *idsPath;
@@ -2197,7 +2197,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2
  * Method:    appendVect2DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect2DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim1, jint dim2)
 {
     const char *idsPath;
@@ -2228,7 +2228,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect2
  * Method:    appendVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect3DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim1, jint dim2, jint dim3)
   {
     const char *idsPath;
@@ -2258,7 +2258,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3
  * Method:    appendVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect3DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim1, jint dim2, jint dim3)
 {
     const char *idsPath;
@@ -2289,7 +2289,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3
  * Method:    appendVect3DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect3DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim1, jint dim2, jint dim3)
 {
     const char *idsPath;
@@ -2321,7 +2321,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect3
  * Method:    appendVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect4DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4)
   {
@@ -2352,7 +2352,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4
  * Method:    appendVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect4DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4)
 {
@@ -2384,7 +2384,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4
  * Method:    appendVect3DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect4DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4)
 {
@@ -2417,7 +2417,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect4
  * Method:    appendVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect5DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5)
   {
@@ -2448,7 +2448,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5
  * Method:    appendVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect5DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5)
 {
@@ -2480,7 +2480,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5
  * Method:    appendVect3DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect5DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5)
 {
@@ -2509,7 +2509,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect5
 
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6DIntSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect6DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jintArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jint dim6)
   {
@@ -2536,7 +2536,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6
         raiseException(env, imas_last_errmsg());
 }
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6DFloatSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect6DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jfloatArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jint dim6)
 {
@@ -2563,7 +2563,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6
         raiseException(env, imas_last_errmsg());
 }
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6DDoubleSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastVect6DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jdoubleArray jArray, jint dim1, jint dim2,
     jint dim3, jint dim4, jint dim5, jint dim6)
 {
@@ -2600,7 +2600,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastVect6
  * Method:    getString
  * Signature: (ILjava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getString
+JNIEXPORT jstring JNICALL Java_imasjava_UALLowLevel_getString
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2628,7 +2628,7 @@ JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getString
  * Method:    getInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getInt
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2647,7 +2647,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getInt
  * Method:    getBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;)Z
  */
-JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBoolean
+JNIEXPORT jboolean JNICALL Java_imasjava_UALLowLevel_getBoolean
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2666,7 +2666,7 @@ JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBoolean
  * Method:    getFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;)F
  */
-JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloat
+JNIEXPORT jfloat JNICALL Java_imasjava_UALLowLevel_getFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2685,7 +2685,7 @@ JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloat
  * Method:    getDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)D
  */
-JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDouble
+JNIEXPORT jdouble JNICALL Java_imasjava_UALLowLevel_getDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2704,7 +2704,7 @@ JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDouble
  * Method:    getVect1DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect1DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DInt
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2731,7 +2731,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DInt
  * Method:    getVect1DString
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect1DString;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DString
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DString
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2762,7 +2762,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DStri
  * Method:    getVect1DBoolean
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect1DBoolean;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DBoolean
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DBoolean
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2788,7 +2788,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DBool
  * Method:    getVect1DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect1DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloat
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2814,7 +2814,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloa
  * Method:    getVect1DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect1DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2840,7 +2840,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDoub
  * Method:    getVect2DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect2DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DInt
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2867,7 +2867,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DInt
  * Method:    getVect2DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect2DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloat
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2894,7 +2894,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloa
  * Method:    getVect2DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect2DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2920,7 +2920,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDoub
  * Method:    getVect3DInt
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect3DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DInt
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DInt
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2946,7 +2946,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DInt
  * Method:    getVect3DFloat
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect3DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DFloat
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DFloat
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2973,7 +2973,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DFloa
  * Method:    getVect3DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -2999,7 +2999,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDoub
  * Method:    getVect4DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect4DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect4DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3025,7 +3025,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDoub
  * Method:    getVect5DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect5DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect5DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3051,7 +3051,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDoub
  * Method:    getVect5DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect5DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect6DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3078,7 +3078,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDoub
  * Method:    getVect7DDouble
  * Signature: (ILjava/lang/String;Ljava/lang/String;)LVect7DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect7DDouble
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect7DDouble
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3104,7 +3104,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect7DDoub
  * Method:    getStringSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getStringSlice
+JNIEXPORT jstring JNICALL Java_imasjava_UALLowLevel_getStringSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3132,7 +3132,7 @@ JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getStringSlic
  * Method:    getIntSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getIntSlice
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3157,7 +3157,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getIntSlice
  * Method:    getBooleanSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)Z
  */
-JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBooleanSlice
+JNIEXPORT jboolean JNICALL Java_imasjava_UALLowLevel_getBooleanSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3182,7 +3182,7 @@ JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBooleanSl
  * Method:    getFloatSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)F
  */
-JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloatSlice
+JNIEXPORT jfloat JNICALL Java_imasjava_UALLowLevel_getFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3207,7 +3207,7 @@ JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloatSlice
  * Method:    getDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)D
  */
-JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDoubleSlice
+JNIEXPORT jdouble JNICALL Java_imasjava_UALLowLevel_getDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3232,7 +3232,7 @@ JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDoubleSlic
  * Method:    getVect1DIntSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect1DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DIntSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3262,7 +3262,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DIntS
  * Method:    getVect1DFloatSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect1DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloatSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3292,7 +3292,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloa
  * Method:    getVect1DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect1DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3322,7 +3322,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDoub
  * Method:    getVect2DIntSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect2DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DIntSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DIntSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3352,7 +3352,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DIntS
  * Method:    getVect2DFloatSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect2DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloatSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DFloatSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3382,7 +3382,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloa
  * Method:    getVect2DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect2DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3412,7 +3412,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDoub
  * Method:    getVect3DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3441,7 +3441,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDoub
  * Method:    getVect3DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect4DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3470,7 +3470,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDoub
  * Method:    getVect3DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect5DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3501,7 +3501,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDoub
  * Method:    getVect6DDoubleSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDoubleSlice
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect6DDoubleSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath, jstring jTimeBasePath, jdouble time, jint interpolMode)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3526,7 +3526,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDoub
 }
 
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_deleteData
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_deleteData
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3546,7 +3546,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_deleteData
  * Method:    connect
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_connect
+JNIEXPORT void JNICALL Java_imasjava_imas_connect
   (JNIEnv *env, jclass class, jstring jip)
 {
     const char *ip = (*env)->GetStringUTFChars(env, jip, 0);
@@ -3561,7 +3561,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_connect
  * Method:    disconnect
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_disconnect
+JNIEXPORT void JNICALL Java_imasjava_imas_disconnect
   (JNIEnv *env, jclass class)
 {
     int status = imas_disconnect();
@@ -3574,7 +3574,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_disconnect
  * Method:    exec
  * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_imas_exec
+JNIEXPORT jstring JNICALL Java_imasjava_imas_exec
   (JNIEnv *env, jclass class, jstring jip, jstring jcommand)
 {
     jstring jstdOut;
@@ -3599,7 +3599,7 @@ JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_imas_exec
  * Method:    open
  * Signature: (Ljava/lang/String;II)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_open
+JNIEXPORT jint JNICALL Java_imasjava_imas_open
   (JNIEnv *env, jclass class, jstring jName, jint shot , jint run)
 {
     int retIdx = -1;
@@ -3616,7 +3616,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_open
  * Method:    create
  * Signature: (Ljava/lang/String;IIII)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_create
+JNIEXPORT jint JNICALL Java_imasjava_imas_create
   (JNIEnv *env, jclass class, jstring jName, jint shot, jint run, jint refShot, jint refRun)
 {
     int retIdx = -1;
@@ -3633,7 +3633,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_create
  * Method:    openEnv
  * Signature: (Ljava/lang/String;IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_openEnv
+JNIEXPORT jint JNICALL Java_imasjava_imas_openEnv
   (JNIEnv *env, jclass class, jstring jName, jint shot , jint run, jstring jUser, jstring jTokamak, jstring jVersion)
 {
     int retIdx = -1;
@@ -3656,7 +3656,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_openEnv
  * Method:    createEnv
  * Signature: (Ljava/lang/String;IIIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_createEnv
+JNIEXPORT jint JNICALL Java_imasjava_imas_createEnv
   (JNIEnv *env, jclass class, jstring jName, jint shot, jint run, jint refShot, jint refRun, jstring jUser, jstring jTokamak, jstring jVersion)
 {
     int retIdx = -1;
@@ -3679,7 +3679,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_createEnv
  * Method:    openHdf5
  * Signature: (Ljava/lang/String;IIII)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_openHdf5
+JNIEXPORT jint JNICALL Java_imasjava_imas_openHdf5
   (JNIEnv *env, jclass class, jstring jName, jint shot , jint run)
 {
     int retIdx = -1;
@@ -3696,7 +3696,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_openHdf5
  * Method:    createHdf5
  * Signature: (Ljava/lang/String;IIII)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_createHdf5
+JNIEXPORT jint JNICALL Java_imasjava_imas_createHdf5
   (JNIEnv *env, jclass class, jstring jName, jint shot, jint run, jint refShot, jint refRun)
 {
     int retIdx = -1;
@@ -3714,7 +3714,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_createHdf5
  * Signature: (I)I
  */
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_close
+JNIEXPORT jint JNICALL Java_imasjava_imas_close
   (JNIEnv *env, jclass class, jint idx)
 {
     int status;
@@ -3733,7 +3733,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_close
  * Method:    enableMemCache
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_enableMemCache
+JNIEXPORT void JNICALL Java_imasjava_imas_enableMemCache
   (JNIEnv *env, jclass class , jint expIdx)
 {
     imas_enable_mem_cache(expIdx);
@@ -3744,7 +3744,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_enableMemCache
  * Method:    disableMemCache
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_disableMemCache
+JNIEXPORT void JNICALL Java_imasjava_imas_disableMemCache
   (JNIEnv *env, jclass class , jint expIdx)
 {
     imas_disable_mem_cache(expIdx);
@@ -3756,7 +3756,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_disableMemCache
  * Method:    flush
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_flush
+JNIEXPORT void JNICALL Java_imasjava_imas_flush
   (JNIEnv *env, jclass class , jint expIdx, jstring jIdsPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3768,7 +3768,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_flush
  * Method:    discard
  * Signature: (ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_discard
+JNIEXPORT void JNICALL Java_imasjava_imas_discard
   (JNIEnv *env, jclass class , jint expIdx, jstring jIdsPath)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -3781,7 +3781,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_discard
  * Method:    discardAll
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_discardAll
+JNIEXPORT void JNICALL Java_imasjava_imas_discardAll
   (JNIEnv *env, jclass class , jint expIdx)
 {
     imas_discard_mem_cache(expIdx);
@@ -3792,7 +3792,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_discardAll
  * Method:    flushAll
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_flushAll
+JNIEXPORT void JNICALL Java_imasjava_imas_flushAll
   (JNIEnv *env, jclass class , jint expIdx)
 {
     imas_flush_mem_cache(expIdx);
@@ -3803,7 +3803,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_flushAll
  * Method:    setCacheLevel
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_setCacheLevel
+JNIEXPORT void JNICALL Java_imasjava_imas_setCacheLevel
   (JNIEnv *env, jclass class, jint expIdx, jint level)
 {
   imas_set_cache_level(expIdx, level);
@@ -3814,21 +3814,21 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_imas_setCacheLevel
  * Method:    getCacheLevel
  * Signature: (I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_imas_getCacheLevel
+JNIEXPORT jint JNICALL Java_imasjava_imas_getCacheLevel
   (JNIEnv *env, jclass class, jint expIdx)
 {
   return imas_get_cache_level(expIdx);
 }
 
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getUniqueRun
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getUniqueRun
   (JNIEnv *env, jclass class, jint shot)
 {
     return getUniqueRun(shot);
 }
 
 #ifdef USE_ITM_CATALOG
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIdsDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putIdsDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
 	jint shot, jint run, jstring jIdsName, jint occurrence, int isRef, jstring jRefUser, jstring jRefMachine, jint refShot, jint refRun, jint refOccurrence)
 {
     const char *idsName = (*env)->GetStringUTFChars(env, jIdsName, 0);
@@ -3848,7 +3848,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIdsDb (JNIEnv
     (*env)->ReleaseStringUTFChars(env, jRefMachine, refMachine);
 }
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_openDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot,
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_openDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot,
  jint run, jstring jIdsName, jint occurrence)
 {
 	const char *idsName = (*env)->GetStringUTFChars(env, jIdsName, 0);
@@ -3888,7 +3888,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_openDb (JNIEnv *
 	return retIdx;
 }
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_createNewRunDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_createNewRunDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
 	jint shot , jstring jDataV)
 {
     const char *user = (*env)->GetStringUTFChars(env, jUser, 0);
@@ -3907,7 +3907,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_createNewRunDb (
     return retRun;
 }
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_createNewRunParentDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_createNewRunParentDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine,
 	 jint shot, jstring jDataV, jstring jParentUser, jstring jParentMachine, jint parentShot, jint parentRun)
 {
     const char *user = (*env)->GetStringUTFChars(env, jUser, 0);
@@ -3934,7 +3934,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_createNewRunPare
 
 }
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_createSpecifiedRunDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot, jint run, jstring jDataV)
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_createSpecifiedRunDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot, jint run, jstring jDataV)
 {
 	const char *user = (*env)->GetStringUTFChars(env, jUser, 0);
 	const char *machine = (*env)->GetStringUTFChars(env, jMachine, 0);
@@ -3950,7 +3950,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_createSpecifiedR
 	(*env)->ReleaseStringUTFChars(env, jDataV, dataV);
 }
 
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_createSpecifiedRunParentDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot, jint run, jstring jDataV, jstring jParentUser, jstring jParentMachine, jint parentShot, jint parentRun)
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_createSpecifiedRunParentDb (JNIEnv *env, jclass cls, jstring jUser, jstring jMachine, jint shot, jint run, jstring jDataV, jstring jParentUser, jstring jParentMachine, jint parentShot, jint parentRun)
 {
 	const char *user = (*env)->GetStringUTFChars(env, jUser, 0);
 	const char *machine = (*env)->GetStringUTFChars(env, jMachine, 0);
@@ -3986,21 +3986,21 @@ extern int ual_get_ids_ref(char *user, char *machine, int shot, int run, char *i
 #endif /* USE_ITM_CATALOG */
 
 
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getShot (JNIEnv *env, jclass cls, jint idx)
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getShot (JNIEnv *env, jclass cls, jint idx)
 {
     return ual_get_shot(idx);
 }
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getRun (JNIEnv *env, jclass cls, jint idx)
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getRun (JNIEnv *env, jclass cls, jint idx)
 {
     return ual_get_run(idx);
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    getDimension
- * Signature: (ILjava/lang/String;Ljava/lang/String;)Lualmemory/javainterface/Vect1DInt;
+ * Signature: (ILjava/lang/String;Ljava/lang/String;)Limasjava/Vect1DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getDimension
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getDimension
 (JNIEnv *env, jclass class, jint expIdx, jstring jIDSPath, jstring jFieldPath)
 {
 	jobject dimsVect;
@@ -4028,7 +4028,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getDimension
  * Method:    beginObject
  * Signature: (IIILjava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_beginObject
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_beginObject
   (JNIEnv *env, jclass class, jint expIdx, jint jParent, jint index, jstring jRelPath, jint isTimed)
 {
     int jObj;
@@ -4055,7 +4055,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_beginObject
  * Method:    releaseObject
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_releaseObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_releaseObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj)
 {
     void *obj = getObjectFromList(jObj);
@@ -4064,11 +4064,11 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_releaseObject
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    getObjectDim
  * Signature: (II)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectDim
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getObjectDim
   (JNIEnv *env, jclass class, jint expIdx, jint jObj)
 {
     void *obj = getObjectFromList(jObj);
@@ -4080,7 +4080,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectDim
  * Method:    putObject
  * Signature: (ILjava/lang/String;Ljava/lang/String;II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putObject
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jSubPath, jint jObjData, jint isTimed)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -4094,11 +4094,11 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObject
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    getObject
  * Signature: (ILjava/lang/String;Ljava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObject
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getObject
   (JNIEnv *env, jclass class, jint expIdx, jstring  jIdsPath, jstring jSubPath, jint isTimed)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -4122,11 +4122,11 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObject
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    putObjectSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;DI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObjectSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putObjectSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jSubPath, jdouble time, jint jObjData)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -4140,11 +4140,11 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObjectSlice
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    getObjectSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;D)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectSlice
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getObjectSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jSubPath, jdouble time)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -4170,11 +4170,11 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectSlice
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    replaceLastObjectSlice
  * Signature: (ILjava/lang/String;Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastObjectSlice
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_replaceLastObjectSlice
   (JNIEnv *env, jclass class, jint expIdx, jstring jIdsPath, jstring jSubPath, jint jObjData)
 {
     const char *idsPath = (*env)->GetStringUTFChars(env, jIdsPath, 0);
@@ -4188,11 +4188,11 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_replaceLastObjec
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    putObjectInObject
  * Signature: (IILjava/lang/String;II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObjectInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putObjectInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jint jObjData)
 {
     void *newObj;
@@ -4209,7 +4209,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putObjectInObjec
  * Method:    putStringInObject
  * Signature: (IILjava/lang/String;ILjava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putStringInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putStringInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jstring jData)
 {
     const char *path;
@@ -4237,7 +4237,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putStringInObjec
  * Method:    putIntInObject
  * Signature: (IILjava/lang/String;II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIntInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putIntInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jint data)
 {
     void *newObj;
@@ -4253,7 +4253,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putIntInObject
  * Method:    putFloatInObject
  * Signature: (IILjava/lang/String;IF)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloatInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putFloatInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jfloat data)
 {
     void *newObj;
@@ -4269,7 +4269,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putFloatInObject
  * Method:    putDoubleInObject
  * Signature: (IILjava/lang/String;ID)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdouble data)
 {
     void *newObj;
@@ -4285,7 +4285,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putDoubleInObjec
  * Method:    putVect1DIntInObject
  * Signature: (IILjava/lang/String;I[II)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DIntInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DIntInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jintArray jArray, jint dim)
 {
     const char *path;
@@ -4313,7 +4313,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DIntInOb
  * Method:    putVect1DStringInObject
  * Signature: (IILjava/lang/String;I[Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DStringInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DStringInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jobjectArray jArray, jint dim)
 {
     const char *path;
@@ -4366,7 +4366,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DStringI
  * Method:    putVect1DFloatInObject
  * Signature: (IILjava/lang/String;I[FI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloatInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DFloatInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jfloatArray jArray, jint dim)
 {
     const char *path;
@@ -4394,7 +4394,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DFloatIn
  * Method:    putVect1DDoubleInObject
  * Signature: (IILjava/lang/String;I[DI)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect1DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim)
 {
     const char *path;
@@ -4422,7 +4422,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect1DDoubleI
  * Method:    putVect2DIntInObject
  * Signature: (IILjava/lang/String;I[III)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DIntInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DIntInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jintArray jArray, jint dim1, jint dim2)
   {
     const char *path;
@@ -4450,7 +4450,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DIntInOb
  * Method:    putVect2DFloatInObject
  * Signature: (IILjava/lang/String;I[FII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloatInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DFloatInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jfloatArray jArray, jint dim1, jint dim2)
 {
     const char *path;
@@ -4478,7 +4478,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DFloatIn
  * Method:    putVect2DDoubleInObject
  * Signature: (IILjava/lang/String;I[DII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect2DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1, jint dim2)
 {
     const char *path;
@@ -4506,7 +4506,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect2DDoubleI
  * Method:    putVect3DIntInObject
  * Signature: (IILjava/lang/String;I[IIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DIntInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DIntInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jintArray jArray, jint dim1, jint dim2, jint dim3)
   {
     const char *path;
@@ -4533,7 +4533,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DIntInOb
  * Method:    putVect3DFloatInObject
  * Signature: (IILjava/lang/String;I[FIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloatInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DFloatInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jfloatArray jArray, jint dim1, jint dim2, jint dim3)
 {
     const char *path;
@@ -4561,7 +4561,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DFloatIn
  * Method:    putVect3DDoubleInObject
  * Signature: (IILjava/lang/String;I[DIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect3DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1, jint dim2, jint dim3)
 {
     const char *path;
@@ -4590,7 +4590,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect3DDoubleI
  * Method:    putVect4DDoubleInObject
  * Signature: (IILjava/lang/String;I[DIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect4DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1, jint dim2, jint dim3, jint dim4)
 {
     const char *path;
@@ -4618,7 +4618,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect4DDoubleI
  * Method:    putVect5DDoubleInObject
  * Signature: (IILjava/lang/String;I[DIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect5DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5)
 {
@@ -4647,7 +4647,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect5DDoubleI
  * Method:    putVect6DDoubleInObject
  * Signature: (IILjava/lang/String;I[DIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect6DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5, jint dim6)
 {
@@ -4676,7 +4676,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect6DDoubleI
  * Method:    putVect7DDoubleInObject
  * Signature: (IILjava/lang/String;I[DIIIIIII)V
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect7DDoubleInObject
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_putVect7DDoubleInObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx, jdoubleArray jArray, jint dim1,
     jint dim2, jint dim3, jint dim4, jint dim5, jint dim6, jint dim7)
 {
@@ -4701,11 +4701,11 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_putVect7DDoubleI
 }
 
 /*
- * Class:     ualmemory_javainterface_UALLowLevel
+ * Class:     imasjava_UALLowLevel
  * Method:    getObjectFromObject
  * Signature: (IILjava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectFromObject
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getObjectFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4731,7 +4731,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getObjectFromObj
  * Method:    getStringFromObject
  * Signature: (IILjava/lang/String;I)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getStringFromObject
+JNIEXPORT jstring JNICALL Java_imasjava_UALLowLevel_getStringFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4759,7 +4759,7 @@ JNIEXPORT jstring JNICALL Java_ualmemory_javainterface_UALLowLevel_getStringFrom
  * Method:    getIntFromObject
  * Signature: (IILjava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getIntFromObject
+JNIEXPORT jint JNICALL Java_imasjava_UALLowLevel_getIntFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4780,7 +4780,7 @@ JNIEXPORT jint JNICALL Java_ualmemory_javainterface_UALLowLevel_getIntFromObject
  * Method:    getBooleanFromObject
  * Signature: (IILjava/lang/String;I)Z
  */
-JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBooleanFromObject
+JNIEXPORT jboolean JNICALL Java_imasjava_UALLowLevel_getBooleanFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4802,7 +4802,7 @@ JNIEXPORT jboolean JNICALL Java_ualmemory_javainterface_UALLowLevel_getBooleanFr
  * Method:    getFloatFromObject
  * Signature: (IILjava/lang/String;I)F
  */
-JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloatFromObject
+JNIEXPORT jfloat JNICALL Java_imasjava_UALLowLevel_getFloatFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4822,7 +4822,7 @@ JNIEXPORT jfloat JNICALL Java_ualmemory_javainterface_UALLowLevel_getFloatFromOb
  * Method:    getDoubleFromObject
  * Signature: (IILjava/lang/String;I)D
  */
-JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDoubleFromObject
+JNIEXPORT jdouble JNICALL Java_imasjava_UALLowLevel_getDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4842,7 +4842,7 @@ JNIEXPORT jdouble JNICALL Java_ualmemory_javainterface_UALLowLevel_getDoubleFrom
  * Method:    getVect1DIntFromObject
  * Signature: (IILjava/lang/String;I)LVect1DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DIntFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DIntFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4869,7 +4869,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DIntF
  * Method:    getVect1DStringFromObject
  * Signature: (IILjava/lang/String;I)LVect1DString;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DStringFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DStringFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4900,7 +4900,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DStri
  * Method:    getVect1DBooleanFromObject
  * Signature: (IILjava/lang/String;I)LVect1DBoolean;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DBooleanFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DBooleanFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4926,7 +4926,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DBool
  * Method:    getVect1DFloatFromObject
  * Signature: (IILjava/lang/String;I)LVect1DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloatFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DFloatFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4952,7 +4952,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DFloa
  * Method:    getVect1DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect1DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect1DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -4978,7 +4978,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect1DDoub
  * Method:    getVect2DIntFromObject
  * Signature: (IILjava/lang/String;I)LVect2DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DIntFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DIntFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5005,7 +5005,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DIntF
  * Method:    getVect2DFloatFromObject
  * Signature: (IILjava/lang/String;I)LVect2DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloatFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DFloatFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5032,7 +5032,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DFloa
  * Method:    getVect2DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect2DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect2DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5058,7 +5058,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect2DDoub
  * Method:    getVect3DIntFromObject
  * Signature: (IILjava/lang/String;I)LVect3DInt;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DIntFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DIntFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5084,7 +5084,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DIntF
  * Method:    getVect3DFloatFromObject
  * Signature: (IILjava/lang/String;I)LVect3DFloat;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DFloatFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DFloatFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5111,7 +5111,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DFloa
  * Method:    getVect3DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect3DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect3DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5137,7 +5137,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect3DDoub
  * Method:    getVect4DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect4DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect4DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5163,7 +5163,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect4DDoub
  * Method:    getVect5DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect5DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect5DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5189,7 +5189,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect5DDoub
  * Method:    getVect5DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect5DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect6DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5216,7 +5216,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect6DDoub
  * Method:    getVect7DDoubleFromObject
  * Signature: (IILjava/lang/String;I)LVect7DDouble;
  */
-JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect7DDoubleFromObject
+JNIEXPORT jobject JNICALL Java_imasjava_UALLowLevel_getVect7DDoubleFromObject
   (JNIEnv *env, jclass class, jint expIdx, jint jObj, jstring jSubPath, jint idx)
 {
     void *obj = getObjectFromList(jObj);
@@ -5244,7 +5244,7 @@ JNIEXPORT jobject JNICALL Java_ualmemory_javainterface_UALLowLevel_getVect7DDoub
  * Method:    ualCopyIds
  * Signature: (IILjava/lang/String;II)V;
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_ualCopyIds (JNIEnv *env, jclass class, jint fromIdx, jint toIdx, jstring jIdsName, jint fromIdsOccur, jint toIdsOccur)
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_ualCopyIds (JNIEnv *env, jclass class, jint fromIdx, jint toIdx, jstring jIdsName, jint fromIdsOccur, jint toIdsOccur)
 {
     const char *idsName = (*env)->GetStringUTFChars(env, jIdsName, 0);
     int status = ual_copy_cpo(fromIdx, toIdx, (char *)idsName, fromIdsOccur, toIdsOccur);
@@ -5260,7 +5260,7 @@ JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_ualCopyIds (JNIE
  * Method:    ualCopyIdsEnv
  * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;IIILjava/lang/String;)V;
  */
-JNIEXPORT void JNICALL Java_ualmemory_javainterface_UALLowLevel_ualCopyIdsEnv (JNIEnv *env, jclass class, jstring jTokamakFrom, jstring jVersionFrom, jstring jUserFrom, jint shotFrom, jint runFrom, jint occurrenceFrom, jstring jTokamakTo, jstring jVersionTo, jstring jUserTo, jint shotTo, jint runTo, jint occurrenceTo, jstring jIdsName)
+JNIEXPORT void JNICALL Java_imasjava_UALLowLevel_ualCopyIdsEnv (JNIEnv *env, jclass class, jstring jTokamakFrom, jstring jVersionFrom, jstring jUserFrom, jint shotFrom, jint runFrom, jint occurrenceFrom, jstring jTokamakTo, jstring jVersionTo, jstring jUserTo, jint shotTo, jint runTo, jint occurrenceTo, jstring jIdsName)
 {
     const char *tokamakFrom = (*env)->GetStringUTFChars(env, jTokamakFrom, 0);
     const char *versionFrom = (*env)->GetStringUTFChars(env, jVersionFrom, 0);
