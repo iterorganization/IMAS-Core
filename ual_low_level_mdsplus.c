@@ -1331,8 +1331,8 @@ static void setDataEnv(char *user, char *tokamak, char *version)
         int i;
         for (i = 0; i < sizeof(treeBases) / sizeof(treeBases[0]); ++i) {
             sprintf(treeBases[i],
-                    "%s/public/imasdb/imas_trees/%s/%s/mdsplus/%d;/pfs/imasdb/imas_trees/public/models/%s/mdsplus",
-                    homedir, tokamak, version, i, version);
+                    "%s/public/imasdb/%s/%s/%d",
+                    homedir, tokamak, version, i);
         }
     }
 
