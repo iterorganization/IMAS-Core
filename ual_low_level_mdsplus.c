@@ -11538,7 +11538,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     char *objectPtr, *multiObjectPtr;
     int currOffset, leftItems, leftRows;
 
-    fullPathTime = malloc(strlen(path) + 5);
+    fullPathTime = malloc(strlen(path) + 7);
     if(expand)
     	sprintf(fullPathTime, "%s/time", path);
     else
