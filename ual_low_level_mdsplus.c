@@ -2621,6 +2621,15 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
             currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
+	    /////////////////ADDED///////////
+            if(currNTimes < leftRows)
+            {
+                //printf("Internal error in getTimedData: inconsistent number of samples in data and times\n");
+                sprintf(errmsg, "Internal error in getTimedData: inconsistent number of samples in data and times");
+                unlock();
+                return -1;
+            }
+            //////////////////////////
             longTimes = (_int64u *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
@@ -2628,12 +2637,20 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         else
         {
             currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(double);
+	    ////////ADDED//////////
+            if(currNTimes < leftRows)
+            {
+                //printf("Internal error in getTimedData: inconsistent number of samples in data and times\n");
+                sprintf(errmsg, "Internal error in getTimedData: inconsistent number of samples in data and times");
+                unlock();
+                return -1;
+            }
+            //////////////////////////
             doubleTimes = (double *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 times[timesOfs++] = doubleTimes[i];
         }
     }
-
 
     dataD.arsize -= lastSegmentOffset;
     dataD.m[dataD.dimct - 1] -= leftRows;
@@ -11538,7 +11555,7 @@ static int getObjectSliceLocal(int expIdx, char *cpoPath, char *path,  double ti
     char *objectPtr, *multiObjectPtr;
     int currOffset, leftItems, leftRows;
 
-    fullPathTime = malloc(strlen(path) + 5);
+    fullPathTime = malloc(strlen(path) + 7);
     if(expand)
     	sprintf(fullPathTime, "%s/time", path);
     else
