@@ -1,7 +1,7 @@
-#include <string.h>
+#include <cstring>
 #include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 //Memory storage of metadata information: presence of data and dimensions
 
