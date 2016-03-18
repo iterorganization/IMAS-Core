@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <usagedef.h>
 #include <ncidef.h>
 
@@ -31,7 +32,7 @@ extern int TdiData();
 #endif
 static int getDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retXd, int evaluate);
 static int mdsgetDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor_xd *retXd, int evaluate);
-static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize, int evaluate);
+static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, int64_t *retArsize, int evaluate);
 static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time, struct descriptor_xd *retDataXd, struct descriptor_xd *retTimesXd, int expand);
 static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor_a *dataD, double *times, int nTimes);
 static int putDataLocal(int expIdx, char *cpoPath, char *path, struct descriptor *dataD);
@@ -67,7 +68,7 @@ static int putTimedVect7DFloat(int expIdx, char *cpoPath, char *path, char *time
 int dim2, int dim3, int dim4, int dim5, int dim6);
 static int putTimedVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double *times, int nTimes, int dim1,
 int dim2, int dim3, int dim4, int dim5, int dim6);
-static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize,
+static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, int64_t *retArsize,
     struct descriptor_xd *retTimesXd, int all);
 
 static int getNid(char *cpoPath, char *path);
@@ -862,7 +863,7 @@ static int counter;
     return status;
 }
 
-int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  _int64 *retArsize, int evaluate)
+int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  int64_t *retArsize, int evaluate)
 {
     int status, i;
     ARRAY_COEFF(char, 16) *dataDPtr;
@@ -902,7 +903,7 @@ int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *r
 
 //NOTE: getDataNoDescr will be called ONLY for arrays
 //OLD VERSION
-/*int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  _int64 *retArsize, int evaluate)
+/*int getDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  int64_t *retArsize, int evaluate)
 {
     int status, i;
     ARRAY_COEFF(char, 16) *dataDPtr;
@@ -2222,7 +2223,7 @@ static int mdsgetDataLocal(int expIdx, char *cpoPath, char *path, struct descrip
 
 //Get Local Data without descriptors NOTE: to be used only for arrays
 
-static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize, int evaluate)
+static int getDataLocalNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, int64_t *retArsize, int evaluate)
 {
 	int status, numSegments = 0;
 	int nid, refNid, *refData, refShot, i;
@@ -2321,7 +2322,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
     float currTime;
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
-    _int64u *longTimes;
+    uint64_t *longTimes;
 
     status = getData(expIdx, cpoPath, path, &xd, 0);
     if(status) return status;
@@ -2343,7 +2344,7 @@ static int getNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, struc
 
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
-    longTimes = (_int64u *)longTimesD->pointer;
+    longTimes = (uint64_t *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
         MdsTimeToDouble(longTimes[i], (void *)&currTime);
@@ -2368,7 +2369,7 @@ static int mdsgetNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, st
     float currTime;
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
-    _int64u *longTimes;
+    uint64_t *longTimes;
 
     //printf("mdsgetNonSegmentedTimedData1. cpoPath: %s, path: %s\n",cpoPath, path);
     status = mdsgetData(expIdx, cpoPath, path, &xd, 0);
@@ -2391,7 +2392,7 @@ static int mdsgetNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, st
 
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
-    longTimes = (_int64u *)longTimesD->pointer;
+    longTimes = (uint64_t *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
         MdsTimeToDouble(longTimes[i], &currTime);
@@ -2406,7 +2407,7 @@ static int mdsgetNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, st
     return 0;
 }
 
-static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  _int64 *retArsize,
+static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength,  int64_t *retArsize,
     struct descriptor_xd *retTimesXd)
 {
     struct descriptor_signal *signalD;
@@ -2416,7 +2417,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     float currTime;
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
-    _int64u *longTimes;
+    uint64_t *longTimes;
     ARRAY_COEFF(char, 16) *dataDPtr;
 
     status = getData(expIdx, cpoPath, path, &xd, 0);
@@ -2439,7 +2440,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
 
     nTimes = longTimesD->arsize/longTimesD->length;
     times = malloc(sizeof(double) * nTimes);
-    longTimes = (_int64u *)longTimesD->pointer;
+    longTimes = (uint64_t *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
         MdsTimeToDouble(longTimes[i], (void *)&currTime);
@@ -2473,7 +2474,7 @@ static double getDoubleTime(struct descriptor *timeD)
     double retTime;
 
     if(timeD->dtype == DTYPE_Q || timeD->dtype == DTYPE_QU)
-        MdsTimeToDouble(*(_int64u *)timeD->pointer, &retTime);
+        MdsTimeToDouble(*(uint64_t *)timeD->pointer, &retTime);
     else
         retTime = *(double *)timeD->pointer;
     return retTime;
@@ -2491,12 +2492,12 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
     int status, i; //nTimes, i;
     int lastSegmentOffset, leftItems, leftRows, lastDim;
     double *times, *doubleTimes;
-    _int64u *longTimes;
+    uint64_t *longTimes;
     double currStart, currEnd;
     int nid, numSegments, currSegment, actSegments;
     struct descriptor_xd *segTimesXds, *segDataXds;
-    _int64u dataLen;
-    _int64u timesLen, dataOfs, timesOfs, currNTimes;
+    uint64_t dataLen;
+    uint64_t timesLen, dataOfs, timesOfs, currNTimes;
     char *data;
     DESCRIPTOR_A_COEFF(dataD, 0, 0, 0, 100, 0);
     //ARRAY_COEFF(char, 16) dataD;
@@ -2630,7 +2631,8 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
                 return -1;
             }
             //////////////////////////
-            longTimes = (_int64u *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
+            longTimes = (uint64_t *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
+
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
         }
@@ -2680,7 +2682,7 @@ int mdsgetTimedData(int expIdx, char *cpoPath, char *path, double start, double 
     int status, i; //nTimes, i;
     int lastSegmentOffset, leftItems, leftRows, lastDim;
     double *times, *doubleTimes;
-    _int64u *longTimes;
+    uint64_t *longTimes;
     double currStart, currEnd;
     int nid, numSegments, currSegment, actSegments;
     struct descriptor_xd *segTimesXds, *segDataXds;
@@ -2810,7 +2812,7 @@ int mdsgetTimedData(int expIdx, char *cpoPath, char *path, double start, double 
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
             currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
-            longTimes = (_int64u *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
+            longTimes = (uint64_t *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
         }
@@ -2842,7 +2844,7 @@ int mdsgetTimedData(int expIdx, char *cpoPath, char *path, double start, double 
     return 0;
 }
 
-static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, _int64 *retArsize,
+static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double start, double end, void **retData, int *retDims,  int *retDimsCt, char *retType, char *retClass, int *retLength, int64_t *retArsize,
     struct descriptor_xd *retTimesXd, int all)
 {
     struct descriptor_a *longTimesD;
@@ -2852,11 +2854,11 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
     int status, i;
     int lastSegmentOffset, leftItems, leftRows, lastDim;
     double *times, *doubleTimes;
-    _int64u *longTimes;
+    uint64_t *longTimes;
     double currStart, currEnd;
     int nid, numSegments, currSegment, actSegments;
     struct descriptor_xd *segTimesXds, *segDataXds;
-    _int64 dataLen, timesLen, dataOfs, timesOfs, currNTimes;
+    int64_t dataLen, timesLen, dataOfs, timesOfs, currNTimes;
     char *data;
     ARRAY_COEFF(char, 16) *dataDPtr;
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
@@ -2991,7 +2993,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
             currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
-            longTimes = (_int64u *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
+            longTimes = (uint64_t *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
         }
@@ -3041,7 +3043,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     DESCRIPTOR_A(timesD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     struct descriptor_a *dataD;
     double *times, start, end, currStart, currEnd;
-    _int64u *longTimes;
+    uint64_t *longTimes;
 
     int nid, numSegments, currSegment, isObject;
 
@@ -3142,7 +3144,7 @@ static int getSlicedDataLocal(int expIdx, char *cpoPath, char *path, double time
     if(timesXd.pointer->dtype == DTYPE_Q || timesXd.pointer->dtype == DTYPE_QU)
     {
         longTimesD = (struct descriptor_a *)timesXd.pointer;
-        longTimes = (_int64u *)longTimesD->pointer;
+        longTimes = (uint64_t *)longTimesD->pointer;
         nTimes = longTimesD->arsize/longTimesD->length;
         nTimes -= leftRows;
         times = (double *)malloc(nTimes * sizeof(double));
@@ -3400,7 +3402,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
         EMPTYXD(timeExprXd);
         EMPTYXD(startXd);
         EMPTYXD(endXd);
-        _int64u currEndL;
+        uint64_t currEndL;
 
 	lock("putSegmentLocal");
 	checkExpIndex(expIdx);
@@ -3468,7 +3470,7 @@ static int putSegmentLocal(int expIdx, char *cpoPath, char *path, char *timeBase
 		return -1;
             }
             if(endXd.pointer->dtype == DTYPE_Q || endXd.pointer->dtype == DTYPE_QU)
-                *(_int64 *)endXd.pointer->pointer = currEndL;
+                *(int64_t *)endXd.pointer->pointer = currEndL;
             else
                 *(double *)endXd.pointer->pointer = currEnd;
             status = TreeUpdateSegment(nid, 0, endXd.pointer, 0, currSegment - 1);
@@ -3587,7 +3589,7 @@ static int mdsendIdsReplaceLastSliceLocal(int expIdx, char *path)
 static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor *dataD, double time)
 {
 	int nid, status, i, currSegment, currSize;
-        _int64u timestamp;
+        uint64_t timestamp;
         struct descriptor timeD;
         int dataLen, leftItems, leftRows, leftBytes;
         double currEnd;
@@ -3733,7 +3735,7 @@ static int putSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePa
 static int mdsputSliceLocal(int expIdx, char *cpoPath, char *path, char *timeBasePath, struct descriptor *dataD, double time)
 {
 	int nid, status, i, currSegment, currSize;
-        _int64u timestamp;
+        uint64_t timestamp;
         struct descriptor timeD;
         int dataLen, leftItems, leftRows, leftBytes;
         double currEnd;
@@ -5884,7 +5886,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 	char *data;
 
 /////////////Memory-Based dimension / existence info management///////////////
@@ -6144,7 +6146,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6202,7 +6204,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 	status = getDataNoDescr(expIdx, cpoPath, path, (void **)data, dims,  &dimCt, &dtype, &class, &length,  &arsize, 1);
 
@@ -6256,7 +6258,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6314,7 +6316,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6370,7 +6372,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6426,7 +6428,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6483,7 +6485,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6542,7 +6544,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6600,7 +6602,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6663,7 +6665,7 @@ static int mdsGetLocalDimension(int expIdx, char *cpoPath, char *path, int *numD
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6726,7 +6728,7 @@ int *dim4)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6788,7 +6790,7 @@ int *dim4)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6853,7 +6855,7 @@ int *dim4)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6921,7 +6923,7 @@ int *dim4, int *dim5)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -6986,7 +6988,7 @@ int *dim4, int *dim5)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7052,7 +7054,7 @@ int *dim4, int *dim5)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7118,7 +7120,7 @@ int *dim4, int *dim5, int *dim6)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7184,7 +7186,7 @@ int *dim4, int *dim5, int *dim6)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7254,7 +7256,7 @@ int *dim4, int *dim5, int *dim6)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7326,7 +7328,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
@@ -7396,7 +7398,7 @@ int *dim4, int *dim5, int *dim6, int *dim7)
 	int dims[16];
 	int dimCt;
 	int length;
-	_int64 arsize;
+	int64_t arsize;
 
 
 	struct descriptor_a *dataD;
