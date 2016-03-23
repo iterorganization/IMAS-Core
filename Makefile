@@ -11,7 +11,7 @@ ifeq "$(strip $(CC))" "icc"
 else
  CFLAGS=-g -fPIC
 endif
-CXXFLAGS = -g -fPIC -D__USE_GNU -I$(MDSPLUS_DIR)/include
+CXXFLAGS = -g -fPIC -D__USE_XOPEN2K8 -I$(MDSPLUS_DIR)/include
 
 INCDIR=-I$(MDSPLUS_DIR)/include
 LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
