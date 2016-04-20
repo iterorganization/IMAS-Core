@@ -19,7 +19,9 @@ LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
 LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 
-COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
+COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o
+MDS_OBJECTS=ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
+IDAM_OBJECTS=ual_low_level_idam.o
 
 TARGETS = timed_struct_array.h libimas.so libimas.a
 
@@ -30,6 +32,16 @@ ifeq "$(strip $(ITM_CATALOG))" "yes"
  LIBDIR+= -L$(ITM_CATALOG_DIR)/lib -L/usr/lib64/mysql
  LIBS+= -lItmCatalog -lmysqlclient
  COMMON_OBJECTS+= ual_catalog.o $(ITM_CATALOG_DIR)/*.o
+endif
+#-----------------------------------------------
+
+#-------------- Options for IDAM ---------------
+ifeq "$(strip $(IDAM))" "yes"
+ CFLAGS+= -DIDAM
+ LIBS+= -lidam64
+ COMMON_OBJECTS+=$(IDAM_OBJECTS)
+else
+ COMMON_OBJECTS+=$(MDS_OBJECTS)
 endif
 #-----------------------------------------------
 
