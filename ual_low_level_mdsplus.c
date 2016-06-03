@@ -2598,7 +2598,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         dataLen += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize;
         timesLen += ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize;
     }
-    times = (double *)malloc(sizeof(double) * timesLen/sizeof(_int64u));
+    times = (double *)malloc(sizeof(double) * timesLen/sizeof(uint64_t));
     data = malloc(dataLen);
     dataD.arsize = dataLen;
     dataD.pointer = data;
@@ -2621,7 +2621,7 @@ int getTimedData(int expIdx, char *cpoPath, char *path, double start, double end
         dataOfs += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize - lastSegmentOffset;
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
-            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
+            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(uint64_t);
 	    /////////////////ADDED///////////
             if(currNTimes < leftRows)
             {
@@ -2788,7 +2788,7 @@ int mdsgetTimedData(int expIdx, char *cpoPath, char *path, double start, double 
         dataLen += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize;
         timesLen += ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize;
     }
-    times = (double *)malloc(sizeof(double) * timesLen/sizeof(_int64u));
+    times = (double *)malloc(sizeof(double) * timesLen/sizeof(uint64_t));
     data = malloc(dataLen);
     dataD.arsize = dataLen;
     dataD.pointer = data;
@@ -2811,7 +2811,7 @@ int mdsgetTimedData(int expIdx, char *cpoPath, char *path, double start, double 
         dataOfs += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize - lastSegmentOffset;
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
-            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
+            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(uint64_t);
             longTimes = (uint64_t *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
@@ -2964,7 +2964,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         dataLen += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize;
         timesLen += ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize;
     }
-    times = (double *)malloc(sizeof(double) * timesLen/sizeof(_int64u));
+    times = (double *)malloc(sizeof(double) * timesLen/sizeof(uint64_t));
 
     *retData = data = malloc(dataLen);
     *retArsize = dataLen;
@@ -2992,7 +2992,7 @@ static int getTimedDataNoDescr(int expIdx, char *cpoPath, char *path, double sta
         dataOfs += ((struct descriptor_a *)segDataXds[currSegment].pointer)->arsize - lastSegmentOffset;
         if(segTimesXds[currSegment].pointer->dtype == DTYPE_Q || segTimesXds[currSegment].pointer->dtype == DTYPE_QU)
         {
-            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(_int64u);
+            currNTimes = ((struct descriptor_a *)segTimesXds[currSegment].pointer)->arsize/sizeof(uint64_t);
             longTimes = (uint64_t *)((struct descriptor_a *)segTimesXds[currSegment].pointer)->pointer;
             for(i = 0; i < currNTimes - leftRows; i++)
                 MdsTimeToDouble(longTimes[i], &times[timesOfs++]);
