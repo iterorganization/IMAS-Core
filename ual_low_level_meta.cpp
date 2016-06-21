@@ -837,6 +837,12 @@ void removeAllInfoObjectSlices(int expIdx, char *cpoPath, char *path)
 {
     int idx;
     pthread_mutex_lock(&mutex);
+
+//Gabriele May 2016: woraround for wrongly passed pat starting with /
+    if(path && path[0] == '/')
+	path++;
+
+
     TopCpo *cpo;
     for(idx = 0; idx < numCpos; idx++)
     {
