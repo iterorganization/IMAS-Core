@@ -624,7 +624,7 @@ EXPORT int endIdsPutTimed(int expIdx, char *path)
 
 #ifdef IDAM
     currIdx = expInfo[expIdx].idx;
-    return idamendIdsPutTime(currIdx, path);
+    return idamendIdsPutTimed(currIdx, path);
 #else
     if(isMds(expIdx, &currIdx))
         status = mdsendIdsPutTimed(currIdx, path);
@@ -1443,7 +1443,7 @@ EXPORT int putVect3DFloatSlice(int expIdx, char *cpoPath, char *path, char *time
 
 #ifdef IDAM
     currIdx = expInfo[expIdx].idx;
-    return idamVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
+    return idamPutVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
 #else
     if(isMds(expIdx, &currIdx))
         status = mdsPutVect3DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time);
@@ -1523,7 +1523,7 @@ EXPORT int putVect4DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBa
 
 #ifdef IDAM
     currIdx = expInfo[expIdx].idx;
-    return idamPutVec4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
+    return idamPutVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
 #else
     if(isMds(expIdx, &currIdx))
         status = mdsPutVect4DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time);
@@ -2932,7 +2932,7 @@ EXPORT int getVect3DFloatSlice(int expIdx, char *cpoPath, char *path, char *time
 
 #ifdef IDAM
     currIdx = expInfo[expIdx].idx;
-    return idamGet3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
+    return idamGetVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
 #else
     if(isMds(expIdx, &currIdx))
         status = mdsGetVect3DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time, retTime, interpolMode);

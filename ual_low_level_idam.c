@@ -180,6 +180,30 @@ static char * imas_getKeyword()
 // Required by the High Level APIs
 // call IDAM IMAS mdsplus plugin
 
+int idamimasOpenEnv(char* name, int shot, int run, int* retIdx, char* user, char* tokamak, char* version)
+{
+    return 0;
+}
+
+int idamimasCreateEnv(char* name, int shot, int run, int refShot, int refRun, int* retIdx, char* user, char* tokamak, char* version)
+{
+    return 0;
+}
+
+void reportInfo(char *str1, char *str2)
+{
+#ifdef DEBUG_UAL
+    FILE *f = fopen("ual.txt", "a");
+    fprintf(f, str1, str2);
+    fclose(f);
+#endif
+}
+
+int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int toCpoOccur)
+{
+    return 0;
+}
+
 static void idam_void(char *directive){   
    int handle = idamGetAPI(directive, "");   
    int err = 0;   
@@ -217,84 +241,84 @@ static char *idam_char(char *directive){
    return rc;    
 }
 
-void imas_mds_flush_mem_cache(int idx){   
+void imas_flush_mem_cache(int idx){   
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, /imas_mds, /flush)", idx);      
+   sprintf(directive, "imas::cache(idx=%d, /imas_mds, /flush)", idx);      
    idam_void(directive);   
    if(directive) free(directive);       
 }
 
-void imas_mds_discard_cpo_mem_cache(int idx, char *cpoPath){
+void imas_discard_cpo_mem_cache(int idx, char *cpoPath){
    int lstr = 256 + strlen(cpoPath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, cpoPath='%s', /imas_mds, /discard)", idx, cpoPath);      
+   sprintf(directive, "imas::cache(idx=%d, cpoPath='%s', /imas_mds, /discard)", idx, cpoPath);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-int imas_mds_get_cache_level(int idx){
+int imas_get_cache_level(int idx){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, /imas_mds, /getLevel)", idx);      
+   sprintf(directive, "imas::cache(idx=%d, /imas_mds, /getLevel)", idx);      
    int rc = idam_int(directive);   
    if(directive) free(directive);
    return rc;           
 }
 
-void imas_mds_flush_cpo_mem_cache(int idx, char *cpoPath){
+void imas_flush_cpo_mem_cache(int idx, char *cpoPath){
    int lstr = 256 + strlen(cpoPath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, cpoPath='%s', /imas_mds, /flushCPO)", idx, cpoPath);      
+   sprintf(directive, "imas::cache(idx=%d, cpoPath='%s', /imas_mds, /flushCPO)", idx, cpoPath);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-void imas_mds_set_cache_level(int idx, int level){
+void imas_set_cache_level(int idx, int level){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, cacheLevel=%d, /imas_mds, /setLevel)", idx, level);      
+   sprintf(directive, "imas::cache(idx=%d, cacheLevel=%d, /imas_mds, /setLevel)", idx, level);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-void imas_mds_disable_mem_cache(int idx){
+void imas_disable_mem_cache(int idx){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, /imas_mds, /disable)", idx);      
+   sprintf(directive, "imas::cache(idx=%d, /imas_mds, /disable)", idx);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-void imas_mds_discard_mem_cache(int idx){
+void imas_discard_mem_cache(int idx){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, /imas_mds,/discard)", idx);      
+   sprintf(directive, "imas::cache(idx=%d, /imas_mds,/discard)", idx);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-void imas_mds_enable_mem_cache(int idx){
+void imas_enable_mem_cache(int idx){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::cache(idx=%d, /imas_mds, /enable)", idx);      
+   sprintf(directive, "imas::cache(idx=%d, /imas_mds, /enable)", idx);      
    idam_void(directive);   
    if(directive) free(directive);           
 }
 
-char *imas_mds_spawnCommand(char *command, char *ipAddress){
+char* spawnCommand(char *command, char *ipAddress){
    int lstr = 256 + strlen(command) + strlen(ipAddress);
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::spawnCommand(command='%s', ipAddress='%s', /imas_mds)", command, ipAddress);      
+   sprintf(directive, "imas::spawnCommand(command='%s', ipAddress='%s', /imas_mds)", command, ipAddress);      
    char *rc = idam_char(directive);   
    if(directive) free(directive);
    return rc;           
 }
 
-int imas_mds_getUniqueRun(int shot){
+int getUniqueRun(int shot){
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::getUniqueRun(shot=%d, /imas_mds)", shot);      
+   sprintf(directive, "imas::getUniqueRun(shot=%d, /imas_mds)", shot);      
    int rc = idam_int(directive);   
    if(directive) free(directive);
    return rc;           
@@ -306,7 +330,7 @@ void setTimeBasePath(char *timeBasePath){
    //if(timeBasePath == NULL || timeBasePath[0] == '\0' || !strcmp(timeBasePath, TimeBasePath)) return;
    int lstr = 512 + strlen(timeBasePath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
-   sprintf(directive,"imas::setTimeBasePath(path='%s', /imas_mds)", timeBasePath);   
+   sprintf(directive, "imas::setTimeBasePath(path='%s', /imas_mds)", timeBasePath);   
    idam_void(directive);   
    if(directive) free(directive);
    if(strlen(timeBasePath) < 256) strcpy(TimeBasePath, timeBasePath);           
@@ -378,7 +402,7 @@ int idamEuitmCreate(char *name, int shot, int run, int refShot, int refRun, int 
    char *directive = (char *)malloc(lstr*sizeof(char));   
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, /CreateFromModel, %s)", name, shot, run, refShot, refRun, keyword);   
+   sprintf(directive, "imas::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, /CreateFromModel, %s)", name, shot, run, refShot, refRun, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -416,7 +440,7 @@ int idamIMASCreate(char *name, int shot, int run, int refShot, int refRun, int *
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, %s)", name, shot, run, refShot, refRun, keyword);   
+   sprintf(directive, "imas::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, %s)", name, shot, run, refShot, refRun, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -448,7 +472,7 @@ int idamEuitmOpen(char *name, int shot, int run, int *retIdx){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::open(file='%s', shot=%d, run=%d, %s)", name, shot, run, keyword);   
+   sprintf(directive, "imas::open(file='%s', shot=%d, run=%d, %s)", name, shot, run, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -485,7 +509,7 @@ int idamEuitmClose(int idx, char *name, int shot, int run){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::close(idx=%d, file='%s', shot=%d, run=%d, %s)", idx, name, shot, run, keyword);   
+   sprintf(directive, "imas::close(idx=%d, file='%s', shot=%d, run=%d, %s)", idx, name, shot, run, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -533,7 +557,7 @@ int idamDeleteData(int idx, char *cpoPath, char *path){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::delete(idx=%d, group='%s', variable='%s', %s)", idx, cpoPath, path, keyword);   
+   sprintf(directive, "imas::delete(idx=%d, group='%s', variable='%s', %s)", idx, cpoPath, path, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -564,7 +588,7 @@ int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::get(idx=%d, group='%s', variable='%s', /getDimension, %s)", idx, cpoPath, path, keyword);   
+   sprintf(directive, "imas::get(idx=%d, group='%s', variable='%s', /getDimension, %s)", idx, cpoPath, path, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -676,7 +700,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::put(idx=%d, group='%s', variable='%s', isTimed=%d, %s)", idx, cpoPath, path, isTimed, keyword);
+   sprintf(directive, "imas::put(idx=%d, group='%s', variable='%s', isTimed=%d, %s)", idx, cpoPath, path, isTimed, keyword);
    
    int handle = idamPutAPI(directive, &putData);   
 
@@ -729,7 +753,7 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
    char *keyword = imas_getKeyword();
    
    if(dataOperation == PUTSLICE_OPERATION){
-      sprintf(directive,"imas::put(idx=%d, group='%s', variable='%s', /putSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);
+      sprintf(directive, "imas::put(idx=%d, group='%s', variable='%s', /putSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);
 
 // Two PUTDATABLOCKS are passed: One for the Data and one for the Time. 
 // To pass the time accurately a PUTDATA block must be used - name-value pairs are insufficiently accurate as ASCII
@@ -768,7 +792,7 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
    } else 
    if(dataOperation == REPLACELASTSLICE_OPERATION){
 // The time passed is set to Zero as it's the Last Time Slice that is to be replaced. Only the data is passed by a PUTDATABLOCK. 
-      sprintf(directive,"imas::put(idx=%d, group='%s', variable='%s', /replaceLastSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);   
+      sprintf(directive, "imas::put(idx=%d, group='%s', variable='%s', /replaceLastSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);   
       handle = idamPutAPI(directive, &putData);   
    }
    
@@ -820,7 +844,7 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
    char *keyword = imas_getKeyword();
    int source = ual_get_shot(idx);
    
-   sprintf(directive,"imas::get(idx=%d, group='%s', variable='%s', type=%s, rank=%d, shot=%d, %s)", idx, cpoPath, path, data_type, rank, source, keyword);   
+   sprintf(directive, "imas::get(idx=%d, group='%s', variable='%s', type=%s, rank=%d, shot=%d, %s)", idx, cpoPath, path, data_type, rank, source, keyword);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -930,7 +954,7 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::get(idx=%d, group='%s', variable='%s', type=%s, rank=%d, index1=%d, index2=%d, interpolMode=%d, /getSlice, %s)", 
+   sprintf(directive, "imas::get(idx=%d, group='%s', variable='%s', type=%s, rank=%d, index1=%d, index2=%d, interpolMode=%d, /getSlice, %s)", 
            idx, cpoPath, path, data_type, rank, sliceIdx1, sliceIdx2, interpolMode, keyword);   
 
 // Create PUTDATA variables   
@@ -3454,7 +3478,7 @@ int idamBeginCPOPutSlice(int expIdx, char *path)
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
-    if (idamGetDimension(expIdx,path,"time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0) {
+    if (idamGetDimension(expIdx,path, "time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0) {
         sliceIdx1 = 0;      // there is no slice yet
     } else {
         sliceIdx1 = dim1;   //we are going to write right after the last slice
@@ -3470,7 +3494,7 @@ int idamBeginCPOReplaceLastSlice(int expIdx, char *path)
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
-    if (idamGetDimension(expIdx,path,"time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0 || dim1==0) {
+    if (idamGetDimension(expIdx,path, "time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0 || dim1==0) {
         sliceIdx1 = 0;      // there is no slice yet
     } else {
         sliceIdx1 = dim1-1;  // we are going to overwrite last slice
@@ -3536,7 +3560,7 @@ static void *putDataSliceInObject(void *obj, char *path, int index, int type, in
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::putObject(path='%s', index=%d, %s)", path, index, keyword);
+   sprintf(directive, "imas::putObject(path='%s', index=%d, %s)", path, index, keyword);
    
    int handle = idamPutListAPI(directive, &putDataBlockList);   
 
@@ -3582,9 +3606,9 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
    char *keyword = imas_getKeyword();
    
    if( type == DIMENSION)
-      sprintf(directive,"imas::getObject(path='%s', index=%d, objectId=%d, /getDimension, %s)", path, index, *((int *)obj), keyword);
+      sprintf(directive, "imas::getObject(path='%s', index=%d, objectId=%d, /getDimension, %s)", path, index, *((int *)obj), keyword);
    else
-      sprintf(directive,"imas::getObject(path='%s', index=%d, objectId=%d, rank=%d, type='%s', %s)", path, index, *((int *)obj), nDims, convertIdam2StringType(findIMASIDAMType(type)), keyword);
+      sprintf(directive, "imas::getObject(path='%s', index=%d, objectId=%d, rank=%d, type='%s', %s)", path, index, *((int *)obj), nDims, convertIdam2StringType(findIMASIDAMType(type)), keyword);
    
        
    int handle = idamGetAPI(directive, "");   
@@ -3684,7 +3708,7 @@ static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type,
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::getObject(path='%s', index=%d, type='%s', %s)", path, index, convertIdam2StringType(findIMASIDAMType(type)), keyword);
+   sprintf(directive, "imas::getObject(path='%s', index=%d, type='%s', %s)", path, index, convertIdam2StringType(findIMASIDAMType(type)), keyword);
    
    int handle = idamPutListAPI(directive, &putDataBlockList);   
 
@@ -3764,7 +3788,7 @@ void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::beginObject(idx=%d, index=%d, relPath='%s', isTimed=%d, %s)", expIdx, index, relPath, isTimed, keyword);
+   sprintf(directive, "imas::beginObject(idx=%d, index=%d, relPath='%s', isTimed=%d, %s)", expIdx, index, relPath, isTimed, keyword);
          
    int handle = idamPutListAPI(directive, &putDataBlockList);  
 
@@ -3805,7 +3829,7 @@ int idamGetObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::getObjectGroup(idx=%d, path='%s', cpoPath='%s', isTimed=%d, %s)", expIdx, path, cpoPath, isTimed, keyword);
+   sprintf(directive, "imas::getObjectGroup(idx=%d, path='%s', cpoPath='%s', isTimed=%d, %s)", expIdx, path, cpoPath, isTimed, keyword);
       
    int handle = idamGetAPI(directive, "");   
 
@@ -3884,7 +3908,7 @@ int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::getObjectSlice(idx=%d, cpoPath='%s', path='%s', %s)", expIdx, cpoPath, path, keyword);   
+   sprintf(directive, "imas::getObjectSlice(idx=%d, cpoPath='%s', path='%s', %s)", expIdx, cpoPath, path, keyword);   
       
    int handle = idamPutListAPI(directive, &putDataBlockList);  
 
@@ -3939,7 +3963,7 @@ int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::getObjectObject(index=%d, path='%s', %s)", index, path, keyword);   
+   sprintf(directive, "imas::getObjectObject(index=%d, path='%s', %s)", index, path, keyword);   
       
    int handle = idamPutAPI(directive, &putData);  
 
@@ -3991,7 +4015,7 @@ void idamReleaseObject(void *obj){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::releaseObject(%s)", keyword);   
+   sprintf(directive, "imas::releaseObject(%s)", keyword);   
       
    int handle = idamPutAPI(directive, &putData);  
 
@@ -4039,7 +4063,7 @@ int idamPutObject(int currIdx, char *cpoPath, char *path, void *obj, int isTimed
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::putObjectGroup(idx=%d, cpoPath='%s', path='%s', objectId=%d, isTimed=%d, %s)", currIdx, cpoPath, path, ((int *)obj)[0], isTimed, keyword);
+   sprintf(directive, "imas::putObjectGroup(idx=%d, cpoPath='%s', path='%s', objectId=%d, isTimed=%d, %s)", currIdx, cpoPath, path, ((int *)obj)[0], isTimed, keyword);
        
    int handle = idamGetAPI(directive, "");  
 
@@ -4251,7 +4275,7 @@ void *idamPutObjectInObject(void *obj, char *path, int idx, void *data)
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::putObjectInObject(index=%d, path='%s', %s)", idx, path, keyword); 
+   sprintf(directive, "imas::putObjectInObject(index=%d, path='%s', %s)", idx, path, keyword); 
    
    int handle = idamPutAPI(directive, &putData);   
 
@@ -4304,7 +4328,7 @@ int idamGetObjectDim(void *obj)
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::getObjectDim(%s)", keyword);
+   sprintf(directive, "imas::getObjectDim(%s)", keyword);
    
    int handle = idamPutAPI(directive, &putData);   
 
@@ -4663,7 +4687,7 @@ int idamPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::putObjectSlice(idx=%d, cpoPath='%s', path='%s', objectId=%d, %s)", expIdx, cpoPath, path, ((int *)obj)[0], keyword);
+   sprintf(directive, "imas::putObjectSlice(idx=%d, cpoPath='%s', path='%s', objectId=%d, %s)", expIdx, cpoPath, path, ((int *)obj)[0], keyword);
        
    int handle = idamPutAPI(directive, &putData);  
 
@@ -4711,7 +4735,7 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::replaceLastObjectSlice(idx=%d, cpoPath='%s', path='%s', objectId=%d, %s)", expIdx, cpoPath, path, ((int *)obj)[0], keyword);
+   sprintf(directive, "imas::replaceLastObjectSlice(idx=%d, cpoPath='%s', path='%s', objectId=%d, %s)", expIdx, cpoPath, path, ((int *)obj)[0], keyword);
        
    int handle = idamGetAPI(directive, "");  
 
@@ -4749,7 +4773,7 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
 
 // dgm =================== MISSING - undefined references!!! ================================
 
-int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples){
+int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples) {
    
    *retSamples = 0;
    
@@ -4762,7 +4786,7 @@ int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::beginIdsGet(idx=%d, path=%s, isTimed=%d, /imas_mds)", expIdx, path, isTimed);   
+   sprintf(directive, "imas::beginIdsGet(idx=%d, path=%s, isTimed=%d, /imas_mds)", expIdx, path, isTimed);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -4788,7 +4812,7 @@ int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples){
  
    return status;
 }
-int idamendIdsGet(int expIdx, char *path){
+int idamendIdsGet(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
    if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
@@ -4799,7 +4823,7 @@ int idamendIdsGet(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsGet(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsGet(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -4823,7 +4847,7 @@ int idamendIdsGet(int expIdx, char *path){
    return status;
 }
 
-int idambeginIdsPut(int expIdx, char *path){
+int idambeginIdsPut(int expIdx, char *path) {
 // Only proceed if known to be mdsplus
    if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
@@ -4833,7 +4857,7 @@ int idambeginIdsPut(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::beginIdsPut(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::beginIdsPut(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -4857,7 +4881,7 @@ int idambeginIdsPut(int expIdx, char *path){
    return status;
 }
 
-int idamendIdsPut(int expIdx, char *path){
+int idamendIdsPut(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
    if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
@@ -4867,7 +4891,7 @@ int idamendIdsPut(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsPut(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsPut(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -4891,7 +4915,7 @@ int idamendIdsPut(int expIdx, char *path){
    return status;
 }
 
-int idambeginIdsGetSlice(int expIdx, char *path, double time){
+int idambeginIdsGetSlice(int expIdx, char *path, double time) {
 
 // Only proceed if known to be mdsplus
    if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
@@ -4915,7 +4939,7 @@ int idambeginIdsGetSlice(int expIdx, char *path, double time){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::beginIdsGetSlice(idx=%d, path='%s', /imas_mds)", expIdx, path);
+   sprintf(directive, "imas::beginIdsGetSlice(idx=%d, path='%s', /imas_mds)", expIdx, path);
    
    int handle = idamPutAPI(directive, &putData);   
 
@@ -4949,7 +4973,7 @@ int idamendIdsGetSlice(int currIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsGetSlice(idx=%d, path=%s, /imas_mds)", currIdx, path);   
+   sprintf(directive, "imas::endIdsGetSlice(idx=%d, path=%s, /imas_mds)", currIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -4984,7 +5008,7 @@ int idambeginIdsPutSlice(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::beginIdsPutSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::beginIdsPutSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5018,7 +5042,7 @@ int idamendIdsPutSlice(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsPutSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsPutSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5053,7 +5077,7 @@ int idamendIdsPutNonTimed(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsPutNonTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsPutNonTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5087,7 +5111,7 @@ int idambeginIdsPutNonTimed(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::beginIdsPutNonTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::beginIdsPutNonTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5122,7 +5146,7 @@ int idamendIdsReplaceLastSlice(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsReplaceLastSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsReplaceLastSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5156,7 +5180,7 @@ int idambeginIdsReplaceLastSlice(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::beginIdsReplaceLastSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::beginIdsReplaceLastSlice(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 
@@ -5205,7 +5229,7 @@ int idambeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes){
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   sprintf(directive,"imas::beginIdsPutTimed(idx=%d, path='%s', /imas_mds)", expIdx, path);
+   sprintf(directive, "imas::beginIdsPutTimed(idx=%d, path='%s', /imas_mds)", expIdx, path);
    
    int handle = idamPutAPI(directive, &putData);   
 
@@ -5239,7 +5263,7 @@ int idamendIdsPutTimed(int expIdx, char *path){
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    
-   sprintf(directive,"imas::endIdsPutTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
+   sprintf(directive, "imas::endIdsPutTimed(idx=%d, path=%s, /imas_mds)", expIdx, path);   
    
    int handle = idamGetAPI(directive, "");   
 

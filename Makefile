@@ -18,6 +18,7 @@ LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
 LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
+IDAMDIR=$(HOME)/itmwork/IdamInstall
 
 COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o
 MDS_OBJECTS=ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
@@ -39,6 +40,8 @@ endif
 ifeq "$(strip $(IDAM))" "yes"
  CFLAGS+= -DIDAM
  LIBS+= -lidam64
+ INCDIR+= -I$(IDAMDIR)/include/idam
+ LIBDIR+= -L$(IDAMDIR)/lib
  COMMON_OBJECTS+=$(IDAM_OBJECTS)
 else
  COMMON_OBJECTS+=$(MDS_OBJECTS)
@@ -83,7 +86,7 @@ clean: pkgconfig_clean
 clean-src: clean
 
 libimas.so: $(COMMON_OBJECTS)
-	$(LD) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
+	$(LD) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
 libimas.a: $(COMMON_OBJECTS)
 	ar rs $@ $^
