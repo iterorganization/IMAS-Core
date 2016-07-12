@@ -2366,7 +2366,7 @@ static int mdsgetNonSegmentedTimedData(int expIdx, char *cpoPath, char *path, st
     struct descriptor_a *longTimesD;
     EMPTYXD(xd);
     int status, nTimes, i;
-    float currTime;
+    double currTime;
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
     uint64_t *longTimes;
@@ -2414,7 +2414,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     struct descriptor_a *longTimesD;
     EMPTYXD(xd);
     int status, nTimes, i;
-    float currTime;
+    double currTime;
     DESCRIPTOR_A(timeD, sizeof(double), DTYPE_DOUBLE, 0, 0);
     double *times;
     uint64_t *longTimes;
@@ -2443,7 +2443,7 @@ static int getNonSegmentedTimedDataNoDescr(int expIdx, char *cpoPath, char *path
     longTimes = (uint64_t *)longTimesD->pointer;
     for(i = 0; i < nTimes; i++)
     {
-        MdsTimeToDouble(longTimes[i], (void *)&currTime);
+        MdsTimeToDouble(longTimes[i], &currTime);
         times[i] = currTime;
     }
     timeD.arsize = nTimes * sizeof(double);
