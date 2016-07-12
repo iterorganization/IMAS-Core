@@ -2507,7 +2507,7 @@ EXPORT int getVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *tim
 void *beginObject(int expIdx, void *obj, int index, const char *relPath, int isTimed)
 {
     int currIdx;
-    logOperation("beginObject", relPath, 0, expIdx,0,0,0,0,0,0,0,0, isTimed);
+    logOperation("beginObject", (char *)relPath, 0, expIdx,0,0,0,0,0,0,0,0, isTimed);
     if(isMds(expIdx, &currIdx))
         return mdsBeginObject();
 #ifdef HDF5
