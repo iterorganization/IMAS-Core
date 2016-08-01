@@ -1822,6 +1822,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 		sprintf(errmsg, "Error opening created pulse file %s: %s", name, MdsGetMsg(status));
 		return -1;
 	}
+/* Obsolete part writing the reference shot (never used) , commented out 01/08/2016 because it hangs on hpc-app1 (IMAS-396)
         mdsStatus = status = _TreeFindNode(ctx, "topinfo:ref_shot", &refNid);
 	if(!(status & 1))
 	{
@@ -1860,7 +1861,7 @@ int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int
 		sprintf(errmsg, "Error writing reference run: %s", MdsGetMsg(status));
 		return -1;
             }
-         }
+         } */
 
         currMdsShot = getMdsShot(name, shot, run, 0);
 	strcpy(currExpName, name);
