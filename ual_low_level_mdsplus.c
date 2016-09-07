@@ -537,6 +537,13 @@ static int getInfoObject(int expIdx, char *cpoPath, char *path, int *exists, voi
 	    free(fullPath);
 	    return 0;
 	}
+//Gabriele September 2016: if the AoS is not present no slices are retrieved
+	if(numSlices == 0)
+	{
+	    *exists = 0;
+	    *retObj = 0;
+	    return 1; //Info found - does not exists
+	}
     	xds = (struct descriptor_xd *)malloc(sizeof(struct descriptor_xd) * numSlices);
         dscPtrs = (struct descriptor **)malloc(sizeof(struct descriptor *) * numSlices);
         for(sliceIdx = 0; sliceIdx < numSlices; sliceIdx++)
