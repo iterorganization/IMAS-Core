@@ -17,7 +17,7 @@
 #define IS_NONE 0
 
 //--------------- Management of the list of objects (arrays of structures) -----------
-#define MAX_OBJECTS 1000000   // maximum number of simultaneous objects
+#define MAX_OBJECTS 10000000   // maximum number of simultaneous objects
 
 #ifndef PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP \
