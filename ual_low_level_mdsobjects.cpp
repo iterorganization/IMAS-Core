@@ -2,6 +2,7 @@
 
 
 #include <mdsobjects.h>
+#include <string.h>
 
 using namespace MDSplus;
 
