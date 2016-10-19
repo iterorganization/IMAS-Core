@@ -581,7 +581,10 @@ public:
 	}
 */
 
-	if(!exists)
+//Gabriele Oct 2016: appendSliceSet is called ONLY by putTimedXXX and therefore the content is NOT appended to cache content, but replaces it
+
+
+//	if(!exists) Gabriele Oct 2016 force always replacement of existing data
 	{
 //printf("APPEND SLICE SET FROM SCRATCH!!!!!!!\n");
 	    this->exists = true;
@@ -605,6 +608,8 @@ public:
 #endif
 
 	}
+/* Gabriele Oct 2016 - removed
+
 	else
 	{
 	//Test consistency
@@ -632,6 +637,8 @@ public:
 	    this->numSlices += numSlices;
 #endif
 	}
+*/
+
 	isSliced = true;
 //Gabriele: added to record timeBasePath
 	if(this->timeBasePath)
