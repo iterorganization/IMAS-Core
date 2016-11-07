@@ -277,6 +277,24 @@ EXPORT int imas_open(char *name, int shot, int run, int *retIdx)
     return status;
 }
 
+EXPORT int imas_open_public(char *name, int shot, int run, int *retIdx)
+{
+    int idx = -1, status = -1;
+    *retIdx = -1;
+
+    if(!checkShotRun(shot, run)) return -1;
+
+    status = mdsimasOpenPublic(name, shot, run, &idx);
+    if(status) return status;
+    *retIdx = setMdsIdx(shot, run, idx);
+    if(*retIdx == -1)
+    {
+        strcpy(errmsg, "Too many open pulse files");
+        return -1;
+    }
+    return status;
+}
+
 EXPORT int imas_open_env(char *name, int shot, int run, int *retIdx, char *user, char *tokamak, char *version)
 {
   int idx = -1, status = -1;

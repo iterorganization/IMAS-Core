@@ -3613,6 +3613,23 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_open
 
 /*
  * Class:     IDS
+ * Method:    open_public
+ * Signature: (Ljava/lang/String;II)I
+ */
+JNIEXPORT jint JNICALL Java_imasjava_imas_open_public
+  (JNIEnv *env, jclass class, jstring jName, jint shot , jint run)
+{
+    int retIdx = -1;
+    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
+    int status = imas_open_public((char *)name, shot, run, &retIdx);
+    (*env)->ReleaseStringUTFChars(env, jName, name);
+    if(status)
+        raiseException(env, imas_last_errmsg());
+    return retIdx;
+}
+
+/*
+ * Class:     IDS
  * Method:    create
  * Signature: (Ljava/lang/String;IIII)I
  */

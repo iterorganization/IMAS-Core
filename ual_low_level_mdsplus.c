@@ -1749,6 +1749,47 @@ int mdsimasDisconnect()
         *retIdx = setExpIndex(name, currMdsShot, ctx);
 	return 0;
 }
+
+int mdsimasOpenPublic(char *name, int shot, int run, int *retIdx)
+{
+	//TODO : Implement this method for IDAM MDS+ public access
+
+	/*int status, i;
+	void *ctx = 0;
+	void *oldCtx;
+	int remoteIdx, currMdsShot;
+
+#ifdef MONITOR
+	checkCacheMonitor();
+#endif
+
+
+    	if(currConnectionId > 0)
+    	{
+    		status = mdsimasOpenRemote(currConnectionId, name, shot, run, &remoteIdx);
+		if(status)
+	    	    return status;
+		currMdsShot = getMdsShot(name, shot, run, 0);
+    		*retIdx = setExpIndexRemote(name, currMdsShot, currConnectionId, remoteIdx);
+		return 0;
+
+    	}
+
+	    status = _TreeOpen(&ctx, name, getMdsShot(name, shot, run,1), 0);
+	    if(!(status & 1))
+	    {
+		sprintf(errmsg, "Error opening pulse file %s shot: %d, run: %d. %s", name, shot, run, MdsGetMsg(mdsStatus));
+		printf("%s\n", errmsg);
+		return -1;
+	    }
+	}
+	errmsg[0] = 0;
+	strcpy(currExpName, name);
+	currMdsShot = getMdsShot(name, shot, run, 0);
+        *retIdx = setExpIndex(name, currMdsShot, ctx);*/
+	return 0;
+}
+
 int mdsimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version)
 {
     int status;

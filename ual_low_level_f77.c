@@ -2199,6 +2199,17 @@ int imas_open_(char *name, int *shot, int *run, int *retIdx, int nameLen)
     return status;
 }
 
+int imas_open_public_(char *name, int *shot, int *run, int *retIdx, int nameLen)
+{
+    int status;
+    char *intName = allocateC(name, nameLen);
+
+    status = imas_open_public(intName, *shot, *run, retIdx);
+    reportInfo("imas OPEN PUBLIC ", "");
+    free(intName);
+    return status;
+}
+
 int imas_open_env_(char *name, int *shot, int *run, int *retIdx, char *user, char *tokamak, char
 *version, int nameLen, int userLen, int tokamakLen, int versionLen)
 {

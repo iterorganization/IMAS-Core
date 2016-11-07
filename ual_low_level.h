@@ -167,6 +167,7 @@ int endIdsReplaceLastSlice(int expIdx, char *path);
 char *imas_last_errmsg();
 int imas_create(char *name, int shot, int run, int refShot, int refRun, int *retIdx);
 int imas_open(char *name, int shot, int run, int *retIdx);
+int imas_open_public(char *name, int shot, int run, int *retIdx);
 int imas_close(int idx);
 int imas_create_hdf5(char *name, int shot, int run, int refShot, int refRun, int *retIdx);
 int imas_open_hdf5(char *name, int shot, int run, int *retIdx);
