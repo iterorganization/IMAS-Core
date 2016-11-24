@@ -11,15 +11,21 @@ ifeq "$(strip $(CC))" "icc"
 else
  CFLAGS=-g -fPIC
 endif
-CXXFLAGS = -g -fPIC -D__USE_XOPEN2K8 -I$(MDSPLUS_DIR)/include
+CXXFLAGS = -g -fPIC -D__USE_XOPEN2K8 #-I$(MDSPLUS_DIR)/include
 
-INCDIR=-I$(MDSPLUS_DIR)/include
-LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
+#INCDIR=-I$(MDSPLUS_DIR)/include
+#LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
+INCDIR=
+LIBDIR=
 #-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
-LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
+#LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
+LIBS=
+IDAMDIR=$(HOME)/itmwork/IdamInstall
 
-COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
+COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o
+#MDS_OBJECTS=ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
+IDAM_OBJECTS=ual_low_level_idam.o
 
 TARGETS = timed_struct_array.h libimas.so libimas.a
 
@@ -30,6 +36,18 @@ ifeq "$(strip $(ITM_CATALOG))" "yes"
  LIBDIR+= -L$(ITM_CATALOG_DIR)/lib -L/usr/lib64/mysql
  LIBS+= -lItmCatalog -lmysqlclient
  COMMON_OBJECTS+= ual_catalog.o $(ITM_CATALOG_DIR)/*.o
+endif
+#-----------------------------------------------
+
+#-------------- Options for IDAM ---------------
+ifeq "$(strip $(IDAM))" "yes"
+ CFLAGS+= -DIDAM
+ LIBS+= -lidam64
+ INCDIR+= -I$(IDAMDIR)/include/idam
+ LIBDIR+= -L$(IDAMDIR)/lib
+ COMMON_OBJECTS+=$(IDAM_OBJECTS)
+else
+ COMMON_OBJECTS+=$(MDS_OBJECTS)
 endif
 #-----------------------------------------------
 
@@ -71,7 +89,7 @@ clean: pkgconfig_clean
 clean-src: clean
 
 libimas.so: $(COMMON_OBJECTS)
-	$(LD) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
+	$(LD) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
 libimas.a: $(COMMON_OBJECTS)
 	ar rs $@ $^

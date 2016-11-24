@@ -1,0 +1,11 @@
+. /afs/@cell/@sys/usr/modules/init/bash
+
+module purge 2>/dev/null
+module load itmsys/ipp-gateway
+
+export LIBRARY_PATH=$HOME/itmwork/IdamInstall/lib:$LIBRARY_PATH
+export CPATH=$HOME/itmwork/IdamInstall/include/idam:$CPATH
+
+make clean
+
+make

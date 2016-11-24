@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <mdslib.h>
 #include "ual_low_level.h"
 
 static void trim(char *str)
