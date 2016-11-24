@@ -136,6 +136,7 @@ Change History
 #include <string.h>
 
 #include "ual_low_level.h"
+#include "idamtypes.h"
 
 #include "idamclientpublic.h"
 #include "ual_low_level_idam.h"
@@ -846,6 +847,8 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
    
    sprintf(directive, "imas::get(idx=%d, group='%s', variable='%s', type=%s, rank=%d, shot=%d, %s)", idx, cpoPath, path, data_type, rank, source, keyword);   
    
+   fprintf(stderr, "%s\n", directive);
+
    int handle = idamGetAPI(directive, "");   
 
    if(directive) free(directive);

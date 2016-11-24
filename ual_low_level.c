@@ -5,8 +5,11 @@
 
 #include "ual_low_level.h"
 #include "ual_low_level_hdf5.h"
-#include "ual_low_level_idam.h"
-#include "ual_low_level_mdsplus.h"
+#ifdef IDAM
+#  include "ual_low_level_idam.h"
+#else
+#  include "ual_low_level_mdsplus.h"
+#endif
 
 #define EXPORT
 
