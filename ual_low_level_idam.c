@@ -191,24 +191,10 @@ int idamimasCreateEnv(char* name, int shot, int run, int refShot, int refRun, in
     return 0;
 }
 
-void reportInfo(char *str1, char *str2)
-{
-#ifdef DEBUG_UAL
-    FILE *f = fopen("ual.txt", "a");
-    fprintf(f, str1, str2);
-    fclose(f);
-#endif
-}
-
-int mdsCopyCpo(int fromIdx, int toIdx, char *inputcpoName, int fromCpoOccur, int toCpoOccur)
-{
-    return 0;
-}
-
-static void idam_void(char *directive){   
+static void idam_void(char *directive) {   
    int handle = idamGetAPI(directive, "");   
    int err = 0;   
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return;
@@ -216,10 +202,10 @@ static void idam_void(char *directive){
    idamFree(handle);    
 }
 
-static int idam_int(char *directive){   
+static int idam_int(char *directive) {   
    int handle = idamGetAPI(directive, "");   
    int err = 0;   
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -229,10 +215,10 @@ static int idam_int(char *directive){
    return rc;    
 }
 
-static char *idam_char(char *directive){   
+static char *idam_char(char *directive) {   
    int handle = idamGetAPI(directive, "");   
    int err = 0;   
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return NULL;
@@ -242,128 +228,130 @@ static char *idam_char(char *directive){
    return rc;    
 }
 
-void imas_flush_mem_cache(int idx){   
+/*
+void imas_flush_mem_cache(int idx) {   
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, /imas_mds, /flush)", idx);      
    idam_void(directive);   
-   if(directive) free(directive);       
+   if (directive) free(directive);       
 }
 
-void imas_discard_cpo_mem_cache(int idx, char *cpoPath){
+void imas_discard_cpo_mem_cache(int idx, char *cpoPath) {
    int lstr = 256 + strlen(cpoPath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, cpoPath='%s', /imas_mds, /discard)", idx, cpoPath);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-int imas_get_cache_level(int idx){
+int imas_get_cache_level(int idx) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, /imas_mds, /getLevel)", idx);      
    int rc = idam_int(directive);   
-   if(directive) free(directive);
+   if (directive) free(directive);
    return rc;           
 }
 
-void imas_flush_cpo_mem_cache(int idx, char *cpoPath){
+void imas_flush_cpo_mem_cache(int idx, char *cpoPath) {
    int lstr = 256 + strlen(cpoPath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, cpoPath='%s', /imas_mds, /flushCPO)", idx, cpoPath);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-void imas_set_cache_level(int idx, int level){
+void imas_set_cache_level(int idx, int level) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, cacheLevel=%d, /imas_mds, /setLevel)", idx, level);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-void imas_disable_mem_cache(int idx){
+void imas_disable_mem_cache(int idx) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, /imas_mds, /disable)", idx);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-void imas_discard_mem_cache(int idx){
+void imas_discard_mem_cache(int idx) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, /imas_mds,/discard)", idx);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-void imas_enable_mem_cache(int idx){
+void imas_enable_mem_cache(int idx) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::cache(idx=%d, /imas_mds, /enable)", idx);      
    idam_void(directive);   
-   if(directive) free(directive);           
+   if (directive) free(directive);           
 }
 
-char* spawnCommand(char *command, char *ipAddress){
+char* spawnCommand(char *command, char *ipAddress) {
    int lstr = 256 + strlen(command) + strlen(ipAddress);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::spawnCommand(command='%s', ipAddress='%s', /imas_mds)", command, ipAddress);      
    char *rc = idam_char(directive);   
-   if(directive) free(directive);
+   if (directive) free(directive);
    return rc;           
 }
 
-int getUniqueRun(int shot){
+int getUniqueRun(int shot) {
    int lstr = 256;
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::getUniqueRun(shot=%d, /imas_mds)", shot);      
    int rc = idam_int(directive);   
-   if(directive) free(directive);
+   if (directive) free(directive);
    return rc;           
 }
+*/
 
-void setTimeBasePath(char *timeBasePath){
+void setTimeBasePath(char *timeBasePath) {
    static char TimeBasePath[256];
-   if(timeBasePath == NULL || !strcmp(timeBasePath, TimeBasePath)) return;
-   //if(timeBasePath == NULL || timeBasePath[0] == '\0' || !strcmp(timeBasePath, TimeBasePath)) return;
+   if (timeBasePath == NULL || !strcmp(timeBasePath, TimeBasePath)) return;
+   //if (timeBasePath == NULL || timeBasePath[0] == '\0' || !strcmp(timeBasePath, TimeBasePath)) return;
    int lstr = 512 + strlen(timeBasePath);
    char *directive = (char *)malloc(lstr*sizeof(char));   
    sprintf(directive, "imas::setTimeBasePath(path='%s', /imas_mds)", timeBasePath);   
    idam_void(directive);   
-   if(directive) free(directive);
-   if(strlen(timeBasePath) < 256) strcpy(TimeBasePath, timeBasePath);           
+   if (directive) free(directive);
+   if (strlen(timeBasePath) < 256) strcpy(TimeBasePath, timeBasePath);           
 }
 
 // dgm  Convert name to IMAS type
 
-int findIMASType(char *typeName){
-   //if(!strcasecmp(typeName, "byte"))     return TYPE_CHAR;
-   //if(!strcasecmp(typeName, "char"))     return TYPE_CHAR;
-   //if(!strcasecmp(typeName, "short"))    return TYPE_SHORT;
-   if(!strcasecmp(typeName, "int"))      return INT;
-   //if(!strcasecmp(typeName, "int64"))    return TYPE_LONG64;
-   if(!strcasecmp(typeName, "float"))    return FLOAT;
-   if(!strcasecmp(typeName, "double"))   return DOUBLE;
-   //if(!strcasecmp(typeName, "ubyte"))    return TYPE_UNSIGNED_CHAR;
-   //if(!strcasecmp(typeName, "ushort"))   return TYPE_UNSIGNED_SHORT;
-   //if(!strcasecmp(typeName, "uint"))     return TYPE_UNSIGNED_INT;
-   //if(!strcasecmp(typeName, "uint64"))   return TYPE_UNSIGNED_LONG64;
-   //if(!strcasecmp(typeName, "text"))     return TYPE_STRING;
-   if(!strcasecmp(typeName, "string"))   return STRING;
-   //if(!strcasecmp(typeName, "vlen"))     return TYPE_VLEN;
-   //if(!strcasecmp(typeName, "compound")) return TYPE_COMPOUND;
-   //if(!strcasecmp(typeName, "opaque"))   return TYPE_OPAQUE;
-   //if(!strcasecmp(typeName, "enum"))     return TYPE_ENUM;
+int findIMASType(char *typeName) {
+   //if (!strcasecmp(typeName, "byte"))     return TYPE_CHAR;
+   //if (!strcasecmp(typeName, "char"))     return TYPE_CHAR;
+   //if (!strcasecmp(typeName, "short"))    return TYPE_SHORT;
+   if (!strcasecmp(typeName, "int"))      return INT;
+   //if (!strcasecmp(typeName, "int64"))    return TYPE_LONG64;
+   if (!strcasecmp(typeName, "float"))    return FLOAT;
+   if (!strcasecmp(typeName, "double"))   return DOUBLE;
+   //if (!strcasecmp(typeName, "ubyte"))    return TYPE_UNSIGNED_CHAR;
+   //if (!strcasecmp(typeName, "ushort"))   return TYPE_UNSIGNED_SHORT;
+   //if (!strcasecmp(typeName, "uint"))     return TYPE_UNSIGNED_INT;
+   //if (!strcasecmp(typeName, "uint64"))   return TYPE_UNSIGNED_LONG64;
+   //if (!strcasecmp(typeName, "text"))     return TYPE_STRING;
+   if (!strcasecmp(typeName, "string"))   return STRING;
+   //if (!strcasecmp(typeName, "vlen"))     return TYPE_VLEN;
+   //if (!strcasecmp(typeName, "compound")) return TYPE_COMPOUND;
+   //if (!strcasecmp(typeName, "opaque"))   return TYPE_OPAQUE;
+   //if (!strcasecmp(typeName, "enum"))     return TYPE_ENUM;
    return(UNKNOWN_TYPE);     
 }
 
 // dgm  Convert IMAS type to IDAM type
 
-int findIMASIDAMType(int type){
-   switch(type){
+int findIMASIDAMType(int type) {
+   switch(type) {
       case INT:		return TYPE_INT;
       case FLOAT:	return TYPE_FLOAT;
       case DOUBLE:	return TYPE_DOUBLE;
@@ -373,8 +361,8 @@ int findIMASIDAMType(int type){
    return TYPE_UNKNOWN;     
 }
 
-char *convertIdam2StringType(int type){
-   switch(type){
+char *convertIdam2StringType(int type) {
+   switch(type) {
       case TYPE_CHAR:	return("char"); 
       case TYPE_SHORT:	return("short");
       case TYPE_INT:	return("int");
@@ -397,7 +385,7 @@ char *convertIdam2StringType(int type){
 
 // dgm Replacement for Original IMAS HDF5 idamEuitmCreate (renamed imas_idamEuitmCreate) that calls IDAM
 
-int idamEuitmCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx){ 
+int idamEuitmCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx) { 
    
    int lstr = DIRECTIVELENGTH + strlen(name);
    char *directive = (char *)malloc(lstr*sizeof(char));   
@@ -407,18 +395,18 @@ int idamEuitmCreate(char *name, int shot, int run, int refShot, int refRun, int 
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error Creating File: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) *retIdx = data[0];
+   if (data != NULL) *retIdx = data[0];
    
 // Free heap
 
@@ -429,13 +417,13 @@ int idamEuitmCreate(char *name, int shot, int run, int refShot, int refRun, int 
 
 // dgm added function idamimasCreate wrapper to original idamEuitmCreate
 
-int idamimasCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx){ 
+int idamimasCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx) { 
    return idamEuitmCreate(name, shot, run, refShot, refRun, retIdx);
 }
 
 // dgm Replacement for Original IMAS HDF5 idamIMASCreate (renamed imas_idamIMASCreate) that calls IDAM
 
-int idamIMASCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx){
+int idamIMASCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx) {
    
    int lstr = DIRECTIVELENGTH + strlen(name);
    char *directive = (char *)malloc(lstr*sizeof(char));
@@ -445,18 +433,18 @@ int idamIMASCreate(char *name, int shot, int run, int refShot, int refRun, int *
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error Creating File: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) *retIdx = data[0];
+   if (data != NULL) *retIdx = data[0];
    
 // Free heap
 
@@ -467,7 +455,7 @@ int idamIMASCreate(char *name, int shot, int run, int refShot, int refRun, int *
 
 // dgm Replacement for Original IMAS HDF5 idamEuitmOpen (renamed imas_idamEuitmOpen) that calls IDAM
 
-int idamEuitmOpen(char *name, int shot, int run, int *retIdx){
+int idamEuitmOpen(char *name, int shot, int run, int *retIdx) {
    
    int lstr = DIRECTIVELENGTH + strlen(name);
    char *directive = (char *)malloc(lstr*sizeof(char));
@@ -477,18 +465,18 @@ int idamEuitmOpen(char *name, int shot, int run, int *retIdx){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error Opening File: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) *retIdx = data[0];
+   if (data != NULL) *retIdx = data[0];
    
 // Free heap
 
@@ -499,13 +487,13 @@ int idamEuitmOpen(char *name, int shot, int run, int *retIdx){
 
 // dgm added function idamimasOpen wrapper to original idamEuitmOpen
 
-int idamimasOpen(char *name, int shot, int run, int *retIdx){ 
+int idamimasOpen(char *name, int shot, int run, int *retIdx) { 
    return idamEuitmOpen(name, shot, run, retIdx); 
 }
 
 // dgm Replacement for Original IMAS HDF5 idamEuitmClose (renamed imas_idamEuitmClose) that calls IDAM
 
-int idamEuitmClose(int idx, char *name, int shot, int run){   
+int idamEuitmClose(int idx, char *name, int shot, int run) {   
    int lstr = DIRECTIVELENGTH + strlen(name);
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
@@ -514,18 +502,18 @@ int idamEuitmClose(int idx, char *name, int shot, int run){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error Closing File: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL && data[0] != OK_RETURN_VALUE){ 
+   if (data != NULL && data[0] != OK_RETURN_VALUE) { 
       sprintf(errmsg, "Error Closing File: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -540,13 +528,13 @@ int idamEuitmClose(int idx, char *name, int shot, int run){
 
 // dgm added function idamimasClose wrapper to original idamimasClose
 
-int idamimasClose(int idx, char *name, int shot, int run){
+int idamimasClose(int idx, char *name, int shot, int run) {
    return idamEuitmClose(idx, name, shot, run); 
 }
 
 // dgm Replacement for Original IMAS HDF5 idamDeleteData (renamed imas_idamDeleteData) that calls IDAM 
 
-int idamDeleteData(int idx, char *cpoPath, char *path){
+int idamDeleteData(int idx, char *cpoPath, char *path) {
 
 #ifdef IDAM_NO_HDF5DELETEDATA
    return OK_RETURN_VALUE;		// Disable this function to monitor Performance
@@ -562,11 +550,11 @@ int idamDeleteData(int idx, char *cpoPath, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0 || getIdamData(handle) == NULL){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0 || getIdamData(handle) == NULL) {      
       sprintf(errmsg, "Error DELETing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -579,7 +567,7 @@ int idamDeleteData(int idx, char *cpoPath, char *path){
 
 // dgm Replacement for Original IMAS HDF5 idamGetDimension (renamed imas_idamGetDimension) that calls IDAM 
 
-int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7){
+int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7) {
 
 // Pass the Data
 
@@ -593,11 +581,11 @@ int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0 || getIdamData(handle) == NULL){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0 || getIdamData(handle) == NULL) {      
       sprintf(errmsg, "Error GETing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -607,8 +595,8 @@ int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1
    
    int shape[7];
    
-   for(i=0;i< *numDims;i++){
-       switch(i){
+   for(i=0;i< *numDims;i++) {
+       switch(i) {
          case 0: 
 	    *dim1 = ((int *)getIdamData(handle))[i];
 	    break;
@@ -643,8 +631,8 @@ int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1
 /*   
    *numDims = getIdamRank(handle);
    
-   for(i=0;i< *numDims;i++){
-      switch(i){
+   for(i=0;i< *numDims;i++) {
+      switch(i) {
          case 0: 
 	    *dim1 = getIdamDimNum(handle, i);
 	    break;
@@ -677,7 +665,7 @@ int idamGetDimension(int idx, char *cpoPath, char *path, int *numDims, int *dim1
 }
 
 // dgm Replacement for Original IMAS HDF5 putData (renamed imas_putData) that calls IDAM 
-static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int isTimed, void *data){
+static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int isTimed, void *data) {
 
 // Create PUTDATA variables   
     
@@ -688,7 +676,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
 
    int i;
    putData.data_type = findIMASIDAMType(type);
-   if(dims != NULL) 
+   if (dims != NULL) 
       putData.count = dims[0];
    else 
       putData.count = 1; 
@@ -705,11 +693,11 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error PUTing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -717,7 +705,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
    
    int *rc = (int *)getIdamData(handle);
    
-   if(rc == NULL || rc[0] != OK_RETURN_VALUE){
+   if (rc == NULL || rc[0] != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error PUTing Data: No or Incorrrect status return code");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -729,7 +717,7 @@ static int putData(int idx, char *cpoPath, char *path, int type, int nDims, int 
 }
 
 // dgm Varient of putData for use only with putDataSlice and replaceLastDataSlice
-static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int dataOperation, void *data, double time){
+static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int dataOperation, void *data, double time) {
 
 // Create PUTDATA variables   
     
@@ -740,7 +728,7 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
 
    int i, handle;
    putData.data_type = findIMASIDAMType(type);
-   if(dims != NULL) 
+   if (dims != NULL) 
       putData.count = dims[0];
    else 
       putData.count = 1; 
@@ -753,7 +741,7 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   if(dataOperation == PUTSLICE_OPERATION){
+   if (dataOperation == PUTSLICE_OPERATION) {
       sprintf(directive, "imas::put(idx=%d, group='%s', variable='%s', /putSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);
 
 // Two PUTDATABLOCKS are passed: One for the Data and one for the Time. 
@@ -791,17 +779,17 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
       free(timeData.blockName);
 
    } else 
-   if(dataOperation == REPLACELASTSLICE_OPERATION){
+   if (dataOperation == REPLACELASTSLICE_OPERATION) {
 // The time passed is set to Zero as it's the Last Time Slice that is to be replaced. Only the data is passed by a PUTDATABLOCK. 
       sprintf(directive, "imas::put(idx=%d, group='%s', variable='%s', /replaceLastSlice, isTimed=0, %s)", idx, cpoPath, path, keyword);   
       handle = idamPutAPI(directive, &putData);   
    }
    
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error PUTing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -809,7 +797,7 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
    
    int *rc = (int *)getIdamData(handle);
    
-   if(rc == NULL || rc[0] != OK_RETURN_VALUE){
+   if (rc == NULL || rc[0] != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error PUTing Data: No or Incorrrect status return code");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -820,11 +808,11 @@ static int putDataX(int idx, char *cpoPath, char *path, int type, int nDims, int
    return OK_RETURN_VALUE;
 }
 
-static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, void *data, double time){
+static int putDataSlice(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, void *data, double time) {
    return putDataX(idx, cpoPath, path, type, nDims, dims, PUTSLICE_OPERATION, data, time);
 }
 
-static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, void *data){
+static int replaceLastDataSlice(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, void *data) {
    return putDataX(idx, cpoPath, path, type, nDims, dims, REPLACELASTSLICE_OPERATION, data, 0.0);
 }
 
@@ -851,28 +839,28 @@ static int getData(int idx, char *cpoPath, char *path, int type, int nDims, int 
 
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error GETing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
-   if(rank != getIdamRank(handle)){
+   if (rank != getIdamRank(handle)) {
       sprintf(errmsg, "Error GETing Data: Inconsistent Data Rank");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
-   if(shape != NULL){
+   if (shape != NULL) {
       shape[0] = 1;	// Scalar if rank == 0
       for(i=0;i<rank;i++) shape[i] = getIdamDimNum(handle, i);
    }
    
-   if(data != NULL) *data = getIdamData(handle);
+   if (data != NULL) *data = getIdamData(handle);
    if (*data == NULL && type == STRING) {
       *data = malloc(sizeof(char));
       (*data)[0] = '\0';
@@ -890,11 +878,11 @@ static int sliceIdx1, sliceIdx2;
 static double sliceTime1, sliceTime2;
 
 /*
-static void setSliceIdx(int index1, int index2){
+static void setSliceIdx(int index1, int index2) {
    sliceIdx1 = index1;   
    sliceIdx2 = index2;   
 }
-static void setSliceTime(double time1, double time2){
+static void setSliceTime(double time1, double time2) {
    sliceTime1 = time1;   
    sliceTime2 = time2;   
 }
@@ -905,14 +893,14 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
     int status, dim, i;
     
     status = idamGetVect1DDouble(expIdx, cpoPath, "time", &times, &dim);
-    if(status) return status;
-    if(dim == 1 || time <= times[0])
+    if (status) return status;
+    if (dim == 1 || time <= times[0])
     {
         sliceIdx1 = 0;
         sliceTime1 = times[0];
         sliceIdx2 = -1;
     }
-    else if(time >= times[dim - 1])
+    else if (time >= times[dim - 1])
     {
         sliceIdx1 = dim-1;
         sliceTime1 = times[dim-1];
@@ -921,7 +909,7 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
     else //dim > 1
     {
         for(i = 0; i < dim-1; i++)
-            if(times[i] <= time && times[i+1] >= time)
+            if (times[i] <= time && times[i+1] >= time)
                 break;
         sliceIdx1 = i;
         sliceTime1 = times[i];
@@ -939,8 +927,8 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
 // dgm numSlices argument also redundant so removed
 // dgm All times passed to server in a PUTDATA BLOCK for precision
 
-//static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int dataIdx, int numSlices, char **data){
-  static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims, int *dims,                             char **data, double time, double *retTime, int interpolMode){
+//static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims, int *dims, int dataIdx, int numSlices, char **data) {
+  static int getDataSlices(int idx, char *cpoPath, char *path, int type, int nDims, int *dims,                             char **data, double time, double *retTime, int interpolMode) {
 
 // Locate the times slices in the time vector
 
@@ -980,12 +968,12 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
-   if(dp) free(dp);
+   if (directive) free(directive);
+   if (dp) free(dp);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error GETing Data: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -997,12 +985,12 @@ static int getSliceIdxs(int expIdx, char *cpoPath, double time)
    
    rank = getIdamRank(handle)-1;	// Drop the additional coordinate returned (retTime)
       
-   if(shape != NULL && rank > 0){
+   if (shape != NULL && rank > 0) {
       shape[0] = 1;	// Scalar if rank == 0
       for(i=0;i<rank;i++) shape[i] = getIdamDimNum(handle, i);
    }
    
-   if(data != NULL) *data = getIdamData(handle);
+   if (data != NULL) *data = getIdamData(handle);
    
 // Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
 
@@ -1971,7 +1959,7 @@ int idamGetIntSlice(int expIdx, char *cpoPath, char *path, int *data, double tim
     int dims[16];
     int *currData;
 
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 0, dims, sliceIdx1, 1, (char **)&currData);
         if (!status) {
@@ -1982,17 +1970,17 @@ int idamGetIntSlice(int expIdx, char *cpoPath, char *path, int *data, double tim
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 0, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData[0];
     y2 = currData[1];
-    if(status) return status;
+    if (status) return status;
     	switch(interpolMode) {
 		case INTERPOLATION: 
 			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
 			*retTime = time;
 			break;
 		case CLOSEST_SAMPLE: 
-			if(time - sliceTime1 < sliceTime2 - time)
+			if (time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
 				*retTime = sliceTime1;
@@ -2028,7 +2016,7 @@ int idamGetFloatSlice(int expIdx, char *cpoPath, char *path, float *data, double
     int dims[16];
     float *currData;
 
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 0, dims, sliceIdx1, 1, (char **)&currData);
         if (!status) {
@@ -2039,17 +2027,17 @@ int idamGetFloatSlice(int expIdx, char *cpoPath, char *path, float *data, double
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 0, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData[0];
     y2 = currData[1];
-    if(status) return status;
+    if (status) return status;
     	switch(interpolMode) {
 		case INTERPOLATION: 
 			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
 			*retTime = time;
 			break;
 		case CLOSEST_SAMPLE: 
-			if(time - sliceTime1 < sliceTime2 - time)
+			if (time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
 				*retTime = sliceTime1;
@@ -2085,7 +2073,7 @@ int idamGetDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, doub
     int dims[16];
     double *currData;
 
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 0, dims, sliceIdx1, 1, (char **)&currData);
         if (!status) {
@@ -2096,17 +2084,17 @@ int idamGetDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, doub
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 0, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData[0];
     y2 = currData[1];
-    if(status) return status;
+    if (status) return status;
     	switch(interpolMode) {
 		case INTERPOLATION: 
 			*data = y1 + (y2 - y1)*(time - sliceTime1)/(sliceTime2 - sliceTime1); 
 			*retTime = time;
 			break;
 		case CLOSEST_SAMPLE: 
-			if(time - sliceTime1 < sliceTime2 - time)
+			if (time - sliceTime1 < sliceTime2 - time)
 			{
 				*data = y1;
 				*retTime = sliceTime1;
@@ -2143,7 +2131,7 @@ int idamGetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 1, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2153,7 +2141,7 @@ int idamGetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 1, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2168,7 +2156,7 @@ int idamGetVect1DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2208,7 +2196,7 @@ int idamGetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 1, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2218,7 +2206,7 @@ int idamGetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 1, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2233,7 +2221,7 @@ int idamGetVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2273,7 +2261,7 @@ int idamGetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 1, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2283,7 +2271,7 @@ int idamGetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 1, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2298,7 +2286,7 @@ int idamGetVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2339,7 +2327,7 @@ int idamGetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 2, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2350,7 +2338,7 @@ int idamGetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 2, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2365,7 +2353,7 @@ int idamGetVect2DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2407,7 +2395,7 @@ int idamGetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 2, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2418,7 +2406,7 @@ int idamGetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 2, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2433,7 +2421,7 @@ int idamGetVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2475,7 +2463,7 @@ int idamGetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 2, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2486,7 +2474,7 @@ int idamGetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 2, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2501,7 +2489,7 @@ int idamGetVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2544,7 +2532,7 @@ int idamGetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 3, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2556,7 +2544,7 @@ int idamGetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 3, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2571,7 +2559,7 @@ int idamGetVect3DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2615,7 +2603,7 @@ int idamGetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 3, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2627,7 +2615,7 @@ int idamGetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 3, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2642,7 +2630,7 @@ int idamGetVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2686,7 +2674,7 @@ int idamGetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 3, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2698,7 +2686,7 @@ int idamGetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 3, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2713,7 +2701,7 @@ int idamGetVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2758,7 +2746,7 @@ int idamGetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 4, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2771,7 +2759,7 @@ int idamGetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 4, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2786,7 +2774,7 @@ int idamGetVect4DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2834,7 +2822,7 @@ int idamGetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 4, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2847,7 +2835,7 @@ int idamGetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 4, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2862,7 +2850,7 @@ int idamGetVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2910,7 +2898,7 @@ int idamGetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 4, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -2923,7 +2911,7 @@ int idamGetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 4, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -2938,7 +2926,7 @@ int idamGetVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -2986,7 +2974,7 @@ int idamGetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 5, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3000,7 +2988,7 @@ int idamGetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 5, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3015,7 +3003,7 @@ int idamGetVect5DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3064,7 +3052,7 @@ int idamGetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 5, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3078,7 +3066,7 @@ int idamGetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 5, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3093,7 +3081,7 @@ int idamGetVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3142,7 +3130,7 @@ int idamGetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 5, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3156,7 +3144,7 @@ int idamGetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 5, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3171,7 +3159,7 @@ int idamGetVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3222,7 +3210,7 @@ int idamGetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
     int *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, INT, 6, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3237,7 +3225,7 @@ int idamGetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, INT, 6, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3252,7 +3240,7 @@ int idamGetVect6DIntSlice(int expIdx, char *cpoPath, char *path, int **data, int
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3304,7 +3292,7 @@ int idamGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
     float *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, FLOAT, 6, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3319,7 +3307,7 @@ int idamGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, FLOAT, 6, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3334,7 +3322,7 @@ int idamGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float **data,
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3385,7 +3373,7 @@ int idamGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
     double *currData, *retData;
     int nItems, i;
     
-    if(sliceIdx2 == -1) //Only a single sample
+    if (sliceIdx2 == -1) //Only a single sample
     {
         status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 6, dims, sliceIdx1, 1, (char **)data);
         if (!status) {
@@ -3400,7 +3388,7 @@ int idamGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
         return status;
     }
     status = getDataSlices(expIdx, cpoPath, path, DOUBLE, 6, dims, sliceIdx1, 2, (char **)&currData);
-    if(status) return status;
+    if (status) return status;
     y1 = currData;
     y2 = &currData[1];
     
@@ -3415,7 +3403,7 @@ int idamGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **dat
                             *retTime = time;
                             break;
                     case CLOSEST_SAMPLE: 
-                            if(time - sliceTime1 < sliceTime2 - time)
+                            if (time - sliceTime1 < sliceTime2 - time)
                             {
                                     retData[i] = y1[2*i];
                                     *retTime = sliceTime1;
@@ -3452,12 +3440,12 @@ int idamBeginCPOGet(int expIdx, char *path, int isTimed, int *retSamples)
     double *times;
     int dim;
     
-    if(!isTimed)
+    if (!isTimed)
             *retSamples = 1;
     else
     {
         status = idamGetVect1DDouble(expIdx, path, "time", &times, &dim);
-        if(status) return status;
+        if (status) return status;
         *retSamples = dim;
         free((char *)times);
     }
@@ -3476,12 +3464,12 @@ int idamBeginCPOPutNonTimed(int expIdx, char *path) {return 0;}
 int idamEndCPOPutNonTimed(int expIdx, char *path) {return 0;}
 int idamBeginCPOPutSlice(int expIdx, char *path)
 {
-    int nDims,dim1;
+    int nDims, dim1;
     
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
-    if (idamGetDimension(expIdx,path, "time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0) {
+    if (idamGetDimension(expIdx, path, "time",&nDims,&dim1, NULL, NULL, NULL, NULL, NULL, NULL)<0) {
         sliceIdx1 = 0;      // there is no slice yet
     } else {
         sliceIdx1 = dim1;   //we are going to write right after the last slice
@@ -3492,12 +3480,12 @@ int idamBeginCPOPutSlice(int expIdx, char *path)
 int idamEndCPOPutSlice(int expIdx, char *path) {return 0;}
 int idamBeginCPOReplaceLastSlice(int expIdx, char *path)
 {
-    int nDims,dim1;
+    int nDims, dim1;
     
     // get the current number of time slices.
     // This will be used when by leaves of slice objects to know whether some times have been skipped
     // (because they were empty and therefore not written to the database)
-    if (idamGetDimension(expIdx,path, "time",&nDims,&dim1,NULL,NULL,NULL,NULL,NULL,NULL)<0 || dim1==0) {
+    if (idamGetDimension(expIdx, path, "time",&nDims,&dim1, NULL, NULL, NULL, NULL, NULL, NULL)<0 || dim1==0) {
         sliceIdx1 = 0;      // there is no slice yet
     } else {
         sliceIdx1 = dim1-1;  // we are going to overwrite last slice
@@ -3525,7 +3513,7 @@ int idamEndCPOReplaceLastSlice(int expIdx, char *path) {return 0;}
 // dgm Replacement for Original IMAS HDF5 putDataSliceInObject (renamed imas_putDataSliceInObject) that calls IDAM 
 // The obj is a memory address
 
-static void *putDataSliceInObject(void *obj, char *path, int index, int type, int nDims, int *dims, void *data){
+static void *putDataSliceInObject(void *obj, char *path, int index, int type, int nDims, int *dims, void *data) {
 
 // Create PUTDATA variables   
     
@@ -3548,7 +3536,7 @@ static void *putDataSliceInObject(void *obj, char *path, int index, int type, in
    putData[1].data_type = findIMASIDAMType(type);	// Data Slice to be inserted
    putData[1].data  = data;
    putData[1].rank  = nDims;
-   if(dims != NULL){
+   if (dims != NULL) {
       putData[1].count = dims[0];
       putData[1].shape = dims;
       for(i=1;i<putData[1].rank;i++)putData[1].count *= dims[i]; 
@@ -3567,19 +3555,19 @@ static void *putDataSliceInObject(void *obj, char *path, int index, int type, in
    
    int handle = idamPutListAPI(directive, &putDataBlockList);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    freeIdamClientPutDataBlockList(&putDataBlockList);  
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error PUTing Data Slice in Object: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return NULL;
    }
 
    int *refId = (int *)getIdamData(handle);	// Returned Object Reference   
-   if(refId == NULL){
+   if (refId == NULL) {
       sprintf(errmsg, "Error PUTing Data Slice in Object: Object not returned");
       idamFree(handle);
       return NULL;
@@ -3602,13 +3590,13 @@ static void *putDataSliceInObject(void *obj, char *path, int index, int type, in
  
 // dgm Replacement for Original IMAS HDF5 gettDataSliceInObject (renamed imas_gettDataSliceInObject) that calls IDAM 
 // The obj is a memory address
-static int getDataSliceFromObject(void *obj, char *path, int index, int type, int nDims, int *dims, void **data){
+static int getDataSliceFromObject(void *obj, char *path, int index, int type, int nDims, int *dims, void **data) {
    
    int lstr = DIRECTIVELENGTH + strlen(path);
    char *directive = (char *)malloc(lstr*sizeof(char));
    char *keyword = imas_getKeyword();
    
-   if( type == DIMENSION)
+   if ( type == DIMENSION)
       sprintf(directive, "imas::getObject(path='%s', index=%d, objectId=%d, /getDimension, %s)", path, index, *((int *)obj), keyword);
    else
       sprintf(directive, "imas::getObject(path='%s', index=%d, objectId=%d, rank=%d, type='%s', %s)", path, index, *((int *)obj), nDims, convertIdam2StringType(findIMASIDAMType(type)), keyword);
@@ -3616,23 +3604,23 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
        
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error GETing Data Slice in Object: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
-   if(type != DIMENSION && nDims != getIdamRank(handle)){
+   if (type != DIMENSION && nDims != getIdamRank(handle)) {
       sprintf(errmsg, "Error GETing Data: Inconsistent Data Rank");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
       
-   if(type != DIMENSION && dims == NULL){
+   if (type != DIMENSION && dims == NULL) {
       sprintf(errmsg, "Error GETing Data: Unable to return Object Dimensions - NULL array allocation!");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3640,13 +3628,13 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
    
 // Object Data
    
-   if(data != NULL) *data = (void *)getIdamData(handle);
+   if (data != NULL) *data = (void *)getIdamData(handle);
 
 // Dimension Lengths
 
-   if(type != DIMENSION){
-      if(nDims > 0){
-         if(getIdamDataNum(handle) > 0 && getIdamDimBlock(handle, 0) != NULL){
+   if (type != DIMENSION) {
+      if (nDims > 0) {
+         if (getIdamDataNum(handle) > 0 && getIdamDimBlock(handle, 0) != NULL) {
             int i;
             for(i=0;i<nDims;i++) dims[i] = getIdamDimNum(handle, i);
          } else
@@ -3673,7 +3661,7 @@ static int getDataSliceFromObject(void *obj, char *path, int index, int type, in
    return OK_RETURN_VALUE;
 }
 
-static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type, int nDims, int *dims, void **data){
+static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type, int nDims, int *dims, void **data) {
 
 // get PUTDATA variables   
     
@@ -3699,7 +3687,7 @@ static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type,
    putData[1].data = (void *)dims;   
 
    int scalar[1] = {1};
-   if(dims == NULL){
+   if (dims == NULL) {
       putData[1].rank = 0;
       putData[1].data = (void *)scalar; 
    }
@@ -3715,24 +3703,24 @@ static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type,
    
    int handle = idamPutListAPI(directive, &putDataBlockList);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    freeIdamClientPutDataBlockList(&putDataBlockList);  
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error GETing Data Slice in Object: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
-   if(nDims != getIdamRank(handle)){
+   if (nDims != getIdamRank(handle)) {
       sprintf(errmsg, "Error GETing Data: Inconsistent Data Rank");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
-   if(data != NULL) *data = (void *)getIdamData(handle);
+   if (data != NULL) *data = (void *)getIdamData(handle);
    
 // Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
 
@@ -3746,7 +3734,7 @@ static int getDataSliceFromObjectXXX(void *obj, char *path, int index, int type,
 // dgm Replacement for Original IMAS HDF5 idamBeginObject (renamed imas_idamBeginObject) that calls IDAM 
 // dgm isTimed is Not a BOOL 
 
-void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int isTimed){
+void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int isTimed) {
 
 // PUTDATA variable   
     
@@ -3764,12 +3752,12 @@ void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int
    putData[0].count = 1;	 
    putData[0].rank  = 0;
    putData[0].shape = NULL;
-   if(obj == NULL){				// Standard Object ID 0			 
+   if (obj == NULL) {				// Standard Object ID 0			 
       stdObjRef = (int *)malloc(sizeof(int));
       stdObjRef[0] = 0;
       putData[0].data = (void *)stdObjRef;
    } else
-   if(obj == (void *)-1){			// Standard Object ID 1
+   if (obj == (void *)-1) {			// Standard Object ID 1
       stdObjRef = (int *)malloc(sizeof(int));
       stdObjRef[0] = 1;
       putData[0].data = (void *)stdObjRef;
@@ -3795,21 +3783,21 @@ void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int
          
    int handle = idamPutListAPI(directive, &putDataBlockList);  
 
-   if(directive) free(directive);
-   if(sliceIdx)  free(sliceIdx);
+   if (directive) free(directive);
+   if (sliceIdx)  free(sliceIdx);
    freeIdamClientPutDataBlockList(&putDataBlockList);
-   if(stdObjRef != NULL)free((void *)stdObjRef);  
+   if (stdObjRef != NULL)free((void *)stdObjRef);  
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error BeginObject: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return NULL;
    }
    
    int *refId = (int *)getIdamData(handle);	// Returned Object reference
-   if(refId == NULL){
+   if (refId == NULL) {
       sprintf(errmsg, "Error BeginObject: No returned Object");
       idamFree(handle);
       return NULL;
@@ -3826,7 +3814,7 @@ void *idamBeginObject(int expIdx, void *obj, int index, const char *relPath, int
 
 // dgm Replacement for Original IMAS HDF5 idamGetObject (renamed imas_idamGetObject) that calls IDAM  
 
-int idamGetObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed){
+int idamGetObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed) {
    
    int lstr = DIRECTIVELENGTH + strlen(path) + strlen(cpoPath);
    char *directive = (char *)malloc(lstr*sizeof(char));
@@ -3836,18 +3824,18 @@ int idamGetObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed
       
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error getObjectGroup: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
    void *data = (void *)getIdamData(handle);
-   if(data == NULL){
+   if (data == NULL) {
       sprintf(errmsg, "Error getObjectGroup: No returned Data");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3866,8 +3854,8 @@ int idamGetObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed
 
 // dgm Replacement for Original IMAS HDF5 idamGetObjectSlice (renamed imas_idamGetObjectSlice) that calls IDAM  
 // Pass static variables sliceIdx1 etc. to the server 
-//int idamGetObjectSlice(int expIdx, char *idamPath, char *cpoPath, double time, void **obj){
-int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void **obj){
+//int idamGetObjectSlice(int expIdx, char *idamPath, char *cpoPath, double time, void **obj) {
+int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void **obj) {
 
 // PUTDATA variable   
     
@@ -3915,14 +3903,14 @@ int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
       
    int handle = idamPutListAPI(directive, &putDataBlockList);  
 
-   if(directive) free(directive);
-   if(sliceIdx)  free(sliceIdx);
-   if(sliceTime) free(sliceTime);
+   if (directive) free(directive);
+   if (sliceIdx)  free(sliceIdx);
+   if (sliceTime) free(sliceTime);
    freeIdamClientPutDataBlockList(&putDataBlockList);  
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error getObjectSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3930,7 +3918,7 @@ int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
    
    *obj = (void *)getIdamData(handle);	// Returned Object reference
      
-   if(*obj == NULL){
+   if (*obj == NULL) {
       sprintf(errmsg, "Error getObjectSlice: No returned Data");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3947,7 +3935,7 @@ int idamGetObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
 
 // dgm Replacement for Original IMAS HDF5 idamGetObjectFromObject (renamed imas_idamGetObjectFromObject) that calls IDAM  
 
-int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj){
+int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj) {
 
 // PUTDATA variable   
     
@@ -3970,11 +3958,11 @@ int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj){
       
    int handle = idamPutAPI(directive, &putData);  
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error getObjectObject: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3982,7 +3970,7 @@ int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj){
    
    *dataObj = (void *)getIdamData(handle);		// Returned Object reference
    
-   if(*dataObj == NULL){
+   if (*dataObj == NULL) {
       sprintf(errmsg, "Error getObjectObject: No returned Data");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -3999,7 +3987,7 @@ int idamGetObjectFromObject(void *obj, char *path, int index, void **dataObj){
 
 // dgm Replacement for Original IMAS HDF5 idamReleaseObject (renamed imas_idamReleaseObject) that calls IDAM  
 
-void idamReleaseObject(void *obj){
+void idamReleaseObject(void *obj) {
 
 // PUTDATA variable   
     
@@ -4022,18 +4010,18 @@ void idamReleaseObject(void *obj){
       
    int handle = idamPutAPI(directive, &putData);  
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error releaseObject: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return;
    }
    
    int *data = (int *)getIdamData(handle);
-   if(data == NULL){
+   if (data == NULL) {
       sprintf(errmsg, "Error releaseObject: No returned status code");
       idamFree(handle);
       return;
@@ -4041,7 +4029,7 @@ void idamReleaseObject(void *obj){
    
    int rc = *data;
    
-   if(rc != OK_RETURN_VALUE){
+   if (rc != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error releaseObject: release failed");
       idamFree(handle);
       return;
@@ -4070,18 +4058,18 @@ int idamPutObject(int currIdx, char *cpoPath, char *path, void *obj, int isTimed
        
    int handle = idamGetAPI(directive, "");  
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error releaseObject: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
    
    int *data = (int *)getIdamData(handle);
-   if(data == NULL){
+   if (data == NULL) {
       sprintf(errmsg, "Error releaseObject: No returned status code");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4089,7 +4077,7 @@ int idamPutObject(int currIdx, char *cpoPath, char *path, void *obj, int isTimed
    
    int rc = *data;
    
-   if(rc != OK_RETURN_VALUE){
+   if (rc != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error releaseObject: release failed");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4148,109 +4136,109 @@ void *idamPutVect1DDoubleInObject(void *obj, char *path, int idx, double *data, 
 
 void *idamPutVect2DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2)
 {
-    int dim[2] = {dim1,dim2};
+    int dim[2] = {dim1, dim2};
     return putDataSliceInObject(obj, path, idx, INT, 2, dim, (void *)data);
 }
 
 void *idamPutVect2DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2)
 {
-    int dim[2] = {dim1,dim2};
+    int dim[2] = {dim1, dim2};
     return putDataSliceInObject(obj, path, idx, FLOAT, 2, dim, (void *)data);
 }
 
 void *idamPutVect2DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2)
 {
-    int dim[2] = {dim1,dim2};
+    int dim[2] = {dim1, dim2};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 2, dim, (void *)data);
 }
 
 void *idamPutVect3DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3)
 {
-    int dim[3] = {dim1,dim2,dim3};
+    int dim[3] = {dim1, dim2, dim3};
     return putDataSliceInObject(obj, path, idx, INT, 3, dim, (void *)data);
 }
 
 void *idamPutVect3DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3)
 {
-    int dim[3] = {dim1,dim2,dim3};
+    int dim[3] = {dim1, dim2, dim3};
     return putDataSliceInObject(obj, path, idx, FLOAT, 3, dim, (void *)data);
 }
 
 void *idamPutVect3DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3)
 {
-    int dim[3] = {dim1,dim2,dim3};
+    int dim[3] = {dim1, dim2, dim3};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 3, dim, (void *)data);
 }
 
 void *idamPutVect4DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4)
 {
-    int dim[4] = {dim1,dim2,dim3,dim4};
+    int dim[4] = {dim1, dim2, dim3, dim4};
     return putDataSliceInObject(obj, path, idx, INT, 4, dim, (void *)data);
 }
 
 void *idamPutVect4DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4)
 {
-    int dim[4] = {dim1,dim2,dim3,dim4};
+    int dim[4] = {dim1, dim2, dim3, dim4};
     return putDataSliceInObject(obj, path, idx, FLOAT, 4, dim, (void *)data);
 }
 
 void *idamPutVect4DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4)
 {
-    int dim[4] = {dim1,dim2,dim3,dim4};
+    int dim[4] = {dim1, dim2, dim3, dim4};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 4, dim, (void *)data);
 }
 
 void *idamPutVect5DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
-    int dim[5] = {dim1,dim2,dim3,dim4,dim5};
+    int dim[5] = {dim1, dim2, dim3, dim4, dim5};
     return putDataSliceInObject(obj, path, idx, INT, 5, dim, (void *)data);
 }
 
 void *idamPutVect5DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
-    int dim[5] = {dim1,dim2,dim3,dim4,dim5};
+    int dim[5] = {dim1, dim2, dim3, dim4, dim5};
     return putDataSliceInObject(obj, path, idx, FLOAT, 5, dim, (void *)data);
 }
 
 void *idamPutVect5DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
-    int dim[5] = {dim1,dim2,dim3,dim4,dim5};
+    int dim[5] = {dim1, dim2, dim3, dim4, dim5};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 5, dim, (void *)data);
 }
 
 void *idamPutVect6DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
 {
-    int dim[6] = {dim1,dim2,dim3,dim4,dim5,dim6};
+    int dim[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
     return putDataSliceInObject(obj, path, idx, INT, 6, dim, (void *)data);
 }
 
 void *idamPutVect6DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
 {
-    int dim[6] = {dim1,dim2,dim3,dim4,dim5,dim6};
+    int dim[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
     return putDataSliceInObject(obj, path, idx, FLOAT, 6, dim, (void *)data);
 }
 
 void *idamPutVect6DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
 {
-    int dim[6] = {dim1,dim2,dim3,dim4,dim5,dim6};
+    int dim[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 6, dim, (void *)data);
 }
 
 void *idamPutVect7DIntInObject(void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
 {
-    int dim[7] = {dim1,dim2,dim3,dim4,dim5,dim6,dim7};
+    int dim[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
     return putDataSliceInObject(obj, path, idx, INT, 7, dim, (void *)data);
 }
 
 void *idamPutVect7DFloatInObject(void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
 {
-    int dim[7] = {dim1,dim2,dim3,dim4,dim5,dim6,dim7};
+    int dim[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
     return putDataSliceInObject(obj, path, idx, FLOAT, 7, dim, (void *)data);
 }
 
 void *idamPutVect7DDoubleInObject(void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
 {
-    int dim[7] = {dim1,dim2,dim3,dim4,dim5,dim6,dim7};
+    int dim[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
     return putDataSliceInObject(obj, path, idx, DOUBLE, 7, dim, (void *)data);
 }
 
@@ -4282,18 +4270,18 @@ void *idamPutObjectInObject(void *obj, char *path, int idx, void *data)
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error putObjectInObject: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return NULL;
    }
    
    int *refId = (int *)getIdamData(handle);	// Returned Object Reference   
-   if(refId == NULL){
+   if (refId == NULL) {
       sprintf(errmsg, "Error putObjectInObject: Object not returned");
       idamFree(handle);
       return NULL;
@@ -4335,11 +4323,11 @@ int idamGetObjectDim(void *obj)
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error GETing Object Dim: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4347,7 +4335,7 @@ int idamGetObjectDim(void *obj)
    
    int data = -1;
    
-   if(getIdamData(handle) != NULL && getIdamDataType(handle) == TYPE_INT) data = *((int *)getIdamData(handle));
+   if (getIdamData(handle) != NULL && getIdamDataType(handle) == TYPE_INT) data = *((int *)getIdamData(handle));
    
    idamFree(handle);	// Application is responsible for freeing data  
    
@@ -4362,7 +4350,7 @@ int idamGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *
     int dims[7];
     int status;
     int *tmp; //we cannot use data directly for scalars because getDataSliceFromObject returns a pointer on pointer
-    status = getDataSliceFromObject(obj,path,idx,DIMENSION,7,dims,(void **)&tmp);
+    status = getDataSliceFromObject(obj, path, idx, DIMENSION, 7, dims, (void **)&tmp);
     if (!status) {
         if (tmp==NULL)  // the field could not be read
             *nDims = 0;
@@ -4384,13 +4372,13 @@ int idamGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *
 int idamGetStringFromObject(void *obj, char *path, int idx, char **data)
 {
     int dims[1];
-    return getDataSliceFromObject(obj,path,idx,STRING,0,dims,(void **)data);
+    return getDataSliceFromObject(obj, path, idx, STRING, 0, dims, (void **)data);
 
 /*
     int dims[1];
     int status;
     char **tmp; //we cannot use data directly because getDataSliceFromObject returns a pointer on pointer
-    status = getDataSliceFromObject(obj,idamPath,idx,STRING,0,dims,(void **)&tmp);
+    status = getDataSliceFromObject(obj, idamPath, idx, STRING, 0, dims, (void **)&tmp);
     if (!status) {
         *data = *tmp;
         // free(tmp);		// dgm: Freed in ids get 
@@ -4404,7 +4392,7 @@ int idamGetFloatFromObject(void *obj, char *path, int idx, float *data)
     int dims[1];
     int status;
     float *tmp; //we cannot use data directly for scalars because getDataSliceFromObject returns a pointer on pointer
-    status = getDataSliceFromObject(obj,path,idx,FLOAT,0,dims,(void **)&tmp);
+    status = getDataSliceFromObject(obj, path, idx, FLOAT, 0, dims, (void **)&tmp);
     if (!status) {
         *data = *tmp;
         free(tmp);
@@ -4417,7 +4405,7 @@ int idamGetIntFromObject(void *obj, char *path, int idx, int *data)
     int dims[1];
     int status;
     int *tmp; //we cannot use data directly for scalars because getDataSliceFromObject returns a pointer on pointer
-    status = getDataSliceFromObject(obj,path,idx,INT,0,dims,(void **)&tmp);
+    status = getDataSliceFromObject(obj, path, idx, INT, 0, dims, (void **)&tmp);
     if (!status) {
         *data = *tmp;
         free(tmp);
@@ -4430,7 +4418,7 @@ int idamGetDoubleFromObject(void *obj, char *path, int idx, double *data)
     int dims[1];
     int status;
     double *tmp; //we cannot use data directly for scalars because getDataSliceFromObject returns a pointer on pointer
-    status = getDataSliceFromObject(obj,path,idx,DOUBLE,0,dims,(void **)&tmp);
+    status = getDataSliceFromObject(obj, path, idx, DOUBLE, 0, dims, (void **)&tmp);
     if (!status) {
         *data = *tmp;
         free(tmp);
@@ -4440,28 +4428,28 @@ int idamGetDoubleFromObject(void *obj, char *path, int idx, double *data)
 
 int idamGetVect1DStringFromObject(void *obj, char *idamPath, int idx, char  ***data, int *dim)
 {
-    return getDataSliceFromObject(obj,idamPath,idx,STRING,1,dim,(void **)data);
+    return getDataSliceFromObject(obj, idamPath, idx, STRING, 1, dim, (void **)data);
 }
 
 int idamGetVect1DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim)
 {
-    return getDataSliceFromObject(obj,idamPath,idx,INT,1,dim,(void **)data);
+    return getDataSliceFromObject(obj, idamPath, idx, INT, 1, dim, (void **)data);
 }
 
 int idamGetVect1DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim)
 {
-    return getDataSliceFromObject(obj,idamPath,idx,FLOAT,1,dim,(void **)data);
+    return getDataSliceFromObject(obj, idamPath, idx, FLOAT, 1, dim, (void **)data);
 }
 
 int idamGetVect1DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim)
 {
-    return getDataSliceFromObject(obj,idamPath,idx,DOUBLE,1,dim,(void **)data);
+    return getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 1, dim, (void **)data);
 }
 
 int idamGetVect2DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2)
 {
     int dim[2];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,2,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 2, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     return status;
@@ -4470,7 +4458,7 @@ int idamGetVect2DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect2DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2)
 {
     int dim[2];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,2,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 2, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     return status;
@@ -4479,7 +4467,7 @@ int idamGetVect2DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect2DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2)
 {
     int dim[2];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,2,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 2, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     return status;
@@ -4488,7 +4476,7 @@ int idamGetVect2DDoubleFromObject(void *obj, char *idamPath, int idx, double **d
 int idamGetVect3DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2, int *dim3)
 {
     int dim[3];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,3,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 3, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4498,7 +4486,7 @@ int idamGetVect3DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect3DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2, int *dim3)
 {
     int dim[3];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,3,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 3, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4508,7 +4496,7 @@ int idamGetVect3DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect3DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2, int *dim3)
 {
     int dim[3];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,3,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 3, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4518,7 +4506,7 @@ int idamGetVect3DDoubleFromObject(void *obj, char *idamPath, int idx, double **d
 int idamGetVect4DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
     int dim[4];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,4,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 4, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4529,7 +4517,7 @@ int idamGetVect4DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect4DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
     int dim[4];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,4,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 4, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4540,7 +4528,7 @@ int idamGetVect4DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect4DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
     int dim[4];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,4,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 4, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4551,7 +4539,7 @@ int idamGetVect4DDoubleFromObject(void *obj, char *idamPath, int idx, double **d
 int idamGetVect5DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
     int dim[5];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,5,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 5, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4563,7 +4551,7 @@ int idamGetVect5DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect5DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
     int dim[5];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,5,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 5, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4575,7 +4563,7 @@ int idamGetVect5DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect5DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
     int dim[5];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,5,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 5, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4587,7 +4575,7 @@ int idamGetVect5DDoubleFromObject(void *obj, char *idamPath, int idx, double **d
 int idamGetVect6DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
     int dim[6];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,6,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 6, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4600,7 +4588,7 @@ int idamGetVect6DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect6DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
     int dim[6];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,6,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 6, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4613,7 +4601,7 @@ int idamGetVect6DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect6DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
     int dim[6];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,6,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 6, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4626,7 +4614,7 @@ int idamGetVect6DDoubleFromObject(void *obj, char *idamPath, int idx, double **d
 int idamGetVect7DIntFromObject(void *obj, char *idamPath, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
     int dim[7];
-    int status = getDataSliceFromObject(obj,idamPath,idx,INT,7,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, INT, 7, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4640,7 +4628,7 @@ int idamGetVect7DIntFromObject(void *obj, char *idamPath, int idx, int **data, i
 int idamGetVect7DFloatFromObject(void *obj, char *idamPath, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
     int dim[7];
-    int status = getDataSliceFromObject(obj,idamPath,idx,FLOAT,7,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, FLOAT, 7, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4654,7 +4642,7 @@ int idamGetVect7DFloatFromObject(void *obj, char *idamPath, int idx, float **dat
 int idamGetVect7DDoubleFromObject(void *obj, char *idamPath, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
     int dim[7];
-    int status = getDataSliceFromObject(obj,idamPath,idx,DOUBLE,7,dim,(void **)data);
+    int status = getDataSliceFromObject(obj, idamPath, idx, DOUBLE, 7, dim, (void **)data);
     *dim1 = dim[0];
     *dim2 = dim[1];
     *dim3 = dim[2];
@@ -4694,11 +4682,11 @@ int idamPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
        
    int handle = idamPutAPI(directive, &putData);  
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error putObjectSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4706,7 +4694,7 @@ int idamPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
    
    int *data = (int *)getIdamData(handle);	// Returned status code
    
-   if(data == NULL){
+   if (data == NULL) {
       sprintf(errmsg, "Error putObjectSlice: No returned status code");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4714,7 +4702,7 @@ int idamPutObjectSlice(int expIdx, char *cpoPath, char *path, double time, void 
    
    int rc = *data;
    
-   if(rc != OK_RETURN_VALUE){
+   if (rc != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error putObjectSlice: release failed");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4742,11 +4730,11 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
        
    int handle = idamGetAPI(directive, "");  
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error putObjectSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4754,7 +4742,7 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
    
    int *data = (int *)getIdamData(handle);	// Returned status code
    
-   if(data == NULL){
+   if (data == NULL) {
       sprintf(errmsg, "Error putObjectSlice: No returned status code");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4762,7 +4750,7 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
    
    int rc = *data;
    
-   if(rc != OK_RETURN_VALUE){
+   if (rc != OK_RETURN_VALUE) {
       sprintf(errmsg, "Error putObjectSlice: release failed");
       idamFree(handle);
       return ERROR_RETURN_VALUE;
@@ -4781,7 +4769,7 @@ int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples) {
    *retSamples = 0;
    
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsGet(currIdx, path, isTimed, retSamples);
    
@@ -4793,18 +4781,18 @@ int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples) {
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsGet: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return ERROR_RETURN_VALUE;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL && getIdamDataType(handle) == TYPE_INT && getIdamDataNum(handle) == 1){
+   if (data != NULL && getIdamDataType(handle) == TYPE_INT && getIdamDataNum(handle) == 1) {
       *retSamples = data[0];
       status = OK_RETURN_VALUE;
    }   
@@ -4818,7 +4806,7 @@ int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples) {
 int idamendIdsGet(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // int mdsendIdsGet(int expIdx, char *path)
    
@@ -4830,18 +4818,18 @@ int idamendIdsGet(int expIdx, char *path) {
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsGet: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -4852,7 +4840,7 @@ int idamendIdsGet(int expIdx, char *path) {
 
 int idambeginIdsPut(int expIdx, char *path) {
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsPut(currIdx, path);
    
@@ -4864,18 +4852,18 @@ int idambeginIdsPut(int expIdx, char *path) {
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsPut: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -4887,7 +4875,7 @@ int idambeginIdsPut(int expIdx, char *path) {
 int idamendIdsPut(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 // status = mdsendIdsPut(currIdx, path);
    
    int status = ERROR_RETURN_VALUE;
@@ -4898,18 +4886,18 @@ int idamendIdsPut(int expIdx, char *path) {
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsPut: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -4921,7 +4909,7 @@ int idamendIdsPut(int expIdx, char *path) {
 int idambeginIdsGetSlice(int expIdx, char *path, double time) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 //status = mdsbeginIdsGetSlice(currIdx, path, time);
 
@@ -4946,18 +4934,18 @@ int idambeginIdsGetSlice(int expIdx, char *path, double time) {
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsGetSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -4965,10 +4953,10 @@ int idambeginIdsGetSlice(int expIdx, char *path, double time) {
  
    return status;
 }
-int idamendIdsGetSlice(int currIdx, char *path){
+int idamendIdsGetSlice(int currIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 //status = mdsendIdsGetSlice(currIdx, path);
    
@@ -4980,18 +4968,18 @@ int idamendIdsGetSlice(int currIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsGetSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5000,10 +4988,10 @@ int idamendIdsGetSlice(int currIdx, char *path){
    return status;
 }
 
-int idambeginIdsPutSlice(int expIdx, char *path){
+int idambeginIdsPutSlice(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsPutSlice(currIdx, path);
    
@@ -5015,18 +5003,18 @@ int idambeginIdsPutSlice(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsPutSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5034,10 +5022,10 @@ int idambeginIdsPutSlice(int expIdx, char *path){
  
    return status;
 }
-int idamendIdsPutSlice(int expIdx, char *path){
+int idamendIdsPutSlice(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsendIdsPutSlice(currIdx, path);
    
@@ -5049,18 +5037,18 @@ int idamendIdsPutSlice(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsPutSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5069,10 +5057,10 @@ int idamendIdsPutSlice(int expIdx, char *path){
    return status;
 }
 
-int idamendIdsPutNonTimed(int expIdx, char *path){
+int idamendIdsPutNonTimed(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsendIdsPutNonTimed(currIdx, path);
    
@@ -5084,18 +5072,18 @@ int idamendIdsPutNonTimed(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsPutNonTimed: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5103,10 +5091,10 @@ int idamendIdsPutNonTimed(int expIdx, char *path){
  
    return status;
 }
-int idambeginIdsPutNonTimed(int expIdx, char *path){
+int idambeginIdsPutNonTimed(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsPutNonTimed(currIdx, path);
    
@@ -5118,18 +5106,18 @@ int idambeginIdsPutNonTimed(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsPutNonTimed: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5138,10 +5126,10 @@ int idambeginIdsPutNonTimed(int expIdx, char *path){
    return status;
 }
 
-int idamendIdsReplaceLastSlice(int expIdx, char *path){
+int idamendIdsReplaceLastSlice(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsendIdsReplaceLastSlice(currIdx, path);
    
@@ -5153,18 +5141,18 @@ int idamendIdsReplaceLastSlice(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsReplaceLastSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5172,10 +5160,10 @@ int idamendIdsReplaceLastSlice(int expIdx, char *path){
  
    return status;
 }
-int idambeginIdsReplaceLastSlice(int expIdx, char *path){
+int idambeginIdsReplaceLastSlice(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsReplaceLastSlice(currIdx, path);
    
@@ -5187,18 +5175,18 @@ int idambeginIdsReplaceLastSlice(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsReplaceLastSlice: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5207,10 +5195,10 @@ int idambeginIdsReplaceLastSlice(int expIdx, char *path){
    return status;
 }
 
-int idambeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes){
+int idambeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 // status = mdsbeginIdsPutTimed(currIdx, path, samples, inTimes);
 
@@ -5236,18 +5224,18 @@ int idambeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes){
    
    int handle = idamPutAPI(directive, &putData);   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error beginIdsPutTimed: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 
@@ -5255,10 +5243,10 @@ int idambeginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes){
  
    return status;
 }
-int idamendIdsPutTimed(int expIdx, char *path){
+int idamendIdsPutTimed(int expIdx, char *path) {
 
 // Only proceed if known to be mdsplus
-   if(getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
+   if (getenv("IDAM_NOHDF5_IMAS_PLUGIN") == NULL) return 1;
 
 //status = mdsendIdsPutTimed(currIdx, path);
    
@@ -5270,18 +5258,18 @@ int idamendIdsPutTimed(int expIdx, char *path){
    
    int handle = idamGetAPI(directive, "");   
 
-   if(directive) free(directive);
+   if (directive) free(directive);
    
    int err = 0;
    
-   if(handle < 0 || (err=getIdamErrorCode(handle)) != 0){      
+   if (handle < 0 || (err=getIdamErrorCode(handle)) != 0) {      
       sprintf(errmsg, "Error endIdsPutTimed: %s", getIdamServerErrorMsg(handle));
       idamFree(handle);
       return status;
    }
 
    int *data = (int *)getIdamData(handle);
-   if(data != NULL) status = data[0];
+   if (data != NULL) status = data[0];
    
 // Free heap
 

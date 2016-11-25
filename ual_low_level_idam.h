@@ -242,7 +242,6 @@ int idamGetObjectFromObject(void *obj, char *idamPath, int idx, void **dataObj);
 
 int idamGetDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
 
-
 //Array of structures Slice Management
 int idamGetObjectSlice(int expIdx, char *idamPath, char *cpoPath, double time, void **obj);
 int idamPutObjectSlice(int expIdx, char *idamPath, char *cpoPath, double time, void *obj);
@@ -250,4 +249,3 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *idamPath, void *
 
 //cpo copy
 int idamCopyCpo(int fromIdx, int toIdx, char *cpoName, int fromCpoOccur, int toCpoOccur);
-

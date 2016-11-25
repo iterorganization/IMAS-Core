@@ -2121,7 +2121,19 @@ int imas_create_(char *name, int *shot, int *run, int *refShot, int *refRun, int
     char *intName = allocateC(name, nameLen);
     status = imas_create(intName, *shot, *run, *refShot, *refRun, retIdx);
     free(intName);
-   reportInfo("imas CREATE", "");
+    reportInfo("imas CREATE", "");
+    return status;
+}
+
+int imas_create_public_(char* expName, char *name, int *shot, int *run, int *refShot, int *refRun, int *retIdx, int expNameLen, int nameLen)
+{
+    int status;
+    char *intExpName = allocateC(expName, expNameLen);
+    char *intName = allocateC(name, nameLen);
+    status = imas_create_public(intExpName, intName, *shot, *run, *refShot, *refRun, retIdx);
+    free(intExpName);
+    free(intName);
+    reportInfo("imas CREATE", "");
     return status;
 }
 
@@ -2193,18 +2205,20 @@ int imas_open_(char *name, int *shot, int *run, int *retIdx, int nameLen)
     char *intName = allocateC(name, nameLen);
 
     status = imas_open(intName, *shot, *run, retIdx);
-   reportInfo("imas OPEN ", "");
+    reportInfo("imas OPEN ", "");
     free(intName);
     return status;
 }
 
-int imas_open_public_(char *name, int *shot, int *run, int *retIdx, int nameLen)
+int imas_open_public_(char* expName, char *name, int *shot, int *run, int *retIdx, int expNameLen, int nameLen)
 {
     int status;
+    char *intExpName = allocateC(expName, expNameLen);
     char *intName = allocateC(name, nameLen);
 
-    status = imas_open_public(intName, *shot, *run, retIdx);
+    status = imas_open_public(intExpName, intName, *shot, *run, retIdx);
     reportInfo("imas OPEN PUBLIC ", "");
+    free(intExpName);
     free(intName);
     return status;
 }
@@ -2217,7 +2231,7 @@ int imas_open_env_(char *name, int *shot, int *run, int *retIdx, char *user, cha
     char *intUser = allocateC(user, userLen);
     char *intTokamak = allocateC(tokamak, tokamakLen);
     char *intVersion = allocateC(version, versionLen);
-   reportInfo("imas OPEN ENV ", "");
+    reportInfo("imas OPEN ENV ", "");
     status = imas_open_env(intName, *shot, *run, retIdx, intUser, intTokamak, intVersion);
     free(intName);
     free(intUser);
@@ -2257,10 +2271,12 @@ void imas_enable_mem_cache_(int *expIdx)
 {
     imas_enable_mem_cache(*expIdx);
 }
+
 void imas_disable_mem_cache_(int *expIdx)
 {
     imas_disable_mem_cache(*expIdx);
 }
+
 void imas_flush_all_(int *expIdx)
 {
     imas_flush_mem_cache(*expIdx);
@@ -2270,6 +2286,7 @@ void imas_discard_all_(int *expIdx)
 {
     imas_discard_mem_cache(*expIdx);
 }
+
 void imas_flush_(int *expIdx, char *cpoPath, int cpoPathLen)
 {
     char *intCpoPath = allocateC(cpoPath, cpoPathLen);
@@ -2283,7 +2300,6 @@ void imas_discard_(int *expIdx, char *cpoPath, int cpoPathLen)
     imas_discard_cpo_mem_cache(*expIdx, intCpoPath);
     free(intCpoPath);
 }
-
 
 /******************** Object management (arrays of structures)********************/
 

@@ -3613,23 +3613,6 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_open
 
 /*
  * Class:     IDS
- * Method:    open_public
- * Signature: (Ljava/lang/String;II)I
- */
-JNIEXPORT jint JNICALL Java_imasjava_imas_open_public
-  (JNIEnv *env, jclass class, jstring jName, jint shot , jint run)
-{
-    int retIdx = -1;
-    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
-    int status = imas_open_public((char *)name, shot, run, &retIdx);
-    (*env)->ReleaseStringUTFChars(env, jName, name);
-    if(status)
-        raiseException(env, imas_last_errmsg());
-    return retIdx;
-}
-
-/*
- * Class:     IDS
  * Method:    create
  * Signature: (Ljava/lang/String;IIII)I
  */
@@ -3639,6 +3622,42 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_create
     int retIdx = -1;
     const char *name = (*env)->GetStringUTFChars(env, jName, 0);
     int status = imas_create((char *)name, shot, run, refShot, refRun, &retIdx);
+    (*env)->ReleaseStringUTFChars(env, jName, name);
+    if(status)
+        raiseException(env, imas_last_errmsg());
+    return retIdx;
+}
+
+/*
+ * Class:     IDS
+ * Method:    open_public
+ * Signature: (Ljava/lang/String;Ljava/lang/String;II)I
+ */
+JNIEXPORT jint JNICALL Java_imasjava_imas_open_public
+  (JNIEnv *env, jclass class, jstring jExpName, jstring jName, jint shot , jint run)
+{
+    int retIdx = -1;
+    const char *exp_name = (*env)->GetStringUTFChars(env, jExpName, 0);
+    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
+    int status = imas_open_public(exp_name, (char *)name, shot, run, &retIdx);
+    (*env)->ReleaseStringUTFChars(env, jName, name);
+    if(status)
+        raiseException(env, imas_last_errmsg());
+    return retIdx;
+}
+
+/*
+ * Class:     IDS
+ * Method:    create_public
+ * Signature: (Ljava/lang/String;Ljava/lang/String;IIII)I
+ */
+JNIEXPORT jint JNICALL Java_imasjava_imas_create_public
+  (JNIEnv *env, jclass class, jstring jExpName, jstring jName, jint shot, jint run, jint refShot, jint refRun)
+{
+    int retIdx = -1;
+    const char *exp_name = (*env)->GetStringUTFChars(env, jExpName, 0);
+    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
+    int status = imas_create_public(exp_name, (char *)name, shot, run, refShot, refRun, &retIdx);
     (*env)->ReleaseStringUTFChars(env, jName, name);
     if(status)
         raiseException(env, imas_last_errmsg());

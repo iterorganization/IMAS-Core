@@ -13,19 +13,14 @@ else
 endif
 CXXFLAGS = -g -fPIC -D__USE_XOPEN2K8 #-I$(MDSPLUS_DIR)/include
 
-#INCDIR=-I$(MDSPLUS_DIR)/include
-#LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-INCDIR=
-LIBDIR=
+INCDIR=-I$(MDSPLUS_DIR)/include
+LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
-#LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
-LIBS=
+LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 IDAMDIR=$(HOME)/itmwork/IdamInstall
 
-COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o
-#MDS_OBJECTS=ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
-IDAM_OBJECTS=ual_low_level_idam.o
+COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
 
 TARGETS = timed_struct_array.h libimas.so libimas.a
 
@@ -45,9 +40,9 @@ ifeq "$(strip $(IDAM))" "yes"
  LIBS+= -lidam64
  INCDIR+= -I$(IDAMDIR)/include/idam
  LIBDIR+= -L$(IDAMDIR)/lib
- COMMON_OBJECTS+=$(IDAM_OBJECTS)
+ COMMON_OBJECTS+=ual_low_level_idam.o
 else
- COMMON_OBJECTS+=$(MDS_OBJECTS)
+ COMMON_OBJECTS+=ual_low_level_idam_dummy.o
 endif
 #-----------------------------------------------
 
@@ -96,6 +91,9 @@ libimas.a: $(COMMON_OBJECTS)
 
 .c.o:
 	$(CC) $(INCDIR) $(CFLAGS) -c $<
+
+.cpp.o:
+	$(CXX) $(INCDIR) $(CXXFLAGS) -c $<
 
 timed_struct_array.h:
 	./timed_struct_array.sh

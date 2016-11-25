@@ -175,15 +175,18 @@ static struct {
     int remoteIdx;
     int refCount;
     int cacheLevel;
-}openExperimentInfo[MAX_EXPERIMENTS];
+} openExperimentInfo[MAX_EXPERIMENTS];
+
 static int isExpRemote(int id)
 {
     return openExperimentInfo[id].isRemote;
 }
+
 static int getExpConnectionId(int id)
 {
     return openExperimentInfo[id].connectionId;
 }
+
 static int getExpRemoteIdx(int id)
 {
     return openExperimentInfo[id].remoteIdx;
@@ -231,8 +234,6 @@ extern int getInfoNumSlices(int expIdx, char *cpoPath, char *path);
 extern void removeAllInfoObjectSlices(int expIdx, char *cpoPath, char *path);
 extern void appendInfoObjectSlice(int expIdx, char *cpoPath, char *path, char *buf, int size);
 extern int getInfoSlice(int expIdx, char *cpoPath, char *path, int sliceIdx, int *exists, char **data);
-
-
 
 static char *decompileDsc(void *ptr);
 static void setCacheLevel(int expIdx, int level);
@@ -1476,11 +1477,11 @@ void imas_set_cache_level(int expIdx, int level)
 {
     setCacheLevel(expIdx, level);
 }
+
 int imas_get_cache_level(int expIdx)
 {
     return getCacheLevel(expIdx);
 }
-
 
 void imas_enable_mem_cache(int idx)
 {
@@ -1488,7 +1489,7 @@ void imas_enable_mem_cache(int idx)
     return;
 }
 
- void imas_disable_mem_cache(int idx)
+void imas_disable_mem_cache(int idx)
 {
 //reportInfo("START DISABLE MEM CACHE\n", "");
     imas_set_cache_level(idx, 0);
@@ -1597,9 +1598,6 @@ static void *getExpIndex(int expIdx)
     return openExperimentInfo[expIdx].ctx;
 }
 
-
-
-
 static int getCacheLevel(int expIdx)
 {
     if(expIdx < 0 || expIdx >= MAX_EXPERIMENTS || openExperimentInfo[expIdx].name == 0)
@@ -1609,6 +1607,7 @@ static int getCacheLevel(int expIdx)
     }
     return openExperimentInfo[expIdx].cacheLevel;
 }
+
 static void setCacheLevel(int expIdx, int level)
 {
     if(expIdx < 0 || expIdx >= MAX_EXPERIMENTS || openExperimentInfo[expIdx].name == 0)
