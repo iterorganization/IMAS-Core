@@ -159,7 +159,13 @@ static struct {
 
 const char* getExpName(int idx)
 {
-    return expInfo[idx].expName;
+    int i;
+    for (i = 0; i < MAX_OPEN_EXP; ++i) {
+        if (expInfo[i].mode == IS_PUBLIC && expInfo[i].idx == idx)
+            return expInfo[i].expName;
+    }
+    sprintf(errmsg, "idx is not open or not public");
+    return "";
 }
 
 char *imas_last_errmsg()
@@ -1921,7 +1927,7 @@ EXPORT int getDimension(int expIdx, char *cpoPath, char *path, int *numDims, int
         status = hdf5GetDimension(currIdx, cpoPath, path, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
 #endif
     if (status) {
-        *numDims=*dim1=*dim2=*dim3=*dim4=*dim5=*dim6=*dim7=0;
+        *numDims = *dim1 = *dim2 = *dim3 = *dim4 = *dim5 = *dim6 = *dim7 = 0;
     }
     return status;
 }
