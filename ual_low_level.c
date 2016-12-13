@@ -182,7 +182,7 @@ static int isMds(int idx, int *expIdx)
 static int isPublic(int idx, int* expIdx)
 {
     *expIdx = expInfo[idx].idx;
-    return (expInfo[idx].mode = IS_PUBLIC);
+    return (expInfo[idx].mode == IS_PUBLIC);
 }
 
 static int getExpIdx(int idx)
