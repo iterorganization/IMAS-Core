@@ -1,3 +1,6 @@
+#ifndef UAL_LOW_LEVEL_IDAM_H
+#define UAL_LOW_LEVEL_IDAM_H
+
 #define INTERPOLATION   3
 #define CLOSEST_SAMPLE  1
 #define PREVIOUS_SAMPLE 2
@@ -249,3 +252,5 @@ int idamReplaceLastObjectSlice(int expIdx, char *cpoPath, char *idamPath, void *
 
 //cpo copy
 int idamCopyCpo(int fromIdx, int toIdx, char *cpoName, int fromCpoOccur, int toCpoOccur);
+
+#endif // UAL_LOW_LEVEL_IDAM_H

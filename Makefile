@@ -18,7 +18,6 @@ LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 #-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
 #LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
 LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
-IDAMDIR=$(HOME)/itmwork/IdamInstall
 
 COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
 
@@ -34,12 +33,10 @@ ifeq "$(strip $(ITM_CATALOG))" "yes"
 endif
 #-----------------------------------------------
 
-#-------------- Options for IDAM ---------------
-ifeq "$(strip $(IDAM))" "yes"
- CFLAGS+= -DIDAM
- LIBS+= -lidam64
- INCDIR+= -I$(IDAMDIR)/include/idam
- LIBDIR+= -L$(IDAMDIR)/lib
+#-------------- Options for UDA ---------------
+ifeq "$(strip $(UDA))" "yes"
+ CFLAGS+= -DUDA `pkg-config --cflags uda-client`
+ LIBS+= `pkg-config --libs uda-client`
  COMMON_OBJECTS+=ual_low_level_idam.o
 else
  COMMON_OBJECTS+=ual_low_level_idam_dummy.o

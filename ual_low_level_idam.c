@@ -1,6 +1,6 @@
 
-// IDAM interface library
-// Wrappers to replace ual_low_level_idam with redirection to IDAM (plugin: imas)
+// UDA interface library
+// Wrappers to replace ual_low_level_idam with redirection to UDA (plugin: imas)
 
 /*
 Observations:
@@ -30,13 +30,13 @@ idamEuitmCreate calls the system() function
 This is a security risk
 Additional system commands may be included in the passed name strings
 There are 2048 bytes to fill with code!
-TODO: Need to use IDAM function that check filenames from getHdf5FileName and getHdf5ModelName are standards compliant
-      use IsLegalFilePath(char *str) from IDAM TrimString utilities
+TODO: Need to use UDA function that check filenames from getHdf5FileName and getHdf5ModelName are standards compliant
+      use IsLegalFilePath(char *str) from UDA TrimString utilities
       Done!
 
 There is no mechanism for opening a previously existing file that is already open!
 TODO: Add name details to the file handle log and check for open files before opening a new file
-      Use the IDAM managePluginFiles utilities
+      Use the UDA managePluginFiles utilities
       Done!
 
 TODO: The source argument for idamGetAPI is empty (default server) - this should be a targeted source!
@@ -50,11 +50,11 @@ For array 		 rank=n, shape=same shape as the original
 
 Planned actions:
 
-Change over file management to the IDAM plugin system
+Change over file management to the UDA plugin system
 Add additional types
 Review how strings are handled
 Review default values for missing data: NaN rather than the arbitrary extreme values chosen in IMAS, e.g. EMPTY_INT
-Locate all Object specific code to the IDAM plugin
+Locate all Object specific code to the UDA plugin
 Investigate the object system - is this just a local cache?
 
 
@@ -62,7 +62,7 @@ Change History
 
 21Apr2015 dgmuir	Original version based on ual_low_level_idam from ITER git master repo
 			All original source code reused where possible
-			HDF5 specific code relocated to an IDAM put plugin
+			HDF5 specific code relocated to an UDA put plugin
 			Minimal code changes made: No renaming; No change to arguments
 
 			Added initHdf5File to initialise array
@@ -79,9 +79,9 @@ Change History
 			Pointer errmsg is undefined - create locate string and assign errmsg to it.
 			declared extern - changed to static
 
-			Added IDAM error log to pass back errors and messages
+			Added UDA error log to pass back errors and messages
 
-			Added IDAM state variable: static unsigned short isCloseRegistered
+			Added UDA state variable: static unsigned short isCloseRegistered
 
 			Added function static int findHdf5Idx(int idam_id)
 
@@ -91,39 +91,39 @@ Change History
 
 			Added function createGroup with #define MAX_TOKENS
 
-			Added function findIMASIDAMType
+			Added function findIMASUDAType
 
 			putData renamed imas_putData
-			New function putData created that calls IDAM to replace original
+			New function putData created that calls UDA to replace original
 
 			putDataSlice renamed imas_putDataSlice
-			New function putDataSlice created that calls IDAM to replace original
+			New function putDataSlice created that calls UDA to replace original
 
 			Added functionality to create missing groups to imas_putDataSlice, imas_replaceLastDataSlice
 
 			getData renamed imas_getData
-			New function getData created that calls IDAM to replace original
+			New function getData created that calls UDA to replace original
 
 			getDataSlices renamed imas_getDataSlices
-			New function getDataSlices created that calls IDAM to replace original
+			New function getDataSlices created that calls UDA to replace original
 
 			idamGetDimension renamed imas_idamGetDimension
-			New function idamGetDimension created that calls IDAM to replace original
+			New function idamGetDimension created that calls UDA to replace original
 
 			idamDeleteData renamed imas_idamDeleteData
-			New function idamDeleteData created that calls IDAM to replace original
+			New function idamDeleteData created that calls UDA to replace original
 
 			new function idamimasOpen wrapper to idamEuitmOpen
 			idamEuitmOpen renamed imas_idamEuitmOpen
-			New function idamEuitmOpen created that calls IDAM to replace original
+			New function idamEuitmOpen created that calls UDA to replace original
 
 			new function idamimasCreate wrapper to idamEuitmCreate
 			idamEuitmCreate renamed imas_idamEuitmCreate
-			New function idamEuitmCreate created that calls IDAM to replace original
+			New function idamEuitmCreate created that calls UDA to replace original
 			IsLegalFilePath used to test passed file name before system level api called
 
 			idamIMASCreate renamed imas_idamIMASCreate
-			New function idamIMASCreate created that calls IDAM to replace original
+			New function idamIMASCreate created that calls UDA to replace original
 
 
 24Aug2015 DGMuir	Add calls to imas_getKeyword to enable the client application to use mdsplus on the server
@@ -135,11 +135,10 @@ Change History
 #include <string.h>
 
 #include "ual_low_level.h"
-#include "idamtypes.h"
-
-#include "idamclientpublic.h"
 #include "ual_low_level_idam.h"
 #include "ual_low_level_idam_private.h"
+
+#include <uda.h>
 
 #define PUT_OPERATION               0
 #define PUTSLICE_OPERATION          1
@@ -172,7 +171,7 @@ static char* imas_getKeyword()
 
 // Low level functions that originate in low_level_mdsplus
 // Required by the High Level APIs
-// call IDAM IMAS mdsplus plugin
+// call UDA IMAS mdsplus plugin
 
 int idamimasOpenEnv(char* name, int shot, int run, int* retIdx, char* user, char* tokamak, char* version)
 {
@@ -249,9 +248,9 @@ int findIMASType(char* typeName)
     return UNKNOWN_TYPE;
 }
 
-// dgm  Convert IMAS type to IDAM type
+// dgm  Convert IMAS type to UDA type
 
-int findIMASIDAMType(int type)
+int findIMASUDAType(int type)
 {
     switch (type) {
         case INT:
@@ -424,7 +423,7 @@ int idamDeleteData(int idx, char* cpoPath, char* path)
     return OK_RETURN_VALUE;
 }
 
-// dgm Replacement for Original IMAS HDF5 idamGetDimension (renamed imas_idamGetDimension) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamGetDimension (renamed imas_idamGetDimension) that calls UDA
 
 int idamGetDimension(int idx, char* cpoPath, char* path, int* numDims, int* dim1, int* dim2, int* dim3, int* dim4,
                      int* dim5, int* dim6, int* dim7)
@@ -492,7 +491,7 @@ int idamGetDimension(int idx, char* cpoPath, char* path, int* numDims, int* dim1
     return OK_RETURN_VALUE;
 }
 
-// dgm Replacement for Original IMAS HDF5 putData (renamed imas_putData) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 putData (renamed imas_putData) that calls UDA
 static int putData(int idx, char* cpoPath, char* path, int type, int nDims, int* dims, int isTimed, void* data)
 {
 
@@ -504,7 +503,7 @@ static int putData(int idx, char* cpoPath, char* path, int type, int nDims, int*
 // Pass the Data
 
     int i;
-    putData.data_type = findIMASIDAMType(type);
+    putData.data_type = findIMASUDAType(type);
     if (dims != NULL) {
         putData.count = dims[0];
     } else {
@@ -560,7 +559,7 @@ putDataX(int idx, char* cpoPath, char* path, int type, int nDims, int* dims, int
 // Pass the Data
 
     int i, handle;
-    putData.data_type = findIMASIDAMType(type);
+    putData.data_type = findIMASUDAType(type);
     if (dims != NULL) {
         putData.count = dims[0];
     } else {
@@ -654,7 +653,7 @@ static int replaceLastDataSlice(int idx, char* cpoPath, char* path, int type, in
     return putDataX(idx, cpoPath, path, type, nDims, dims, REPLACELASTSLICE_OPERATION, data, 0.0);
 }
 
-// dgm Replacement for Original IMAS HDF5 getData (renamed imas_getData) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 getData (renamed imas_getData) that calls UDA
 
 static int getData(int idx, char* cpoPath, char* path, int type, int nDims, int* dims, char** data)
 {
@@ -662,7 +661,7 @@ static int getData(int idx, char* cpoPath, char* path, int type, int nDims, int*
 // Pass the Data
 
     int i;
-    char* data_type = convertIdam2StringType(findIMASIDAMType(type));
+    char* data_type = convertIdam2StringType(findIMASUDAType(type));
     int rank = nDims;
     int* shape = dims;
 
@@ -705,7 +704,7 @@ static int getData(int idx, char* cpoPath, char* path, int type, int nDims, int*
         (*data)[0] = '\0';
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -746,7 +745,7 @@ static int getSliceIdxs(int expIdx, char* cpoPath, double time)
     return OK_RETURN_VALUE;
 }
 
-// dgm Replacement for Original IMAS HDF5 getDataSLices (renamed imas_getDataSlices) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 getDataSLices (renamed imas_getDataSlices) that calls UDA
 // dgm Added additional arguments to push slicing concerns to the server
 // dgm Correctd a bug - sliceIdx and sliceTime not defined. Function getSliceIdxs never called
 // dgm dataIdx argument now redundant so removed
@@ -764,7 +763,7 @@ static int getDataSlices(int idx, char* cpoPath, char* path, int type, int nDims
 // Pass the Data
 
     int i;
-    char* data_type = convertIdam2StringType(findIMASIDAMType(type));
+    char* data_type = convertIdam2StringType(findIMASUDAType(type));
     int rank = nDims;
     int* shape = dims;
 
@@ -820,7 +819,7 @@ static int getDataSlices(int idx, char* cpoPath, char* path, int type, int nDims
 
     if (data != NULL) *data = getIdamData(handle);
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2178,7 +2177,7 @@ int idamEndCPOReplaceLastSlice(int expIdx, char* path)
  * If the specified slice is not the next slice to be filled
  * then we insert empty slices */
 
-// dgm Replacement for Original IMAS HDF5 putDataSliceInObject (renamed imas_putDataSliceInObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 putDataSliceInObject (renamed imas_putDataSliceInObject) that calls UDA
 // The obj is a memory address
 
 static void* putDataSliceInObject(void* obj, char* path, int index, int type, int nDims, int* dims, void* data)
@@ -2202,7 +2201,7 @@ static void* putDataSliceInObject(void* obj, char* path, int index, int type, in
     putData[0].shape = NULL;
     putData[0].data = obj;
 
-    putData[1].data_type = findIMASIDAMType(type);    // Data Slice to be inserted
+    putData[1].data_type = findIMASUDAType(type);    // Data Slice to be inserted
     putData[1].data = data;
     putData[1].rank = nDims;
     if (dims != NULL) {
@@ -2243,7 +2242,7 @@ static void* putDataSliceInObject(void* obj, char* path, int index, int type, in
         return NULL;
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);
@@ -2258,7 +2257,7 @@ static void* putDataSliceInObject(void* obj, char* path, int index, int type, in
  *  then we return an empty result ("empty" value for scalars, size 0 for arrays)
  *  It is possible to read only the size (not the data) by setting type to DIMENSION */
 
-// dgm Replacement for Original IMAS HDF5 gettDataSliceInObject (renamed imas_gettDataSliceInObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 gettDataSliceInObject (renamed imas_gettDataSliceInObject) that calls UDA
 // The obj is a memory address
 static int getDataSliceFromObject(void* obj, char* path, int index, int type, int nDims, int* dims, void** data)
 {
@@ -2272,7 +2271,7 @@ static int getDataSliceFromObject(void* obj, char* path, int index, int type, in
                 getExpName(index), path, index, *((int*) obj), keyword);
     else
         sprintf(directive, "imas::getObject(expName='%s', path='%s', index=%d, objectId=%d, rank=%d, type='%s', %s)",
-                getExpName(index), path, index, *((int*) obj), nDims, convertIdam2StringType(findIMASIDAMType(type)),
+                getExpName(index), path, index, *((int*) obj), nDims, convertIdam2StringType(findIMASUDAType(type)),
                 keyword);
 
     int handle = idamGetAPI(directive, "");
@@ -2317,7 +2316,7 @@ static int getDataSliceFromObject(void* obj, char* path, int index, int type, in
             dims[0] = getIdamDataNum(handle);
         }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
         getIdamDataBlock(handle)->data = NULL;
 
@@ -2375,7 +2374,7 @@ static int getDataSliceFromObjectXXX(void* obj, char* path, int index, int type,
     char* keyword = imas_getKeyword();
 
     sprintf(directive, "imas::getObject(expName='%s', path='%s', index=%d, type='%s', %s)", getExpName(index), path,
-            index, convertIdam2StringType(findIMASIDAMType(type)), keyword);
+            index, convertIdam2StringType(findIMASUDAType(type)), keyword);
 
     int handle = idamPutListAPI(directive, &putDataBlockList);
 
@@ -2398,7 +2397,7 @@ static int getDataSliceFromObjectXXX(void* obj, char* path, int index, int type,
 
     if (data != NULL) *data = (void*) getIdamData(handle);
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2407,7 +2406,7 @@ static int getDataSliceFromObjectXXX(void* obj, char* path, int index, int type,
 }
 
 
-// dgm Replacement for Original IMAS HDF5 idamBeginObject (renamed imas_idamBeginObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamBeginObject (renamed imas_idamBeginObject) that calls UDA
 // dgm isTimed is Not a BOOL
 
 void* idamBeginObject(int expIdx, void* obj, int index, const char* relPath, int isTimed)
@@ -2482,7 +2481,7 @@ void* idamBeginObject(int expIdx, void* obj, int index, const char* relPath, int
         return NULL;
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2491,7 +2490,7 @@ void* idamBeginObject(int expIdx, void* obj, int index, const char* relPath, int
 }
 
 
-// dgm Replacement for Original IMAS HDF5 idamGetObject (renamed imas_idamGetObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamGetObject (renamed imas_idamGetObject) that calls UDA
 
 int idamGetObject(int expIdx, char* path, char* cpoPath, void** obj, int isTimed)
 {
@@ -2524,7 +2523,7 @@ int idamGetObject(int expIdx, char* path, char* cpoPath, void** obj, int isTimed
 
     *obj = (void*) data;    // Returned Object reference
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2533,7 +2532,7 @@ int idamGetObject(int expIdx, char* path, char* cpoPath, void** obj, int isTimed
 }
 
 
-// dgm Replacement for Original IMAS HDF5 idamGetObjectSlice (renamed imas_idamGetObjectSlice) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamGetObjectSlice (renamed imas_idamGetObjectSlice) that calls UDA
 // Pass static variables sliceIdx1 etc. to the server
 int idamGetObjectSlice(int expIdx, char* cpoPath, char* path, double time, void** obj)
 {
@@ -2608,7 +2607,7 @@ int idamGetObjectSlice(int expIdx, char* cpoPath, char* path, double time, void*
         return ERROR_RETURN_VALUE;
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2617,7 +2616,7 @@ int idamGetObjectSlice(int expIdx, char* cpoPath, char* path, double time, void*
 }
 
 
-// dgm Replacement for Original IMAS HDF5 idamGetObjectFromObject (renamed imas_idamGetObjectFromObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamGetObjectFromObject (renamed imas_idamGetObjectFromObject) that calls UDA
 
 int idamGetObjectFromObject(void* obj, char* path, int index, void** dataObj)
 {
@@ -2662,7 +2661,7 @@ int idamGetObjectFromObject(void* obj, char* path, int index, void** dataObj)
         return ERROR_RETURN_VALUE;
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);    // Application is responsible for freeing data
@@ -2671,7 +2670,7 @@ int idamGetObjectFromObject(void* obj, char* path, int index, void** dataObj)
 }
 
 
-// dgm Replacement for Original IMAS HDF5 idamReleaseObject (renamed imas_idamReleaseObject) that calls IDAM
+// dgm Replacement for Original IMAS HDF5 idamReleaseObject (renamed imas_idamReleaseObject) that calls UDA
 
 void idamReleaseObject(void* obj)
 {
@@ -2981,7 +2980,7 @@ void* idamPutObjectInObject(void* obj, char* path, int idx, void* data)
         return NULL;
     }
 
-// Detach heap from the IDAM structure then free the IDAM structure (avoid data leaks within IDAM)
+// Detach heap from the UDA structure then free the UDA structure (avoid data leaks within UDA)
 
     getIdamDataBlock(handle)->data = NULL;
     idamFree(handle);
