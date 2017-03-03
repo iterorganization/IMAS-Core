@@ -29,6 +29,7 @@ static int current_obj = -1;            // index of the last used object
 //static pthread_mutex_t obj_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP; // lock to avoid simultaneous access to the object arrays
 static pthread_mutex_t obj_mutex = PTHREAD_MUTEX_INITIALIZER; // lock to avoid simultaneous access to the object arrays
 
+
 // lock the object array
 static void lock_obj()
 {
@@ -149,7 +150,26 @@ dim7, void *data, double isTimed)
 
 
 
+//---------------------------------------------------------------------------------
 
+
+char* getMajorImasVersion(char * imasVersion)
+{ 
+    char *imasMajor_start = imasVersion;    
+    char *imasMajor_end;    
+    char *imasMajor;    
+    
+    imasMajor_end = strchr(imasVersion, '.');   
+    if(imasMajor_end == NULL)
+    	return imasVersion;
+	
+    imasMajor = (char*)malloc(imasMajor_end - imasMajor_start + 1);
+        
+    memcpy(imasMajor, imasMajor_start, imasMajor_end - imasMajor_start);   
+     *(imasMajor + (imasMajor_end - imasMajor_start)) = '\0';    
+      
+    return imasMajor;
+}
 
 //---------------------------------------------------------------------------------
 static char message[10000];
@@ -281,10 +301,12 @@ EXPORT int imas_open_env(char *name, int shot, int run, int *retIdx, char *user,
 {
   int idx = -1, status = -1;
   *retIdx = -1;
+   char* majorVersion = NULL;
 
      if(!checkShotRun(shot, run)) return -1;
 
-    status = mdsimasOpenEnv(name, shot, run, &idx, user, tokamak, version);
+    majorVersion = getMajorImasVersion(version);
+    status = mdsimasOpenEnv(name, shot, run, &idx, user, tokamak, majorVersion);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
     if(*retIdx == -1)
@@ -325,6 +347,7 @@ EXPORT int imas_open_hdf5(char *name, int shot, int run, int *retIdx)
 EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
 {
     int idx = -1, status = -1;
+      
     *retIdx = -1;
 
     if(!checkShotRun(shot, run)) return -1;
@@ -343,11 +366,14 @@ EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, i
 EXPORT int imas_create_env(char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version)
 {
     int idx = -1, status = -1;
+    char* majorVersion = NULL;
     *retIdx = -1;
 
     if(!checkShotRun(shot, run)) return -1;
+    
+    majorVersion = getMajorImasVersion(version);
 
-    status = mdsimasCreateEnv(name, shot, run, refShot, refRun, &idx, user, tokamak, version);
+    status = mdsimasCreateEnv(name, shot, run, refShot, refRun, &idx, user, tokamak, majorVersion);
     if(status) return status;
     *retIdx = setMdsIdx(shot, run, idx);
     if(*retIdx == -1)
