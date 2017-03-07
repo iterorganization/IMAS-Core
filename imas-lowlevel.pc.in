@@ -4,8 +4,8 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: imas-lowlevel
-Version: imas:__DD_GIT_DESCRIBE__ ual:__UAL_GIT_DESCRIBE__
+Version: __DD_GIT_DESCRIBE__-__UAL_GIT_DESCRIBE__
 Description: IMAS Low Level libraries for C.
 URL: https://portal.iter.org/departments/POP/Pages/IM-Users-and-Developers.aspx
-Libs: -L${libdir} -limas
 Cflags: -I${includedir}
+Libs: -L${libdir} -limas
