@@ -1236,20 +1236,20 @@ int mdsendIdsGetSlice(int expIdx, char *path)
 
 //MERGE
 // paths before setting a new environment
-static char prevTreeBase0[1024];
-static char prevTreeBase1[1024];
-static char prevTreeBase2[1024];
-static char prevTreeBase3[1024];
-static char prevTreeBase4[1024];
-static char prevTreeBase5[1024];
-static char prevTreeBase6[1024];
-static char prevTreeBase7[1024];
-static char prevTreeBase8[1024];
-static char prevTreeBase9[1024];
+static char prevTreeBase0[1024] = {0};
+static char prevTreeBase1[1024] = {0};
+static char prevTreeBase2[1024] = {0};
+static char prevTreeBase3[1024] = {0};
+static char prevTreeBase4[1024] = {0};
+static char prevTreeBase5[1024] = {0};
+static char prevTreeBase6[1024] = {0};
+static char prevTreeBase7[1024] = {0};
+static char prevTreeBase8[1024] = {0};
+static char prevTreeBase9[1024] = {0};
 
 static void restoreDataEnv()
 {
-		setenv("MDSPLUS_TREE_BASE_0",prevTreeBase0,1);
+/*		setenv("MDSPLUS_TREE_BASE_0",prevTreeBase0,1);
 		setenv("MDSPLUS_TREE_BASE_1",prevTreeBase1,1);
 		setenv("MDSPLUS_TREE_BASE_2",prevTreeBase2,1);
 		setenv("MDSPLUS_TREE_BASE_3",prevTreeBase3,1);
@@ -1258,7 +1258,18 @@ static void restoreDataEnv()
 		setenv("MDSPLUS_TREE_BASE_6",prevTreeBase6,1);
 		setenv("MDSPLUS_TREE_BASE_7",prevTreeBase7,1);
 		setenv("MDSPLUS_TREE_BASE_8",prevTreeBase8,1);
-		setenv("MDSPLUS_TREE_BASE_9",prevTreeBase9,1);
+		setenv("MDSPLUS_TREE_BASE_9",prevTreeBase9,1); */
+		(prevTreeBase0[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_0",prevTreeBase0,1)) : (0);
+		(prevTreeBase1[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_1",prevTreeBase1,1)) : (0);
+		(prevTreeBase2[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_2",prevTreeBase2,1)) : (0);
+		(prevTreeBase3[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_3",prevTreeBase3,1)) : (0);
+		(prevTreeBase4[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_4",prevTreeBase4,1)) : (0);
+		(prevTreeBase5[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_5",prevTreeBase5,1)) : (0);
+		(prevTreeBase6[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_6",prevTreeBase6,1)) : (0);
+		(prevTreeBase7[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_7",prevTreeBase7,1)) : (0);
+		(prevTreeBase8[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_8",prevTreeBase8,1)) : (0);
+		(prevTreeBase9[0] != 0) ? (setenv("MDSPLUS_TREE_BASE_9",prevTreeBase9,1)) : (0);
+
 }
 //MERGE
 
@@ -1266,16 +1277,18 @@ static void restoreDataEnv()
 static void setDataEnv(char *user, char *tokamak, char *version)
 {
   //MERGE
-    char treeBase0[1024];
-    char treeBase1[1024];
-    char treeBase2[1024];
-    char treeBase3[1024];
-    char treeBase4[1024];
-    char treeBase5[1024];
-    char treeBase6[1024];
-    char treeBase7[1024];
-    char treeBase8[1024];
-    char treeBase9[1024];
+    char treeBase0[1024] = {0};
+    char treeBase1[1024] = {0};
+    char treeBase2[1024] = {0};
+    char treeBase3[1024] = {0};
+    char treeBase4[1024] = {0};
+    char treeBase5[1024] = {0};
+    char treeBase6[1024] = {0};
+    char treeBase7[1024] = {0};
+    char treeBase8[1024] = {0};
+    char treeBase9[1024] = {0};
+	 char* treeBase_ = 0;
+
     /*
     char *treeBase0 = malloc(1024);
     char *treeBase1 = malloc(1024);
@@ -1346,7 +1359,7 @@ static void setDataEnv(char *user, char *tokamak, char *version)
 
     //MERGE
     // Store old values of the paths
-    strcpy(prevTreeBase0,getenv("MDSPLUS_TREE_BASE_0"));
+/*    strcpy(prevTreeBase0,getenv("MDSPLUS_TREE_BASE_0"));
     strcpy(prevTreeBase1,getenv("MDSPLUS_TREE_BASE_1"));
     strcpy(prevTreeBase2,getenv("MDSPLUS_TREE_BASE_2"));
     strcpy(prevTreeBase3,getenv("MDSPLUS_TREE_BASE_3"));
@@ -1355,7 +1368,18 @@ static void setDataEnv(char *user, char *tokamak, char *version)
     strcpy(prevTreeBase6,getenv("MDSPLUS_TREE_BASE_6"));
     strcpy(prevTreeBase7,getenv("MDSPLUS_TREE_BASE_7"));
     strcpy(prevTreeBase8,getenv("MDSPLUS_TREE_BASE_8"));
-    strcpy(prevTreeBase9,getenv("MDSPLUS_TREE_BASE_9"));
+    strcpy(prevTreeBase9,getenv("MDSPLUS_TREE_BASE_9")); */
+
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_0")) != 0) ? (strcpy(prevTreeBase0,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_1")) != 0) ? (strcpy(prevTreeBase1,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_2")) != 0) ? (strcpy(prevTreeBase2,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_3")) != 0) ? (strcpy(prevTreeBase3,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_4")) != 0) ? (strcpy(prevTreeBase4,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_5")) != 0) ? (strcpy(prevTreeBase5,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_6")) != 0) ? (strcpy(prevTreeBase6,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_7")) != 0) ? (strcpy(prevTreeBase7,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_8")) != 0) ? (strcpy(prevTreeBase8,treeBase_)) : (0);
+    ((treeBase_ = getenv("MDSPLUS_TREE_BASE_9")) != 0) ? (strcpy(prevTreeBase9,treeBase_)) : (0);
 
     // Set new values of the paths
     setenv("MDSPLUS_TREE_BASE_0",treeBase0,1);
