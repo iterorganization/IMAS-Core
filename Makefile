@@ -35,7 +35,7 @@ endif
 
 #-------------- Options for UDA ---------------
 ifeq "$(strip $(UDA))" "yes"
- CFLAGS+= -DUDA `pkg-config --cflags uda-client`
+ CFLAGS+= -DIDAM `pkg-config --cflags uda-client`
  LIBS+= `pkg-config --libs uda-client`
  COMMON_OBJECTS+=ual_low_level_idam.o
 else
