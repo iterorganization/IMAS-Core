@@ -3593,7 +3593,6 @@ JNIEXPORT jstring JNICALL Java_imasjava_imas_exec
     return jstdOut;
 }
 
-
 /*
  * Class:     IDS
  * Method:    open
@@ -3622,42 +3621,6 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_create
     int retIdx = -1;
     const char *name = (*env)->GetStringUTFChars(env, jName, 0);
     int status = imas_create((char *)name, shot, run, refShot, refRun, &retIdx);
-    (*env)->ReleaseStringUTFChars(env, jName, name);
-    if(status)
-        raiseException(env, imas_last_errmsg());
-    return retIdx;
-}
-
-/*
- * Class:     IDS
- * Method:    open_public
- * Signature: (Ljava/lang/String;Ljava/lang/String;II)I
- */
-JNIEXPORT jint JNICALL Java_imasjava_imas_open_public
-  (JNIEnv *env, jclass class, jstring jExpName, jstring jName, jint shot , jint run)
-{
-    int retIdx = -1;
-    const char *exp_name = (*env)->GetStringUTFChars(env, jExpName, 0);
-    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
-    int status = imas_open_public(exp_name, (char *)name, shot, run, &retIdx);
-    (*env)->ReleaseStringUTFChars(env, jName, name);
-    if(status)
-        raiseException(env, imas_last_errmsg());
-    return retIdx;
-}
-
-/*
- * Class:     IDS
- * Method:    create_public
- * Signature: (Ljava/lang/String;Ljava/lang/String;IIII)I
- */
-JNIEXPORT jint JNICALL Java_imasjava_imas_create_public
-  (JNIEnv *env, jclass class, jstring jExpName, jstring jName, jint shot, jint run, jint refShot, jint refRun)
-{
-    int retIdx = -1;
-    const char *exp_name = (*env)->GetStringUTFChars(env, jExpName, 0);
-    const char *name = (*env)->GetStringUTFChars(env, jName, 0);
-    int status = imas_create_public(exp_name, (char *)name, shot, run, refShot, refRun, &retIdx);
     (*env)->ReleaseStringUTFChars(env, jName, name);
     if(status)
         raiseException(env, imas_last_errmsg());
@@ -3755,7 +3718,7 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_openPublic
     int retIdx = -1;
     const char *name = (*env)->GetStringUTFChars(env, jName, 0);
     const char *expName = (*env)->GetStringUTFChars(env, jExpName, 0);
-    int status = imas_open_hdf5((char *)name, shot, run, &retIdx, expName);
+    int status = imas_open_public((char *)name, shot, run, &retIdx, expName);
     (*env)->ReleaseStringUTFChars(env, jName, name);
     (*env)->ReleaseStringUTFChars(env, jExpName, expName);
     if(status)
@@ -3774,7 +3737,7 @@ JNIEXPORT jint JNICALL Java_imasjava_imas_createPublic
     int retIdx = -1;
     const char *name = (*env)->GetStringUTFChars(env, jName, 0);
     const char *expName = (*env)->GetStringUTFChars(env, jExpName, 0);
-    int status = imas_create_hdf5((char *)name, shot, run, refShot, refRun, &retIdx, expName);
+    int status = imas_create_public((char *)name, shot, run, refShot, refRun, &retIdx, expName);
     (*env)->ReleaseStringUTFChars(env, jName, name);
     (*env)->ReleaseStringUTFChars(env, jExpName, expName);
     if(status)
