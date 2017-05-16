@@ -338,7 +338,7 @@ EXPORT int imas_open(char *name, int shot, int run, int *retIdx)
     return status;
 }
 
-EXPORT int imas_open_public(const char* expName, char *name, int shot, int run, int *retIdx)
+EXPORT int imas_open_public(char *name, int shot, int run, int *retIdx, const char* expName)
 {
     *retIdx = -1;
 #ifdef IDAM
@@ -432,7 +432,7 @@ EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, i
     return status;
 }
 
-EXPORT int imas_create_public(const char* expName, char *name, int shot, int run, int refShot, int refRun, int *retIdx)
+EXPORT int imas_create_public(char *name, int shot, int run, int refShot, int refRun, int *retIdx, const char* expName)
 {
     *retIdx = -1;
 #ifdef IDAM
