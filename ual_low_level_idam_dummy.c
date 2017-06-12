@@ -4,8 +4,9 @@
 
 #include <stdlib.h>
 
+extern int idamGetDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7) { return -1; }
+
 extern int idamimasConnect(char *ip) { return -1; }
-extern char *spawnCommand(char *command, char *ipAddress) { return NULL; }
 extern int idamimasCreate(char *name, int shot, int run, int refShot, int refRun, int *retIdx) { return -1; }
 extern int idamimasCreateEnv(char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version) { return -1; }
 extern int idamimasOpen(char *name, int shot, int run, int *retIdx) { return -1; }
@@ -141,7 +142,6 @@ extern int idamGetVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float 
 extern int idamGetVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode) { return -1; }
 
 extern int idamDeleteData(int expIdx, char *cpoPath, char *path) { return -1; }
-extern int getUniqueRun(int shot) { return -1; }
 
 extern int idambeginIdsGet(int expIdx, char *path, int isTimed, int *retSamples) { return -1; }
 extern int idamendIdsGet(int expIdx, char *path) { return -1; }
