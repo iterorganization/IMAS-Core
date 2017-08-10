@@ -394,10 +394,11 @@ static void updateInfoTimedObject(int expIdx, char *cpoPath, char *path, int exi
 static int getInfoData(int expIdx, char *cpoPath, char *path, int *exists, int *nDims, int *dims, struct descriptor_xd *retXd)
 {
     int infoExists;
-    int dataSize, status, i;
+    unsigned int dataSize;
+    int status, i;
     char *data;
     char dtype;
-    int itemSize;
+    unsigned int itemSize;
     struct descriptor dataD;
     DESCRIPTOR_A_COEFF(arrayD, 0, 0, 0, 0, 0);
 
@@ -476,10 +477,12 @@ static int getInfoObject(int expIdx, char *cpoPath, char *path, int *exists, voi
 //Return 0 if info not fount, 1 otherwise
 {
     int infoExists;
-    int dataSize, status, i;
+    unsigned int dataSize;
+    int status, i;
     char *data;
     char dtype;
-    int itemSize, nDims, dims[16];
+    unsigned int itemSize;
+    int nDims, dims[16];
     struct descriptor dataD;
     DESCRIPTOR_A_COEFF(arrayD, 0, 0, 0, 0, 0);
     EMPTYXD(emptyXd);
@@ -589,7 +592,8 @@ void internalFlush(int expIdx, char *cpoPath, char *path, char *timeBasePath,  i
     struct descriptor dataD;
     DESCRIPTOR_A_COEFF(arrayD, 0, 0, 0, 0, 0);
     double *times;
-    int timeExists, timeNDims, timeDims[16], timeItemSize, timeDataSize, currSlice;
+    unsigned int timeItemSize, timeDataSize;
+    int timeExists, timeNDims, timeDims[16], currSlice;
     char timeType;
     EMPTYXD(emptyXd);
     struct descriptor_xd *retXd;
@@ -3217,7 +3221,8 @@ int getDataAndSliceIdxs(int expIdx, char *cpoPath, char *path, char *timeBasePat
     double *times;
     int nTimes;
     int status, startIdx;
-    int nItems, i, itemSize;
+    unsigned int itemSize;
+    int nItems, i;
 
 //Read Segment corresponding to time
     status = getSlicedData(expIdx, cpoPath, path, timeBasePath, time, xd, &timesXd, 1);
@@ -3387,7 +3392,8 @@ static void getLeftItems(int nid, int *leftItems, int *leftRows)
     char dtype;
     char dimct;
     int dims[64];
-    int idx, nextRow, status, rowSize, i;
+    unsigned int rowSize;
+    int idx, nextRow, status, i;
 #ifdef OLD_MDS
     status = TreeGetSegmentInfo(nid, &dtype, &dimct, dims, &idx, &nextRow);
 #else
@@ -9580,7 +9586,8 @@ static int putTimedObjectLocal(int expIdx, char *cpoPath, char *path, void **obj
 {
     EMPTYXD(emptyXd);
     struct descriptor_xd *serializedXds;
-    int nid, status, i, sliceIdx, segmentSize, numSegmentSlices, totSize;
+    unsigned int segmentSize, totSize;
+    int nid, status, i, sliceIdx, numSegmentSlices;
     struct descriptor_a **apds, *arrD;
     int *sliceSizes, *segmentTimes;
     int startSegIdx, endSegIdx, currIdx;

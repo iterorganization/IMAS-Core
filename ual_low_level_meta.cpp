@@ -372,8 +372,8 @@ public:
     bool exists;
     int nDims;
     int dims[16];
-    int dataSize;
-    int bufferSize;
+    unsigned int dataSize;
+    unsigned int bufferSize;
     char type;
     int itemSize;
     char *data;
