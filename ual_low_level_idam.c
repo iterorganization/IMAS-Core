@@ -254,43 +254,43 @@ int findIMASUDAType(int type)
 {
     switch (type) {
         case INT:
-            return TYPE_INT;
+            return UDA_TYPE_INT;
         case FLOAT:
-            return TYPE_FLOAT;
+            return UDA_TYPE_FLOAT;
         case DOUBLE:
-            return TYPE_DOUBLE;
+            return UDA_TYPE_DOUBLE;
         case STRING:
-            return TYPE_STRING;
+            return UDA_TYPE_STRING;
         case STRING_VECTOR:
-            return TYPE_STRING;
+            return UDA_TYPE_STRING;
     }
-    return TYPE_UNKNOWN;
+    return UDA_TYPE_UNKNOWN;
 }
 
 char* convertIdam2StringType(int type)
 {
     switch (type) {
-        case TYPE_CHAR:
+        case UDA_TYPE_CHAR:
             return ("char");
-        case TYPE_SHORT:
+        case UDA_TYPE_SHORT:
             return ("short");
-        case TYPE_INT:
+        case UDA_TYPE_INT:
             return ("int");
-        case TYPE_LONG64:
+        case UDA_TYPE_LONG64:
             return ("int64");
-        case TYPE_FLOAT:
+        case UDA_TYPE_FLOAT:
             return ("float");
-        case TYPE_DOUBLE:
+        case UDA_TYPE_DOUBLE:
             return ("double");
-        case TYPE_UNSIGNED_CHAR:
+        case UDA_TYPE_UNSIGNED_CHAR:
             return ("ubyte");
-        case TYPE_UNSIGNED_SHORT:
+        case UDA_TYPE_UNSIGNED_SHORT:
             return ("ushort");
-        case TYPE_UNSIGNED_INT:
+        case UDA_TYPE_UNSIGNED_INT:
             return ("uint");
-        case TYPE_UNSIGNED_LONG64:
+        case UDA_TYPE_UNSIGNED_LONG64:
             return ("ulong64");
-        case TYPE_STRING:
+        case UDA_TYPE_STRING:
             return ("string");
         default:
             return "unknown";
@@ -586,7 +586,7 @@ putDataX(int idx, char* cpoPath, char* path, int type, int nDims, int* dims, int
         PUTDATA_BLOCK_LIST putDataBlockList;
         initIdamPutDataBlockList(&putDataBlockList);
 
-        timeData.data_type = TYPE_DOUBLE;
+        timeData.data_type = UDA_TYPE_DOUBLE;
         timeData.count = 1;
         timeData.rank = 0;
         timeData.shape = NULL;
@@ -782,7 +782,7 @@ static int getDataSlices(int idx, char* cpoPath, char* path, int type, int nDims
 
 // Pass the Data
 
-    putData.data_type = TYPE_DOUBLE;
+    putData.data_type = UDA_TYPE_DOUBLE;
     putData.count = 3;
     putData.rank = 1;
     putData.shape = NULL;
@@ -2195,7 +2195,7 @@ static void* putDataSliceInObject(void* obj, char* path, int index, int type, in
 // Pass the Data
 
     int i;
-    putData[0].data_type = TYPE_INT;
+    putData[0].data_type = UDA_TYPE_INT;
     putData[0].count = 1;
     putData[0].rank = 0;
     putData[0].shape = NULL;
@@ -2348,13 +2348,13 @@ static int getDataSliceFromObjectXXX(void* obj, char* path, int index, int type,
 
 // Pass the Data
 
-    putData[0].data_type = TYPE_INT;
+    putData[0].data_type = UDA_TYPE_INT;
     putData[0].count = 1;
     putData[0].rank = 0;
     putData[0].shape = NULL;
     putData[0].data = obj;
 
-    putData[1].data_type = TYPE_INT;
+    putData[1].data_type = UDA_TYPE_INT;
     putData[1].count = nDims;
     putData[1].rank = 1;
     putData[1].shape = NULL;
@@ -2424,7 +2424,7 @@ void* idamBeginObject(int expIdx, void* obj, int index, const char* relPath, int
 
 // Pass the Data
 
-    putData[0].data_type = TYPE_INT;        // reference to a serverside Address - 32 or 64 bit
+    putData[0].data_type = UDA_TYPE_INT;        // reference to a serverside Address - 32 or 64 bit
     putData[0].count = 1;
     putData[0].rank = 0;
     putData[0].shape = NULL;
@@ -2440,7 +2440,7 @@ void* idamBeginObject(int expIdx, void* obj, int index, const char* relPath, int
         putData[0].data = obj;
     }
 
-    putData[1].data_type = TYPE_INT;
+    putData[1].data_type = UDA_TYPE_INT;
     putData[1].rank = 1;
     putData[1].count = 2;
     putData[1].shape = NULL;
@@ -2549,13 +2549,13 @@ int idamGetObjectSlice(int expIdx, char* cpoPath, char* path, double time, void*
 
 // Pass the Data
 
-    putData[0].data_type = TYPE_DOUBLE;
+    putData[0].data_type = UDA_TYPE_DOUBLE;
     putData[0].rank = 0;
     putData[0].count = 1;
     putData[0].shape = NULL;
     putData[0].data = (void*) &time;    // Do not Free!
 
-    putData[1].data_type = TYPE_INT;
+    putData[1].data_type = UDA_TYPE_INT;
     putData[1].rank = 1;
     putData[1].count = 2;
     putData[1].shape = NULL;
@@ -2565,7 +2565,7 @@ int idamGetObjectSlice(int expIdx, char* cpoPath, char* path, double time, void*
     sliceIdx[1] = sliceIdx2;
     putData[1].data = (void*) sliceIdx;
 
-    putData[2].data_type = TYPE_DOUBLE;
+    putData[2].data_type = UDA_TYPE_DOUBLE;
     putData[2].rank = 1;
     putData[2].count = 2;
     putData[2].shape = NULL;
@@ -2628,7 +2628,7 @@ int idamGetObjectFromObject(void* obj, char* path, int index, void** dataObj)
 
 // Pass the Data
 
-    putData.data_type = TYPE_INT;
+    putData.data_type = UDA_TYPE_INT;
     putData.rank = 0;
     putData.count = 1;
     putData.shape = NULL;
@@ -2682,7 +2682,7 @@ void idamReleaseObject(void* obj)
 
 // Pass the Data
 
-    putData.data_type = TYPE_INT;
+    putData.data_type = UDA_TYPE_INT;
     putData.rank = 0;
     putData.count = 1;
     putData.shape = NULL;
@@ -2948,7 +2948,7 @@ void* idamPutObjectInObject(void* obj, char* path, int idx, void* data)
     objId[0] = ((int*) obj)[0];
     objId[1] = ((int*) data)[0];
 
-    putData.data_type = TYPE_INT;
+    putData.data_type = UDA_TYPE_INT;
     putData.count = 2;
     putData.rank = 1;
     putData.shape = NULL;
@@ -2998,7 +2998,7 @@ int idamGetObjectDim(void* obj)
     int* objId = (int*) malloc(sizeof(int));
     objId[0] = ((int*) obj)[0];
 
-    putData.data_type = TYPE_INT;
+    putData.data_type = UDA_TYPE_INT;
     putData.count = 1;
     putData.rank = 0;
     putData.shape = NULL;
@@ -3024,7 +3024,7 @@ int idamGetObjectDim(void* obj)
 
     int data = -1;
 
-    if (getIdamData(handle) != NULL && getIdamDataType(handle) == TYPE_INT) data = *((int*) getIdamData(handle));
+    if (getIdamData(handle) != NULL && getIdamDataType(handle) == UDA_TYPE_INT) data = *((int*) getIdamData(handle));
 
     idamFree(handle);    // Application is responsible for freeing data
 
@@ -3361,7 +3361,7 @@ int idamPutObjectSlice(int expIdx, char* cpoPath, char* path, double time, void*
 
 // Pass the Data
 
-    putData.data_type = TYPE_DOUBLE;
+    putData.data_type = UDA_TYPE_DOUBLE;
     putData.rank = 0;
     putData.count = 1;
     putData.shape = NULL;
@@ -3483,7 +3483,7 @@ int idambeginIdsGet(int expIdx, char* path, int isTimed, int* retSamples)
     }
 
     int* data = (int*) getIdamData(handle);
-    if (data != NULL && getIdamDataType(handle) == TYPE_INT && getIdamDataNum(handle) == 1) {
+    if (data != NULL && getIdamDataType(handle) == UDA_TYPE_INT && getIdamDataNum(handle) == 1) {
         *retSamples = data[0];
         status = OK_RETURN_VALUE;
     }
@@ -3596,7 +3596,7 @@ int idambeginIdsGetSlice(int expIdx, char* path, double time)
 
     int status = ERROR_RETURN_VALUE;
 
-    putData.data_type = TYPE_DOUBLE;
+    putData.data_type = UDA_TYPE_DOUBLE;
     putData.count = 1;
     putData.data = (void*) &time;
 
@@ -3857,7 +3857,7 @@ int idambeginIdsPutTimed(int expIdx, char* path, int samples, double* inTimes)
 
     int status = ERROR_RETURN_VALUE;
 
-    putData.data_type = TYPE_DOUBLE;
+    putData.data_type = UDA_TYPE_DOUBLE;
     putData.count = samples;
     putData.rank = 1;
     putData.data = (void*) inTimes;
