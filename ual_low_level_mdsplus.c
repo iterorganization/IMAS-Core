@@ -302,7 +302,7 @@ static void updateInfoObject(int expIdx, char *cpoPath, char *path, int exists, 
     }
     status = MdsSerializeDscOut((struct descriptor *)obj, &serializedXd);
     arrD = (struct descriptor_a *)serializedXd.pointer;
-    if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    if(!(status & 1) || !arrD || (arrD->class != CLASS_A && arrD->class != CLASS_CA))
     {
 	printf("INTERNAL ERROR IN updateInfoObject:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
         return;
@@ -333,7 +333,7 @@ static void updateInfoObjectSlice(int expIdx, char *cpoPath, char *path, void *o
           status = MdsSerializeDscOut((struct descriptor *)apd, &serializedXd);
 
     arrD = (struct descriptor_a *)serializedXd.pointer;
-    if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    if(!(status & 1) || !arrD || (arrD->class != CLASS_A && arrD->class != CLASS_CA))
     {
 	printf("INTERNAL ERROR IN updateInfoObject:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
         return;
@@ -380,7 +380,7 @@ static void updateInfoTimedObject(int expIdx, char *cpoPath, char *path, int exi
     {
         status = MdsSerializeDscOut(currPtr[sliceIdx], &serializedXd);
         arrD = (struct descriptor_a *)serializedXd.pointer;
-        if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+        if(!(status & 1) || !arrD || (arrD->class != CLASS_A && arrD->class != CLASS_CA))
         {
 	    printf("INTERNAL ERROR IN updateInfoTimedObject:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
             return;
@@ -9540,7 +9540,7 @@ static int putObjectSegmentLocalOLD(int expIdx, char *cpoPath, char *path, void 
     else //The object has been passed by putObject
          status = MdsSerializeDscOut((struct descriptor *)apd, &serializedXd);
     arrD = (struct descriptor_a *)serializedXd.pointer;
-    if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    if(!(status & 1) || !arrD || (arrD->class != CLASS_A && arrD->class != CLASS_CA))
     {
 	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	unlock();
@@ -9780,7 +9780,7 @@ static int putObjectSegmentLocal(int expIdx, char *cpoPath, char *path, void *ob
     else //The object has been passed by putObject
          status = MdsSerializeDscOut((struct descriptor *)apd, &serializedXd);
     arrD = (struct descriptor_a *)serializedXd.pointer;
-    if(!(status & 1) || !arrD || arrD->class != CLASS_A)
+    if(!(status & 1) || !arrD || (arrD->class != CLASS_A && arrD->class != CLASS_CA))
     {
 	sprintf(errmsg, "INTERNAL ERROR:CANNOT SERIALIZE STRUCTURE : %s", MdsGetMsg(status));
 	unlock();
@@ -10949,19 +10949,41 @@ int mdsGetVect1DStringFromObject(void *obj, char *path, int idx, char  ***data, 
 
 int mdsGetVect1DIntFromObject(void *obj, char *path, int idx, int **data, int *dim)
 {
-   ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    
+    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     else
     {
-     	*dim = arrD->m[0];
+//     	*dim = arrD->m[0];
+    	*dim = arrD->arsize/arrD->length;
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -10970,18 +10992,30 @@ int mdsGetVect1DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect1DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
     else
     {
-     	*dim = arrD->m[0];
+//     	*dim = arrD->m[0];
+    	*dim = arrD->arsize/arrD->length;
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+//	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -10989,38 +11023,78 @@ int mdsGetVect1DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect1DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/  if(((arrD->class != CLASS_A && arrD->class != CLASS_CA) && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
     {
-     	*dim = arrD->m[0];
-	*data = (double *)malloc(arrD->arsize);
-	memcpy(*data, arrD->pointer, arrD->arsize);
-	return 0;
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
     }
+//  *dim = arrD->m[0];
+    *dim = arrD->arsize/arrD->length;
+    *data = (double *)malloc(arrD->arsize);
+    memcpy(*data, arrD->pointer, arrD->arsize);
+    MdsFree1Dx(&xd, 0);
+    return 0;
 }
+
 
 int mdsGetVect2DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11028,19 +11102,39 @@ int mdsGetVect2DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect2DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11048,19 +11142,39 @@ int mdsGetVect2DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect2DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11068,20 +11182,40 @@ int mdsGetVect2DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 int mdsGetVect3DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
      	*dim3 = arrD->m[2];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11089,20 +11223,40 @@ int mdsGetVect3DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect3DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
      	*dim3 = arrD->m[2];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11110,35 +11264,80 @@ int mdsGetVect3DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect3DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
      	*dim3 = arrD->m[2];
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
 
+
+
+
+
+
+
 int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11146,6 +11345,7 @@ int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *d
      	*dim4 = arrD->m[3];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11153,14 +11353,33 @@ int mdsGetVect4DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11168,6 +11387,7 @@ int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, in
      	*dim4 = arrD->m[3];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11175,14 +11395,33 @@ int mdsGetVect4DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect4DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11190,21 +11429,42 @@ int mdsGetVect4DDoubleFromObject(void *obj, char *path, int idx, double **data, 
      	*dim4 = arrD->m[3];
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
 
+
 int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11213,6 +11473,7 @@ int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *d
      	*dim5 = arrD->m[4];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11220,14 +11481,33 @@ int mdsGetVect5DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11236,6 +11516,7 @@ int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, in
      	*dim5 = arrD->m[4];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11243,14 +11524,33 @@ int mdsGetVect5DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect5DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+     EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/   if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11259,21 +11559,43 @@ int mdsGetVect5DDoubleFromObject(void *obj, char *path, int idx, double **data, 
      	*dim5 = arrD->m[4];
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
 
-int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
+
+
+int mdsGetVect6DIntFromObject(void *obj,char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11283,6 +11605,7 @@ int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *d
      	*dim6 = arrD->m[5];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11290,14 +11613,33 @@ int mdsGetVect6DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11307,6 +11649,7 @@ int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, in
      	*dim6 = arrD->m[5];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11314,13 +11657,32 @@ int mdsGetVect6DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect6DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11331,21 +11693,42 @@ int mdsGetVect6DDoubleFromObject(void *obj, char *path, int idx, double **data, 
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
 
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
 
+
 int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_L)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_L) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11356,6 +11739,7 @@ int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *d
      	*dim7 = arrD->m[6];
 	*data = (int *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11363,14 +11747,33 @@ int mdsGetVect7DIntFromObject(void *obj, char *path, int idx, int **data, int *d
 int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || arrD->dtype != DTYPE_FLOAT)
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || arrD->dtype != DTYPE_FLOAT) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11381,6 +11784,7 @@ int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, in
      	*dim7 = arrD->m[6];
 	*data = (float *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
@@ -11388,14 +11792,33 @@ int mdsGetVect7DFloatFromObject(void *obj, char *path, int idx, float **data, in
 int mdsGetVect7DDoubleFromObject(void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
    ARRAY_COEFF(char *, 7) *arrD = (void *)getDataFromObject(obj, path, idx);
-
+	
+    EMPTYXD(xd);
+    int status;
+	
     if(!arrD) return -1;
-    if(arrD->class != CLASS_A || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT))
+/*    status = TdiData((struct descriptor *)arrD, &xd MDS_END_ARG);
+    if(!(status & 1))
+    {
+	sprintf(errmsg, "Internal error in data retrieval from object at path %s ", path);
+	return -1;
+    }
+    arrD = (void *)xd.pointer;
+*/    if((arrD->class != CLASS_A && arrD->class != CLASS_CA) || (arrD->dtype != DTYPE_DOUBLE && arrD->dtype != DTYPE_FT)) 
     {
 	sprintf(errmsg, "Internal error: unexpected data type in object at path %s ", path);
 	return -1;
     }
-    else
+    if(arrD->class == CLASS_CA)
+    {
+	status = TdiData(arrD, &xd MDS_END_ARG);
+	if(!(status & 1))
+	{
+	    printf("INTERNAL ERROR: INVALID COMPRESSED ARRAY IN ARRAY OF STRUCTURES\n");
+	    return -1;
+	}
+	arrD = (struct descriptor_a *)xd.pointer;
+    }
     {
      	*dim1 = arrD->m[0];
      	*dim2 = arrD->m[1];
@@ -11406,6 +11829,7 @@ int mdsGetVect7DDoubleFromObject(void *obj, char *path, int idx, double **data, 
      	*dim7 = arrD->m[6];
 	*data = (double *)malloc(arrD->arsize);
 	memcpy(*data, arrD->pointer, arrD->arsize);
+	MdsFree1Dx(&xd, 0);
 	return 0;
     }
 }
