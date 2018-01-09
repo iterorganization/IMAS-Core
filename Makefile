@@ -63,8 +63,12 @@ endif
 #-----------------------------------------------
 
 all: $(TARGETS) pkgconfig
+sources:
+sources_install: $(wildcard *.c *.h)
+	install -d $(INSTALL)/share/src/lowlevel
+	install -m 644 $^ $(INSTALL)/share/src/lowlevel
 
-install: all pkgconfig_install
+install: all pkgconfig_install sources_install
 	mkdir -p $(INSTALL)/lib $(INSTALL)/include
 	for OBJECT in *.so ;do \
 		cp -vTT $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
