@@ -1,3 +1,4 @@
+# -*- makefile -*- #
 include ../Makefile.common
 
 SHELL=/bin/sh
