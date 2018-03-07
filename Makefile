@@ -1,104 +1,171 @@
-# -*- makefile -*- #
+#//-*-makefile-*-
+#// Temporary makefile, just for quick tests, self-explanatory
+
 include ../Makefile.common
 
-SHELL=/bin/sh
 
-#CC=gcc
-#LD=$(CC)
-LD=g++
-
-ifeq "$(strip $(CC))" "icc"
- CFLAGS=-g -fPIC -shared-intel
+## intel compiler should be >= 13 to meet C++11 requirement
+ifeq "$(strip $(INTEL))" "yes"
+ CC=icc
+ FC=ifort
+ CPP=cpp
+ CPC=icpc
+ LDC=icpc
+ LDF=ifort -lc -lstdc++ 
 else
- CFLAGS=-g -fPIC
+ CC=gcc
+ FC=gfortran
+ CPP=cpp
+ CPC=g++
+ LDC=g++ 
+ LDF=gfortran -lc -lstdc++ 
 endif
-CXXFLAGS = -g -fPIC -D__USE_XOPEN2K8 #-I$(MDSPLUS_DIR)/include
 
-INCDIR=-I$(MDSPLUS_DIR)/include
-LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-#-L$(MDSPLUS_DIR)/lib -L$(JAVA_HOME)/jre/lib/i386
-#LIBS_create= -lMdsShr  -lhdf5 -lmpi -lz
-LIBS=-lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 
-COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_low_level_remote.o ual_low_level_meta.o ual_low_level_mdsobjects.o
+## MDSPlus install (require recent alpha tarball)
+MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
+MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
 
-TARGETS = timed_struct_array.h libimas.so libimas.a
 
-#---------- Options for the catalog ------------
-ifeq "$(strip $(ITM_CATALOG))" "yes"
- CFLAGS+= -DUSE_ITM_CATALOG
- INCDIR+= -I$(ITM_CATALOG_DIR)/include
- LIBDIR+= -L$(ITM_CATALOG_DIR)/lib -L/usr/lib64/mysql
- LIBS+= -lItmCatalog -lmysqlclient
- COMMON_OBJECTS+= ual_catalog.o $(ITM_CATALOG_DIR)/*.o
+## Adding DEBUG=yes to make command to print additional debug info
+DEBFLAGS= -g
+ifeq (${DEBUG},yes)
+DEBFLAGS+= -DDEBUG
 endif
-#-----------------------------------------------
+ifeq (${STOPONEXCEPT},yes)
+DEBFLAGS+= -DSOE
+endif
 
-#-------------- Options for UDA ---------------
-ifeq "$(strip $(UDA))" "yes"
- CFLAGS+= -DIDAM `pkg-config --cflags uda-client`
- LIBS+= `pkg-config --libs uda-client`
- COMMON_OBJECTS+=ual_low_level_idam.o
+
+ifeq "$(strip $(INTEL))" "yes"
+  CPPFLAGS= 
+  CFLAGS= -std=c99 -pedantic -Wall -fPIC -O0 ${DEBFLAGS}
+  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} 
+  FFLAGS= -fpp -r8 -assume no2underscore -fPIC -shared-intel ${DEBFLAGS}
+  LDFLAGS= $(MDSLIB) 
 else
- COMMON_OBJECTS+=ual_low_level_idam_dummy.o
+  CPPFLAGS= 
+  CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
+  CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} 
+  FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
+  LDFLAGS= $(MDSLIB) 
 endif
-#-----------------------------------------------
 
-#-------------- Options for HDF5 ---------------
-ifeq "$(strip $(HDF5))" "yes"
- CFLAGS+= -DHDF5
- INCDIR+= -I$(HDF5_DIR)/include -I$(MPI_DIR)/include
- LIBDIR+= -L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib
- LIBS+= -lhdf5 $(MPI_LIB)
- COMMON_OBJECTS+= ual_low_level_hdf5.o
-endif
-#-----------------------------------------------
 
-#-------------- Options for java ---------------
-ifeq "$(strip $(JAVA))" "yes"
- INCDIR+= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
- LIBDIR+= -L$(JAVA_HOME)/jre/lib/amd64
- #LIBS+= -ljava
- COMMON_OBJECTS+= ual_jni.o
-endif
-#-----------------------------------------------
+CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp context_test.cpp ual_const.cpp \
+	mdsplus_backend.cpp memory_backend.cpp
+CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c 
+#matlab_adapter.c 
 
-all: $(TARGETS) pkgconfig
-sources:
-sources_install: $(wildcard *.c *.h)
-	install -d $(INSTALL)/share/src/lowlevel
-	install -m 644 $^ $(INSTALL)/share/src/lowlevel
+LL_OBJ= ual_lowlevel.o ual_context.o ual_const.o 
 
-install: all pkgconfig_install sources_install
-	mkdir -p $(INSTALL)/lib $(INSTALL)/include
-	for OBJECT in *.so ;do \
-		cp -vTT $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT; \
-	done
-	cp ual_low_level.h $(INSTALL)/include
+BE_OBJ= ual_backend.o mdsplus_backend.o memory_backend.o
 
-clean: pkgconfig_clean
-	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
-	rm -rf build
+COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
+		ual_low_level.o ual_backend.o \
+		mdsplus_backend.o memory_backend.o
+#matlab_adapter.o 
 
-clean-src: clean
+TARGETS = libimas.so libimas.a
 
-libimas.so: $(COMMON_OBJECTS)
-	$(LD) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
-libimas.a: $(COMMON_OBJECTS)
+all: $(TARGETS) doc
+
+
+tests: context lowlevel mdsplus oldapi testc 
+
+
+# Creates dependency files
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CPP) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+%.d: %.cpp
+	@set -e; rm -f $@; \
+	$(CPP) -MM --std=c++11 $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+# Includes all dependency files
+-include $(CSRC:.c=.d)
+-include $(CPPSRC:.cpp=.d)
+
+
+%.o: %.cpp 
+	$(CPC) $(CPFLAGS) -I. -o $@ -c $< 
+
+%.o: %.c 
+	$(CC) $(CFLAGS) -I. -o $@ -c $< 
+
+
+# Test program for Context classes usage
+context: ual_context.o tests/context_test.o ual_const.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-context 
+
+# Test program for new Lowlevel C wrappers usage
+lowlevel: ${LL_OBJ} ${BE_OBJ} tests/lowlevel_test.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-lowlevel 
+
+# Test program for stack from old low level to MDSPlus backend
+testc: ${LL_OBJ} ${BE_OBJ} ual_low_level.o  tests/test_lowlevel.o #matlab_adapter.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-c 
+
+# Test program for old API C wrappers
+oldapi: ${LL_OBJ} ${BE_OBJ} ual_low_level.o tests/ual_low_level_test.o #matlab_adapter.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-oldapi 
+
+# Test program for MDSPlus backend
+mdsplus: ual_context.o ual_const.o mdsplus_backend.o tests/test_mdsplus_backend.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-mdsplus 
+
+
+# dynamic library
+libimas.so: $(COMMON_OBJECTS) 
+	$(LDC) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LDFLAGS) 
+
+# static library
+libimas.a: $(COMMON_OBJECTS) 
 	ar rs $@ $^
 
-.c.o:
-	$(CC) $(INCDIR) $(CFLAGS) -c $<
 
-.cpp.o:
-	$(CXX) $(INCDIR) $(CXXFLAGS) -c $<
+# install procedure
+install: all pkgconfig_install
+	install -d $(INSTALL)/lib
+	install -d $(INSTALL)/include
+	for OBJECT in *.so; do \
+	   cp -vTT $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
+	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
+	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR); \
+	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT; \
+	done
+	cp ual_low_level.h $(INSTALL)/include
+#	cp matlab_adapter.h $(INSTALL)/include
+	cp ual_defs.h $(INSTALL)/include
+#install -d $(INSTALL)/lowlevel
+#install *.cpp *.h *.c $(INSTALL)/lowlevel
+	install -d $(INSTALL)/documentation/dev/lowlevel
+	cp -rf latex html $(INSTALL)/documentation/dev/lowlevel
 
-timed_struct_array.h:
-	./timed_struct_array.sh
+
+clean: #pkgconfig_clean
+	rm -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
+	tests/test-context tests/test-lowlevel tests/test-oldapi \
+	tests/test-mdsplus tests/test-c libUALLowLevel.*
+
+clean-src: clean clean-doc
+	rm -f *.d *~ $(INSTALL)/include/*.h 
+	rm -rf $(INSTALL)/documentation/dev
+
+
+# Create embedded documentation
+doc:
+	doxygen Doxyfile
+
+clean-doc:
+	rm -rf latex html
+
 
 # add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc

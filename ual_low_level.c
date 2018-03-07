@@ -1,3860 +1,3416 @@
+/**
+   \file ual_low_level.c
+   R2 low-level API implementation with R3 low-level API.
+   Implies near-direct compatibility with R2 high-level.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <assert.h>
 
 #include "ual_low_level.h"
-#include "ual_low_level_hdf5.h"
-#include "ual_low_level_idam.h"
-#include "ual_low_level_mdsplus.h"
+#include "ual_lowlevel.h"
 
-#define EXPORT
-
-#define MAX_OPEN_EXP 10000
-#define MAX_EXP_NAME 100
-#define IS_MDS    1
-#define IS_HDF5   2
-#define IS_PUBLIC 3
-#define IS_NONE   0
-
-//--------------- Management of the list of objects (arrays of structures) -----------
-#define MAX_OBJECTS 10000000   // maximum number of simultaneous objects
-
-#ifndef PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
-#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP \
-  { { 0, 0, 0, 0, PTHREAD_MUTEX_ERRORCHECK_NP, 0, { 0, 0 } } }
-#endif
-
-static void *object[MAX_OBJECTS];       // array providing the correspondance between an integer object index and the real (void *) object pointer (for use in non C languages)
-static int current_obj = -1;            // index of the last used object
-//static pthread_mutex_t obj_mutex = PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP; // lock to avoid simultaneous access to the object arrays
-static pthread_mutex_t obj_mutex = PTHREAD_MUTEX_INITIALIZER; // lock to avoid simultaneous access to the object arrays
+#define TRUE 1
+#define FALSE 0
 
 
-// lock the object array
-static void lock_obj()
+//const double _Complex EMPTY_COMPLEX = EMPTY_DOUBLE + EMPTY_DOUBLE*I;
+
+
+void check_status(int status, const char *file, const int line)
 {
-    int status = pthread_mutex_lock(&obj_mutex);
-    if (status) {
-        printf("Error while locking list of objects\n");
-        exit(EXIT_FAILURE);
+  if (status < 0)
+    { 
+      fprintf(stderr,"Failed status in %s:%d = %s\n",file, line, err2str(status));
+      exit(EXIT_FAILURE);
     }
 }
 
-// unlock the object array
-static void unlock_obj()
+/*Low level function prototypes*/
+
+/**
+   Creates an entry in the MDSPlus database.
+   This function creates (overwrite existing entry) and opens a new pulse 
+   file in the MDSPlus database identified by environment variables.
+   @param[in] name identifier for the database [__deprecated???__]
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[in] refShot reference shot number [__deprecated???__]
+   @param[in] refRun reference run number [__deprecated???__]
+   @param[out] pulseCtx returned pulse context ID
+   @result error status
+
+   @note what about name? is it really mandatory? same for refShot, refRun? 
+   - we can either pass a string filled with additional parameters for the 
+   backend
+   - and/or define additional function in lowlevel C++ API
+ */
+int ual_create(const char *name, int shot, int run, int refShot, int refRun, 
+	       int *pulseCtx)
 {
-    int status = pthread_mutex_unlock(&obj_mutex);
-    if (status) {
-        printf("Error while unlocking list of objects\n");
-        exit(EXIT_FAILURE);
-    }
-}
+  /* name, refShot, refRun not considered */
+  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+				      "", "", ""); 
 
-// clear object list before first use
-static void initializeObjectList()
-{
-    int i;
-    for (i = 0; i < MAX_OBJECTS; i++) {
-        object[i] = 0;
-    }
-}
-
-// get object pointer from its index
-void *getObjectFromList(int idx)
-{
-    void *result;
-    lock_obj();
-    if (current_obj == -1 || !object[idx]) {  // the specified object does no exist
-        printf("Error: trying to access unknown object\n");
-        exit(EXIT_FAILURE);
-    }
-    result = object[idx];
-    unlock_obj();
-    return result;
-}
-
-// change the pointer associated to an index
-void replaceObjectInList(int idx, void *obj)
-{
-    lock_obj();
-    if (current_obj == -1 || !object[idx]) {  // the specified object does no exist
-        printf("Error: trying to access unknown object\n");
-        exit(EXIT_FAILURE);
-    }
-    object[idx] = obj;
-    unlock_obj();
-}
-
-// add a new object pointer to the list
-int addObjectToList(void *obj)
-{
-    int new_obj;
-    lock_obj();
-    if (current_obj == -1) {  // is it the first time we use the list?
-        initializeObjectList(); // then clear the list
-    }
-
-    // find first unused location in the list
-     new_obj = current_obj;
-    do {
-        new_obj++;
-        if (new_obj >= MAX_OBJECTS) new_obj = 0;
-    } while (object[new_obj] && new_obj != current_obj);
-
-    // could not find any empty location?
-    if (object[new_obj]) {
-        return -1;
-    }
-
-    // assign the object to the found location
-    object[new_obj] = obj;
-    current_obj = new_obj;
-    unlock_obj();
-    return new_obj;
-}
-
-// delete an object pointer from the list
-void removeObjectFromList(int idx)
-{
-    lock_obj();
-    if (current_obj == -1 || !object[idx]) {  // the specified object does no exist
-        printf("Error: trying to remove unknown object\n");
-        exit(EXIT_FAILURE);
-    }
-    object[idx] = 0;
-    unlock_obj();
-}
-
-//------------------------------- End of object management ---------------------------
-
-//------------------------------Logging support---------------------------------------
-//#define DEBUG_UAL 1
-
-void logOperation(char *name, char *cpoPath, char *path, int expIdx, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int
-dim7, void *data, double isTimed)
-{
-#ifdef DEBUG_UAL
-    FILE *f = fopen("ual.txt", "a");
-    fprintf(f, "%s ", name);
-    if(cpoPath)
-        fprintf(f, "%s ", cpoPath);
-    if(path)
-        fprintf(f, "%s ", path);
-    fprintf(f, "%d\n", expIdx);
-    fclose(f);
-#endif
-}
-
-
-
-
-
-//---------------------------------------------------------------------------------
-
-
-char* getMajorImasVersion(char * imasVersion)
-{ 
-    char *imasMajor_start = imasVersion;    
-    char *imasMajor_end;    
-    char *imasMajor;    
-    
-    imasMajor_end = strchr(imasVersion, '.');   
-    if(imasMajor_end == NULL)
-    	return imasVersion;
-	
-    imasMajor = (char*)malloc(imasMajor_end - imasMajor_start + 1);
-        
-    memcpy(imasMajor, imasMajor_start, imasMajor_end - imasMajor_start);   
-     *(imasMajor + (imasMajor_end - imasMajor_start)) = '\0';    
-      
-    return imasMajor;
-}
-
-//---------------------------------------------------------------------------------
-static char message[10000];
-char *errmsg = message;
-
-static struct {
-    char expName[MAX_EXP_NAME];
-    int shot;
-    int run;
-    int idx;
-    int mode;
-} expInfo[MAX_OPEN_EXP];
-
-const char* getExpName(int idx)
-{
-    int i;
-    for (i = 0; i < MAX_OPEN_EXP; ++i) {
-        if (expInfo[i].mode == IS_PUBLIC && expInfo[i].idx == idx)
-            return expInfo[i].expName;
-    }
-    sprintf(errmsg, "idx is not open or not public");
-    return "";
-}
-
-char *imas_last_errmsg()
-{
-    return errmsg;
-}
-
-static int isMds(int idx, int *expIdx)
-{
-    *expIdx = expInfo[idx].idx;
-    return (expInfo[idx].mode == IS_MDS);
-}
-
-static int isPublic(int idx, int* expIdx)
-{
-    *expIdx = expInfo[idx].idx;
-    return (expInfo[idx].mode == IS_PUBLIC);
-}
-
-static int getExpIdx(int idx)
-{
-    return expInfo[idx].idx;
-}
-
-static int getShot(int idx)
-{
-    return expInfo[idx].shot;
-}
-
-static int getRun(int idx)
-{
-    return expInfo[idx].run;
-}
-
-EXPORT int ual_get_shot(int idx) { return getShot(idx); }
-EXPORT int ual_get_run(int idx) { return getRun(idx); }
-
-static int setMdsIdx(int shot, int run, int idx)
-{
-    int i;
-    for (i = 0; i < MAX_OPEN_EXP && expInfo[i].mode != IS_NONE; i++);
-    if (i == MAX_OPEN_EXP) return -1;
-    expInfo[i].expName[0] = '\0';
-    expInfo[i].mode = IS_MDS;
-    expInfo[i].shot = shot;
-    expInfo[i].run = run;
-    expInfo[i].idx = idx;
-    return i;
-}
-
-static int setIdamIdx(const char* expName, int shot, int run, int idx)
-{
-    int i;
-    for (i = 0; i < MAX_OPEN_EXP && expInfo[i].mode != IS_NONE; i++);
-    if (i == MAX_OPEN_EXP) return -1;
-    if (strlen(expName) >= MAX_EXP_NAME) {
-        sprintf(errmsg, "experiment name too long");
-        return -1;
-    }
-    strncpy(expInfo[i].expName, expName, MAX_EXP_NAME);
-    expInfo[i].mode = IS_PUBLIC;
-    expInfo[i].shot = shot;
-    expInfo[i].run = run;
-    expInfo[i].idx = idx;
-    return i;
-}
-
-static int  setHdf5Idx(int shot, int run, int idx)
-{
-    int i;
-    for (i = 0; i < MAX_OPEN_EXP && expInfo[i].mode != IS_NONE; i++);
-    if (i == MAX_OPEN_EXP) return -1;
-    expInfo[i].expName[0] = '\0';
-    expInfo[i].mode = IS_HDF5;
-    expInfo[i].shot = shot;
-    expInfo[i].run = run;
-    expInfo[i].idx = idx;
-    return i;
-}
-
-static void closeExpInfo(int idx)
-{
-    expInfo[idx].mode = IS_NONE;
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
 }
 
 /**
- * Checks if shot and run indexes fit within valid range
+   Opens an entry in the MDSPlus database.
+   This function opens an existing pulse file (fail if does not exist)
+   in the MDSPlus database identified by environment variables.
+   @param[in] name identifier for the database [__deprecated???__]
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[out] pulseCtx returned pulse context ID
+   @result error status
  */
-
-static int checkShotRun(int shot, int run)
+int ual_open(const char *name, int shot, int run, int *pulseCtx)
 {
-    if(shot >= 214748 || shot < 0)
-    {
-        sprintf(errmsg, "Invalid shot number %d. Must be between 0 and 214748", shot);
-        return 0;
-    }
-    if(run < 0 || run > 9999)
-    {
-        sprintf(errmsg, "Invalid run number %d. Must be between 0 and 9999", shot);
-        return 0;
-    }
-    return 1;
+  /* name not considered */
+  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+				      "", "", ""); 
+
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 }
 
-int imas_connect(char *ip)
-{
-    return mdsimasConnect(ip);
-}
-
-int imas_disconnect()
-{
-    return mdsimasDisconnect();
-}
-
-/** Execute a shell command (possibly remotely) and
- *  returns the standard output as a string.
- *  If ip is NULL then execute locally.
- *  Return NULL if error.
- *  The returned string has to be freed by the caller.
+/**
+   Closes an entry in the MDSPlus database.
+   This function closes an opened pulse file in the MDSPlus database.
+   @param[in] pulseCtx pulse context ID
+   @result error status
  */
-char *imas_exec(char *ip, char *command)
+int ual_close(int pulseCtx)
 {
-    char *stdOut = spawnCommand(command, ip);
-    return stdOut;
+  return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
 }
 
-EXPORT int imas_open(char *name, int shot, int run, int *retIdx)
+
+int ual_create_hdf5(const char *name, int shot, int run, int refShot, int refRun, int *retIdx);
+int ual_open_hdf5(const char *name, int shot, int run, int *retIdx);
+
+/**
+   Creates an entry in the MDSPlus database.
+   This function creates (overwrite existing entry) and opens a new pulse 
+   file in the MDSPlus database identified by the given arguments.
+   @param[in] name identifier for the database [__deprecated???__]
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[in] refShot reference shot number [__deprecated???__]
+   @param[in] refRun reference run number [__deprecated???__]
+   @param[out] pulseCtx returned pulse context ID
+   @param[in] user database username 
+   @param[in] tokamak database tokamak name 
+   @param[in] version database data version    
+   @result error status
+ */
+int ual_create_env(const char *name, int shot, int run, int refShot, 
+		   int refRun, int *pulseCtx, char *user, char *tokamak, 
+		   char *version)
 {
-    int idx = -1, status = -1;
-    *retIdx = -1;
+  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+				     user, tokamak, version); 
 
-    if(!checkShotRun(shot, run)) return -1;
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
+}
 
-    status = mdsimasOpen(name, shot, run, &idx);
-    if(status) return status;
-    *retIdx = setMdsIdx(shot, run, idx);
+/**
+   Opens an entry in the MDSPlus database.
+   This function opens an existing pulse file (fail if does not exist)
+   in the MDSPlus database identified by the given arguments.
+   @param[in] name identifier for the database [__deprecated???__]
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[out] pulseCtx returned pulse context ID
+   @param[in] user database username 
+   @param[in] tokamak database tokamak name 
+   @param[in] version database data version 
+   @result error status
+ */
+int ual_open_env(const char *name, int shot, int run, int *pulseCtx, 
+		 char *user, char *tokamak, char *version)
+{
+  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+				     user, tokamak, version); 
 
-    if(*retIdx == -1)
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
+}
+
+/**
+   Starts a read action on a DATAOBJECT.
+   This function marks the beginning of a serie of read operations on all 
+   fields of a DATAOBJECT.
+   @param[in] pulseCtx pulse context ID
+   @param[in] path name of the DATAOBJECT
+   @result operation context ID [_errror if < 0_]
+ */
+int beginDataobjectGet(int pulseCtx, const char *path) 
+{
+  return ual_begin_global_action(pulseCtx, path, READ_OP);
+}
+
+/**
+   Terminates a read action on a DATAOBJECT.
+   This function marks the end of a get operation initiated by a call to 
+   beginDataobjectGet().
+   @param[in] opCtx operation context ID (from beginDataobjectGet())
+   @result error status
+ */
+int endDataobjectGet(int opCtx)
+{
+  return ual_end_action(opCtx);
+}
+
+/**
+   Starts a read action on a DATAOBJECT slice.
+   This function marks the beginning of a serie of read operations on all fields
+   (both timed and non-timed) of a DATAOBJECT.
+   @param[in] pulseCtx pulse context ID
+   @param[in] path name of the DATAOBJECT
+   @param[in] time time of the slice
+   @param[in] interpMode mode for interpolation:
+   - CLOSEST_INTERP take the slice at the closest time
+   - PREVIOUS_INTERP take the slice at the previous time
+   - LINEAR_INTERP interpolate the slice between the values of the previous 
+   and next slice
+   @result operation context ID [_error if < 0_]
+
+   @note shouldn't we return value of returned time here instead of subsequent 
+   getFieldSlice calls? Is this information of any use at all? the time field
+   will contain this info anyway no?
+
+   @todo Low-level API modification:
+   - additional parameter interpMode 
+   
+   [ex_ual_begin_slice_action]*/
+int beginDataobjectGetSlice(int pulseCtx, const char *path, double time, 
+			    int interpMode) 
+{
+  return ual_begin_slice_action(pulseCtx, path, READ_OP, time, 
+				interpMode); 
+}
+/*[ex_ual_begin_slice_action]*/
+
+/**
+   Terminates a read action on a DATAOBJECT slice.
+   This function marks the end of a get operation initiated by a call to 
+   beginDataobjectGetSlice().
+   @param[in] opCtx operation context ID (from beginDataobjectGetSlice())
+   @result error status
+   
+   [ex_ual_end_action]*/
+int endDataobjectGetSlice(int opCtx)
+{
+  return ual_end_action(opCtx);
+}
+/*[ex_ual_end_action]*/
+
+/*
+  OH: F90 interface, non timed DATAOBJECT are using beginDataobjectPutNonTimed, C++ is using 
+  beginDataobjectPut => need to clarify use-cases in order to avoid possible bugs and 
+  different behavior with different interfaces
+*/
+
+/**
+   Starts a write action on the timed part of a DATAOBJECT.
+   This function marks the beginning of a serie of write operations on all 
+   timed fields of a DATAOBJECT.
+   @param[in] pulseCtx pulse context ID
+   @param[in] path name of the DATAOBJECT
+   @result operation context [_error if < 0_]
+
+   [ex_ual_begin_global_action]*/
+int beginDataobjectPutTimed(int pulseCtx, const char *path)
+{
+  return ual_begin_global_action(pulseCtx, path, WRITE_OP);
+}
+/*[ex_ual_begin_global_action]*/
+
+/**
+   Terminates a write action on the timed part of a DATAOBJECT.
+   This function marks the end of a put operation initiated by a call to 
+   beginDataobjectPutTimed().
+   @param[in] opCtx operation context ID (from beginDataobjectPutTimed())
+   @result error status
+ */
+int endDataobjectPutTimed(int opCtx)
+{
+  return ual_end_action(opCtx);
+}
+
+/**
+   Starts a write action on the non-timed part of a DATAOBJECT.
+   This function marks the beginning of a serie of write operations on all 
+   non-timed fields of a DATAOBJECT.
+   @param[in] pulseCtx pulse context ID
+   @param[in] path name of the DATAOBJECT
+   @result operation context [_error if < 0_]
+ */
+int beginDataobjectPutNonTimed(int pulseCtx, const char *path)
+{
+  return ual_begin_global_action(pulseCtx, path, WRITE_OP);
+}
+
+/**
+   Terminates a write action on the non-timed part of a DATAOBJECT.
+   This function marks the end of a put operation initiated by a call to 
+   beginDataobjectPutNonTimed().
+   @param[in] opCtx operation context ID (from beginDataobjectPutNonTimed())
+   @result error status
+ */
+int endDataobjectPutNonTimed(int opCtx)
+{
+  return ual_end_action(opCtx);
+}
+
+/**
+   Starts a write action on a DATAOBJECT slice.
+   This function marks the beginning of a serie write operations on all timed 
+   fields of a DATAOBJECT slice.
+   @param[in] pulseCtx pulse context ID
+   @param[in] path name of the DATAOBJECT
+   @param[in] time time of the slice to write
+   @result operation context ID [_error if < 0_]
+*/
+int beginDataobjectPutSlice(int pulseCtx, const char *path, double time)
+{
+  return ual_begin_slice_action(pulseCtx, path, WRITE_OP, time, 
+				UNDEFINED_INTERP);
+}
+
+/**
+   Terminates a write action on a DATAOBJECT slice.
+   This function marks the end of a put operation initiated by a call to 
+   beginDataobjectPutSlice().
+   @param[in] opCtx operation context ID (from beginDataobjectPutSlice())
+   @result error status
+ */
+int endDataobjectPutSlice(int opCtx)
+{
+  return ual_end_action(opCtx);
+}
+
+/* allow future extension where another slice than the last one is replaced */
+
+
+
+/* management 
+********************************************************************************/
+
+/**
+   Deletes data.
+   This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) 
+   in the database given the passed context.
+   @param[in] ctx operation context ID 
+   @param[in] fieldPath path of the data structure element to delete (suppress the 
+   whole subtree)
+   @result error status
+ */
+int deleteData(int ctx, const char *fieldPath)
+{
+  return ual_delete_data(ctx, fieldPath);
+}
+
+
+/**
+   Flush cached data.
+   @todo TDB
+ */
+int ual_flush_dataobject_mem_cache(int ctx, const char *path) 
+{
+  return 0;
+}
+
+/**
+   Discard cached data.
+   @todo TDB
+ */
+int ual_discard_dataobject_mem_cache(int ctx, const char *path) 
+{
+  return 0;
+}
+
+
+
+/* writers 
+********************************************************************************/
+
+/**
+   Writes a character.
+   This function writes a scalar signal made of character into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+*/
+int putChar(int opCtx, const char *fieldPath, const char *timebasePath, char data)
+{
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+			CHAR_DATA, 0, NULL);
+}
+
+/**
+   Writes an integer.
+   This function writes a scalar signal made of integer into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+*/
+int putInt(int opCtx, const char *fieldPath, const char *timebasePath, int data)
+{
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+			INTEGER_DATA, 0, NULL);
+}
+
+/**
+   Writes a double.
+   This function writes a scalar signal made of double into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+*/
+int putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double data)
+{
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+			DOUBLE_DATA, 0, NULL);
+}
+
+/**
+   Writes a complex number.
+   This function writes a scalar signal made of complex number into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+*/
+int putComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+	       double _Complex data)
+{
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+			COMPLEX_DATA, 0, NULL);
+}
+
+/**
+   Writes a 1D char array.
+   This function writes a 1D vector signal made of characters into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath,
+		  char *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			CHAR_DATA, 1, size);
+}
+
+/**
+   Writes a 1D int array.
+   This function writes a 1D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 1, size);
+}
+
+/**
+   Writes a 1D double array.
+   This function writes a 1D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 1, size);
+}
+
+/**
+   Writes a 1D complex number array.
+   This function writes a 1D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim size of first dimension
+   @result error status
+   @note draft 
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 1, size);
+}
+
+/**
+   Writes a 2D char array.
+   This function writes a 2D vector signal made of characters into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
+		  char *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			CHAR_DATA, 2, size);
+}
+
+/**
+   Writes a 2D int array.
+   This function writes a 2D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 2, size);
+}
+
+/**
+   Writes a 2D double array.
+   This function writes a 2D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 2, size);
+}
+
+/**
+   Writes a 2D complex number array.
+   This function writes a 2D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 2, size);
+}
+
+/**
+   Writes a 3D integer array.
+   This function writes a 3D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 3, size);
+}
+
+/**
+   Writes a 3D double array.
+   This function writes a 3D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 3, size);
+}
+
+/**
+   Writes a 3D complex number array.
+   This function writes a 3D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 3, size);
+}
+
+/**
+   Writes a 4D integer array.
+   This function writes a 4D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2, int dim3, int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 4, size);
+}
+
+/**
+   Writes a 4D double array.
+   This function writes a 4D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2, int dim3, int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 4, size);
+}
+
+/**
+   Writes a 4D complex number array.
+   This function writes a 4D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2, int dim3, int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 4, size);
+}
+
+/**
+   Writes a 5D integer array.
+   This function writes a 5D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 5, size);
+}
+
+/**
+   Writes a 5D double array.
+   This function writes a 5D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 5, size);
+}
+
+/**
+   Writes a 5D complex number array.
+   This function writes a 5D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 5, size);
+}
+
+/**
+   Writes a 6D integer array.
+   This function writes a 6D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
+		 int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 6, size);
+}
+
+/**
+   Writes a 6D double array.
+   This function writes a 6D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    int dim5, int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 6, size);
+}
+
+/**
+   Writes a 6D complex number array.
+   This function writes a 6D vector signal made of complex numbers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     int dim5, int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 6, size);
+}
+
+/**
+   Writes a 7D integer array.
+   This function writes a 7D vector signal made of integers into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @param[in] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
+		 int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			INTEGER_DATA, 7, size);
+}
+
+/**
+   Writes a 7D double array.
+   This function writes a 7D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @param[in] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    int dim5, int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			DOUBLE_DATA, 7, size);
+}
+
+/**
+   Writes a 7D complex number array.
+   This function writes a 7D vector signal made of doubles into a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath field name for the timebase
+   @param[in] data field value 
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @param[in] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification: 
+   - additional timebasePath argument
+   - remove isTimed argument
+*/
+int putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     int dim5, int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+			COMPLEX_DATA, 7, size);
+}
+
+
+
+/* readers
+********************************************************************************/
+
+
+/**
+   Reads a character.
+   This function reads a scalar signal made of a character from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getChar(int opCtx, const char *fieldPath, const char *timebasePath,
+	    char *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
+			 CHAR_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads an integer.
+   This function reads a scalar signal made of an integer from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @result error status
+ */
+int getInt(int opCtx, const char *fieldPath, const char *timebasePath,
+	   int *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
+			 INTEGER_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a double.
+   This function reads a scalar signal made of a double from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @result error status
+ */
+int getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+	      double *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
+			 DOUBLE_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a complex number.
+   This function reads a scalar signal made of a complex number from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @result error status
+ */
+int getComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+	       double _Complex *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
+			 COMPLEX_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a 1D character array.
+   This function reads a 1D vector signal made of characters from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
+		  char **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 CHAR_DATA, 1, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim = retSize[0];
     }
-
-    return status;
+  return status;
 }
 
-EXPORT int imas_open_public(char *name, int shot, int run, int *retIdx, const char* expName)
+/**
+   Reads a 1D integer array.
+   This function reads a 1D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim)
 {
-    *retIdx = -1;
-#ifdef IDAM
-    int idx = -1, status = -1;
-
-    if(!checkShotRun(shot, run)) return -1;
-
-    status = idamimasOpen(name, shot, run, &idx);
-    if(status) return status;
-    *retIdx = setIdamIdx(expName, shot, run, idx);
-
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 1, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim = retSize[0];
     }
-
-    return status;
-#else
-    sprintf(errmsg, "Public IDS calls not available");
-    return -1;
-#endif
+  return status;
 }
 
-EXPORT int imas_open_env(char *name, int shot, int run, int *retIdx, char *user, char *tokamak, char *version)
+/**
+   Reads a 1D double array.
+   This function reads a 1D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim)
 {
-    int idx = -1, status = -1;
-    *retIdx = -1;
-   char* majorVersion = NULL;
-
-    if(!checkShotRun(shot, run)) return -1;
-
-    majorVersion = getMajorImasVersion(version);
-    status = mdsimasOpenEnv(name, shot, run, &idx, user, tokamak, majorVersion);
-    if(status) return status;
-    *retIdx = setMdsIdx(shot, run, idx);
-
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 1, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim = retSize[0];
     }
-
-    logOperation("imas_open_env", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
+  return status;
 }
 
-EXPORT int imas_open_hdf5(char *name, int shot, int run, int *retIdx)
+/**
+   Reads a 1D complex number array.
+   This function reads a 1D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim)
 {
-    *retIdx = -1;
-#ifdef HDF5
-    int idx = -1, status = -1;
-
-    if(!checkShotRun(shot, run)) return -1;
-
-    status = hdf5imasOpen(name, shot, run, &idx);
-    if(status) return status;
-    *retIdx = setHdf5Idx(shot, run, idx);
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 1, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim = retSize[0];
     }
-    logOperation("imas_open_hdf5", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
-#else
-    strcpy(errmsg, "HDF5 Not enabled");
-    return -1;
-#endif
+  return status;
 }
 
-EXPORT int imas_create(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
+/**
+   Reads a 2D character array.
+   This function reads a 2D vector signal made of characters from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
+		  char **data, int *dim1, int *dim2)
 {
-    int idx = -1, status = -1;
-      
-    *retIdx = -1;
-
-    if(!checkShotRun(shot, run)) return -1;
-
-    status = mdsimasCreate(name, shot, run, refShot, refRun, &idx);
-    if(status) return status;
-    *retIdx = setMdsIdx(shot, run, idx);
-
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 CHAR_DATA, 2, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
     }
-
-    logOperation("imas_create", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
+  return status;
 }
 
-EXPORT int imas_create_public(char *name, int shot, int run, int refShot, int refRun, int *retIdx, const char* expName)
+/**
+   Reads a 2D integer array.
+   This function reads a 2D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2)
 {
-    *retIdx = -1;
-#ifdef IDAM
-    int idx = -1, status = -1;
-
-    if(!checkShotRun(shot, run)) return -1;
-
-    status = idamimasCreate(name, shot, run, refShot, refRun, &idx);
-    if(status) return status;
-    *retIdx = setIdamIdx(expName, shot, run, idx);
-
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 2, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
     }
-
-    logOperation("imas_create", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
-#else
-    sprintf(errmsg, "Public IDS calls not available");
-    return -1;
-#endif
+  return status;
 }
 
-EXPORT int imas_create_env(char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version)
+/**
+   Reads a 2D double array.
+   This function reads a 2D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2)
 {
-    int idx = -1, status = -1;
-    char* majorVersion = NULL;
-    *retIdx = -1;
-
-    if(!checkShotRun(shot, run)) return -1;
-    
-    majorVersion = getMajorImasVersion(version);
-
-    status = mdsimasCreateEnv(name, shot, run, refShot, refRun, &idx, user, tokamak, majorVersion);
-    if(status) return status;
-    *retIdx = setMdsIdx(shot, run, idx);
-
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 2, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
     }
-
-    logOperation("imas_create_env", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
+  return status;  
 }
 
-EXPORT int imas_create_hdf5(char *name, int shot, int run, int refShot, int refRun, int *retIdx)
+/**
+   Reads a 2D complex number array.
+   This function reads a 2D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2)
 {
-    *retIdx = -1;
-#ifdef HDF5
-    int idx = -1, status = -1;
-
-     if(!checkShotRun(shot, run)) return -1;
-
-    status = hdf5imasCreate(name, shot, run, refShot, refRun, &idx);
-    if(status) return status;
-    *retIdx = setHdf5Idx(shot, run, idx);
-    if(*retIdx == -1)
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 2, &retSize[0]);
+  if (status==0)
     {
-        strcpy(errmsg, "Too many open pulse files");
-        return -1;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
     }
-    logOperation("imas_create_hdf5", 0, 0, shot, run, *retIdx, 0, 0, 0, 0, 0, 0, 0);
-    return status;
-#else
-    strcpy(errmsg, "HDF5 Not enabled");
-    return -1;
-#endif
+  return status;  
 }
 
-EXPORT int imas_close(int idx)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("imas_close", 0, 0, idx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+/**
+   Reads a 3D integer array.
+   This function reads a 3D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
 
-    if (isPublic(idx, &currIdx))
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 3, &retSize[0]);
+  if (status==0)
     {
-        status = idamimasClose(currIdx, "ids", getShot(idx), getRun(idx));
-    	closeExpInfo(idx);
-        return status;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
     }
-    else if (isMds(idx, &currIdx))
+  return status;
+}
+
+/**
+   Reads a 3D double array.
+   This function reads a 3D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+
+   [ex_ual_read_data]*/
+int getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 3, &retSize[0]);
+  if (status==0)
     {
-        status = mdsimasClose(currIdx, "ids", getShot(idx), getRun(idx));
-    	closeExpInfo(idx);
-        return status;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
     }
-#ifdef HDF5
-    else
+  return status;
+}
+/*[ex_ual_read_data]*/
+
+/**
+   Reads a 3D complex number array.
+   This function reads a 3D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2, 
+		     int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 3, &retSize[0]);
+  if (status==0)
     {
-        status = hdf5imasClose(currIdx, "ids", getShot(idx), getRun(idx));
-    	closeExpInfo(idx);
-        return status;
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
     }
-#endif
-    sprintf(errmsg, "Error closing database: invalid index %d\n", idx);
-    return -1;
-}
-
-int deleteData(int expIdx, char *cpoPath, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("deleteData", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamDeleteData(currIdx, cpoPath, path);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsDeleteData(currIdx, cpoPath, path);
-#ifdef HDF5
-    else
-        status = hdf5DeleteData(currIdx, cpoPath, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsPutSlice(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsPutSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsPutSlice(currIdx, path);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsbeginIdsPutSlice(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsPutSlice(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int endIdsPutSlice(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsPutSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsPutSlice(currIdx, path);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsendIdsPutSlice(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsPutSlice(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsReplaceLastSlice(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsReplaceLastSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsReplaceLastSlice(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsbeginIdsReplaceLastSlice(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsReplaceLastSlice(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int endIdsReplaceLastSlice(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsReplaceLastSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsReplaceLastSlice(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsendIdsReplaceLastSlice(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsReplaceLastSlice(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsPut(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsPut", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsPut(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsbeginIdsPut(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsPut(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int endIdsPut(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsPut", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsPut(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsendIdsPut(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsPut(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsPutTimed(int expIdx, char *path, int samples, double *inTimes)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsPutTimed", path, 0, expIdx, samples, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsPutTimed(currIdx, path, samples, inTimes);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsbeginIdsPutTimed(currIdx, path, samples, inTimes);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsPutTimed(currIdx, path, samples, inTimes);
-#endif
-    return status;
-}
-
-EXPORT int endIdsPutTimed(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsPutTimed", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsPutTimed(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsendIdsPutTimed(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsPutTimed(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsPutNonTimed(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsPutNonTimed", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsPutNonTimed(currIdx, path);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsbeginIdsPutNonTimed(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsPutNonTimed(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int endIdsPutNonTimed(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsPutNonTimed", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsPutNonTimed(currIdx, path);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsendIdsPutNonTimed(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsPutNonTimed(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int putString(int expIdx, char *cpoPath, char *path, char *data, int strlen)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putString", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutString(currIdx, cpoPath, path, data, strlen);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutString(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-      status = hdf5PutString(currIdx, cpoPath, path, data, strlen);
-#endif
-    return status;
-}
-
-EXPORT int  putFloat(int expIdx, char *cpoPath, char *path, float data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putFloat", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutFloat(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutFloat(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5PutFloat(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int  putInt(int expIdx, char *cpoPath, char *path, int data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putInt", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if(data == EMPTY_INT)
-	    return deleteData(expIdx, cpoPath, path);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutInt(currIdx, cpoPath, path, data);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutInt(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5PutInt(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int  putDouble(int expIdx, char *cpoPath, char *path, double data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putDouble", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if(data == EMPTY_DOUBLE)
-	    return deleteData(expIdx, cpoPath, path);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutDouble(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutDouble(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5PutDouble(currIdx, cpoPath, path, data);
-#endif
-}
-
-EXPORT int putVect1DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DInt", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DInt(currIdx, cpoPath, path, data, dim, isTimed);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect1DInt(currIdx, cpoPath, path, timeBasePath, data, dim, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DInt(currIdx, cpoPath, path, data, dim, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DString(int expIdx, char *cpoPath, char *path, char *timeBasePath, char **data, int dim, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DString", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DString(currIdx, cpoPath, path, data, dim, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect1DString(currIdx, cpoPath, path, timeBasePath, data, dim, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DString(currIdx, cpoPath, path, data, dim, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DDouble", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DDouble(currIdx, cpoPath, path, data, dim, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect1DDouble(currIdx, cpoPath, path, timeBasePath, data, dim, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DDouble(currIdx, cpoPath, path, data, dim, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DFloat", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DFloat(currIdx, cpoPath, path, data, dim, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect1DFloat(currIdx, cpoPath, path, timeBasePath, data, dim, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DFloat(currIdx, cpoPath, path, data, dim, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DInt", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DInt(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect2DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DInt(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DFloat", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DFloat(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect2DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DFloat(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DDouble", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DDouble(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect2DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DDouble(currIdx, cpoPath, path, data, dim1, dim2, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DInt", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect3DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DFloat", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect3DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DDouble", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect3DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DInt", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int dim4, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DFloat", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int dim4, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DDouble", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DInt", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DFloat", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int dim4,
-   int dim5, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DDouble", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, isTimed);
-#endif
-    return status;
-}
-
-////6D
-EXPORT int putVect6DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DInt", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect6DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DFloat", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect6DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int dim4,
-   int dim5, int dim6, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DDouble", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect7DInt(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect7DInt", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect7DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect7DInt(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect7DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect7DFloat(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect7DFloat", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect7DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect7DFloat(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect7DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#endif
-    return status;
-}
-
-EXPORT int putVect7DDouble(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int dim4,
-   int dim5, int dim6, int dim7, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect7DDouble", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect7DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect7DDouble(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutVect7DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7, isTimed);
-#endif
-    return status;
-}
-
-////////////////PUT SLICE ROUTINES
-
-EXPORT int putStringSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, char *data, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putStringSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutStringSlice(currIdx, cpoPath, path, data, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutStringSlice(currIdx, cpoPath, path, timeBasePath, data, time);
-#ifdef HDF5
-    else
-        status = hdf5PutStringSlice(currIdx, cpoPath, path, data, time);
-#endif
-    return status;
-}
-
-EXPORT int putFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float data, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putFloatSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutFloatSlice(currIdx, cpoPath, path, data, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutFloatSlice(currIdx, cpoPath, path, timeBasePath, data, time);
-#ifdef HDF5
-    else
-        status = hdf5PutFloatSlice(currIdx, cpoPath, path, data, time);
-#endif
-    return status;
-}
-
-EXPORT int putIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int data, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putIntSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, time);
-
-    if (data == EMPTY_INT)
-	    return 0;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutIntSlice(currIdx, cpoPath, path, data, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutIntSlice(currIdx, cpoPath, path, timeBasePath, data, time);
-#ifdef HDF5
-    else
-        status = hdf5PutIntSlice(currIdx, cpoPath, path, data, time);
-#endif
-    return status;
-}
-
-EXPORT int  putDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double data, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putDoubleSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, time);
-
-    if(data == EMPTY_DOUBLE)
-	    return 0;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutDoubleSlice(currIdx, cpoPath, path, data, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, time);
-#ifdef HDF5
-    else
-        status = hdf5PutDoubleSlice(currIdx, cpoPath, path, data, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DIntSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DIntSlice(currIdx, cpoPath, path, data, dim, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect1DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DIntSlice(currIdx, cpoPath, path, data, dim, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DDoubleSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DDoubleSlice(currIdx, cpoPath, path, data, dim, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect1DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DDoubleSlice(currIdx, cpoPath, path, data, dim, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect1DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect1DFloatSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect1DFloatSlice(currIdx, cpoPath, path, data, dim, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect1DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect1DFloatSlice(currIdx, cpoPath, path, data, dim, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DIntSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect2DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DFloatSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect2DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect2DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect2DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutVect3DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, double time)
-
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect3DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect3DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect3DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3, int dim4, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3, int dim4, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect4DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect4DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect4DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4,
-    int dim5, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect5DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect5DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, int dim6, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, int dim6, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#endif
-    return status;
-}
-
-EXPORT int putVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, int dim1, int dim2, int dim3, int dim4,
-    int dim5, int dim6, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putVect6DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, time);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-    else if(isMds(expIdx, &currIdx))
-        status = mdsPutVect6DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#ifdef HDF5
-    else
-        status = hdf5PutVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time);
-#endif
-    return status;
-}
-
-//////////////////REPLACE LAST SLICE ROUTINES
-
-EXPORT int  replaceLastStringSlice(int expIdx, char *cpoPath, char *path, char *data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastStringSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastStringSlice(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastStringSlice(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastStringSlice(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int  replaceLastFloatSlice(int expIdx, char *cpoPath, char *path, float data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastFloatSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastFloatSlice(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastFloatSlice(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastFloatSlice(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int  replaceLastIntSlice(int expIdx, char *cpoPath, char *path, int data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastIntSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastIntSlice(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastIntSlice(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastIntSlice(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int  replaceLastDoubleSlice(int expIdx, char *cpoPath, char *path, double data)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastDoubleSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastDoubleSlice(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastDoubleSlice(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastDoubleSlice(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect1DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect1DIntSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, &data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect1DIntSlice(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect1DIntSlice(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect1DIntSlice(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect1DDoubleSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect1DDoubleSlice(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect1DDoubleSlice(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect1DDoubleSlice(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect1DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect1DFloatSlice", cpoPath, path, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect1DFloatSlice(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect1DFloatSlice(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect1DFloatSlice(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect2DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect2DIntSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect2DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect2DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect2DFloatSlice", cpoPath, path, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect3DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect3DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect3DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect3DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect3DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect4DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect4DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect4DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect4DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect4DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect5DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect5DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2,
-    int dim3, int dim4, int dim5)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect5DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect5DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2,
-    int dim3, int dim4, int dim5)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect5DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect6DFloatSlice(int expIdx, char *cpoPath, char *path, float *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, int dim6)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect6DFloatSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, double *data, int dim1, int dim2,
-    int dim3, int dim4, int dim5, int dim6)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect6DDoubleSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-EXPORT int replaceLastVect6DIntSlice(int expIdx, char *cpoPath, char *path, int *data, int dim1, int dim2, int dim3,
-    int dim4, int dim5, int dim6)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("replaceLastVect6DIntSlice", cpoPath, path, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamReplaceLastVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsReplaceLastVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5ReplaceLastVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-/////////////GET ROUTINES////////////////////////
-
-EXPORT int getDimension(int expIdx, char *cpoPath, char *path, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetDimension(currIdx, cpoPath, path, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetDimension(currIdx, cpoPath, path, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        status = hdf5GetDimension(currIdx, cpoPath, path, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    if (status) {
-        *numDims = *dim1 = *dim2 = *dim3 = *dim4 = *dim5 = *dim6 = *dim7 = 0;
+  return status;
+}
+
+/**
+   Reads a 4D integer array.
+   This function reads a 4D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2, int *dim3, 
+		 int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 4, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
     }
-    return status;
-}
-
-EXPORT int getString(int expIdx, char *cpoPath, char *path, char **data)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetString(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetString(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5GetString(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int getFloat(int expIdx, char *cpoPath, char *path, float *data)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetFloat(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetFloat(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5GetFloat(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int getInt(int expIdx, char *cpoPath, char *path, int *data)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetInt(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetInt(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5GetInt(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int getDouble(int expIdx, char *cpoPath, char *path, double *data)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetDouble(currIdx, cpoPath, path, data);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetDouble(currIdx, cpoPath, path, data);
-#ifdef HDF5
-    else
-        status = hdf5GetDouble(currIdx, cpoPath, path, data);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DString(int expIdx, char *cpoPath, char *path, char  ***data, int *dim)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DString(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DString(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DString(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DInt(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DInt(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DInt(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DFloat(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DFloat(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DFloat(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DDouble(int expIdx, char *cpoPath, char *path, double **data, int *dim)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DDouble(currIdx, cpoPath, path, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DDouble(currIdx, cpoPath, path, data, dim);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DDouble(currIdx, cpoPath, path, data, dim);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DInt(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DInt(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DInt(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DFloat(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DFloat(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DFloat(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DDouble(currIdx, cpoPath, path, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DDouble(currIdx, cpoPath, path, data, dim1, dim2);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DDouble(currIdx, cpoPath, path, data, dim1, dim2);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DInt(int expIdx, char *cpoPath, char *path, int **data, int *dim1, int *dim2, int *dim3)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DFloat(int expIdx, char *cpoPath, char *path, float **data, int *dim1, int *dim2, int *dim3)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, int *dim4,
-    int *dim5)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, int *dim4,
-    int *dim5, int *dim6)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return status;
-}
-
-EXPORT int getVect7DDouble(int expIdx, char *cpoPath, char *path, double  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect7DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect7DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        status = hdf5GetVect7DDouble(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return status;
-}
-
-EXPORT int getVect7DFloat(int expIdx, char *cpoPath, char *path, float  **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect7DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect7DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        status = hdf5GetVect7DFloat(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return status;
-}
-
-EXPORT int getVect7DInt(int expIdx, char *cpoPath, char *path, int  **data, int *dim1, int *dim2, int *dim3, int *dim4,
-    int *dim5, int *dim6, int *dim7)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect7DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect7DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        status = hdf5GetVect7DInt(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return status;
-}
-
-EXPORT int endIdsGet(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsGet", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsGet(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsendIdsGet(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsGet(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsGet(int expIdx, char *path, int isTimed, int *retSamples)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsGet", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsGet(currIdx, path, isTimed, retSamples);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsbeginIdsGet(currIdx, path, isTimed, retSamples);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsGet(currIdx, path, isTimed, retSamples);
-#endif
-
-    return status;
-}
-
-////////////////////GET SLICE ROUTINES ////////////////////////////////////
-EXPORT int endIdsGetSlice(int expIdx, char *path)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("endIdsGetSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamendIdsGetSlice(currIdx, path);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsendIdsGetSlice(currIdx, path);
-#ifdef HDF5
-    else
-        status = hdf5endIdsGetSlice(currIdx, path);
-#endif
-    return status;
-}
-
-EXPORT int beginIdsGetSlice(int expIdx, char *path, double time)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("beginIdsGetSlice", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idambeginIdsGetSlice(currIdx, path, time);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsbeginIdsGetSlice(currIdx, path, time);
-#ifdef HDF5
-    else
-        status = hdf5beginIdsGetSlice(currIdx, path, time);
-#endif
-    return status;
-}
-
-EXPORT int getIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int *data, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetIntSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetIntSlice(currIdx, cpoPath, path, timeBasePath, data, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetIntSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float *data, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetFloatSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetFloatSlice(currIdx, cpoPath, path, timeBasePath, data, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetFloatSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double *data, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetDoubleSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetDoubleSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getStringSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, char **data, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetStringSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetStringSlice(currIdx, cpoPath, path, timeBasePath, data, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetStringSlice(currIdx, cpoPath, path, data, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DIntSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DIntSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DFloatSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DFloatSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect1DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect1DDoubleSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect1DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect1DDoubleSlice(currIdx, cpoPath, path, data, dim, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect2DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect2DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect2DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect3DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, int *dim3, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect3DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect3DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect4DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect4DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect4DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect5DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect5DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect5DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DIntSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, int **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DIntSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DIntSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DFloatSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, float **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DFloatSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DFloatSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-EXPORT int getVect6DDoubleSlice(int expIdx, char *cpoPath, char *path, char *timeBasePath, double **data, int *dim1, int *dim2, int *dim3,
-    int *dim4, int *dim5, int *dim6, double time, double *retTime, int interpolMode)
-{
-    int status = 0;
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsGetVect6DDoubleSlice(currIdx, cpoPath, path, timeBasePath, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#ifdef HDF5
-    else
-        status = hdf5GetVect6DDoubleSlice(currIdx, cpoPath, path, data, dim1, dim2, dim3, dim4, dim5, dim6, time, retTime, interpolMode);
-#endif
-    return status;
-}
-
-//Initialize room for a generic array of structures
-void *beginObject(int expIdx, void *obj, int index, const char *relPath, int isTimed)
-{
-    int currIdx;
-    logOperation("beginObject", (char *)relPath, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamBeginObject();
-    else if (isMds(expIdx, &currIdx))
-        return mdsBeginObject();
-#ifdef HDF5
-    else
-        return hdf5BeginObject(currIdx, obj, index, relPath, isTimed);
-#endif
-    return NULL;
-}
-
-//Releases memory for array of structures
-void releaseObject(int expIdx, void *obj)
-{
-    int currIdx;
-    logOperation("releaseObject", 0, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamReleaseObject(obj);
-    else if (isMds(expIdx, &currIdx))
-        mdsReleaseObject(obj);
-#ifdef HDF5
-    else
-        hdf5ReleaseObject(obj);
-#endif
-}
-
-//Writes an array of objects array of structures
-//Flag isTImes specifies whether the array refers to time-dependent field (in this case the dimension refers to time)
-int putObject(int expIdx, char *cpoPath, char *path, void *obj, int isTimed)
-{
-    int status = 0;
-    int currIdx;
-    logOperation("putObject", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, isTimed);
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamPutObject(currIdx, cpoPath, path, obj, isTimed);
-    else if (isMds(expIdx, &currIdx))
-        status = mdsPutObject(currIdx, cpoPath, path, obj, isTimed);
-#ifdef HDF5
-    else
-        status = hdf5PutObject(currIdx, cpoPath, path, obj, isTimed);
-#endif
-
-    if(status)
-         logOperation("putObject FAILED", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, isTimed);
-    else
-         logOperation("putObject SUCCESS", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, isTimed);
-    return status;
-}
-
-//Add elements to the structure array. Note: returns the new pointer to the object, possibly chjanged (if object reallocated)
-//Argument path refers to the path name within the structure
-//Argument idx is the index in the array of structues
-void *putIntInObject(int expIdx, void *obj, char *path, int idx, int data)
-{
-    int currIdx;
-
-    logOperation("putIntInObject", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutIntInObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutIntInObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5PutIntInObject(obj, path, idx, data);
-#endif
-    return NULL;
-}
-
-void *putStringInObject(int expIdx, void *obj, char *path, int idx, char *data)
-{
-    int currIdx;
-
-    logOperation("putStringInObject", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutStringInObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutStringInObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5PutStringInObject(obj, path, idx, data);
-#endif
-    return NULL;
-}
-
-void *putFloatInObject(int expIdx, void *obj, char *path, int idx, float data)
-{
-    int currIdx;
-
-    logOperation("putFloatInObject", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutFloatInObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutFloatInObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5PutFloatInObject(obj, path, idx, data);
-#endif
-    return NULL;
-}
-
-void *putDoubleInObject(int expIdx, void *obj, char *path, int idx, double data)
-{
-    int currIdx;
-
-    logOperation("putDoubleInObject", path, 0, expIdx, 0, 0, 0, 0, 0, 0, 0, &data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutDoubleInObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutDoubleInObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5PutDoubleInObject(obj, path, idx, data);
-#endif
-    return NULL;
-}
-
-void *putVect1DStringInObject(int expIdx, void *obj, char *path, int idx, char **data, int dim)
-{
-    int currIdx;
-
-    logOperation("putVect1DStringInObject", path, 0, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect1DStringInObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect1DStringInObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5PutVect1DStringInObject(obj, path, idx, data, dim);
-#endif
-    return NULL;
-}
-
-void *putVect1DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim)
-{
-    int currIdx;
-
-    logOperation("putVect1DIntInObject", path, 0, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect1DIntInObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect1DIntInObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5PutVect1DIntInObject(obj, path, idx, data, dim);
-#endif
-    return NULL;
-}
-
-void *putVect1DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim)
-{
-    int currIdx;
-
-    logOperation("putVect1DFloatInObject", path, 0, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect1DFloatInObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect1DFloatInObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5PutVect1DFloatInObject(obj, path, idx, data, dim);
-#endif
-    return NULL;
-}
-
-void *putVect1DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim)
-{
-    int currIdx;
-
-    logOperation("putVect1DDoubleInObject", path, 0, expIdx, dim, 0, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect1DDoubleInObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect1DDoubleInObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5PutVect1DDoubleInObject(obj, path, idx, data, dim);
-#endif
-    return NULL;
-}
-
-void *putVect2DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2)
-{
-    int currIdx;
-
-    logOperation("putVect2DIntInObject", path, 0, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect2DIntInObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect2DIntInObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5PutVect2DIntInObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return NULL;
-}
-
-void *putVect2DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2)
-{
-    int currIdx;
-
-    logOperation("putVect2DFloatInObject", path, 0, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect2DFloatInObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect2DFloatInObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5PutVect2DFloatInObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return NULL;
-}
-
-void *putVect2DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2)
-{
-    int currIdx;
-
-    logOperation("putVect2DDoubleInObject", path, 0, expIdx, dim1, dim2, 0, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect2DDoubleInObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect2DDoubleInObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5PutVect2DDoubleInObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return NULL;
-}
-
-void *putVect3DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3)
-{
-    int currIdx;
-
-    logOperation("putVect3DIntInObject", path, 0, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect3DIntInObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect3DIntInObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5PutVect3DIntInObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return NULL;
-}
-
-void *putVect3DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3)
-{
-    int currIdx;
-
-    logOperation("putVect3DFloatInObject", path, 0, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect3DFloatInObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect3DFloatInObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5PutVect3DFloatInObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return NULL;
-}
-
-void *putVect3DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3)
-{
-    int currIdx;
-    logOperation("putVect3DDoubleInObject", path, 0, expIdx, dim1, dim2, dim3, 0, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect3DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect3DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5PutVect3DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return NULL;
-}
-
-void *putVect4DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int currIdx;
-    logOperation("putVect4DIntInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect4DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-       return mdsPutVect4DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5PutVect4DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return NULL;
-}
-
-void *putVect4DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int currIdx;
-    logOperation("putVect4DFloatInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect4DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect4DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5PutVect4DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return NULL;
-}
-
-void *putVect4DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4)
-{
-    int currIdx;
-    logOperation("putVect4DDoubleInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, 0, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect4DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect4DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5PutVect4DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return NULL;
-}
-
-void *putVect5DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
-{
-    int currIdx;
-    logOperation("putVect5DIntInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect5DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect5DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5PutVect5DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return NULL;
-}
-
-void *putVect5DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5)
-{
-    int currIdx;
-    logOperation("putVect5DFloatInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect5DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect5DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5PutVect5DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return NULL;
-}
-
-void *putVect5DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5)
-{
-    int currIdx;
-    logOperation("putVect5DDoubleInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, 0, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect5DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-       return mdsPutVect5DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5PutVect5DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return NULL;
-}
-
-void *putVect6DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
-{
-    int currIdx;
-    logOperation("putVect6DIntInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect6DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect6DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5PutVect6DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return NULL;
-}
-
-void *putVect6DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
-{
-    int currIdx;
-    logOperation("putVect6DFloatInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect6DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect6DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5PutVect6DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return NULL;
-}
-
-void *putVect6DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6)
-{
-    int currIdx;
-    logOperation("putVect6DDoubleInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, 0, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect6DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-     else if (isMds(expIdx, &currIdx))
-       return mdsPutVect6DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5PutVect6DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return NULL;
-}
-
-void *putVect7DIntInObject(int expIdx, void *obj, char *path, int idx, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
-{
-    int currIdx;
-    logOperation("putVect7DIntInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect7DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect7DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5PutVect7DIntInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return NULL;
-}
-
-void *putVect7DFloatInObject(int expIdx, void *obj, char *path, int idx, float *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
-{
-    int currIdx;
-    logOperation("putVect7DFloatInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect7DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect7DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5PutVect7DFloatInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return NULL;
-}
-
-void *putVect7DDoubleInObject(int expIdx, void *obj, char *path, int idx, double *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7)
-{
-    int currIdx;
-    logOperation("putVect7DDoubleInObject", path, 0, expIdx, dim1, dim2, dim3, dim4, dim5, dim6, dim7, data, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutVect7DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutVect7DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5PutVect7DDoubleInObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return NULL;
-}
-
-void *putObjectInObject(int expIdx, void *obj, char *path, int idx, void *dataObj)
-{
-    int currIdx;
-    logOperation("putObjectInObject", path, 0, expIdx, idx, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutObjectInObject(obj, path, idx, dataObj);
-    else if (isMds(expIdx, &currIdx))
-        return mdsPutObjectInObject(obj, path, idx, dataObj);
-#ifdef HDF5
-    else
-        return hdf5PutObjectInObject(obj, path, idx, dataObj);
-#endif
-    return NULL;
-}
-
-//Retrieve the number of elements for the array of structures. Returns -1 if an error occurs;
-int getObjectDim(int expIdx, void *obj)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetObjectDim(obj);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetObjectDim(obj);
-#ifdef HDF5
-    else
-        return hdf5GetObjectDim(obj);
-#endif
-    return -1;
-}
-
-//Read the array of structures from the pulse file. Status indicates as always success (0) or error (!= 0)
-int getObject(int expIdx, char *path, char *cpoPath, void **obj, int isTimed)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetObject(currIdx, path, cpoPath, obj, isTimed);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetObject(currIdx, path, cpoPath, obj, isTimed);
-#ifdef HDF5
-    else
-        return hdf5GetObject(currIdx, path, cpoPath, obj, isTimed);
-#endif
-    return -1;
-}
-
-//Retrieves components from array of strictures. Returned status indicates success (0) or error(!= 0)
-int getStringFromObject(int expIdx, void *obj, char *path, int idx, char **data)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetStringFromObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetStringFromObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5GetStringFromObject(obj, path, idx, data);
-#endif
-    return -1;
-}
-
-int getFloatFromObject(int expIdx, void *obj, char *path, int idx, float *data)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetFloatFromObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetFloatFromObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5GetFloatFromObject(obj, path, idx, data);
-#endif
-    return -1;
-}
-
-int getIntFromObject(int expIdx, void *obj, char *path, int idx, int *data)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetIntFromObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetIntFromObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5GetIntFromObject(obj, path, idx, data);
-#endif
-    return -1;
-}
-
-int getDoubleFromObject(int expIdx, void *obj, char *path, int idx, double *data)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetDoubleFromObject(obj, path, idx, data);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetDoubleFromObject(obj, path, idx, data);
-#ifdef HDF5
-    else
-        return hdf5GetDoubleFromObject(obj, path, idx, data);
-#endif
-    return -1;
-}
-
-int getVect1DStringFromObject(int expIdx, void *obj, char *path, int idx, char  ***data, int *dim)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect1DStringFromObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect1DStringFromObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5GetVect1DStringFromObject(obj, path, idx, data, dim);
-#endif
-    return -1;
-}
-
-int getVect1DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect1DIntFromObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect1DIntFromObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5GetVect1DIntFromObject(obj, path, idx, data, dim);
-#endif
-    return -1;
-}
-
-int getVect1DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect1DFloatFromObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect1DFloatFromObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5GetVect1DFloatFromObject(obj, path, idx, data, dim);
-#endif
-    return -1;
-}
-
-int getVect1DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect1DDoubleFromObject(obj, path, idx, data, dim);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect1DDoubleFromObject(obj, path, idx, data, dim);
-#ifdef HDF5
-    else
-        return hdf5GetVect1DDoubleFromObject(obj, path, idx, data, dim);
-#endif
-    return -1;
-}
-
-int getVect2DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect2DIntFromObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect2DIntFromObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5GetVect2DIntFromObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return -1;
-}
-
-int getVect2DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect2DFloatFromObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect2DFloatFromObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5GetVect2DFloatFromObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return -1;
-}
-
-int getVect2DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect2DDoubleFromObject(obj, path, idx, data, dim1, dim2);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect2DDoubleFromObject(obj, path, idx, data, dim1, dim2);
-#ifdef HDF5
-    else
-        return hdf5GetVect2DDoubleFromObject(obj, path, idx, data, dim1, dim2);
-#endif
-    return -1;
-}
-
-int getVect3DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect3DIntFromObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect3DIntFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5GetVect3DIntFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return -1;
-}
-
-int getVect3DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect3DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect3DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5GetVect3DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return -1;
-}
-
-int getVect3DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect3DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect3DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#ifdef HDF5
-    else
-        return hdf5GetVect3DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3);
-#endif
-    return -1;
-}
-
-int getVect4DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect4DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect4DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5GetVect4DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return -1;
-}
-
-int getVect4DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect4DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect4DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5GetVect4DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return -1;
-}
-
-int getVect4DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect4DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect4DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#ifdef HDF5
-    else
-        return hdf5GetVect4DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4);
-#endif
-    return -1;
-}
-
-int getVect5DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect5DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect5DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5GetVect5DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return -1;
-}
-
-int getVect5DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect5DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect5DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5GetVect5DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return -1;
-}
-
-int getVect5DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect5DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect5DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#ifdef HDF5
-    else
-        return hdf5GetVect5DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5);
-#endif
-    return -1;
-}
-
-int getVect6DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect6DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect6DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5GetVect6DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return -1;
-}
-
-int getVect6DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect6DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect6DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5GetVect6DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return -1;
-}
-
-int getVect6DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect6DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect6DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#ifdef HDF5
-    else
-        return hdf5GetVect6DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6);
-#endif
-    return -1;
-}
-
-int getVect7DIntFromObject(int expIdx, void *obj, char *path, int idx, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect7DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect7DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5GetVect7DIntFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return -1;
-}
-
-int getVect7DFloatFromObject(int expIdx, void *obj, char *path, int idx, float **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect7DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect7DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5GetVect7DFloatFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return -1;
-}
-
-int getVect7DDoubleFromObject(int expIdx, void *obj, char *path, int idx, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetVect7DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetVect7DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#ifdef HDF5
-    else
-        return hdf5GetVect7DDoubleFromObject(obj, path, idx, data, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-#endif
-    return -1;
-}
-
-int getObjectFromObject(int expIdx, void *obj, char *path, int idx, void **dataObj)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetObjectFromObject(obj, path, idx, dataObj);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetObjectFromObject(obj, path, idx, dataObj);
-#ifdef HDF5
-    else
-        return hdf5GetObjectFromObject(obj, path, idx, dataObj);
-#endif
-    return -1;
-}
-
-int getDimensionFromObject(int expIdx, void *obj, char *path, int idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-    int currIdx;
-    int status;
-
-    if (isPublic(expIdx, &currIdx))
-        status = idamGetDimensionFromObject(currIdx, obj, path, idx, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7);
-    else if (isMds(expIdx, &currIdx))
-      status = mdsGetDimensionFromObject(currIdx, obj, path, idx, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7 );
-#ifdef HDF5
-    else
-       status = hdf5GetDimensionFromObject(currIdx, obj, path, idx, numDims, dim1, dim2, dim3, dim4, dim5, dim6, dim7 );
-#endif
-    if (status) {
-        *numDims=*dim1=*dim2=*dim3=*dim4=*dim5=*dim6=*dim7=0;
+  return status;
+}
+
+/**
+   Reads a 4D double array.
+   This function reads a 4D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2, int *dim3,
+		    int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 4, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
     }
-    return status;
+  return status;
 }
 
-//Array of structures Slice Management
-int getObjectSlice(int expIdx, char *cpoPath, char *path, double time, void **obj)
+/**
+   Reads a 4D complex number array.
+   This function reads a 4D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2, 
+		     int *dim3, int *dim4)
 {
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamGetObjectSlice(currIdx, cpoPath, path, time, obj);
-    else if (isMds(expIdx, &currIdx))
-       return mdsGetObjectSlice(currIdx, cpoPath, path, time, obj);
-#ifdef HDF5
-    else
-        return hdf5GetObjectSlice(currIdx, cpoPath, path, time, obj);
-#endif
-    return -1;
-}
-
-int putObjectSlice(int expIdx, char *cpoPath, char *path,  double time, void *obj)
-{
-    int currIdx;
-    logOperation("putObjectSlice", cpoPath, path, expIdx, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    if (isPublic(expIdx, &currIdx))
-        return idamPutObjectSlice(currIdx, cpoPath, path, time, obj);
-    else if (isMds(expIdx, &currIdx))
-       return mdsPutObjectSlice(currIdx, cpoPath, path, time, obj);
-#ifdef HDF5
-    else
-        return hdf5PutObjectSlice(currIdx, cpoPath, path, time, obj);
-#endif
-    return -1;
-}
-
-int replaceLastObjectSlice(int expIdx, char *cpoPath, char *path, void *obj)
-{
-    int currIdx;
-
-    if (isPublic(expIdx, &currIdx))
-        return idamReplaceLastObjectSlice(currIdx, cpoPath, path, obj);
-    else if (isMds(expIdx, &currIdx))
-    return mdsReplaceLastObjectSlice(currIdx, cpoPath, path, obj);
-#ifdef HDF5
-    else
-        return hdf5ReplaceLastObjectSlice(currIdx, cpoPath, path, obj);
-#endif
-    return -1;
-}
-
-//CPO Copy
-int ual_copy_cpo(int fromIdx, int toIdx, char *cpoName, int fromCpoOccur, int toCpoOccur)
-{
-    return mdsCopyCpo(fromIdx, toIdx, cpoName, fromCpoOccur, toCpoOccur);
-}
-
-int ual_copy_cpo_env(char *tokamakFrom, char *versionFrom, char *userFrom, int shotFrom, int runFrom, int occurrenceFrom,
-    char *tokamakTo, char *versionTo, char *userTo, int shotTo, int runTo, int occurrenceTo, char *cpoName)
-{
-    int fromIdx, toIdx, status;
-
-    status = imas_open_env("ids", shotFrom, runFrom, &fromIdx, userFrom, tokamakFrom, versionFrom);
-    if(status) return status;
-
-    status = imas_open_env("ids", shotTo, runTo, &toIdx, userTo, tokamakTo, versionTo);
-    if(status) {
-        imas_close(fromIdx);
-        return status;
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 4, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
     }
-
-    status = ual_copy_cpo(fromIdx, toIdx, cpoName, occurrenceFrom, occurrenceTo);
-    imas_close(fromIdx);
-    imas_close(toIdx);
-    return status;
+  return status;
 }
 
-//Error Management support routine
-int makeErrorStatus(int isCritical, int type, int intStatus)
+/**
+   Reads a 5D integer array.
+   This function reads a 5D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2, int *dim3, 
+		 int *dim4, int *dim5)
 {
-    return (isCritical << 24) | (type << 16) | (intStatus & 0x0000FFFF);
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 5, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
 }
 
-int isCriticalError(int status)
+/**
+   Reads a 5D double array.
+   This function reads a 5D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2, int *dim3,
+		    int *dim4, int *dim5)
 {
-    return ((status & 0xFF000000) != 0);
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 5, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
 }
 
-int getErrorType(int status)
+/**
+   Reads a 5D complex number array.
+   This function reads a 5D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2, 
+		     int *dim3, int *dim4, int *dim5)
 {
-     return (status & 0x00FF0000) >> 16;
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 5, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D integer array.
+   This function reads a 6D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2, int *dim3,
+		 int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 6, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D double array.
+   This function reads a 6D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2, int *dim3,
+		    int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 6, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D complex number array.
+   This function reads a 6D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2, 
+		     int *dim3, int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 6, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 7D integer array.
+   This function reads a 7D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @param[out] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+		 int **data, int *dim1, int *dim2, int *dim3, 
+		 int *dim4, int *dim5, int *dim6, int *dim7)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 7, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+      *dim7 = retSize[6];
+    }
+  return status;
+}
+
+/**
+   Reads a 7D double array.
+   This function reads a 7D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @param[out] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+		    double **data, int *dim1, int *dim2, int *dim3,
+		    int *dim4, int *dim5, int *dim6, int *dim7)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 7, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+      *dim7 = retSize[6];
+    }
+  return status;
+}
+
+/**
+   Reads a 7D complex number array.
+   This function reads a 7D vector signal made of complex numbers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @param[out] dim7 size of seventh dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - additional parameter isTimed
+ */
+int getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+		     double _Complex **data, int *dim1, int *dim2, 
+		     int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 7, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+      *dim7 = retSize[6];
+    }
+  return status;
+}
+
+
+
+
+
+/* objects management
+*******************************************************************************/
+
+
+/* OH: present in F90 in release_object F77 implementation, but not in C++???
+   there is a releaseObject at lowlevel and a releaseObject at high level, at 
+   high level it is defined as getObjectFromList + removeObjectFromList + 
+   releaseObject...
+   => in C++ HL interface, only releaseObject (lowlevel function) is called!!! 
+   Also present in F90 impl of put_object_in_object (recent fix june 2013)
+   => in this case, both C++ and Java diverge !!! 
+
+   Are these 'List' functions related to memcache management? In that case they
+   should not appear at this level but be kept within the virtual back-end / 
+   ual_lowlevel.cpp code.
+*/
+void removeObjectFromList(int idx);
+int addObjectToList(void *obj);
+void replaceObjectInList(int idx, void *obj);
+void *getObjectFromList(int idx);
+/*********************************************/
+
+
+/**
+   Initializes an array of structure.
+   This function initialize room for a generic array of structures.
+   @param[in] ctx context ID (operation or array of structure)
+   @param[in] index position in the container
+   @param[in] fieldPath path of the field
+   - simple array of structure or container: from the DATAOBJECT (included) to the 
+   array of structure name
+   - embedded array of structure: from the container (included) to the 
+   array of structure name
+   @param[in] timebasePath path of the timebase for this array of structure
+   @param[in] size number of elements in the new array of structure 
+   @result array of structure context ID [_errror if < 0_]
+   @todo Low-level API modification: 
+   - no void* argument (passed context is either operation or array or struct)
+   - returned object is integer (int) instead of pointer (void *)
+   - added argument for specifying size of the object
+   - added argument for specifying timebase
+   - no isTimed argument (redundant with timebasePath)
+
+   [ex_ual_begin_write_arraystruct]*/
+int beginObject(int ctx, int index, const char *fieldPath, const char *timebasePath,
+		int size)
+{
+  return ual_begin_arraystruct_action(ctx, fieldPath, timebasePath, &size);
+}
+/*[ex_ual_begin_write_arraystruct]*/
+
+
+/**
+   Reads an array of structure from a DATAOBJECT.
+   This function reads a signal made of an array of structures from a DATAOBJECT.
+   @param[in] opCtx operation context 
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath name of the timebase 
+   @param[out] size returned size of the array of structure
+   @result array of structure context ID [__error if < 0__]
+
+   @todo Low-level API modification:
+   - returns array of structure context ID as result
+   - does not return void pointer on object
+   - returns size of the array of structure
+   - does not 
+ */
+int getObject(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
+{
+  return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
+}
+
+
+
+
+
+
+/* array of structure element writers
+*******************************************************************************/
+
+/**
+   Writes a character in an array of structure.
+   This function writes a character field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int putCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, char data)
+{  
+  return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)(&data), 
+			CHAR_DATA, 0, NULL);
+}
+
+/**
+   Writes an integer in an array of structure.
+   This function writes an integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
+		   int idx, int data)
+{  
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)(&data), INTEGER_DATA, 0, NULL);
+}
+
+/**
+   Writes a double in an array of structure.
+   This function writes a double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+		      int idx, double data)
+{
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)(&data), DOUBLE_DATA, 0, NULL);
+}
+
+/**
+   Writes a complex number in an array of structure.
+   This function writes a complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+		       int idx, double _Complex data)
+{
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)(&data), COMPLEX_DATA, 0, NULL);
+}
+
+/**
+   Writes a 1D character array in an array of structure.
+   This function writes a 1D character field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			  int idx, char *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, CHAR_DATA, 1, size);
+}
+
+/**
+   Writes a 1D integer array in an array of structure.
+   This function writes a 1D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			 int idx, int *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 1, size);
+}
+
+/**
+   Writes a 1D double array in an array of structure.
+   This function writes a 1D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect1DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 1, size);
+}
+
+/**
+   Writes a 1D complex number array in an array of structure.
+   This function writes a 1D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect1DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim)
+{
+  int size[1] = {dim};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 1, size);
+}
+
+/**
+   Writes a 2D character array in an array of structure.
+   This function writes a 2D character field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int putVect2DCharInObject(int aosCtx, const char *fieldPath, 
+			  const char *timebasePath, int idx, 
+			  char *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, CHAR_DATA, 2, size);
+}
+
+/**
+   Writes a 2D integer array in an array of structure.
+   This function writes a 2D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect2DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 2, size);
+}
+
+/**
+   Writes a 2D double array in an array of structure.
+   This function writes a 2D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+
+   [ex_ual_put_in_arraystruct]*/
+int putVect2DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 2, size);
+}
+/*[ex_ual_put_in_arraystruct]*/
+
+/**
+   Writes a 2D complex number array in an array of structure.
+   This function writes a 2D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect2DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2)
+{
+  int size[2] = {dim1, dim2};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 2, size);
+}
+
+/**
+   Writes a 3D integer array in an array of structure.
+   This function writes a 3D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect3DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 3, size);
+}
+
+/**
+   Writes a 3D double array in an array of structure.
+   This function writes a 3D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect3DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 3, size);
+}
+
+/**
+   Writes a 3D complex number array in an array of structure.
+   This function writes a 3D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect3DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2, int dim3)
+{
+  int size[3] = {dim1, dim2, dim3};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 3, size);
+}
+
+/**
+   Writes a 4D integer array in an array of structure.
+   This function writes a 4D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect4DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2, int dim3, int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 4, size);
+}
+
+/**
+   Writes a 4D double array in an array of structure.
+   This function writes a 4D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect4DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char* timebasePath, int idx, 
+			    double *data, int dim1, int dim2, int dim3, int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 4, size);
+}
+
+/**
+   Writes a 4D complex number array in an array of structure.
+   This function writes a 4D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect4DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     int dim4)
+{
+  int size[4] = {dim1, dim2, dim3, dim4};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 4, size);
+}
+
+/**
+   Writes a 5D integer array in an array of structure.
+   This function writes a 5D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect5DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2, int dim3, int dim4, 
+			 int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 5, size);
+}
+
+/**
+   Writes a 5D double array in an array of structure.
+   This function writes a 5D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect5DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim1, int dim2, int dim3, 
+			    int dim4, int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 5, size);
+}
+
+/**
+   Writes a 5D complex number array in an array of structure.
+   This function writes a 5D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect5DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     int dim4, int dim5)
+{
+  int size[5] = {dim1, dim2, dim3, dim4, dim5};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 5, size);
+}
+
+/**
+   Writes a 6D integer array in an array of structure.
+   This function writes a 6D integer field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect6DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2, int dim3, int dim4, 
+			 int dim5, int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 6, size);
+}
+
+/**
+   Writes a 6D double array in an array of structure.
+   This function writes a 6D double field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect6DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim1, int dim2, int dim3, 
+			    int dim4, int dim5, int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 6, size);
+}
+
+/**
+   Writes a 6D complex number array in an array of structure.
+   This function writes a 6D complex number field into an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[in] data field value
+   @param[in] dim1 size of first dimension
+   @param[in] dim2 size of second dimension
+   @param[in] dim3 size of third dimension
+   @param[in] dim4 size of fourth dimension
+   @param[in] dim5 size of fifth dimension
+   @param[in] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+   - result = error status (int) instead of opaque pointer (void *)
+ */
+int putVect6DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     int dim4, int dim5, int dim6)
+{
+  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 6, size);
+}
+
+/**
+   @deprecated no 7D field in an array of structure (7D = 6D + time)
+ */
+int putVect7DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, int idx, 
+			 int *data, int dim1, int dim2, int dim3, int dim4, 
+			 int dim5, int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, INTEGER_DATA, 7, size);
+}
+
+/**
+   @deprecated no 7D field in an array of structure (7D = 6D + time)
+ */
+int putVect7DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath, int idx, 
+			    double *data, int dim1, int dim2, int dim3, 
+			    int dim4, int dim5, int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, DOUBLE_DATA, 7, size);
+}
+
+/**
+   @deprecated no 7D field in an array of structure (7D = 6D + time)
+ */
+int putVect7DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath, int idx, 
+			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     int dim4, int dim5, int dim6, int dim7)
+{
+  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+  return ual_write_data(aosCtx, fieldPath, timebasePath, 
+			(void *)data, COMPLEX_DATA, 7, size);
+}
+
+
+
+
+
+/* array of structure element readers
+*******************************************************************************/
+
+/**
+   Reads a character from an array of structure.
+   This function reads a character field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, char *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, 
+			 CHAR_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads an integer from an array of structure.
+   This function reads an integer field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, int *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, 
+			 INTEGER_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a double from an array of structure.
+   This function reads a double field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+
+   [ex_ual_get_from_arraystruct]*/
+int getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			double *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, 
+			 DOUBLE_DATA, 0, &retSize[0]);
+  return status;
+}
+/*[ex_ual_get_from_arraystruct]*/
+
+/**
+   Reads a complex number from an array of structure.
+   This function reads a complex number field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			 double _Complex *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, 
+			 COMPLEX_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a 1D character array from an array of structure.
+   This function reads a 1D character vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			    char **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 CHAR_DATA, 1, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim = retSize[0];
+    }
+  return status;
+}
+
+/**
+   Reads a 1D integer array from an array of structure.
+   This function reads a 1D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 1, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim = retSize[0];
+    }
+  return status;
+}
+
+/**
+   Reads a 1D double array from an array of structure.
+   This function reads a 1D double vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 1, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim = retSize[0];
+    }
+  return status;
+}
+
+/**
+   Reads a 1D complex number array from an array of structure.
+   This function reads a 1D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect1DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 1, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim = retSize[0];
+    }
+  return status;
+}
+
+/**
+   Reads a 2D character array from an array of structure.
+   This function reads a 2D character vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			    char **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 CHAR_DATA, 2, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
+
+/**
+   Reads a 2D integer array from an array of structure.
+   This function reads a 2D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 2, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
+
+/**
+   Reads a 2D double array from an array of structure.
+   This function reads a 2D double vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 2, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
+
+/**
+   Reads a 2D complex number array from an array of structure.
+   This function reads a 2D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 2, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
+
+/**
+   Reads a 3D integer array from an array of structure.
+   This function reads a 3D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 3, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+    }
+  return status;
+}
+
+/**
+   Reads a 3D double array from an array of structure.
+   This function reads a 3D double vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 3, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+    }
+  return status;
+}
+
+/**
+   Reads a 3D complex number array from an array of structure.
+   This function reads a 3D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim1, int *dim2, 
+			       int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 3, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+    }
+  return status;
+}
+
+/**
+   Reads a 4D integer array from an array of structure.
+   This function reads a 4D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim1, int *dim2, int *dim3, 
+			   int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 4, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+    }
+  return status;
+}
+
+/**
+   Reads a 4D double array from an array of structure.
+   This function reads a 4D double vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim1, int *dim2, int *dim3, 
+			      int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 4, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+    }
+  return status;
+}
+
+/**
+   Reads a 4D complex number array from an array of structure.
+   This function reads a 4D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim1, int *dim2, 
+			       int *dim3, int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 4, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+    }
+  return status;
+}
+
+/**
+   Reads a 5D integer array from an array of structure.
+   This function reads a 5D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim1, int *dim2, int *dim3, 
+			   int *dim4, int *dim5)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 5, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+/**
+   Reads a 5D double array from an array of structure.
+   This function reads a 5D double vector field from an element of an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim1, int *dim2, int *dim3, 
+			      int *dim4, int *dim5)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 5, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+/**
+   Reads a 5D complex number array from an array of structure.
+   This function reads a 5D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim1, int *dim2, 
+			       int *dim3, int *dim4, int *dim5)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 5, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D integer array from an array of structure.
+   This function reads a 6D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			   int **data, int *dim1, int *dim2, int *dim3, 
+			   int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 INTEGER_DATA, 6, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D double array from an array of structure.
+   This function reads a 6D double vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			      double **data, int *dim1, int *dim2, int *dim3, 
+			      int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 DOUBLE_DATA, 6, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D complex number array from an array of structure.
+   This function reads a 6D complex number vector field from an element of 
+   an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[in] idx index of the array element
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int getVect6DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+			       double _Complex **data, int *dim1, int *dim2, 
+			       int *dim3, int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
+			 COMPLEX_DATA, 6, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
 }
 
