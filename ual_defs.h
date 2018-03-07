@@ -1,0 +1,46 @@
+#define MAXDIM 7
+
+#define OP_INTERP_0 0
+#define BACKEND_ID_0 10
+#define OP_RANGE_0 20
+#define OP_ACCESS_0 30
+#define ACCESS_PULSE_0 40
+#define DATA_TYPE_0 50
+#define ERR_0 -1
+
+#define TIMED                       1
+#define NON_TIMED                   0
+
+#define GLOBAL_OP                   OP_RANGE_0
+#define SLICE_OP                    OP_RANGE_0+1
+
+#define READ_OP                     OP_ACCESS_0
+#define WRITE_OP                    OP_ACCESS_0+1
+#define REPLACE_OP                  OP_ACCESS_0+2
+
+#define UNDEFINED_INTERP            OP_INTERP_0
+#define CLOSEST_INTERP              OP_INTERP_0+1
+#define PREVIOUS_INTERP             OP_INTERP_0+2
+#define LINEAR_INTERP               OP_INTERP_0+3
+
+#define UNDEFINED_TIME              -999.
+    
+#define OPEN_PULSE                  ACCESS_PULSE_0
+#define FORCE_OPEN_PULSE            ACCESS_PULSE_0+1
+#define CREATE_PULSE                ACCESS_PULSE_0+2
+#define FORCE_CREATE_PULSE          ACCESS_PULSE_0+3
+#define CLOSE_PULSE                 ACCESS_PULSE_0+4
+#define ERASE_PULSE                 ACCESS_PULSE_0+5
+    
+#define CHAR_DATA                   DATA_TYPE_0
+#define INTEGER_DATA                DATA_TYPE_0+1
+#define DOUBLE_DATA                 DATA_TYPE_0+2
+#define COMPLEX_DATA                DATA_TYPE_0+3
+
+#define UNKNOWN_ERR                 ERR_0
+#define CONTEXT_ERR                 ERR_0-1
+#define BACKEND_ERR                 ERR_0-2
+#define LOWLEVEL_ERR                ERR_0-3
+#define NODATA_ERR                  ERR_0-4
+
+
