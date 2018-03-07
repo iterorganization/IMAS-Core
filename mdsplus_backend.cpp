@@ -1,6 +1,8 @@
 #define NODENAME_MANGLING
 #include "mdsplus_backend.h"
 
+#include <cstring>
+
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
 //#define MDSPLUS_SEGMENT_SIZE 134144
