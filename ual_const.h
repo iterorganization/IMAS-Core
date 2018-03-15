@@ -22,6 +22,7 @@ extern const int ASCII_BACKEND;
 extern const int MDSPLUS_BACKEND;
 extern const int HDF5_BACKEND;
 extern const int MEMORY_BACKEND;
+extern const int UDA_BACKEND;
 
 #include "ual_defs.h"
 
