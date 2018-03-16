@@ -39,9 +39,9 @@ Backend* Backend::initBackend(int id)
       MemoryBackend* tbe = new MemoryBackend();
       be = tbe;
     }
-  else if (id==ualconst::memory_backend)
+  else if (id==ualconst::uda_backend)
     {
-      UDABackend* tbe = new UDABackend();
+      UDABackend* tbe = new UDABackend(true);
       be = tbe;
     }
   else

@@ -21,9 +21,8 @@
 class UDABackend : public Backend {
 private:
     bool verbose = false;
+    const char* plugin = "newll";
     uda::Client uda_client;
-
-    std::string format(const char* fmt, ...);
 
 public:
 
@@ -56,7 +55,7 @@ public:
         if (verbose) {
             std::cout << "UDABackend beginAction\n";
         }
-        throw UALBackendException("Not implemented", LOG);
+        //throw UALBackendException("Not implemented", LOG);
     }
 
     void endAction(Context *ctx) override
@@ -64,7 +63,7 @@ public:
         if (verbose) {
             std::cout << "UDABackend endAction\n";
         }
-        throw UALBackendException("Not implemented", LOG);
+        //throw UALBackendException("Not implemented", LOG);
     }
 
     void writeData(Context *ctx,
@@ -95,17 +94,10 @@ public:
         if (verbose) {
             std::cout << "UDABackend deleteData\n";
         }
-        throw UALBackendException("Not implemented", LOG);
+        //throw UALBackendException("Not implemented", LOG);
     }
 
-    void beginArraystructAction(ArraystructContext *ctx,
-                                int *size) override
-    {
-        if (verbose) {
-            std::cout << "UDABackend beginArraystructAction\n";
-        }
-        throw UALBackendException("Not implemented", LOG);
-    }
+    void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
 };
 

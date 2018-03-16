@@ -29,8 +29,8 @@ MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
 
 ## UDA flags -- required for UDA backend
 UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
-#UDALIB= $(shell pkg-config --libs uda-fat-cpp)
-UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
+UDALIB= $(shell pkg-config --libs uda-fat-cpp)
+#UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
 
 ## Adding DEBUG=yes to make command to print additional debug info
 DEBFLAGS= -g

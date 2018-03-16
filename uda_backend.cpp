@@ -2,12 +2,15 @@
 
 #include <cstdarg>
 
-std::string UDABackend::format(const char* fmt, ...)
+namespace {
+
+std::string format(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
 
     size_t len = static_cast<size_t>(vsnprintf(NULL, 0, fmt, args));
+    ++len;
 
     char* str = (char*)malloc(len + 1);
 
@@ -20,6 +23,35 @@ std::string UDABackend::format(const char* fmt, ...)
     va_end(args);
 
     return result;
+}
+
+const char* type_to_string(int datatype)
+{
+    switch (datatype) {
+        case CHAR_DATA: return "char";
+        case INTEGER_DATA: return "integer";
+        case DOUBLE_DATA: return "double";
+        case COMPLEX_DATA: return "complex";
+        default:
+            throw UALBackendException("Unknown datatype " + datatype, LOG);
+    }
+}
+
+std::string array_path(ArraystructContext* ctx, bool for_dim=false)
+{
+    std::string path;
+    if (for_dim) {
+        path = ctx->getPath();
+    } else {
+        path = ctx->getPath() + "/" + std::to_string(ctx->getIndex() + 1);
+    }
+    while (ctx->getParent() != NULL) {
+        ctx = ctx->getParent();
+        path = (ctx->getPath() + "/" + std::to_string(ctx->getIndex() + 1)) + "/" + path;
+    }
+    return path;
+}
+
 }
 
 void UDABackend::openPulse(PulseContext *ctx,
@@ -35,13 +67,25 @@ void UDABackend::openPulse(PulseContext *ctx,
     switch (mode) {
         case ualconst::open_pulse:
         case ualconst::force_open_pulse:
-            directive = format("imas::open(file='%s', shot=%d, run=%d)",
-                               ctx->getBackendName().c_str(), ctx->getShot(), ctx->getRun());
+            directive = format(
+                "%s::open(file='%s', shot=%d, run=%d)",
+                this->plugin,
+                ctx->getBackendName().c_str(),
+                ctx->getShot(),
+                ctx->getRun()
+            );
             break;
         case ualconst::create_pulse:
         case ualconst::force_create_pulse:
-            directive = format("imas::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, /CreateFromModel)",
-                               ctx->getBackendName().c_str(), ctx->getShot(), ctx->getRun(), 0, 0);
+            directive = format(
+                "%s::create(file='%s', shot=%d, run=%d, refShot=%d, refRun=%d, /CreateFromModel)",
+                this->plugin,
+                ctx->getBackendName().c_str(),
+                ctx->getShot(),
+                ctx->getRun(),
+                0,
+                0
+            );
             break;
         default:
             throw UALBackendException("Mode not yet supported", LOG);
@@ -61,8 +105,14 @@ void UDABackend::closePulse(PulseContext *ctx,
         std::cout << "UDABackend closePulse\n";
     }
 
-    std::string directive = format("imas::close(idx=%d, file='%s', shot=%d, run=%d)",
-                                   ctx->getBackendID(), ctx->getBackendName().c_str(), ctx->getShot(), ctx->getRun());
+    std::string directive = format(
+        "%s::close(idx=%d, file='%s', shot=%d, run=%d)",
+        this->plugin,
+        ctx->getBackendID(),
+        ctx->getBackendName().c_str(),
+        ctx->getShot(),
+        ctx->getRun()
+    );
 
     if (verbose) {
         std::cout << "UDA directive: " << directive << "\n";
@@ -87,9 +137,26 @@ void UDABackend::readData(Context *ctx,
     }
 
     try {
-        std::string directive = format("imas::get(expName='%s', idx=%d, group='%s', variable='%s', shot=%d, %s)",
-                                       opCtx->getTokamak().c_str(), opCtx->getBackendID(), opCtx->getType(),
-                                       fieldname.c_str(), opCtx->getShot());
+        ArraystructContext* arrCtx = dynamic_cast<ArraystructContext*>(ctx);
+        std::string variable = fieldname;
+        if (arrCtx != NULL) {
+            variable = array_path(arrCtx) + "/" + fieldname;
+        }
+
+        std::string directive = format(
+            "%s::get(expName='%s', ctx=%ld, group='%s', type='%s', variable='%s', shot=%d, run=%d, user='%s')",
+            this->plugin,
+            opCtx->getTokamak().c_str(),
+            opCtx->getUid(),
+            opCtx->getDataobjectName().c_str(),
+            type_to_string(*datatype),
+            variable.c_str(),
+            opCtx->getShot(),
+            opCtx->getRun(),
+            opCtx->getUser().c_str()
+        );
+                                  
+        std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");
         uda::Data* uda_data = result.data();
         if (uda_data->type() == typeid(double)) {
@@ -102,21 +169,28 @@ void UDABackend::readData(Context *ctx,
     } catch (const uda::UDAException& ex) {
         throw UALNoDataException(ex.what(), LOG);
     }
+}
 
-    if (fieldname == "path/to/double") {
-        **(double**)data = 123.45;
-        *datatype = DOUBLE_DATA;
-        *dim = 0;
-        size[0] = 0; // size is optional with scalar
-    } else if (fieldname == "path/to/int") {
-        **(int**)data = 42;
-        *datatype = INTEGER_DATA;
-        *dim = 0;
-        size[0] = 0; // size is optional with scalar
-    } else {
-        if (verbose) {
-            std::cout << "UDABackend readData\n";
-        }
-        throw UALNoDataException("test recoverable exception", LOG);
+void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
+{
+    if (verbose) {
+        std::cout << "UDABackend beginArraystructAction\n";
     }
+
+    std::string path = array_path(ctx, true);
+
+    std::string directive = format(
+        "%s::getdim(expName='%s', ctx=%ld, group='%s', path='%s', shot=%d, run=%d, user='%s')",
+        this->plugin,
+        ctx->getTokamak().c_str(),
+        ctx->getUid(),
+        ctx->getDataobjectName().c_str(),
+        path.c_str(),
+        ctx->getShot(),
+        ctx->getRun(),
+        ctx->getUser().c_str()
+    );
+
+    std::cout << "UDA directive: " << directive << "\n";
+    *size = 1;
 }
