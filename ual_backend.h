@@ -112,7 +112,7 @@ public:
      @param[in] fieldname field name
      @param[in] timebasename timebase field name
      @param[out] data returned pointer on the read data 
-     @param[out] datatype type of data to be read:
+     @param[inout] datatype type of data to be read:
      - CHAR_DATA strings
      - INTEGER_DATA integers
      - DOUBLE_DATA double precision floating points
