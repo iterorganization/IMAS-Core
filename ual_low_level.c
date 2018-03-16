@@ -90,7 +90,11 @@ int ual_open(const char *name, int shot, int run, int *pulseCtx)
  */
 int ual_close(int pulseCtx)
 {
-  return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
+  int status = ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
+  if (status < 0)
+    return status;
+  else
+    return ual_end_action(pulseCtx);
 }
 
 

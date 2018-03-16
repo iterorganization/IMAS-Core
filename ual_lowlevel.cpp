@@ -332,7 +332,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 #endif
   }
 
-  ual_end_action(pctxID);
   return status;
 }
 
