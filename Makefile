@@ -35,7 +35,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for UDA ---------------
-ifneq ("no","$(strip $(UDA))")
+ifneq ("no","$(strip $(IMAS_UDA))")
  CFLAGS+= -DIDAM `pkg-config --cflags uda-client`
  LIBS+= `pkg-config --libs uda-client`
  COMMON_OBJECTS+=ual_low_level_idam.o
@@ -45,7 +45,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for HDF5 ---------------
-ifneq ("no","$(strip $(HDF5))")
+ifneq ("no","$(strip $(IMAS_HDF5))")
  CFLAGS+= -DHDF5
  INCDIR+= -I$(HDF5_DIR)/include -I$(MPI_DIR)/include
  LIBDIR+= -L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib
@@ -55,7 +55,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for java ---------------
-ifneq ("no","$(strip $(JAVA))")
+ifneq ("no","$(strip $(IMAS_JAVA))")
  INCDIR+= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
  LIBDIR+= -L$(JAVA_HOME)/jre/lib/amd64
  #LIBS+= -ljava
