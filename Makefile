@@ -25,7 +25,7 @@ COMMON_OBJECTS=ual_low_level_f77.o ual_low_level.o ual_low_level_mdsplus.o ual_l
 TARGETS = timed_struct_array.h libimas.so libimas.a
 
 #---------- Options for the catalog ------------
-ifeq "$(strip $(ITM_CATALOG))" "yes"
+ifneq ("no","$(strip $(ITM_CATALOG))")
  CFLAGS+= -DUSE_ITM_CATALOG
  INCDIR+= -I$(ITM_CATALOG_DIR)/include
  LIBDIR+= -L$(ITM_CATALOG_DIR)/lib -L/usr/lib64/mysql
@@ -35,7 +35,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for UDA ---------------
-ifeq "$(strip $(UDA))" "yes"
+ifneq ("no","$(strip $(UDA))")
  CFLAGS+= -DIDAM `pkg-config --cflags uda-client`
  LIBS+= `pkg-config --libs uda-client`
  COMMON_OBJECTS+=ual_low_level_idam.o
@@ -45,7 +45,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for HDF5 ---------------
-ifeq "$(strip $(HDF5))" "yes"
+ifneq ("no","$(strip $(HDF5))")
  CFLAGS+= -DHDF5
  INCDIR+= -I$(HDF5_DIR)/include -I$(MPI_DIR)/include
  LIBDIR+= -L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib
@@ -55,7 +55,7 @@ endif
 #-----------------------------------------------
 
 #-------------- Options for java ---------------
-ifeq "$(strip $(JAVA))" "yes"
+ifneq ("no","$(strip $(JAVA))")
  INCDIR+= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
  LIBDIR+= -L$(JAVA_HOME)/jre/lib/amd64
  #LIBS+= -ljava
