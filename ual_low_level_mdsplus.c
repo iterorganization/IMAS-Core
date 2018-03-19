@@ -1315,7 +1315,7 @@ static void setDataEnv(char *user, char *tokamak, char *version)
         strcat(public_db_location, imas_home );
         strcat(public_db_location, "/shared");
       }
-      sprintf(treeBase0, "%s/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus",public_db_location, tokamak, version, version);
+      sprintf(treeBase0, "%s/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
       sprintf(treeBase1, "%s/%s/%s/mdsplus/1;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
       sprintf(treeBase2, "%s/%s/%s/mdsplus/2;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
       sprintf(treeBase3, "%s/%s/%s/mdsplus/3;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
