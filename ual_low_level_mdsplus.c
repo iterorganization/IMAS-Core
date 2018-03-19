@@ -1292,48 +1292,39 @@ static void setDataEnv(char *user, char *tokamak, char *version)
     char treeBase7[1024] = {0};
     char treeBase8[1024] = {0};
     char treeBase9[1024] = {0};
-	 char* treeBase_ = 0;
 
-    /*
-    char *treeBase0 = malloc(1024);
-    char *treeBase1 = malloc(1024);
-    char *treeBase2 = malloc(1024);
-    char *treeBase3 = malloc(1024);
-    char *treeBase4 = malloc(1024);
-    char *treeBase5 = malloc(1024);
-    char *treeBase6 = malloc(1024);
-    char *treeBase7 = malloc(1024);
-    char *treeBase8 = malloc(1024);
-    char *treeBase9 = malloc(1024);
-    */
+    // >mko<
+    // this is a temporary fix for public DB location
+
+    char public_db_location[1024] = {0};
+
+    // <mko>
+
+	  char* treeBase_ = 0;
+
     //MERGE
     char first[2];
 
     if(!strcmp(user, "public"))
     {
       //MERGE
-    	sprintf(treeBase0, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase1, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/1;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase2, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/2;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase3, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/3;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase4, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/4;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase5, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/5;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase6, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/6;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase7, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/7;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase8, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/8;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase9, "/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/9;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-	/*
-    	sprintf(treeBase0, "MDSPLUS_TREE_BASE_0=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase1, "MDSPLUS_TREE_BASE_1=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/1;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase2, "MDSPLUS_TREE_BASE_2=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/2;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase3, "MDSPLUS_TREE_BASE_3=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/3;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase4, "MDSPLUS_TREE_BASE_4=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/4;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase5, "MDSPLUS_TREE_BASE_5=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/5;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase6, "MDSPLUS_TREE_BASE_6=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/6;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase7, "MDSPLUS_TREE_BASE_7=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/7;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase8, "MDSPLUS_TREE_BASE_8=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/8;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-    	sprintf(treeBase9, "MDSPLUS_TREE_BASE_9=/pfs/imasdb/imas_trees/public/%s/%s/mdsplus/9;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", tokamak, version, version);
-	*/
+      char *imas_home = getenv("IMAS_HOME");
+      if ( imas_home == NULL ) {
+        strcat(public_db_location, "/pfs/imasdb/imas_trees/public");
+      } else {
+        strcat(public_db_location, imas_home );
+        strcat(public_db_location, "/shared");
+      }
+      sprintf(treeBase0, "%s/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus",public_db_location, tokamak, version, version);
+      sprintf(treeBase1, "%s/%s/%s/mdsplus/1;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase2, "%s/%s/%s/mdsplus/2;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase3, "%s/%s/%s/mdsplus/3;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase4, "%s/%s/%s/mdsplus/4;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase5, "%s/%s/%s/mdsplus/5;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase6, "%s/%s/%s/mdsplus/6;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase7, "%s/%s/%s/mdsplus/7;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase8, "%s/%s/%s/mdsplus/8;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
+      sprintf(treeBase9, "%s/%s/%s/mdsplus/9;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
 	//MERGE
     }
     else
