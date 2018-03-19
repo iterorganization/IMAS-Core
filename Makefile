@@ -66,18 +66,18 @@ endif
 all: $(TARGETS) pkgconfig
 sources:
 sources_install: $(wildcard *.c *.h)
-	install -d $(INSTALL)/share/src/lowlevel
-	install -m 644 $^ $(INSTALL)/share/src/lowlevel
+	install -d $(datadir)/src/lowlevel
+	install -m 644 $^ $(datadir)/src/lowlevel
 
 install: all pkgconfig_install sources_install
-	mkdir -p $(INSTALL)/lib $(INSTALL)/include
+	install -d $(libdir) $(includedir)
 	for OBJECT in *.so ;do \
-		cp -vTT $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR); \
-		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO)  $(INSTALL)/lib/$$OBJECT; \
+		install -m644 -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
+		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
+		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
+		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
 	done
-	cp ual_low_level.h $(INSTALL)/include
+	install -m644 ual_low_level.h $(includedir)
 
 clean: pkgconfig_clean
 	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
