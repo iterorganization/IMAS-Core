@@ -66,18 +66,18 @@ endif
 all: $(TARGETS) pkgconfig
 sources:
 sources_install: $(wildcard *.c *.h)
-	install -d $(datadir)/src/lowlevel
-	install -m 644 $^ $(datadir)/src/lowlevel
+	$(mkdir_p) $(datadir)/src/lowlevel
+	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
 
 install: all pkgconfig_install sources_install
-	install -d $(libdir) $(includedir)
+	$(mkdir_p) $(libdir) $(includedir)
 	for OBJECT in *.so ;do \
-		install -m644 -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
+		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
 		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
 		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
 		ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
 	done
-	install -m644 ual_low_level.h $(includedir)
+	$(INSTALL_DATA) ual_low_level.h $(includedir)
 
 clean: pkgconfig_clean
 	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
