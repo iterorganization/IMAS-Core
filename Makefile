@@ -3,9 +3,7 @@ include ../Makefile.common
 
 SHELL=/bin/sh
 
-#CC=gcc
-#LD=$(CC)
-LD=g++
+CXX=g++
 
 ifeq "$(strip $(CC))" "icc"
  CFLAGS=-g -fPIC -shared-intel
@@ -80,16 +78,16 @@ install: all pkgconfig_install sources_install
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
 
 clean: pkgconfig_clean
-	rm -f *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
-	rm -rf build
+	$(RM) *.o *.so *.a *~ ual_low_level_wrap.c ual_low_level.py
+	$(RM) -r build
 
 clean-src: clean
 
 libimas.so: $(COMMON_OBJECTS)
-	$(LD) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $(COMMON_OBJECTS) $(LIBDIR) $(LIBS)
 
 libimas.a: $(COMMON_OBJECTS)
-	ar rs $@ $^
+	$(AR) rvs $@ $^
 
 .c.o:
 	$(CC) $(INCDIR) $(CFLAGS) -c $<

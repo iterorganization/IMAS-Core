@@ -21,11 +21,11 @@ install:
 	python setup.py install --install-lib=$(INSTALL)/python_pk/ual
 
 clean:
-	rm -f *.o *.so *~ ual_low_level_wrap.c ual_low_level.py
-	rm -rf build
+	$(RM) *.o *.so *~ ual_low_level_wrap.c ual_low_level.py
+	$(RM) -r build
 
 clean-src:
-	rm -f $(INSTALL)/python_pk/ual/*
+	$(RM) $(INSTALL)/python_pk/ual/*
 
 
 libUALLowLevel.so: $(COMMON_OBJECTS)  
