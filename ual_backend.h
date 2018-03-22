@@ -117,7 +117,7 @@ public:
      - INTEGER_DATA integers
      - DOUBLE_DATA double precision floating points
      - COMPLEX_DATA complex numbers
-     @param[out] dim returned dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
+     @param[inout] dim returned dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
   */

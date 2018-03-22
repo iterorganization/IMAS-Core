@@ -558,7 +558,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
   int status=0;
   void *retData=NULL;
   int retType=datatype;
-  int retDim=-1;
+  int retDim=dim;
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
