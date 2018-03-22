@@ -85,11 +85,11 @@ install: all pkgconfig_install sources_install
 	cp -r latex html $(docdir)/dev/lowlevel
 
 clean: pkgconfig_clean
-	$(RM) -f *.o *.mod *.a *.so 
+	$(RM) *.o *.mod *.a *.so
 
 clean-src: clean clean-doc
-	$(RM) -f *.d *~ $(INSTALL)/include/*.h 
-	$(RM) -rf $(INSTALL)/documentation/dev
+	$(RM) *.d *~ $(INSTALL)/include/*.h
+	$(RM) -r $(INSTALL)/documentation/dev
 
 
 # Create embedded documentation
@@ -97,21 +97,21 @@ doc:
 	doxygen Doxyfile
 
 clean-doc:
-	$(RM) -rf latex html
+	$(RM) -r latex html
 
 
 # Creates dependency files
 %.d: %.c
-	@set -e; rm -f $@; \
+	@set -e; $(RM) $@; \
 	$(CC) -MM $(CFLAGS) $(INCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	$(RM) $@.$$$$
 
 %.d: %.cpp
-	@set -e; rm -f $@; \
+	@set -e; $(RM) $@; \
 	$(CXX) -MM $(CXXFLAGS) $(INCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
+	$(RM) $@.$$$$
 
 # Includes all dependency files
 -include $(CSRC:.c=.d)
