@@ -10,6 +10,9 @@
 #include <usagedef.h>
 #include <ncidef.h>
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #include <xtreeshr.h>
 #include <cacheshr.h>
 #include <pthread.h>
@@ -1302,55 +1305,53 @@ static void setDataEnv(char *user, char *tokamak, char *version)
 
 	  char* treeBase_ = 0;
 
-    //MERGE
     char first[2];
 
     if(!strcmp(user, "public"))
     {
-      //MERGE
       char *imas_home = getenv("IMAS_HOME");
-      if ( imas_home == NULL ) {
-        strcat(public_db_location, "/pfs/imasdb/imas_trees/public");
-      } else {
-        strcat(public_db_location, imas_home );
-        strcat(public_db_location, "/shared");
-      }
-      sprintf(treeBase0, "%s/%s/%s/mdsplus/0;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase1, "%s/%s/%s/mdsplus/1;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase2, "%s/%s/%s/mdsplus/2;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase3, "%s/%s/%s/mdsplus/3;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase4, "%s/%s/%s/mdsplus/4;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase5, "%s/%s/%s/mdsplus/5;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase6, "%s/%s/%s/mdsplus/6;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase7, "%s/%s/%s/mdsplus/7;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase8, "%s/%s/%s/mdsplus/8;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-      sprintf(treeBase9, "%s/%s/%s/mdsplus/9;/pfs/imasdb/imas_trees/public/models/%s/mdsplus", public_db_location, tokamak, version, version);
-	//MERGE
+
+      // location of model files
+      // it looks like we need to add it just after ";" inside treeBase## variables 
+      char *imas_prefix = getenv("IMAS_PREFIX");
+
+      // Do we have any idea how to proceed when there is no
+      // public DB?
+      // should we switch to user's DB?
+      strcat(public_db_location, imas_home );
+      strcat(public_db_location, "/shared");
+     
+      sprintf(treeBase0, "%s/%s/%s/0;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase1, "%s/%s/%s/1;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase2, "%s/%s/%s/2;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase3, "%s/%s/%s/3;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase4, "%s/%s/%s/4;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase5, "%s/%s/%s/5;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase6, "%s/%s/%s/6;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase7, "%s/%s/%s/7;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase8, "%s/%s/%s/8;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
+      sprintf(treeBase9, "%s/%s/%s/9;%s/models/mdsplus", public_db_location, tokamak, version, imas_prefix);
     }
     else
     {
-// #define ASSUME_HOME_IN_AFS 1
-        char homedir[1024];
-#ifdef ASSUME_HOME_IN_AFS
-/*        sprintf(homedir, "/afs/efda-imas.eu/user/%c/%s", user[0], user);*/
-        sprintf(homedir, "/home/ITER/%s", user);
-#else
-        // call "echo ~username" in a shell to get homedir of the user
-        char command[1024] = "echo ~";
-        strcat(command, (const char*) user);
+      char homedir[1024];
+      struct passwd *pw = getpwnam( user );
+      if( pw != NULL ) {
 
-        FILE* pipe = popen(command, "r");
-        fscanf(pipe, "%s", homedir);
-        pclose(pipe);
-#endif
+        sprintf(homedir, "%s", pw->pw_dir);
         char *treeBases[] = { treeBase0, treeBase1, treeBase2, treeBase3,
             treeBase4, treeBase5, treeBase6, treeBase7, treeBase8, treeBase9 };
-        int i;
+        int i = 0; 
         for (i = 0; i < sizeof(treeBases) / sizeof(treeBases[0]); ++i) {
             sprintf(treeBases[i],
                     "%s/public/imasdb/%s/%s/%d",
                     homedir, tokamak, version, i);
         }
+      } else {
+        // This is the place where we want to do something in case:
+        // - specified user doesn't exist
+        // - specified user doesn't have home directory (e.g. some service)
+      }
     }
 
     //MERGE
