@@ -55,11 +55,13 @@ LLenv Lowlevel::getLLenv(int idx)
   LLenv lle;
   try {
     lle = llenvStore.at(idx);
+    if (lle.context == NULL)
+      throw UALLowlevelException("Cannot find context "+std::to_string(idx)+
+				 " in store",LOG);
   }
   catch (const std::exception e) {
     throw UALLowlevelException("Cannot find context "+std::to_string(idx)+
 			       " in store",LOG);
-    //std::cerr << e.what() << WHERE << "\n";
   }
   return lle;
 }
@@ -74,7 +76,6 @@ LLenv Lowlevel::delLLenv(int idx)
 
   llenvStore[idx].backend = NULL;
   llenvStore[idx].context = NULL;
-
   if (idx == Lowlevel::curStoreElt-1)
     Lowlevel::curStoreElt--;
 
@@ -190,14 +191,13 @@ int ual_print_context(int ctxID)
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
     std::cout << "Context type = " << lle.context->getType() << "\n";
-    std::cout << "Backend @ = " << lle.backend << "\n",
-      std::cout << lle.context->print();
+    std::cout << "Backend @ = " << lle.backend << "\n";
+    std::cout << lle.context->print();
   }
   catch (const UALLowlevelException e) {
     std::cout << "ual_print_context: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
   }
-
   return status;
 }
 
