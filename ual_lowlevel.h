@@ -233,8 +233,8 @@ extern "C"
      This function writes a signal in the database given the passed context.
      @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action()) or
      array of structure context id (from ual_begin_arraystruct_action())
-     @param[in] fieldname field name 
-     @param[in] timebasename field name for the timebase 
+     @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
+     @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] data pointer on the data to be written
      @param[in] datatype type of data to be written:
      - CHAR_DATA strings
@@ -249,8 +249,8 @@ extern "C"
      @snippet ual_low_level.c ex_ual_write_data
   */
   int ual_write_data(int ctx,
-		     const char *fieldname,
-		     const char *timebasename,
+		     const char *fieldpath,
+		     const char *timebasepath,
 		     void *data,
 		     int datatype,
 		     int dim,
@@ -261,8 +261,8 @@ extern "C"
      This function reads a signal in the database given the passed context.
      @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action()) or
      array of structure context id (from ual_begin_arraystruct_action())
-     @param[in] fieldname field name
-     @param[in] timebasename field name for the timebase 
+     @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
+     @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[out] data returned pointer on the read data 
      @param[in] datatype type of data to be read:
      - CHAR_DATA strings
@@ -277,8 +277,8 @@ extern "C"
      @snippet ual_low_level.c ex_ual_read_data
   */
   int ual_read_data(int ctx,
-		    const char *fieldname,
-		    const char *timebasename,
+		    const char *fieldpath,
+		    const char *timebasepath,
 		    void **data,
 		    int datatype,
 		    int dim,
