@@ -54,8 +54,7 @@ endif
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp context_test.cpp ual_const.cpp \
 	mdsplus_backend.cpp memory_backend.cpp
-CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c 
-#matlab_adapter.c 
+CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c matlab_adapter.c
 
 LL_OBJ= ual_lowlevel.o ual_context.o ual_const.o 
 
@@ -63,8 +62,7 @@ BE_OBJ= ual_backend.o mdsplus_backend.o memory_backend.o
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o \
-		mdsplus_backend.o memory_backend.o
-#matlab_adapter.o 
+		mdsplus_backend.o memory_backend.o matlab_adapter.o
 
 TARGETS = libimas.so libimas.a
 
@@ -141,7 +139,7 @@ install: all pkgconfig_install
 	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT; \
 	done
 	cp ual_low_level.h $(INSTALL)/include
-#	cp matlab_adapter.h $(INSTALL)/include
+	cp matlab_adapter.h $(INSTALL)/include
 	cp ual_defs.h $(INSTALL)/include
 #install -d $(INSTALL)/lowlevel
 #install *.cpp *.h *.c $(INSTALL)/lowlevel

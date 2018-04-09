@@ -15,177 +15,231 @@
 #define TRUE 1
 #define FALSE 0
 
-int begin_read_arraystruct(int ctx,
-				 int idx,
-				 const char *path,
-				 const char *timebase,
-				 int *size) {
 
-    return ual_begin_read_arraystruct(ctx,
-				 idx,
-				 path,
-				 timebase,
-				 size);
-
+int mtl_ual_iterate_over_arraystruct(int aosctx, int step) 
+{
+    return ual_iterate_over_arraystruct(aosctx, step);
 }
 
-int *getVect1DInt_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status) 
+/**
+   Reads a 1D integer array.
+   This function reads a 1D vector signal made of integers from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] dim size of first dimension
+   @param[out] error status
+   @result 1D integer array
+ */
+int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status) 
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect1DInt(opCtx, fieldPath, timebasePath, &array, dim);
+    int retSize[MAXDIM];
+    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
+			 INTEGER_DATA, 1, &retSize[0]);
+    if (*status==0)
+    {
+      *dim = retSize[0];
+    }
     return array;
 }
 
-double *getVect1DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status)
+/**
+   Reads a 1D double array.
+   This function reads a 1D vector signal made of doubles from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] dim size of first dimension
+   @param[out] error status
+   @result 1D double array
+ */
+double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect1DDouble(opCtx, fieldPath, timebasePath, &array, dim);
+    int retSize[MAXDIM];
+    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
+			 DOUBLE_DATA, 1, &retSize[0]);
+    if (*status==0)
+    {
+      *dim = retSize[0];
+    }
     return array;
 }
 
-int *getVect1DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+/**
+   Reads a 1D integer array from an array of structure.
+   This function reads a 1D integer vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] dim size of first dimension
+   @param[out] error status
+   @result 1D integer array
+ */
+int *mtl_getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect1DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim);
+    int retSize[MAXDIM];
+    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 1, &retSize[0]);
+    if (*status==0)
+    {
+      *dim = retSize[0];
+    }
     return array;
 }
 
-double *getVect1DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      int *dim, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect1DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim);
+    int retSize[MAXDIM];
+    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 1, &retSize[0]);
+    if (*status==0)
+    {
+      *dim = retSize[0];
+    }
     return array;
 }
 
 
-double *getVect2DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *status)
+double *mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect2DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2);
+    int retSize[MAXDIM];
+    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
+			 DOUBLE_DATA, 2, &retSize[0]);
+    if (*status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
     return array;
 }
 
-int *getVect2DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int *mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim1, int *dim2, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect2DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2);
+    int retSize[MAXDIM];
+    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 2, &retSize[0]);
+    if (*status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
     return array;
 }
 
-double *getVect2DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      int *dim1, int *dim2, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect2DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2);
+    int retSize[MAXDIM];
+    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 2, &retSize[0]);
+    if (*status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
     return array;
 }
 
-double *getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status)
+double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect3DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
+    *status =  mtl_getVect3DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
     return array;
 }
 
-int *getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int *mtl_getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim1, int *dim2, int *dim3, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect3DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3);
+    *status =  mtl_getVect3DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
     return array;
 }
 
-double *getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      int *dim1, int *dim2, int *dim3, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect3DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3);
+    *status =  mtl_getVect3DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
     return array;
 }
 
 
-double *getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *status)
+double *mtl_getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect4DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
+    *status =  mtl_getVect4DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
     return array;
 }
 
-int *getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int *mtl_getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect4DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4);
+    *status =  mtl_getVect4DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
     return array;
 }
 
-double *getVect4DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect4DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect4DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4);
+    *status =  mtl_getVect4DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
     return array;
 }
 
-double *getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *status)
+double *mtl_getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect5DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
+    *status =  mtl_getVect5DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
     return array;
 }
 
-int *getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int *mtl_getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect5DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4, dim5);
+    *status =  mtl_getVect5DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
     return array;
 }
 
-double *getVect5DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect5DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect5DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4, dim5);
+    *status =  mtl_getVect5DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
     return array;
 }
 
-double *getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *status)
+double *mtl_getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect6DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+    *status =  mtl_getVect6DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
     return array;
 }
 
-int *getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int *mtl_getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
     int *array=malloc(sizeof(int*));
-    *status =  getVect6DIntFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+    *status =  mtl_getVect6DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
     return array;
 }
 
-double *getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, 
 			      int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
     double *array=malloc(sizeof(double*));
-    *status =  getVect6DDoubleFromObject(aosCtx, fieldPath, timebasePath, idx, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+    *status =  mtl_getVect6DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
     return array;
 }
 
-
-
-void check_status(int status, const char *file, const int line)
-{
-  if (status < 0)
-    { 
-      fprintf(stderr,"Failed status in %s:%d = %s\n",file, line, err2str(status));
-      exit(EXIT_FAILURE);
-    }
-}
 
 /*Low level function prototypes*/
 
@@ -206,7 +260,7 @@ void check_status(int status, const char *file, const int line)
    backend
    - and/or define additional function in lowlevel C++ API
  */
-int ual_create(const char *name, int shot, int run, int refShot, int refRun, 
+int mtl_ual_create(const char *name, int shot, int run, int refShot, int refRun, 
 	       int *pulseCtx)
 {
   /* name, refShot, refRun not considered */
@@ -229,7 +283,7 @@ int ual_create(const char *name, int shot, int run, int refShot, int refRun,
    @param[out] pulseCtx returned pulse context ID
    @result error status
  */
-int ual_open(const char *name, int shot, int run, int *pulseCtx)
+int mtl_ual_open(const char *name, int shot, int run, int *pulseCtx)
 {
   /* name not considered */
   *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
@@ -247,7 +301,7 @@ int ual_open(const char *name, int shot, int run, int *pulseCtx)
    @param[in] pulseCtx pulse context ID
    @result error status
  */
-int ual_close(int pulseCtx)
+int mtl_ual_close(int pulseCtx)
 {
   return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
 }
@@ -271,7 +325,7 @@ int ual_open_hdf5(const char *name, int shot, int run, int *retIdx);
    @param[in] version database data version    
    @result error status
  */
-int ual_create_env(const char *name, int shot, int run, int refShot, 
+int mtl_ual_create_env(const char *name, int shot, int run, int refShot, 
 		   int refRun, int *pulseCtx, char *user, char *tokamak, 
 		   char *version)
 {
@@ -297,7 +351,7 @@ int ual_create_env(const char *name, int shot, int run, int refShot,
    @param[in] version database data version 
    @result error status
  */
-int ual_open_env(const char *name, int shot, int run, int *pulseCtx, 
+int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx, 
 		 char *user, char *tokamak, char *version)
 {
   *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
@@ -364,20 +418,6 @@ int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time,
 }
 /*[ex_ual_begin_slice_action]*/
 
-/**
-   Terminates a read action on a DATAOBJECT slice.
-   This function marks the end of a get operation initiated by a call to 
-   beginDataobjectGetSlice().
-   @param[in] opCtx operation context ID (from beginDataobjectGetSlice())
-   @result error status
-   
-   [ex_ual_end_action]*/
-int endDataobjectGetSlice(int opCtx)
-{
-  return ual_end_action(opCtx);
-}
-/*[ex_ual_end_action]*/
-
 /*
   OH: F90 interface, non timed DATAOBJECT are using beginDataobjectPutNonTimed, C++ is using 
   beginDataobjectPut => need to clarify use-cases in order to avoid possible bugs and 
@@ -412,17 +452,6 @@ int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
 				UNDEFINED_INTERP);
 }
 
-/**
-   Terminates a write action on a DATAOBJECT slice.
-   This function marks the end of a put operation initiated by a call to 
-   beginDataobjectPutSlice().
-   @param[in] opCtx operation context ID (from beginDataobjectPutSlice())
-   @result error status
- */
-int endDataobjectPutSlice(int opCtx)
-{
-  return ual_end_action(opCtx);
-}
 
 /* allow future extension where another slice than the last one is replaced */
 
@@ -440,7 +469,7 @@ int endDataobjectPutSlice(int opCtx)
    whole subtree)
    @result error status
  */
-int deleteData(int ctx, const char *fieldPath)
+int mtl_deleteData(int ctx, const char *fieldPath)
 {
   return ual_delete_data(ctx, fieldPath);
 }
@@ -450,7 +479,7 @@ int deleteData(int ctx, const char *fieldPath)
    Flush cached data.
    @todo TDB
  */
-int ual_flush_dataobject_mem_cache(int ctx, const char *path) 
+int mtl_ual_flush_dataobject_mem_cache(int ctx, const char *path) 
 {
   return 0;
 }
@@ -459,11 +488,137 @@ int ual_flush_dataobject_mem_cache(int ctx, const char *path)
    Discard cached data.
    @todo TDB
  */
-int ual_discard_dataobject_mem_cache(int ctx, const char *path) 
+int mtl_ual_discard_dataobject_mem_cache(int ctx, const char *path) 
 {
   return 0;
 }
 
+
+/* readers
+********************************************************************************/
+
+/**
+   Reads a 1D character array.
+   This function reads a 1D vector signal made of characters from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
+		  char **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  char* szTemp = NULL;
+//  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, 
+			 CHAR_DATA, 1, &retSize[0]);
+  if (status==0)
+    {
+      *dim = retSize[0];
+      *data = malloc(*dim + 1);
+      memset(*data, 0, *dim + 1);
+      strncpy(*data, szTemp, *dim);
+      free (szTemp);
+    }
+  return status;
+}
+
+/**
+   Reads a 1D character array from an array of structure.
+   This function reads a 1D character vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim size of first dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim)
+{
+  int status;
+  int retSize[MAXDIM];
+  char* szTemp;
+  status =  ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 1, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim = retSize[0];
+      *data = malloc(*dim + 1);
+      memset(*data, 0, *dim + 1);
+      strncpy(*data, szTemp, *dim);
+      free (szTemp);
+    }
+  return status;
+}
+
+/**
+   Reads a 2D character array.
+   This function reads a 2D vector signal made of characters from a DATAOBJECT.
+   @param[in] opCtx operation context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath timebase name
+   @param[out] data field value 
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
+		  char **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+			 CHAR_DATA, 2, &retSize[0]);
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
+
+/**
+   Reads a 2D character array from an array of structure.
+   This function reads a 2D character vector field from an element of an array 
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - new function
+ */
+int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim1, int *dim2)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, CHAR_DATA, 2, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+    }
+  return status;
+}
 
 
 /* writers 
@@ -481,7 +636,7 @@ int ual_discard_dataobject_mem_cache(int ctx, const char *path)
    @todo Low-level API modification: 
    - additional timebasePath argument
 */
-int putChar(int opCtx, const char *fieldPath, const char *timebasePath, char data)
+int mtl_putChar(int opCtx, const char *fieldPath, const char *timebasePath, char data)
 {
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
 			CHAR_DATA, 0, NULL);
@@ -499,7 +654,7 @@ int putChar(int opCtx, const char *fieldPath, const char *timebasePath, char dat
    @todo Low-level API modification: 
    - additional timebasePath argument
 */
-int putInt(int opCtx, const char *fieldPath, const char *timebasePath, int data)
+int mtl_putInt(int opCtx, const char *fieldPath, const char *timebasePath, int data)
 {
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
 			INTEGER_DATA, 0, NULL);
@@ -517,7 +672,7 @@ int putInt(int opCtx, const char *fieldPath, const char *timebasePath, int data)
    @todo Low-level API modification: 
    - additional timebasePath argument
 */
-int putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double data)
+int mtl_putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double data)
 {
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
 			DOUBLE_DATA, 0, NULL);
@@ -535,7 +690,7 @@ int putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double
    @todo Low-level API modification: 
    - additional timebasePath argument
 */
-int putComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_putComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 	       double _Complex data)
 {
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
@@ -556,7 +711,7 @@ int putComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath,
 		  char *data, int dim)
 {
   int size[1] = {dim};
@@ -578,7 +733,7 @@ int putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim)
 {
   int size[1] = {dim};
@@ -600,7 +755,7 @@ int putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim)
 {
   int size[1] = {dim};
@@ -623,7 +778,7 @@ int putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim)
 {
   int size[1] = {dim};
@@ -646,7 +801,7 @@ int putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
 		  char *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
@@ -669,7 +824,7 @@ int putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
@@ -692,7 +847,7 @@ int putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
@@ -715,7 +870,7 @@ int putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
@@ -739,7 +894,7 @@ int putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
@@ -763,7 +918,7 @@ int putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
@@ -787,7 +942,7 @@ int putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
@@ -812,7 +967,7 @@ int putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
@@ -837,7 +992,7 @@ int putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
@@ -862,7 +1017,7 @@ int putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
@@ -888,7 +1043,7 @@ int putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
@@ -914,7 +1069,7 @@ int putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2, int dim3, int dim4, 
 		    int dim5)
 {
@@ -941,7 +1096,7 @@ int putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5)
 {
@@ -969,7 +1124,7 @@ int putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
 		 int dim6)
 {
@@ -997,7 +1152,7 @@ int putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2, int dim3, int dim4, 
 		    int dim5, int dim6)
 {
@@ -1025,7 +1180,7 @@ int putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5, int dim6)
 {
@@ -1054,7 +1209,7 @@ int putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
 		 int dim6, int dim7)
 {
@@ -1083,7 +1238,7 @@ int putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double *data, int dim1, int dim2, int dim3, int dim4, 
 		    int dim5, int dim6, int dim7)
 {
@@ -1112,7 +1267,7 @@ int putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional timebasePath argument
    - remove isTimed argument
 */
-int putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5, int dim6, int dim7)
 {
@@ -1139,7 +1294,7 @@ int putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - new function
  */
-int getChar(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_getChar(int opCtx, const char *fieldPath, const char *timebasePath,
 	    char *data)
 {
   int status;
@@ -1158,13 +1313,11 @@ int getChar(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[out] data field value 
    @result error status
  */
-int getInt(int opCtx, const char *fieldPath, const char *timebasePath,
-	   int *data)
+int mtl_getInt(int opCtx, const char *fieldPath, const char *timebasePath, int *data)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
-			 INTEGER_DATA, 0, &retSize[0]);
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
   return status;
 }
 
@@ -1177,7 +1330,7 @@ int getInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[out] data field value 
    @result error status
  */
-int getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 	      double *data)
 {
   int status;
@@ -1196,100 +1349,13 @@ int getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[out] data field value 
    @result error status
  */
-int getComplex(int opCtx, const char *fieldPath, const char *timebasePath,
+int mtl_getComplex(int opCtx, const char *fieldPath, const char *timebasePath,
 	       double _Complex *data)
 {
   int status;
   int retSize[MAXDIM];
   status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
 			 COMPLEX_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads a 1D character array.
-   This function reads a 1D vector signal made of characters from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
-		  char **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp = NULL;
-//  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, 
-			 CHAR_DATA, 1, &retSize[0]);
-  if (status==0)
-    {
-      *dim = retSize[0];
-      *data = malloc(*dim + 1);
-      memset(*data, 0, *dim + 1);
-      strncpy(*data, szTemp, *dim);
-      free (szTemp);
-    }
-  return status;
-}
-
-/**
-   Reads a 1D integer array.
-   This function reads a 1D vector signal made of integers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
-		 int **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 INTEGER_DATA, 1, &retSize[0]);
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
-  return status;
-}
-
-/**
-   Reads a 1D double array.
-   This function reads a 1D vector signal made of doubles from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
-		    double **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 DOUBLE_DATA, 1, &retSize[0]);
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
   return status;
 }
 
@@ -1306,7 +1372,7 @@ int getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim)
 {
   int status;
@@ -1316,35 +1382,6 @@ int getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
   if (status==0)
     {
       *dim = retSize[0];
-    }
-  return status;
-}
-
-/**
-   Reads a 2D character array.
-   This function reads a 2D vector signal made of characters from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
-		  char **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 CHAR_DATA, 2, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
     }
   return status;
 }
@@ -1363,7 +1400,7 @@ int getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2)
 {
   int status;
@@ -1392,7 +1429,7 @@ int getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+/*int mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2)
 {
   int status;
@@ -1405,7 +1442,7 @@ int getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
       *dim2 = retSize[1];
     }
   return status;  
-}
+}*/
 
 /**
    Reads a 2D complex number array.
@@ -1421,7 +1458,7 @@ int getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2)
 {
   int status;
@@ -1451,7 +1488,7 @@ int getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
@@ -1483,7 +1520,7 @@ int getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
 
    [ex_ual_read_data]*/
-int getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
@@ -1515,7 +1552,7 @@ int getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2, 
 		     int *dim3)
 {
@@ -1548,7 +1585,7 @@ int getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2, int *dim3, 
 		 int *dim4)
 {
@@ -1582,7 +1619,7 @@ int getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4)
 {
@@ -1616,7 +1653,7 @@ int getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4)
 {
@@ -1651,7 +1688,7 @@ int getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2, int *dim3, 
 		 int *dim4, int *dim5)
 {
@@ -1687,7 +1724,7 @@ int getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5)
 {
@@ -1723,7 +1760,7 @@ int getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5)
 {
@@ -1760,7 +1797,7 @@ int getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2, int *dim3,
 		 int *dim4, int *dim5, int *dim6)
 {
@@ -1798,7 +1835,7 @@ int getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5, int *dim6)
 {
@@ -1836,7 +1873,7 @@ int getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5, int *dim6)
 {
@@ -1875,7 +1912,7 @@ int getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
 		 int **data, int *dim1, int *dim2, int *dim3, 
 		 int *dim4, int *dim5, int *dim6, int *dim7)
 {
@@ -1915,7 +1952,7 @@ int getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5, int *dim6, int *dim7)
 {
@@ -1955,7 +1992,7 @@ int getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
 		     double _Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
@@ -1975,9 +2012,6 @@ int getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
     }
   return status;
 }
-
-
-
 
 
 /* objects management
@@ -2002,35 +2036,6 @@ void replaceObjectInList(int idx, void *obj);
 void *getObjectFromList(int idx);
 /*********************************************/
 
-
-/**
-   Initializes an array of structure.
-   This function initialize room for a generic array of structures.
-   @param[in] ctx context ID (operation or array of structure)
-   @param[in] index position in the container
-   @param[in] fieldPath path of the field
-   - simple array of structure or container: from the DATAOBJECT (included) to the 
-   array of structure name
-   - embedded array of structure: from the container (included) to the 
-   array of structure name
-   @param[in] timebasePath path of the timebase for this array of structure
-   @param[in] size number of elements in the new array of structure 
-   @result array of structure context ID [_errror if < 0_]
-   @todo Low-level API modification: 
-   - no void* argument (passed context is either operation or array or struct)
-   - returned object is integer (int) instead of pointer (void *)
-   - added argument for specifying size of the object
-   - added argument for specifying timebase
-   - no isTimed argument (redundant with timebasePath)
-
-   [ex_ual_begin_write_arraystruct]*/
-int mtl_ual_begin_write_arraystruct(int ctx, int index, const char *fieldPath, const char *timebasePath,
-		int size)
-{
-  return ual_begin_write_arraystruct(ctx, index, fieldPath, timebasePath, size);
-}
-/*[ex_ual_begin_write_arraystruct]*/
-
 /**
    Deallocates an array of structure.
    This function deallocate the memory reserved for an array of structures.
@@ -2043,24 +2048,6 @@ int mtl_ual_begin_write_arraystruct(int ctx, int index, const char *fieldPath, c
 int releaseObject(int aosCtx)
 {
   return ual_end_action(aosCtx);
-}
-
-/**
-   Reads an array of structure from slice.
-   This function reads a signal made of an array of structures from a DATAOBJECT slice.
-   @param[in] opCtx operation context
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath name of the timebase 
-   @param[out] size returned size of the array of structure
-   @result array of structure context ID [_errror if < 0_]
-
-   @todo Low-level API modification: 
-   - returns integer (int *aosCtx) instead of void pointer (void **obj)
-   - add returned size of the array of structure 
- */
-int getObjectSlice(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
-{
-  return ual_begin_read_arraystruct(opCtx, 0, fieldPath, timebasePath, size);
 }
 
 /**
@@ -2119,9 +2106,9 @@ int putObject(int aosCtx)
    - returns size of the array of structure
    - does not 
  */
-int mtl_ual_begin_read_arraystruct(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
+int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
 {
-  return ual_begin_read_arraystruct(opCtx, 0, fieldPath, timebasePath, size);
+  return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
 }
 
 
@@ -2145,89 +2132,11 @@ int getDimensionFromObject(int opCtx, void *obj, const char *fieldPath, int idx,
 			   int *dim4, int *dim5, int *dim6, int *dim7);
 
 
-/**
-   Writes an array of structure in an array of structure.
-   This function writes a complete array of structures into an array of 
-   structures element.
-   @param[in] aosCtx array of structure context ID [_container_]
-   @param[in] fieldPath name of the field 
-   @param[in] idx index of the array element
-   @param[in] subAosCtx array of structure context ID [_embedded_]
-   @param[in] size size of the array of structure
-   @result array of structure context ID [_errror if < 0_]
-
-   @todo Low-level API modification:
-   - no passed pointer on container array (void *obj)
-   - passed pointer on contained array (void *dataObj) is now passed as 
-   contained structure array context ID (int subObjCtx)
-   - add the size of the contained array as argument (int dim)
-   - result = error status (int) instead of pointer on array of structure (void *)
-
-   @note no passed isTimed as inherits from container properties
-
-   @deprecated function might be deprecated and replaced by beginObject: 
-   TO BE CHECKED!
- */
-int putObjectInObject(int aosCtx, const char *fieldPath, int idx, 
-		      int subAosCtx, int size)
-{
-  /* isTimed is not relevant: false is passed */
-  return ual_begin_write_arraystruct(aosCtx, idx, fieldPath, "time", size);
-
-  /* if not deprecated the meaning of the function would be as */
-  return ual_end_action(subAosCtx);
-}
-
-/**
-   Reads an array of structure from an array of structure.
-   This function reads a complete array of structures field from an array of 
-   structures element.
-   @param[in] aosCtx array of structure context ID [_container_]
-   @param[in] fieldPath field name
-   @param[in] timebasePath name of the timebase 
-   @param[in] idx index of the array element
-   @param[out] size returned size of the array of structure
-   @result array of structure context ID [_errror if < 0_]
-
-   @todo Low-level API modification:
-   - no passed pointer on container array (void *obj)
-   - returned pointer on contained array (void **dataObj) becomes 
-   the returned array of structure context ID 
-   - add the returned dim of the contained array
-
-   @note no passed isTimed as inherits from container properties
- */
-int mtl_ual_begin_read_arraystruct_from_arraystruct(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, int *size)
-{
-  return ual_begin_read_arraystruct(aosCtx, idx, fieldPath, timebasePath, size);
-}
-
-
-
 
 
 /* array of structure element writers
 *******************************************************************************/
 
-/**
-   Writes a character in an array of structure.
-   This function writes a character field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[in] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int putCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, char data)
-{  
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void *)(&data), 
-				CHAR_DATA, 0, NULL);
-}
 
 /**
    Writes an integer in an array of structure.
@@ -2236,7 +2145,6 @@ int putCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @result error status
 
@@ -2244,11 +2152,10 @@ int putCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
-		   int idx, int data)
+int mtl_putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
+		   int data)
 {  
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
-				(void *)(&data), INTEGER_DATA, 0, NULL);
+  return ual_write_data(aosCtx, fieldPath, timebasePath,(void *)(&data), INTEGER_DATA, 0, NULL);
 }
 
 /**
@@ -2258,7 +2165,6 @@ int putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @result error status
 
@@ -2266,11 +2172,10 @@ int putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-		      int idx, double data)
+int mtl_putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+		     double data)
 {
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
-				(void *)(&data), DOUBLE_DATA, 0, NULL);
+  return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)(&data), DOUBLE_DATA, 0, NULL);
 }
 
 /**
@@ -2280,7 +2185,6 @@ int putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePat
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @result error status
 
@@ -2288,10 +2192,10 @@ int putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePat
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-		       int idx, double _Complex data)
+int mtl_putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+		       double _Complex data)
 {
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)(&data), COMPLEX_DATA, 0, NULL);
 }
 
@@ -2302,7 +2206,6 @@ int putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePa
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim size of first dimension
    @result error status
@@ -2310,12 +2213,11 @@ int putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification:
    - new function
  */
-int putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			  int idx, char *data, int dim)
+int mtl_putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			  char *data, int dim)
 {
   int size[1] = {dim};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
-				(void *)data, CHAR_DATA, 1, size);
+  return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)data, CHAR_DATA, 1, size);
 }
 
 /**
@@ -2325,7 +2227,6 @@ int putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebas
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim size of first dimension
    @result error status
@@ -2334,11 +2235,11 @@ int putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebas
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			 int idx, int *data, int dim)
+int mtl_putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			 int *data, int dim)
 {
   int size[1] = {dim};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 1, size);
 }
 
@@ -2349,7 +2250,6 @@ int putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebase
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim size of first dimension
    @result error status
@@ -2358,12 +2258,12 @@ int putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebase
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect1DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+int mtl_putVect1DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim)
 {
   int size[1] = {dim};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 1, size);
 }
 
@@ -2374,7 +2274,6 @@ int putVect1DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim size of first dimension
    @result error status
@@ -2383,12 +2282,12 @@ int putVect1DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect1DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect1DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim)
 {
   int size[1] = {dim};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 1, size);
 }
 
@@ -2399,7 +2298,6 @@ int putVect1DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2408,12 +2306,12 @@ int putVect1DComplexInObject(int aosCtx, const char *fieldPath,
    @todo Low-level API modification:
    - new function
  */
-int putVect2DCharInObject(int aosCtx, const char *fieldPath, 
-			  const char *timebasePath, int idx, 
+int mtl_putVect2DCharInObject(int aosCtx, const char *fieldPath, 
+			  const char *timebasePath,
 			  char *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, CHAR_DATA, 2, size);
 }
 
@@ -2424,7 +2322,6 @@ int putVect2DCharInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2434,12 +2331,12 @@ int putVect2DCharInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect2DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect2DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath,
 			 int *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 2, size);
 }
 
@@ -2450,7 +2347,6 @@ int putVect2DIntInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2460,16 +2356,16 @@ int putVect2DIntInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
 
-   [ex_ual_put_in_arraystruct]*/
-int putVect2DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+   [ex_ual_mtl_put_in_arraystruct]*/
+int mtl_putVect2DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 2, size);
 }
-/*[ex_ual_put_in_arraystruct]*/
+/*[ex_ual_mtl_put_in_arraystruct]*/
 
 /**
    Writes a 2D complex number array in an array of structure.
@@ -2478,7 +2374,6 @@ int putVect2DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2488,12 +2383,12 @@ int putVect2DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect2DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect2DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 2, size);
 }
 
@@ -2504,7 +2399,6 @@ int putVect2DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2515,12 +2409,12 @@ int putVect2DComplexInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect3DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect3DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, 
 			 int *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 3, size);
 }
 
@@ -2531,7 +2425,6 @@ int putVect3DIntInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2542,12 +2435,12 @@ int putVect3DIntInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect3DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+int mtl_putVect3DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 3, size);
 }
 
@@ -2558,7 +2451,6 @@ int putVect3DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2569,12 +2461,12 @@ int putVect3DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect3DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect3DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 3, size);
 }
 
@@ -2585,7 +2477,6 @@ int putVect3DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2597,12 +2488,12 @@ int putVect3DComplexInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect4DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect4DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath,
 			 int *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 4, size);
 }
 
@@ -2613,7 +2504,6 @@ int putVect4DIntInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2625,12 +2515,12 @@ int putVect4DIntInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect4DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char* timebasePath, int idx, 
+int mtl_putVect4DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char* timebasePath,
 			    double *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx,
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
         (void *)data, DOUBLE_DATA, 4, size);
 }
 
@@ -2641,7 +2531,6 @@ int putVect4DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2653,13 +2542,13 @@ int putVect4DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect4DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect4DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 4, size);
 }
 
@@ -2670,7 +2559,6 @@ int putVect4DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2683,13 +2571,13 @@ int putVect4DComplexInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect5DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect5DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath,
 			 int *data, int dim1, int dim2, int dim3, int dim4, 
 			 int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 5, size);
 }
 
@@ -2700,7 +2588,6 @@ int putVect5DIntInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2713,13 +2600,13 @@ int putVect5DIntInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect5DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+int mtl_putVect5DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim1, int dim2, int dim3, 
 			    int dim4, int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 5, size);
 }
 
@@ -2730,7 +2617,6 @@ int putVect5DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2743,13 +2629,13 @@ int putVect5DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect5DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect5DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 5, size);
 }
 
@@ -2760,7 +2646,6 @@ int putVect5DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2774,13 +2659,13 @@ int putVect5DComplexInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect6DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect6DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath,
 			 int *data, int dim1, int dim2, int dim3, int dim4, 
 			 int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 6, size);
 }
 
@@ -2791,7 +2676,6 @@ int putVect6DIntInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2805,13 +2689,13 @@ int putVect6DIntInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect6DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+int mtl_putVect6DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim1, int dim2, int dim3, 
 			    int dim4, int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 6, size);
 }
 
@@ -2822,7 +2706,6 @@ int putVect6DDoubleInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath name of the field
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
@@ -2836,52 +2719,52 @@ int putVect6DDoubleInObject(int aosCtx, const char *fieldPath,
    - no passed pointer on array of structure (void *obj)
    - result = error status (int) instead of opaque pointer (void *)
  */
-int putVect6DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect6DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 6, size);
 }
 
 /**
    @deprecated no 7D field in an array of structure (7D = 6D + time)
  */
-int putVect7DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, int idx, 
+int mtl_putVect7DIntInObject(int aosCtx, const char *fieldPath, 
+			 const char *timebasePath, 
 			 int *data, int dim1, int dim2, int dim3, int dim4, 
 			 int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, INTEGER_DATA, 7, size);
 }
 
 /**
    @deprecated no 7D field in an array of structure (7D = 6D + time)
  */
-int putVect7DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath, int idx, 
+int mtl_putVect7DDoubleInObject(int aosCtx, const char *fieldPath, 
+			    const char *timebasePath,
 			    double *data, int dim1, int dim2, int dim3, 
 			    int dim4, int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 7, size);
 }
 
 /**
    @deprecated no 7D field in an array of structure (7D = 6D + time)
  */
-int putVect7DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath, int idx, 
+int mtl_putVect7DComplexInObject(int aosCtx, const char *fieldPath, 
+			     const char *timebasePath,
 			     double _Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_put_in_arraystruct(aosCtx, fieldPath, timebasePath, idx, 
+  return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, COMPLEX_DATA, 7, size);
 }
 
@@ -2899,19 +2782,17 @@ int putVect7DComplexInObject(int aosCtx, const char *fieldPath,
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @result error status
 
    @todo Low-level API modification:
    - new function
  */
-int getCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, char *data)
+int mtl_getCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char *data)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)&data, 
-				    CHAR_DATA, 0, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, CHAR_DATA, 0, &retSize[0]);
   return status;
 }
 
@@ -2922,19 +2803,17 @@ int getCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePat
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @result error status
 
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, int *data)
+int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *data)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)&data, 
-				    INTEGER_DATA, 0, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
   return status;
 }
 
@@ -2945,21 +2824,18 @@ int getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @result error status
 
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
 
-   [ex_ual_get_from_arraystruct]*/
-int getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			double *data)
+   [ex_ual_mtl_get_from_arraystruct]*/
+int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double *data)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)&data, 
-				    DOUBLE_DATA, 0, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, DOUBLE_DATA, 0, &retSize[0]);
   return status;
 }
 /*[ex_ual_get_from_arraystruct]*/
@@ -2971,85 +2847,18 @@ int getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebaseP
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @result error status
 
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			 double _Complex *data)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)&data, 
-				    COMPLEX_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads a 1D character array from an array of structure.
-   This function reads a 1D character vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[out] data field value
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			    char **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp;
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)&szTemp, 
-				    CHAR_DATA, 1, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim = retSize[0];
-      *data = malloc(*dim + 1);
-      memset(*data, 0, *dim + 1);
-      strncpy(*data, szTemp, *dim);
-      free (szTemp);
-    }
-  return status;
-}
-
-/**
-   Reads a 1D integer array from an array of structure.
-   This function reads a 1D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[out] data field value
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			   int **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    INTEGER_DATA, 1, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
   return status;
 }
 
@@ -3060,7 +2869,6 @@ int getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim size of first dimension
    @result error status
@@ -3068,20 +2876,18 @@ int getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			      double **data, int *dim)
+/*int mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    DOUBLE_DATA, 1, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 1, &retSize[0]);
 
   if (status==0)
     {
       *dim = retSize[0];
     }
   return status;
-}
+}*/
 
 
 /**
@@ -3091,7 +2897,6 @@ int getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim size of first dimension
    @result error status
@@ -3099,49 +2904,15 @@ int getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect1DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim)
+int mtl_getVect1DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double _Complex **data, int *dim)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 1, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 1, &retSize[0]);
 
   if (status==0)
     {
       *dim = retSize[0];
-    }
-  return status;
-}
-
-/**
-   Reads a 2D character array from an array of structure.
-   This function reads a 2D character vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			    char **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    CHAR_DATA, 2, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
     }
   return status;
 }
@@ -3153,7 +2924,6 @@ int getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timeb
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3162,13 +2932,11 @@ int getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timeb
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			   int **data, int *dim1, int *dim2)
+/*int mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    INTEGER_DATA, 2, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 2, &retSize[0]);
 
   if (status==0)
     {
@@ -3176,7 +2944,7 @@ int getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
       *dim2 = retSize[1];
     }
   return status;
-}
+}*/
 
 /**
    Reads a 2D double array from an array of structure.
@@ -3185,7 +2953,6 @@ int getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3194,13 +2961,11 @@ int getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			      double **data, int *dim1, int *dim2)
+/*int mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    DOUBLE_DATA, 2, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 2, &retSize[0]);
 
   if (status==0)
     {
@@ -3208,7 +2973,7 @@ int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
       *dim2 = retSize[1];
     }
   return status;
-}
+}*/
 
 /**
    Reads a 2D complex number array from an array of structure.
@@ -3217,7 +2982,6 @@ int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3226,13 +2990,12 @@ int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			       double _Complex **data, int *dim1, int *dim2)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 2, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 2, &retSize[0]);
 
   if (status==0)
     {
@@ -3249,7 +3012,6 @@ int getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3259,13 +3021,11 @@ int getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			   int **data, int *dim1, int *dim2, int *dim3)
+int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    INTEGER_DATA, 3, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 3, &retSize[0]);
 
   if (status==0)
     {
@@ -3283,7 +3043,6 @@ int getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3293,13 +3052,12 @@ int getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			      double **data, int *dim1, int *dim2, int *dim3)
+int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
+    double **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    DOUBLE_DATA, 3, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 3, &retSize[0]);
 
   if (status==0)
     {
@@ -3317,7 +3075,6 @@ int getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3327,14 +3084,13 @@ int getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			       double _Complex **data, int *dim1, int *dim2, 
 			       int *dim3)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 3, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 3, &retSize[0]);
 
   if (status==0)
     {
@@ -3352,7 +3108,6 @@ int getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3363,13 +3118,13 @@ int getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int **data, int *dim1, int *dim2, int *dim3, 
 			   int *dim4)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
 				    INTEGER_DATA, 4, &retSize[0]);
 
   if (status==0)
@@ -3389,7 +3144,6 @@ int getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3400,14 +3154,12 @@ int getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			      double **data, int *dim1, int *dim2, int *dim3, 
-			      int *dim4)
+int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			      double **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    DOUBLE_DATA, 4, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath,(void **)data, DOUBLE_DATA, 4, &retSize[0]);
 
   if (status==0)
     {
@@ -3426,7 +3178,6 @@ int getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3437,14 +3188,13 @@ int getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			       double _Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 4, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 4, &retSize[0]);
 
   if (status==0)
     {
@@ -3463,7 +3213,6 @@ int getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3475,14 +3224,13 @@ int getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int **data, int *dim1, int *dim2, int *dim3, 
 			   int *dim4, int *dim5)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    INTEGER_DATA, 5, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 5, &retSize[0]);
 
   if (status==0)
     {
@@ -3501,7 +3249,6 @@ int getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3513,13 +3260,13 @@ int getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      double **data, int *dim1, int *dim2, int *dim3, 
 			      int *dim4, int *dim5)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
 				    DOUBLE_DATA, 5, &retSize[0]);
 
   if (status==0)
@@ -3552,14 +3299,13 @@ int getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			       double _Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4, int *dim5)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 5, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 5, &retSize[0]);
 
   if (status==0)
     {
@@ -3579,7 +3325,6 @@ int getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3592,13 +3337,13 @@ int getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *ti
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			   int **data, int *dim1, int *dim2, int *dim3, 
 			   int *dim4, int *dim5, int *dim6)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
 				    INTEGER_DATA, 6, &retSize[0]);
 
   if (status==0)
@@ -3620,7 +3365,6 @@ int getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @param[in] aosCtx array of structure context ID
    @param[in] fieldPath field name
    @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
    @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
@@ -3633,13 +3377,13 @@ int getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timeba
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			      double **data, int *dim1, int *dim2, int *dim3, 
 			      int *dim4, int *dim5, int *dim6)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
 				    DOUBLE_DATA, 6, &retSize[0]);
 
   if (status==0)
@@ -3674,14 +3418,13 @@ int getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    @todo Low-level API modification:
    - no passed pointer on array of structure (void *obj)
  */
-int getVect6DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
+int mtl_getVect6DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 			       double _Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4, int *dim5, int *dim6)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_get_from_arraystruct(aosCtx, fieldPath, timebasePath, idx, (void **)data, 
-				    COMPLEX_DATA, 6, &retSize[0]);
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 6, &retSize[0]);
 
   if (status==0)
     {
