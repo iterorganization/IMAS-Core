@@ -68,7 +68,10 @@ TARGETS = libimas.so libimas.a
 
 
 all: $(TARGETS) doc
-
+sources:
+sources_install: $(wildcard *.c *.h)
+	install -d $(INSTALL)/share/src/lowlevel
+	install -m 644 $^ $(INSTALL)/share/src/lowlevel
 
 tests: context lowlevel mdsplus oldapi testc 
 
