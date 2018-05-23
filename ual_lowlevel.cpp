@@ -592,7 +592,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
       }
   }
   catch (const UALNoDataException e) {
-    std::cout << e.what() << " *recoverable* \n";
+    //std::cout << e.what() << " *recoverable* \n";
     Lowlevel::setDefaultValue(datatype, dim, data, size);
     //status = 0;
     status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
