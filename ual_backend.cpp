@@ -4,7 +4,7 @@
 #include "mdsplus_backend.h"
 //#include "hdf5_backend.h"
 #include "memory_backend.h"
-
+#include "uda_backend.h"
 
 Backend* Backend::initBackend(int id)
 {
@@ -37,6 +37,11 @@ Backend* Backend::initBackend(int id)
   else if (id==ualconst::memory_backend)
     {
       MemoryBackend* tbe = new MemoryBackend();
+      be = tbe;
+    }
+  else if (id==ualconst::uda_backend)
+    {
+      UDABackend* tbe = new UDABackend(true);
       be = tbe;
     }
   else

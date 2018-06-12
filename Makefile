@@ -27,6 +27,11 @@ MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
 MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
 
 
+## UDA flags -- required for UDA backend
+UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
+UDALIB= $(shell pkg-config --libs uda-fat-cpp)
+#UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
+
 ## Adding DEBUG=yes to make command to print additional debug info
 DEBFLAGS= -g
 ifeq (${DEBUG},yes)
@@ -40,15 +45,15 @@ endif
 ifeq "$(strip $(INTEL))" "yes"
   CPPFLAGS= 
   CFLAGS= -std=c99 -pedantic -Wall -fPIC -O0 ${DEBFLAGS}
-  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} 
+  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC}
   FFLAGS= -fpp -r8 -assume no2underscore -fPIC -shared-intel ${DEBFLAGS}
-  LDFLAGS= $(MDSLIB) 
+  LDFLAGS= $(MDSLIB) ${UDALIB}
 else
   CPPFLAGS= 
   CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
-  CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} 
+  CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} 
   FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
-  LDFLAGS= $(MDSLIB) 
+  LDFLAGS= $(MDSLIB) ${UDALIB}
 endif
 
 
@@ -62,7 +67,7 @@ BE_OBJ= ual_backend.o mdsplus_backend.o memory_backend.o
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o \
-		mdsplus_backend.o memory_backend.o matlab_adapter.o
+		mdsplus_backend.o memory_backend.o matlab_adapter.o uda_backend.o
 
 TARGETS = libimas.so libimas.a
 

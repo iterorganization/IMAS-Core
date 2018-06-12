@@ -22,6 +22,7 @@ extern const int ASCII_BACKEND;
 extern const int MDSPLUS_BACKEND;
 extern const int HDF5_BACKEND;
 extern const int MEMORY_BACKEND;
+extern const int UDA_BACKEND;
 
 #include "ual_defs.h"
 
@@ -36,6 +37,7 @@ namespace ualconst {
   extern const int mdsplus_backend;
   extern const int hdf5_backend;
   extern const int memory_backend;
+  extern const int uda_backend;
 
   const int timed = TIMED;
   const int non_timed = NON_TIMED;
@@ -66,7 +68,7 @@ namespace ualconst {
   const int double_data = DOUBLE_DATA;
   const int complex_data = COMPLEX_DATA;
 
-  extern const std::array<std::string,5> backend_id_str;
+  extern const std::array<std::string,6> backend_id_str;
   extern const std::array<std::string,2> op_range_str;
   extern const std::array<std::string,3> op_access_str;
   extern const std::array<std::string,4> op_interp_str;
