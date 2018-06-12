@@ -184,8 +184,13 @@ public:
 	  throw UALContextException("Undefined env variable DATAVERSION",LOG);
       }
     else
-      version = v;
-
+      {
+	size_t pos = v.find('.');
+	if (pos == std::string::npos)
+	  version = v;
+	else
+	  version = v.substr(0,pos);
+      }
 
     /* no version in env    
     if (version!=ver)
@@ -268,6 +273,7 @@ public:
      @result version 
   */
   std::string getVersion() { return version; }
+
 
  protected:
   int shot;                             /**< shot number */
