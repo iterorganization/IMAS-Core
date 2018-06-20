@@ -26,8 +26,7 @@ endif
 MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
 MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
 
-
-## UDA flags -- required for UDA backend
+#-------------- Options for UDA ---------------
 UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
 UDALIB= $(shell pkg-config --libs uda-fat-cpp)
 #UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
@@ -72,11 +71,41 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 TARGETS = libimas.so libimas.a
 
 
-all: $(TARGETS) doc
+all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h)
-	install -d $(INSTALL)/share/src/lowlevel
-	install -m 644 $^ $(INSTALL)/share/src/lowlevel
+	$(mkdir_p) $(datadir)/src/lowlevel
+	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
+
+install: all pkgconfig_install sources_install
+	$(mkdir_p) $(libdir) $(includedir) $(docdir)/dev/lowlevel
+	for OBJECT in *.so; do \
+		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
+	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
+	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
+	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
+	done
+	$(INSTALL_DATA) ual_low_level.h $(includedir)
+	$(INSTALL_DATA) matlab_adapter.h $(includedir)
+	$(INSTALL_DATA) ual_defs.h $(includedir)
+	cp -r latex html $(docdir)/dev/lowlevel
+
+clean: #pkgconfig_clean
+	$(RM) -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
+	tests/test-context tests/test-lowlevel tests/test-oldapi \
+	tests/test-mdsplus tests/test-c libUALLowLevel.*
+
+clean-src: clean clean-doc
+	$(RM) -f *.d *~ $(INSTALL)/include/*.h 
+	$(RM) -rf $(INSTALL)/documentation/dev
+
+
+# Create embedded documentation
+doc:
+	doxygen Doxyfile
+
+clean-doc:
+	$(RM) -rf latex html
 
 tests: context lowlevel mdsplus oldapi testc 
 
@@ -135,42 +164,6 @@ libimas.so: $(COMMON_OBJECTS)
 libimas.a: $(COMMON_OBJECTS) 
 	ar rs $@ $^
 
-
-# install procedure
-install: all pkgconfig_install
-	install -d $(INSTALL)/lib
-	install -d $(INSTALL)/include
-	for OBJECT in *.so; do \
-	   cp -vTT $$OBJECT $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT.$(IMAS_MAJOR); \
-	   ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(INSTALL)/lib/$$OBJECT; \
-	done
-	cp ual_low_level.h $(INSTALL)/include
-	cp matlab_adapter.h $(INSTALL)/include
-	cp ual_defs.h $(INSTALL)/include
-#install -d $(INSTALL)/lowlevel
-#install *.cpp *.h *.c $(INSTALL)/lowlevel
-	install -d $(INSTALL)/documentation/dev/lowlevel
-	cp -rf latex html $(INSTALL)/documentation/dev/lowlevel
-
-
-clean: #pkgconfig_clean
-	rm -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
-	tests/test-context tests/test-lowlevel tests/test-oldapi \
-	tests/test-mdsplus tests/test-c libUALLowLevel.*
-
-clean-src: clean clean-doc
-	rm -f *.d *~ $(INSTALL)/include/*.h 
-	rm -rf $(INSTALL)/documentation/dev
-
-
-# Create embedded documentation
-doc:
-	doxygen Doxyfile
-
-clean-doc:
-	rm -rf latex html
 
 
 # add pkgconfig pkgconfig_install targets
