@@ -52,8 +52,11 @@ public:
   */
   virtual std::string print() const 
   {
-    std::string s = "backend_id \t\t = " + std::to_string(this->backend_id) + " (" + 
-      this->getBackendName() + "), uid = " + std::to_string(this->uid) + "\n";
+    std::string s = "context_uid \t\t = " + 
+      std::to_string(this->uid) + "\n" + 
+      "backend_id \t\t = " + 
+      std::to_string(this->backend_id) + " (" + 
+      this->getBackendName() + ")\n";
     return s;
   }
 
@@ -229,9 +232,9 @@ public:
     std::string s = ((Context)*this).print() +
       "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
       "run \t\t\t = " + std::to_string(this->run) + "\n" +
-      "user \t\t\t = " + this->user + "\n" +
-      "tokamak \t\t = " + this->tokamak + "\n" +
-      "version \t\t = " + this->version + "\n";
+      "user \t\t\t = \"" + this->user + "\"\n" +
+      "tokamak \t\t = \"" + this->tokamak + "\"\n" +
+      "version \t\t = \"" + this->version + "\"\n";
     return s;
   }
 
@@ -541,9 +544,10 @@ class ArraystructContext : public OperationContext
   virtual std::string print() const
   {
     std::string s = ((OperationContext)*this).print() +
-      "path \t\t\t = " + this->path + "\n" +
-      "timebase \t\t = " + this->timebase + "\n" +
-      "timed \t\t\t = " + std::to_string(!timebase.empty()) + "\n" +
+      "path \t\t\t = \"" + this->path + "\"\n" +
+      "timebase \t\t = \"" + this->timebase + "\"\n" +
+      "timed \t\t\t = " + 
+      (timebase.empty()?"no":"yes") + "\n" +
       "parent \t\t\t = " +
       ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
       "index \t\t\t = " + std::to_string(this->index) + "\n";

@@ -190,7 +190,8 @@ int ual_print_context(int ctxID)
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    std::cout << "Context type = " << lle.context->getType() << "\n";
+    std::cout << "Context type = " 
+	      << lle.context->getType() << "\n";
     std::cout << "Backend @ = " << lle.backend << "\n";
     std::cout << lle.context->print();
   }
