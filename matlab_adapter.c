@@ -339,6 +339,30 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 }
 
 /**
+   Creates an entry in the UDA backend.
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[in] refShot reference shot number [__deprecated???__]
+   @param[in] refRun reference run number [__deprecated???__]
+   @param[out] pulseCtx returned pulse context ID
+   @param[in] user database username 
+   @param[in] tokamak database tokamak name 
+   @param[in] version database data version    
+   @result error status
+ */
+int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, 
+		   char *version)
+{
+  *pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run, 
+				     user, tokamak, version); 
+
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
+}
+
+/**
    Opens an entry in the MDSPlus database.
    This function opens an existing pulse file (fail if does not exist)
    in the MDSPlus database identified by the given arguments.
@@ -355,6 +379,28 @@ int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 		 char *user, char *tokamak, char *version)
 {
   *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+				     user, tokamak, version); 
+
+  if (*pulseCtx < 0)
+    return *pulseCtx;
+  else
+    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
+}
+
+/**
+   Opens an entry in the UDA backend.
+   @param[in] shot shot number (entry in the database)
+   @param[in] run run number (entry in the database)
+   @param[out] pulseCtx returned pulse context ID
+   @param[in] user database username 
+   @param[in] tokamak database tokamak name 
+   @param[in] version database data version 
+   @result error status
+ */
+int mtl_ual_open_public(int shot, int run, int *pulseCtx, 
+		 char *user, char *tokamak, char *version)
+{
+  *pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run, 
 				     user, tokamak, version); 
 
   if (*pulseCtx < 0)

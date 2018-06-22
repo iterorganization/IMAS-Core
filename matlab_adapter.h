@@ -86,6 +86,8 @@ int mtl_ual_close(int pulseCtx);
 
 int mtl_ual_open_env(const char *name, int shot, int run, int *retIdx, char *user, char *tokamak, char *version);
 int mtl_ual_create_env(const char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version);
+int mtl_ual_open_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, char *version);
+int mtl_ual_create_public(int shot, int run, int *retIdx, char *user, char *tokamak, char *version);
 
 int mtl_deleteData(int opCtx, const char *fieldPath);
 int mtl_ual_discard_dataobject_mem_cache(int pulseCtx, const char *dataobjectPath);
@@ -177,17 +179,9 @@ int mtl_putVect7DComplex(int opCtx, const char *fieldPath, const char *timebaseP
 ********************************************************************************/
 
 int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size);
-//int mtl_ual_begin_write_arraystruct(int ctx, const char *fieldPath, const char *timebasePath, int size);
 int releaseObject(int aosCtx);
 int putObject(int aosCtx);
-//int putObjectInObject(int aosCtx, const char *fieldPath, int idx, int subAosCtx, int size);
-//int getObjectDim(int aosCtx);
-//int mtl_ual_begin_read_arraystruct(int opCtx, const char *fieldPath, const char *timebase, int *size);
-//int mtl_ual_begin_read_arraystruct_from_arraystruct(int aosCtx, const char *fieldPath, const char *timebase, int idx, int *size);
-//int getDimensionFromObject(int opCtx, void *obj, const char *fieldPath, int idx, int *numDims, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
-//int getObjectSlice(int opCtx, const char *fieldPath, const char *timebase, int *size);
 int putObjectSlice(int aosCtx);
-//int replaceLastObjectSlice(int aosCtx);
 
 
 /* array of structure readers 
