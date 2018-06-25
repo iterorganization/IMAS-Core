@@ -88,9 +88,10 @@ install: all pkgconfig_install sources_install
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
 	$(INSTALL_DATA) matlab_adapter.h $(includedir)
 	$(INSTALL_DATA) ual_defs.h $(includedir)
+	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
 	cp -r latex html $(docdir)/dev/lowlevel
 
-clean: #pkgconfig_clean
+clean: pkgconfig_clean
 	$(RM) -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
 	tests/test-context tests/test-lowlevel tests/test-oldapi \
 	tests/test-mdsplus tests/test-c libUALLowLevel.*
