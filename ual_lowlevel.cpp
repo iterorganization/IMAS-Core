@@ -265,8 +265,10 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
   catch (const UALBackendException e) {
     std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
+#ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
+#endif
   }
   catch (const UALLowlevelException e) {
     std::cout << "ual_open_pulse: " << e.what() << "\n";
