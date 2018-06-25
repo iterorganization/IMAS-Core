@@ -110,7 +110,7 @@ void UDABackend::closePulse(PulseContext *ctx,
     }
 
     std::string directive = format(
-        "%s::close(file='%s', shot=%d, run=%d)",
+        "%s::close(shot=%d, run=%d)",
         this->plugin,
         ctx->getShot(),
         ctx->getRun()
@@ -145,13 +145,24 @@ void UDABackend::readData(Context *ctx,
             variable = array_path(arrCtx) + "/" + fieldname;
         }
 
+        std::string group = opCtx->getDataobjectName();
+        int occurrence = 0;
+
+        std::size_t slash_pos = group.find('/');
+        if (slash_pos != std::string::npos) {
+            occurrence = (int)strtol(&group[slash_pos + 1], nullptr, 10);
+            group.resize(slash_pos);
+        }
+
         std::string directive = format(
-            "%s::get(expName='%s', group='%s', type='%s', variable='%s', shot=%d, run=%d, user='%s')",
+            "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')",
             this->plugin,
             opCtx->getTokamak().c_str(),
-            opCtx->getDataobjectName().c_str(),
+            group.c_str(),
+            occurrence,
             type_to_string(*datatype),
             variable.c_str(),
+            timebasename.c_str(),
             opCtx->getShot(),
             opCtx->getRun(),
             opCtx->getUser().c_str()
@@ -164,10 +175,16 @@ void UDABackend::readData(Context *ctx,
             *datatype = DOUBLE_DATA;
         } else if (uda_data->type() == typeid(int)) {
             *datatype = INTEGER_DATA;
+        } else {
+            throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
         std::vector<size_t> shape = result.shape();
         *dim = static_cast<int>(shape.size());
-        *size = static_cast<int>(uda_data->size());
+        for (int i = 0; i < *dim; ++i) {
+            size[i] = shape[i];
+        }
+        *data = malloc(uda_data->byte_length());
+        memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
     } catch (const uda::UDAException& ex) {
         throw UALNoDataException(ex.what(), LOG);
     }
@@ -179,20 +196,29 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         std::cout << "UDABackend beginArraystructAction\n";
     }
 
-    std::string path = array_path(ctx, true);
+    try {
+        std::string path = array_path(ctx, true);
 
-    std::string directive = format(
-        "%s::getdim(expName='%s', ctx=%ld, group='%s', path='%s', shot=%d, run=%d, user='%s')",
-        this->plugin,
-        ctx->getTokamak().c_str(),
-        ctx->getUid(),
-        ctx->getDataobjectName().c_str(),
-        path.c_str(),
-        ctx->getShot(),
-        ctx->getRun(),
-        ctx->getUser().c_str()
-    );
+        std::string directive = format(
+            "%s::getdim(expName='%s', ctx=%ld, group='%s', path='%s', shot=%d, run=%d, user='%s')",
+            this->plugin,
+            ctx->getTokamak().c_str(),
+            ctx->getUid(),
+            ctx->getDataobjectName().c_str(),
+            path.c_str(),
+            ctx->getShot(),
+            ctx->getRun(),
+            ctx->getUser().c_str()
+        );
 
-    std::cout << "UDA directive: " << directive << "\n";
-    *size = 1;
+        std::cout << "UDA directive: " << directive << "\n";
+        const uda::Result& result = uda_client.get(directive, "");
+        uda::Data* uda_data = result.data();
+        if (uda_data->type() != typeid(int)) {
+            throw UALBackendException(std::string("Invalid data type returned for getdim: ") + uda_data->type().name(), LOG);
+        }
+        *size = *reinterpret_cast<const int*>(uda_data->byte_data());
+    } catch (const uda::UDAException& ex) {
+        throw UALNoDataException(ex.what(), LOG);
+    }
 }
