@@ -89,6 +89,10 @@ install: all pkgconfig_install sources_install
 	$(INSTALL_DATA) matlab_adapter.h $(includedir)
 	$(INSTALL_DATA) ual_defs.h $(includedir)
 	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
+	$(INSTALL_DATA) ual_backend.h $(includedir)
+	$(INSTALL_DATA) ual_context.h $(includedir)
+	$(INSTALL_DATA) ual_exception.h $(includedir)
+	$(INSTALL_DATA) ual_const.h $(includedir)
 	cp -r latex html $(docdir)/dev/lowlevel
 
 clean: pkgconfig_clean
