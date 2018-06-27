@@ -84,7 +84,7 @@ int mtl_ual_close(int pulseCtx);
 //int ual_create_hdf5(const char *name, int shot, int run, int refShot, int refRun, int *retIdx);
 //int ual_open_hdf5(const char *name, int shot, int run, int *retIdx);
 
-int mtl_ual_open_env(const char *name, int shot, int run, int *retIdx, char *user, char *tokamak, char *version);
+int mtl_ual_open_env(const char *name, int shot, int run, char *user, char *tokamak, char *version);
 int mtl_ual_create_env(const char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version);
 int mtl_ual_open_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, char *version);
 int mtl_ual_create_public(int shot, int run, int *retIdx, char *user, char *tokamak, char *version);
