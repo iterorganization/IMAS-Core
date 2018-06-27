@@ -1,29 +1,8 @@
 #include "uda_backend.h"
 
-#include <cstdarg>
+#include <sstream>
 
 namespace {
-
-std::string format(const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-
-    auto len = static_cast<size_t>(vsnprintf(nullptr, 0, fmt, args));
-    ++len;
-
-    auto str = (char*)malloc(len + 1);
-
-    vsnprintf(str, len, fmt, args);
-    str[len] = '\0';
-
-    std::string result(str);
-    free(str);
-
-    va_end(args);
-
-    return result;
-}
 
 const char* type_to_string(int datatype)
 {
@@ -66,17 +45,14 @@ void UDABackend::openPulse(PulseContext *ctx,
         std::cout << "UDABackend openPulse\n";
     }
 
+    std::stringstream ss;
     std::string directive;
 
     switch (mode) {
         case ualconst::open_pulse:
         case ualconst::force_open_pulse:
-            directive = format(
-                "%s::open(shot=%d, run=%d)",
-                this->plugin,
-                ctx->getShot(),
-                ctx->getRun()
-            );
+            ss << this->plugin << "::open(shot=" << ctx->getShot() << ", run=" << ctx->getRun() << ")";
+            directive = ss.str();
             break;
         case ualconst::create_pulse:
         case ualconst::force_create_pulse:
@@ -98,7 +74,11 @@ void UDABackend::openPulse(PulseContext *ctx,
     if (verbose) {
         std::cout << "UDA directive: " << directive << "\n";
     }
-    uda_client.get(directive, "");
+    try {
+        uda_client.get(directive, "");
+    } catch (const uda::UDAException& ex) {
+        throw UALException(ex.what(), LOG);
+    }
 }
 
 void UDABackend::closePulse(PulseContext *ctx,
@@ -109,17 +89,19 @@ void UDABackend::closePulse(PulseContext *ctx,
         std::cout << "UDABackend closePulse\n";
     }
 
-    std::string directive = format(
-        "%s::close(shot=%d, run=%d)",
-        this->plugin,
-        ctx->getShot(),
-        ctx->getRun()
-    );
+    std::stringstream ss;
+    ss << this->plugin << "::close(shot=" << ctx->getShot() << ", run=" << ctx->getRun() << ")";
+
+    std::string directive = ss.str();
 
     if (verbose) {
         std::cout << "UDA directive: " << directive << "\n";
     }
-    uda_client.get(directive, "");
+    try {
+        uda_client.get(directive, "");
+    } catch (const uda::UDAException& ex) {
+        throw UALException(ex.what(), LOG);
+    }
 }
 
 void UDABackend::readData(Context *ctx,
@@ -154,19 +136,19 @@ void UDABackend::readData(Context *ctx,
             group.resize(slash_pos);
         }
 
-        std::string directive = format(
-            "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')",
-            this->plugin,
-            opCtx->getTokamak().c_str(),
-            group.c_str(),
-            occurrence,
-            type_to_string(*datatype),
-            variable.c_str(),
-            timebasename.c_str(),
-            opCtx->getShot(),
-            opCtx->getRun(),
-            opCtx->getUser().c_str()
-        );
+        std::stringstream ss;
+        ss << this->plugin
+           << "::get(expName='" << opCtx->getTokamak()
+           << "', group='" << group
+           << "', occurrence=" << occurrence
+           << ", type='" << type_to_string(*datatype)
+           << "', variable='" << variable
+           << "', timebase='" << timebasename
+           << "', shot=" << opCtx->getShot()
+           << ", run=" << opCtx->getRun()
+           << ", user='" << opCtx->getUser() << "')";
+
+        std::string directive = ss.str();
                                   
         std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");
@@ -181,7 +163,7 @@ void UDABackend::readData(Context *ctx,
         std::vector<size_t> shape = result.shape();
         *dim = static_cast<int>(shape.size());
         for (int i = 0; i < *dim; ++i) {
-            size[i] = shape[i];
+            size[i] = static_cast<int>(shape[i]);
         }
         *data = malloc(uda_data->byte_length());
         memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
@@ -199,17 +181,17 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
     try {
         std::string path = array_path(ctx, true);
 
-        std::string directive = format(
-            "%s::getdim(expName='%s', ctx=%ld, group='%s', path='%s', shot=%d, run=%d, user='%s')",
-            this->plugin,
-            ctx->getTokamak().c_str(),
-            ctx->getUid(),
-            ctx->getDataobjectName().c_str(),
-            path.c_str(),
-            ctx->getShot(),
-            ctx->getRun(),
-            ctx->getUser().c_str()
-        );
+        std::stringstream ss;
+        ss << this->plugin
+           << "::getdim(expName='" << ctx->getTokamak()
+           << "', ctx=" << ctx->getUid()
+           << ", group='" << ctx->getDataobjectName()
+           << "', path='" << path
+           << "', shot=" << ctx->getShot()
+           << ", run=" << ctx->getRun()
+           << ", user='" << ctx->getUser() << "')";
+
+        std::string directive = ss.str();
 
         std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");
