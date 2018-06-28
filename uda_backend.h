@@ -1,19 +1,18 @@
 #ifndef UDA_BACKEND_H
 #define UDA_BACKEND_H
 
-#include <string>
-#include <unordered_map>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <iostream>
+#include <unordered_map>
 #include <mdsobjects.h>
 #include <c++/UDA.hpp>
 
+#include "dummy_backend.h"
 #include "ual_backend.h"
+#include "ual_const.h"
 #include "ual_context.h"
 #include "ual_defs.h"
-#include "ual_const.h"
-#include "dummy_backend.h"
 #include "ual_defs.h"
 
 #define NODENAME_MANGLING  //Use IMAS mangling
