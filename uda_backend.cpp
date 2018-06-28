@@ -71,12 +71,17 @@ void UDABackend::openPulse(PulseContext *ctx,
     switch (mode) {
         case ualconst::open_pulse:
         case ualconst::force_open_pulse:
-            directive = format(
+            char directive_buffer [50];
+        	sprintf(directive_buffer, "%s::open(shot=%d, run=%d)", this->plugin,
+                ctx->getShot(),
+                ctx->getRun());
+        	directive = std::string(directive_buffer);
+            /*directive = format(
                 "%s::open(shot=%d, run=%d)",
                 this->plugin,
                 ctx->getShot(),
                 ctx->getRun()
-            );
+            )*/;
             break;
         case ualconst::create_pulse:
         case ualconst::force_create_pulse:
@@ -98,7 +103,13 @@ void UDABackend::openPulse(PulseContext *ctx,
     if (verbose) {
         std::cout << "UDA directive: " << directive << "\n";
     }
-    uda_client.get(directive, "");
+    try {
+     uda_client.get(directive, "");
+} catch (const uda::UDAException& ex) {
+    throw UALException(ex.what(), LOG);
+}
+
+    //uda_client.get(directive, "");
 }
 
 void UDABackend::closePulse(PulseContext *ctx,
@@ -154,7 +165,7 @@ void UDABackend::readData(Context *ctx,
             group.resize(slash_pos);
         }
 
-        std::string directive = format(
+        /*std::string directive = format(
             "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')",
             this->plugin,
             opCtx->getTokamak().c_str(),
@@ -166,7 +177,21 @@ void UDABackend::readData(Context *ctx,
             opCtx->getShot(),
             opCtx->getRun(),
             opCtx->getUser().c_str()
-        );
+        );*/
+        char directive_buffer [300];
+        	sprintf(directive_buffer, "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')", 
+        	    this->plugin,
+                opCtx->getTokamak().c_str(),
+                group.c_str(),
+                occurrence,
+                type_to_string(*datatype),
+                variable.c_str(),
+                timebasename.c_str(),
+                opCtx->getShot(),
+                opCtx->getRun(),
+                opCtx->getUser().c_str());
+        	    std::string directive = std::string(directive_buffer);
+        
                                   
         std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");

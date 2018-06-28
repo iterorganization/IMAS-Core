@@ -21,10 +21,13 @@ else
  LDF=gfortran -lc -lstdc++ 
 endif
 
+#HDF5
+HDF5LIB= -L/Applications/hdf5-1.8.12-1/lib64 -lhdf5 -lhdf5_hl
+
 
 ## MDSPlus install (require recent alpha tarball)
 MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
-MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
+MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr -lMdsLib_client
 
 #-------------- Options for UDA ---------------
 UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
@@ -52,7 +55,7 @@ else
   CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
   CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} 
   FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
-  LDFLAGS= $(MDSLIB) ${UDALIB}
+  LDFLAGS= $(HDF5LIB) $(MDSLIB) ${UDALIB}
 endif
 
 
@@ -88,14 +91,9 @@ install: all pkgconfig_install sources_install
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
 	$(INSTALL_DATA) matlab_adapter.h $(includedir)
 	$(INSTALL_DATA) ual_defs.h $(includedir)
-	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
-	$(INSTALL_DATA) ual_backend.h $(includedir)
-	$(INSTALL_DATA) ual_context.h $(includedir)
-	$(INSTALL_DATA) ual_exception.h $(includedir)
-	$(INSTALL_DATA) ual_const.h $(includedir)
-	cp -r latex html $(docdir)/dev/lowlevel
+	#cp -r latex html $(docdir)/dev/lowlevel
 
-clean: pkgconfig_clean
+clean: #pkgconfig_clean
 	$(RM) -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
 	tests/test-context tests/test-lowlevel tests/test-oldapi \
 	tests/test-mdsplus tests/test-c libUALLowLevel.*
@@ -107,7 +105,7 @@ clean-src: clean clean-doc
 
 # Create embedded documentation
 doc:
-	doxygen Doxyfile
+	#doxygen Doxyfile
 
 clean-doc:
 	$(RM) -rf latex html

@@ -593,7 +593,7 @@ int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 {
   int status;
   int retSize[MAXDIM];
-  char* szTemp;
+  char* szTemp = NULL;
   status =  ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 1, &retSize[0]);
 
   if (status==0)
@@ -626,12 +626,16 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 CHAR_DATA, 2, &retSize[0]);
+  char* szTemp = NULL;
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
   if (status==0)
     {
       *dim1 = retSize[0];
       *dim2 = retSize[1];
+      *data = malloc(*dim1 + *dim2 + 1);
+      memset(*data, 0, *dim1 + *dim2 + 1);
+      strncpy(*data, szTemp, *dim1 + *dim2);
+      free (szTemp);
     }
   return status;
 }
@@ -655,12 +659,17 @@ int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, CHAR_DATA, 2, &retSize[0]);
-
+  char* szTemp = NULL;
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
+  
   if (status==0)
     {
       *dim1 = retSize[0];
       *dim2 = retSize[1];
+      *data = malloc(*dim1 + *dim2 + 1);
+      memset(*data, 0, *dim1 + *dim2 + 1);
+      strncpy(*data, szTemp, *dim1 + *dim2);
+      free (szTemp);
     }
   return status;
 }
