@@ -1,10 +1,12 @@
 #include "ual_backend.h"
 #include "no_backend.h"
-//#include "ascii_backend.h"
 #include "mdsplus_backend.h"
-//#include "hdf5_backend.h"
 #include "memory_backend.h"
+//#include "ascii_backend.h"
+//#include "hdf5_backend.h"
+#ifdef UDA
 #include "uda_backend.h"
+#endif
 
 Backend* Backend::initBackend(int id)
 {
@@ -41,8 +43,12 @@ Backend* Backend::initBackend(int id)
     }
   else if (id==ualconst::uda_backend)
     {
+#ifdef UDA
       UDABackend* tbe = new UDABackend(true);
       be = tbe;
+#else
+      throw UALBackendException("UDA backend is not available within current install",LOG);
+#endif
     }
   else
     {
