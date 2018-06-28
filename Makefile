@@ -1,7 +1,8 @@
-# -*- makefile -*- #
+#//-*-makefile-*-
+#// Temporary makefile, just for quick tests, self-explanatory
+
 include ../Makefile.common
 
-<<<<<<< HEAD
 
 ## intel compiler should be >= 13 to meet C++11 requirement
 ifeq "$(strip $(INTEL))" "yes"
@@ -23,7 +24,6 @@ endif
 #HDF5
 HDF5LIB= -L/Applications/hdf5-1.8.12-1/lib64 -lhdf5 -lhdf5_hl
 
-
 ## MDSPlus install (require recent alpha tarball)
 MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
 MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr -lMdsLib_client
@@ -32,68 +32,43 @@ MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr -lMdsLib_client
 UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
 UDALIB= $(shell pkg-config --libs uda-fat-cpp)
 #UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
-=======
-SHELL=/bin/sh
->>>>>>> 5eb50fef8c4d60663189e238895c8581adf72f42
 
 ## Adding DEBUG=yes to make command to print additional debug info
-DBGFLAGS= -g
+DEBFLAGS= -g
 ifeq (${DEBUG},yes)
-DBGFLAGS+= -DDEBUG
+DEBFLAGS+= -DDEBUG
 endif
 ifeq (${STOPONEXCEPT},yes)
-DBGFLAGS+= -DSOE
+DEBFLAGS+= -DSOE
 endif
 
-ifeq "$(strip $(CC))" "icc"
- ## intel compiler should be >= 13 to meet C++11 requirement
- CXX=icpc
- CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
- CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
- LDF=ifort -lc -lstdc++ 
+
+ifeq "$(strip $(INTEL))" "yes"
+  CPPFLAGS= 
+  CFLAGS= -std=c99 -pedantic -Wall -fPIC -O0 ${DEBFLAGS}
+  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC}
+  FFLAGS= -fpp -r8 -assume no2underscore -fPIC -shared-intel ${DEBFLAGS}
+  LDFLAGS= $(MDSLIB) ${UDALIB}
 else
-<<<<<<< HEAD
   CPPFLAGS= 
   CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
   CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} 
   FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
   LDFLAGS= $(HDF5LIB) $(MDSLIB) ${UDALIB}
-=======
- CXX=g++
- CFLAGS=--std=c99 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
- CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0  -fno-inline-functions ${DBGFLAGS}
- LDF=gfortran -lc -lstdc++ 
->>>>>>> 5eb50fef8c4d60663189e238895c8581adf72f42
 endif
-
-
-## MDSPlus install (require recent alpha tarball)
-INCLUDES= -I$(MDSPLUS_DIR)/include -I.
-LIBS= -L$(MDSPLUS_DIR)/lib -lMdsObjectsCppShr
 
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp context_test.cpp ual_const.cpp \
-	mdsplus_backend.cpp memory_backend.cpp 
-CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c 
+	mdsplus_backend.cpp memory_backend.cpp
+CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c matlab_adapter.c
+
+LL_OBJ= ual_lowlevel.o ual_context.o ual_const.o 
+
+BE_OBJ= ual_backend.o mdsplus_backend.o memory_backend.o
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o \
-		mdsplus_backend.o memory_backend.o 
-
-
-#-------------- Options for UDA ----------------
-ifneq ("no","$(strip $(IMAS_UDA))")
- INCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
- LIBS+= `pkg-config --libs uda-fat-cpp`
- COMMON_OBJECTS+= uda_backend.o
- CPPSRC+=uda_backend.cpp
-endif
-
-#-------------- Options for Matlab -------------
-ifneq ("no","$(strip $(IMAS_MATLAB))")
- COMMON_OBJECTS+= matlab_adapter.o
- CSRC+= matlab_adapter.c
-endif
+		mdsplus_backend.o memory_backend.o matlab_adapter.o uda_backend.o
 
 TARGETS = libimas.so libimas.a
 
@@ -115,14 +90,6 @@ install: all pkgconfig_install sources_install
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
 	$(INSTALL_DATA) matlab_adapter.h $(includedir)
 	$(INSTALL_DATA) ual_defs.h $(includedir)
-<<<<<<< HEAD
-	#cp -r latex html $(docdir)/dev/lowlevel
-
-clean: #pkgconfig_clean
-	$(RM) -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
-	tests/test-context tests/test-lowlevel tests/test-oldapi \
-	tests/test-mdsplus tests/test-c libUALLowLevel.*
-=======
 	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
 	$(INSTALL_DATA) ual_backend.h $(includedir)
 	$(INSTALL_DATA) ual_context.h $(includedir)
@@ -131,8 +98,9 @@ clean: #pkgconfig_clean
 	cp -r latex html $(docdir)/dev/lowlevel
 
 clean: pkgconfig_clean
-	$(RM) -f *.o *.mod *.a *.so 
->>>>>>> 5eb50fef8c4d60663189e238895c8581adf72f42
+	$(RM) -f *.o *.mod *.a *.so tests/*.o tests/*.mod \
+	tests/test-context tests/test-lowlevel tests/test-oldapi \
+	tests/test-mdsplus tests/test-c libUALLowLevel.*
 
 clean-src: clean clean-doc
 	$(RM) -f *.d *~ $(INSTALL)/include/*.h 
@@ -141,22 +109,24 @@ clean-src: clean clean-doc
 
 # Create embedded documentation
 doc:
-	#doxygen Doxyfile
+	doxygen Doxyfile
 
 clean-doc:
 	$(RM) -rf latex html
+
+tests: context lowlevel mdsplus oldapi testc 
 
 
 # Creates dependency files
 %.d: %.c
 	@set -e; rm -f $@; \
-	$(CC) -MM $(CFLAGS) $(INCLUDES) $< > $@.$$$$; \
+	$(CPP) -MM $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
 %.d: %.cpp
 	@set -e; rm -f $@; \
-	$(CXX) -MM $(CXXFLAGS) $(INCLUDES) $< > $@.$$$$; \
+	$(CPP) -MM --std=c++11 $(CPPFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
@@ -166,20 +136,40 @@ clean-doc:
 
 
 %.o: %.cpp 
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $< 
+	$(CPC) $(CPFLAGS) -I. -o $@ -c $< 
 
 %.o: %.c 
-	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
+	$(CC) $(CFLAGS) -I. -o $@ -c $< 
 
+
+# Test program for Context classes usage
+context: ual_context.o tests/context_test.o ual_const.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-context 
+
+# Test program for new Lowlevel C wrappers usage
+lowlevel: ${LL_OBJ} ${BE_OBJ} tests/lowlevel_test.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-lowlevel 
+
+# Test program for stack from old low level to MDSPlus backend
+testc: ${LL_OBJ} ${BE_OBJ} ual_low_level.o  tests/test_lowlevel.o #matlab_adapter.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-c 
+
+# Test program for old API C wrappers
+oldapi: ${LL_OBJ} ${BE_OBJ} ual_low_level.o tests/ual_low_level_test.o #matlab_adapter.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-oldapi 
+
+# Test program for MDSPlus backend
+mdsplus: ual_context.o ual_const.o mdsplus_backend.o tests/test_mdsplus_backend.o
+	$(LDC) $(LDFLAGS) $? -o tests/test-mdsplus 
 
 
 # dynamic library
 libimas.so: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS)
+	$(LDC) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LDFLAGS) 
 
 # static library
 libimas.a: $(COMMON_OBJECTS) 
-	$(AR) rvs $@ $^
+	ar rs $@ $^
 
 
 
