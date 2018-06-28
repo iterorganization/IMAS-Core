@@ -136,35 +136,6 @@ void UDABackend::readData(Context *ctx,
             group.resize(slash_pos);
         }
 
-<<<<<<< HEAD
-        /*std::string directive = format(
-            "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')",
-            this->plugin,
-            opCtx->getTokamak().c_str(),
-            group.c_str(),
-            occurrence,
-            type_to_string(*datatype),
-            variable.c_str(),
-            timebasename.c_str(),
-            opCtx->getShot(),
-            opCtx->getRun(),
-            opCtx->getUser().c_str()
-        );*/
-        char directive_buffer [300];
-        	sprintf(directive_buffer, "%s::get(expName='%s', group='%s', occurrence=%d, type='%s', variable='%s', timebase='%s', shot=%d, run=%d, user='%s')", 
-        	    this->plugin,
-                opCtx->getTokamak().c_str(),
-                group.c_str(),
-                occurrence,
-                type_to_string(*datatype),
-                variable.c_str(),
-                timebasename.c_str(),
-                opCtx->getShot(),
-                opCtx->getRun(),
-                opCtx->getUser().c_str());
-        	    std::string directive = std::string(directive_buffer);
-        
-=======
         std::stringstream ss;
         ss << this->plugin
            << "::get(expName='" << opCtx->getTokamak()
@@ -178,7 +149,6 @@ void UDABackend::readData(Context *ctx,
            << ", user='" << opCtx->getUser() << "')";
 
         std::string directive = ss.str();
->>>>>>> 5eb50fef8c4d60663189e238895c8581adf72f42
                                   
         std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");
