@@ -21,12 +21,10 @@ else
  LDF=gfortran -lc -lstdc++ 
 endif
 
-#HDF5
-HDF5LIB= -L/Applications/hdf5-1.8.12-1/lib64 -lhdf5 -lhdf5_hl
 
 ## MDSPlus install (require recent alpha tarball)
 MDSINC= -I$(MDSPLUS_DIR)/include/ -I.
-MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr -lMdsLib_client
+MDSLIB= -L$(MDSPLUS_DIR)/lib/ -lMdsObjectsCppShr
 
 #-------------- Options for UDA ---------------
 UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
@@ -54,7 +52,7 @@ else
   CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
   CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} 
   FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
-  LDFLAGS= $(HDF5LIB) $(MDSLIB) ${UDALIB}
+  LDFLAGS= $(MDSLIB) ${UDALIB}
 endif
 
 
@@ -176,3 +174,4 @@ libimas.a: $(COMMON_OBJECTS)
 # add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc
 include ../Makefile.pkgconfig
+
