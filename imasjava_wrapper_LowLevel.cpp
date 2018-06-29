@@ -229,11 +229,12 @@
  * Method:    ual_read_data_int
  * Signature: (ILjava/lang/String;Ljava/lang/String;[II[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1int
-  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jintArray jData, jint jDim, jintArray jSizeArray)
+ jintArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1int
+  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
 
+    jintArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jint *dataArray = NULL;
@@ -246,18 +247,19 @@
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
 
-    return status;
+    return jData;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_read_data_double
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DI[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1double
-  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jdoubleArray jData, jint jDim, jintArray jSizeArray)
+ jdoubleArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1double
+  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
 
+    jdoubleArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jdouble *dataArray = env->GetDoubleArrayElements(jData, 0);
@@ -272,18 +274,19 @@
     env->ReleaseDoubleArrayElements(jData, dataArray, 0);
     env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
-    return status;
+    return jData;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_read_data_char
  * Signature: (ILjava/lang/String;Ljava/lang/String;[BI[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1char
-  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jbyteArray jData, jint jDim, jintArray jSizeArray)
+ jbyteArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1char
+  (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
 
+    jbyteArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jbyte *dataArray = env->GetByteArrayElements(jData, 0);
@@ -298,7 +301,7 @@
     env->ReleaseByteArrayElements(jData, dataArray, 0);
     env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
-    return status;
+    return jData;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel

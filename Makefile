@@ -31,6 +31,10 @@ UDAINC= $(shell pkg-config --cflags uda-fat-cpp)
 UDALIB= $(shell pkg-config --libs uda-fat-cpp)
 #UDALIB = -L/work/imas/opt/uda/2.0.0/lib -lfatuda_cpp
 
+#-------------- Options for JNI ---------------
+ JNIINC= -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
+ JNILIB= -L$(JAVA_HOME)/jre/lib/amd64)
+
 ## Adding DEBUG=yes to make command to print additional debug info
 DEBFLAGS= -g
 ifeq (${DEBUG},yes)
@@ -44,13 +48,13 @@ endif
 ifeq "$(strip $(INTEL))" "yes"
   CPPFLAGS= 
   CFLAGS= -std=c99 -pedantic -Wall -fPIC -O0 ${DEBFLAGS}
-  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC}
+  CPFLAGS= -std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} ${JNIINC}
   FFLAGS= -fpp -r8 -assume no2underscore -fPIC -shared-intel ${DEBFLAGS}
   LDFLAGS= $(MDSLIB) ${UDALIB}
 else
   CPPFLAGS= 
   CFLAGS= --std=c99 --pedantic -Wall -fPIC -g -O0 ${DEBFLAGS}
-  CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${UDAINC} 
+  CPFLAGS= --std=c++11 --pedantic -Wall -fPIC -g -O0  -fno-inline-functions ${DEBFLAGS} ${MDSINC} ${JNIINC} 
   FFLAGS= -cpp -fdefault-real-8 -fPIC -fno-second-underscore -ffree-line-length-none ${DEBFLAGS}
   LDFLAGS= $(MDSLIB) ${UDALIB}
 endif
@@ -66,7 +70,7 @@ BE_OBJ= ual_backend.o mdsplus_backend.o memory_backend.o
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o \
-		mdsplus_backend.o memory_backend.o matlab_adapter.o uda_backend.o
+		mdsplus_backend.o memory_backend.o matlab_adapter.o uda_backend.o imasjava_wrapper_LowLevel.o
 
 TARGETS = libimas.so libimas.a
 

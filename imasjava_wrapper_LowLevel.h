@@ -66,50 +66,50 @@ JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1end_1action
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_write_data_int
- * Signature: (ILjava/lang/String;Ljava/lang/String;[II[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;[III[I)I
  */
 JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1int
-  (JNIEnv *, jclass, jint, jstring, jstring, jintArray, jint, jintArray);
+  (JNIEnv *, jclass, jint, jstring, jstring, jintArray, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_write_data_double
- * Signature: (ILjava/lang/String;Ljava/lang/String;[DI[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;[DII[I)I
  */
 JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1double
-  (JNIEnv *, jclass, jint, jstring, jstring, jdoubleArray, jint, jintArray);
+  (JNIEnv *, jclass, jint, jstring, jstring, jdoubleArray, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_write_data_char
- * Signature: (ILjava/lang/String;Ljava/lang/String;[BI[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;[BII[I)I
  */
 JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1char
-  (JNIEnv *, jclass, jint, jstring, jstring, jbyteArray, jint, jintArray);
+  (JNIEnv *, jclass, jint, jstring, jstring, jbyteArray, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_read_data_int
- * Signature: (ILjava/lang/String;Ljava/lang/String;[II[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;II[I)[I
  */
-JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1int
-  (JNIEnv *, jclass, jint, jstring, jstring, jintArray, jint, jintArray);
+JNIEXPORT jintArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1int
+  (JNIEnv *, jclass, jint, jstring, jstring, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_read_data_double
- * Signature: (ILjava/lang/String;Ljava/lang/String;[DI[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;II[I)[D
  */
-JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1double
-  (JNIEnv *, jclass, jint, jstring, jstring, jdoubleArray, jint, jintArray);
+JNIEXPORT jdoubleArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1double
+  (JNIEnv *, jclass, jint, jstring, jstring, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_read_data_char
- * Signature: (ILjava/lang/String;Ljava/lang/String;[BI[I)I
+ * Signature: (ILjava/lang/String;Ljava/lang/String;II[I)[B
  */
-JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1char
-  (JNIEnv *, jclass, jint, jstring, jstring, jbyteArray, jint, jintArray);
+JNIEXPORT jbyteArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1char
+  (JNIEnv *, jclass, jint, jstring, jstring, jint, jint, jintArray);
 
 /*
  * Class:     imasjava_wrapper_LowLevel
