@@ -232,7 +232,7 @@
  jintArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1int
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
-    int status = -1;
+    /*int status = -1;*/
 
     jintArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
@@ -241,7 +241,7 @@
     jint *sizeArray = NULL;
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
-    status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, INTEGER_DATA, jDim, sizeArray);
+    /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, INTEGER_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
@@ -257,7 +257,7 @@
  jdoubleArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1double
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
-    int status = -1;
+    /*int status = -1;*/
 
     jdoubleArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
@@ -266,7 +266,7 @@
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
-    status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, DOUBLE_DATA, jDim, sizeArray);
+    /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, DOUBLE_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
@@ -284,7 +284,7 @@
  jbyteArray JNICALL Java_imasjava_wrapper_LowLevel_ual_1read_1data_1char
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
-    int status = -1;
+    /*int status = -1;*/
 
     jbyteArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
@@ -293,7 +293,7 @@
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
-    status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, CHAR_DATA, jDim, sizeArray);
+    /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, CHAR_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
