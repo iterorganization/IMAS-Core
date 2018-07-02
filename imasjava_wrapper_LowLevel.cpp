@@ -233,19 +233,38 @@
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     /*int status = -1;*/
-
+    jsize retArraySize = 0;
     jintArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jint *dataArray = NULL;
-    jint *sizeArray = NULL;
+    jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, INTEGER_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
+    if (sizeArray == NULL) {
+     return NULL; /* out of memory error thrown */
+    }   
+
+    if(jDim == 0)
+        retArraySize = 1;
+    else
+    {
+        for (int i = 0; i < jDim; i++)
+            retArraySize = retArraySize * sizeArray[i];
+    }
+
+    jData = env->NewIntArray(retArraySize);
+    if (jData == NULL) {
+     return NULL; /* out of memory error thrown */
+    }
+    env->SetIntArrayRegion(jData, 0, retArraySize, dataArray);
+
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
+    env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     return jData;
 }
@@ -258,20 +277,38 @@
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     /*int status = -1;*/
-
+    jsize retArraySize = 0;
     jdoubleArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
-    jdouble *dataArray = env->GetDoubleArrayElements(jData, 0);
+    jdouble *dataArray = NULL;
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, DOUBLE_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
+    if (sizeArray == NULL) {
+     return NULL; /* out of memory error thrown */
+    }   
+
+    if(jDim == 0)
+        retArraySize = 1;
+    else
+    {
+        for (int i = 0; i < jDim; i++)
+            retArraySize = retArraySize * sizeArray[i];
+    }
+
+
+    jData = env->NewDoubleArray(retArraySize);
+    if (jData == NULL) {
+     return NULL; /* out of memory error thrown */
+    }
+    env->SetDoubleArrayRegion(jData, 0, retArraySize, dataArray);
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
+    
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
-    env->ReleaseDoubleArrayElements(jData, dataArray, 0);
     env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     return jData;
@@ -285,20 +322,39 @@
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     /*int status = -1;*/
-
+    jsize retArraySize = 0;
     jbyteArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
-    jbyte *dataArray = env->GetByteArrayElements(jData, 0);
+    jbyte *dataArray =NULL;
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     /*status = */ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, CHAR_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
+    if (sizeArray == NULL) {
+     return NULL; /* out of memory error thrown */
+    }   
+
+    if(jDim == 0)
+        retArraySize = 1;
+    else
+    {
+        for (int i = 0; i < jDim; i++)
+            retArraySize = retArraySize * sizeArray[i];
+    }
+
+
+    jData = env->NewByteArray(retArraySize);
+    if (jData == NULL) {
+     return NULL; /* out of memory error thrown */
+    }
+
+    env->SetByteArrayRegion(jData, 0, retArraySize, dataArray);
+
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
-    env->ReleaseByteArrayElements(jData, dataArray, 0);
     env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     return jData;
