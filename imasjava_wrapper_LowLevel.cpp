@@ -19,18 +19,16 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_print_context
  * Signature: (I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1print_1context
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1print_1context
   (JNIEnv *env, jclass jWrapperClass, jint jCtx)
 {
     int status = -1;
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     status = ual_print_context(jCtx);
-    if (status != 0)
-        return status;
+    if (status < 0)
+        raiseLowLevelException( env, status);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
-
-    return 0;
 }
 
 /*
@@ -69,7 +67,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_open_pulse
  * Signature: (IILjava/lang/String;)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1open_1pulse
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1open_1pulse
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jint jMode, jstring jOptions)
 {
     int status = -1;
@@ -83,15 +81,13 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     if (status < 0)
         raiseLowLevelException( env, status);
-
-    return status;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_close_pulse
  * Signature: (IILjava/lang/String;)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1close_1pulse
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1close_1pulse
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jint jMode, jstring jOptions)
 {
     int status = -1;
@@ -105,8 +101,6 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
    
     if (status < 0)
         raiseLowLevelException( env, status);
-    
-    return status;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
@@ -161,7 +155,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_end_action
  * Signature: (I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1end_1action
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1end_1action
   (JNIEnv *env, jclass jWrapperClass, jint jCtx)
 {
     int status = -1;
@@ -172,8 +166,6 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     if (status < 0)
         raiseLowLevelException( env, status);
-
-    return status;
 }
 
 /*
@@ -181,7 +173,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_write_data_int
  * Signature: (ILjava/lang/String;Ljava/lang/String;[II[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1int
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1int
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jintArray jData, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
@@ -202,8 +194,6 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     if (status < 0)
         raiseLowLevelException( env, status);
-
-    return status;
 }
 
 /*
@@ -211,7 +201,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_write_data_double
  * Signature: (ILjava/lang/String;Ljava/lang/String;[DI[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1double
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1double
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jdoubleArray jData, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
@@ -232,15 +222,13 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     if (status < 0)
         raiseLowLevelException( env, status);
-
-    return status;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_write_data_char
  * Signature: (ILjava/lang/String;Ljava/lang/String;[BI[I)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1char
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1write_1data_1char
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jbyteArray jData, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
@@ -261,8 +249,6 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     if (status < 0)
         raiseLowLevelException( env, status);
-
-    return status;
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
@@ -413,7 +399,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_delete_data
  * Signature: (ILjava/lang/String;)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1delete_1data
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1delete_1data
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath)
 {
     int status = -1;
@@ -426,7 +412,8 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
 
-    return status;
+    if (status < 0)
+        raiseLowLevelException( env, status);
 }
 /*
  * Class:     imasjava_wrapper_LowLevel
@@ -460,7 +447,7 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
  * Method:    ual_iterate_over_arraystruct
  * Signature: (II)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1iterate_1over_1arraystruct
+ void JNICALL Java_imasjava_wrapper_LowLevel_ual_1iterate_1over_1arraystruct
   (JNIEnv *env, jclass jWrapperClass, jint jAoSCtx, jint jStep)
 {
     int status = -1;
@@ -473,6 +460,5 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
     if (status < 0)
         raiseLowLevelException( env, status);
 
-    return status;
 }
 
