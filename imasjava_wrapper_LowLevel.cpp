@@ -7,10 +7,21 @@
 
 static void raiseLowLevelException(JNIEnv *env, int errorCode)
 {
-    char* msg = NULL;
+    char* msg = "PROBLEM";
 
-    
+      printf("Throwing EXC");
     jclass exc = env->FindClass("imasjava/UALException");
+    printf("Throwing EXC");
+    env->ThrowNew(exc, msg);
+ }
+
+
+static void raiseLowLevelException(JNIEnv *env, char* callerName, char* msg)
+{
+
+      printf("Throwing EXC");
+    jclass exc = env->FindClass("imasjava/UALException");
+    printf("Throwing EXC");
     env->ThrowNew(exc, msg);
  }
 
@@ -30,13 +41,14 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
         raiseLowLevelException( env, status);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 }
-
+extern "C" {
 /*
  * Class:     imasjava_wrapper_LowLevel
  * Method:    ual_begin_pulse_action
  * Signature: (IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
+ * Signature: (IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
- jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1begin_1pulse_1action
+ JNIEXPORT jint JNICALL Java_imasjava_wrapper_LowLevel_ual_1begin_1pulse_1action
   (JNIEnv *env, jclass jWrapperClass, jint jBackendId, jint jShot, jint jRun, jstring jUser, jstring jTokamak, jstring jVersion)
 {
     int status = -1;
@@ -180,17 +192,28 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
-    jint *dataArray = env->GetIntArrayElements(jData, 0);
-    jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+    jint *dataArray = NULL;
+    jint *sizeArray = NULL;
+
+   //    jsize  len = env->GetArrayLength(jData);
+    if(jData != NULL)
+        dataArray = env->GetIntArrayElements(jData, 0);
+
+    if(jSizeArray != NULL)
+        sizeArray = env->GetIntArrayElements(jSizeArray, 0);
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
-    status = ual_write_data(jCtx, fieldPath, timeBasePath, dataArray, INTEGER_DATA, jDim, sizeArray);
+    status = ual_write_data(jCtx, fieldPath, timeBasePath, (void*) dataArray, INTEGER_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
-    env->ReleaseIntArrayElements(jData, dataArray, 0);
-    env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
+
+    if(dataArray != NULL)
+        env->ReleaseIntArrayElements(jData, dataArray, 0);
+
+    if(sizeArray != NULL)
+        env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     if (status < 0)
         raiseLowLevelException( env, status);
@@ -208,17 +231,30 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
-    jdouble *dataArray = env->GetDoubleArrayElements(jData, 0);
-    jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+    jdouble *dataArray = NULL;
+    jint *sizeArray = NULL;
+
+    if(jData != NULL)
+        dataArray = env->GetDoubleArrayElements(jData, 0);
+
+    if(jSizeArray != NULL)
+        sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+    
+
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
-    status = ual_write_data(jCtx, fieldPath, timeBasePath, dataArray, DOUBLE_DATA, jDim, sizeArray);
+    status = ual_write_data(jCtx, fieldPath, timeBasePath, (void*) dataArray, DOUBLE_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
-    env->ReleaseDoubleArrayElements(jData, dataArray, 0);
-    env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
+
+    if(dataArray != NULL)
+        env->ReleaseDoubleArrayElements(jData, dataArray, 0);
+
+    if(sizeArray != NULL)
+        env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     if (status < 0)
         raiseLowLevelException( env, status);
@@ -235,8 +271,19 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
-    jbyte *dataArray = env->GetByteArrayElements(jData, 0);
-    jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+    jint *sizeArray = NULL;
+    jbyte *dataArray = NULL;
+
+
+   if(jData != NULL)
+        dataArray = env->GetByteArrayElements(jData, 0);
+
+   if(jSizeArray != NULL)
+        sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+
+
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     status = ual_write_data(jCtx, fieldPath, timeBasePath, dataArray, CHAR_DATA, jDim, sizeArray);
@@ -244,8 +291,12 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
 
     env->ReleaseStringUTFChars(jFieldPath, fieldPath);
     env->ReleaseStringUTFChars(jTimeBasePath, timeBasePath);
-    env->ReleaseByteArrayElements(jData, dataArray, 0);
-    env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
+
+    if(dataArray != NULL)
+        env->ReleaseByteArrayElements(jData, dataArray, 0);
+
+    if(sizeArray != NULL)
+        env->ReleaseIntArrayElements(jSizeArray, sizeArray, 0);
 
     if (status < 0)
         raiseLowLevelException( env, status);
@@ -259,31 +310,32 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
-    jsize retArraySize = 0;
+    jsize retArraySize = 1;
     jintArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jint *dataArray = NULL;
+    jint tmpScalar = 0;
+    jsize len = env->GetArrayLength(jSizeArray);
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+
+    if(jDim == 0)
+    {
+        dataArray = &tmpScalar;
+    }
+
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, INTEGER_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
-    if (sizeArray == NULL) {
-     return NULL; /* out of memory error thrown */
-    }   
-
-    if(jDim == 0)
-        retArraySize = 1;
-    else
-    {
-        for (int i = 0; i < jDim; i++)
-            retArraySize = retArraySize * sizeArray[i];
-    }
+    for (int i = 0; i < jDim; i++)
+         retArraySize = retArraySize * sizeArray[i];
 
     jData = env->NewIntArray(retArraySize);
     if (jData == NULL) {
+        raiseLowLevelException( env, "Wrapper", "Out of memory error");
      return NULL; /* out of memory error thrown */
     }
     env->SetIntArrayRegion(jData, 0, retArraySize, dataArray);
@@ -306,28 +358,27 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
-    jsize retArraySize = 0;
+    jsize retArraySize = 1;
     jdoubleArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jdouble *dataArray = NULL;
+    jdouble tmpScalar = 0;
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+    if(jDim == 0)
+    {
+        dataArray = &tmpScalar;
+    }
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, DOUBLE_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
-    if (sizeArray == NULL) {
-     return NULL; /* out of memory error thrown */
-    }   
 
-    if(jDim == 0)
-        retArraySize = 1;
-    else
-    {
-        for (int i = 0; i < jDim; i++)
-            retArraySize = retArraySize * sizeArray[i];
-    }
+    for (int i = 0; i < jDim; i++)
+       retArraySize = retArraySize * sizeArray[i];
+
 
 
     jData = env->NewDoubleArray(retArraySize);
@@ -354,28 +405,26 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
   (JNIEnv *env, jclass jWrapperClass, jint jCtx, jstring jFieldPath, jstring jTimeBasePath, jint jDim, jintArray jSizeArray)
 {
     int status = -1;
-    jsize retArraySize = 0;
+    jsize retArraySize = 1;
     jbyteArray jData = NULL;
     const char *fieldPath = env->GetStringUTFChars(jFieldPath, 0);
     const char *timeBasePath = env->GetStringUTFChars(jTimeBasePath, 0);
     jbyte *dataArray =NULL;
+    jbyte tmpScalar = 0;
     jint *sizeArray = env->GetIntArrayElements(jSizeArray, 0);
+
+    if(jDim == 0)
+    {
+        dataArray = &tmpScalar;
+    }
 
     // - - - - - - - - - - UAL LowLevel method call - - - - - - - - - - - -
     status = ual_read_data(jCtx, fieldPath, timeBasePath, (void**)&dataArray, CHAR_DATA, jDim, sizeArray);
     // - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - -
 
-    if (sizeArray == NULL) {
-     return NULL; /* out of memory error thrown */
-    }   
 
-    if(jDim == 0)
-        retArraySize = 1;
-    else
-    {
         for (int i = 0; i < jDim; i++)
             retArraySize = retArraySize * sizeArray[i];
-    }
 
 
     jData = env->NewByteArray(retArraySize);
@@ -461,4 +510,4 @@ static void raiseLowLevelException(JNIEnv *env, int errorCode)
         raiseLowLevelException( env, status);
 
 }
-
+} //extern "C"
