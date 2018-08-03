@@ -16,6 +16,11 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // Then sum the ASCII codes of the other characters and store them in the name
 // SliceApd
 
+
+
+
+
+
 #ifdef NODENAME_MANGLING
 static char *path2MDS(char *path)
 {
@@ -41,7 +46,8 @@ static char *path2MDS(char *path)
 }
 
 
-static std::string mdsconvertPath(const char *inputpath)
+static std::string mdsconvertPath(const char *inputpath, bool isAos = false
+)
 {
 
     static char mdsCpoPath[2048];
@@ -54,7 +60,10 @@ static std::string mdsconvertPath(const char *inputpath)
     if (ptr == NULL) return "";
     strcpy(mdsCpoPath,"");
     if (!isdigit(*ptr)) {
-      strcat(mdsCpoPath,path2MDS(ptr));
+        if(isAos && (!strncmp((const char *)ptr, "timed_", 6) || !strcmp((const char *)ptr, "static") || !strcmp((const char *)ptr, "time") || !strcmp((const char *)ptr, "aos")))      
+	    strcat(mdsCpoPath,ptr);
+	else
+      	    strcat(mdsCpoPath,path2MDS(ptr));
     }
     else {
       strcat(mdsCpoPath,ptr);
@@ -62,7 +71,10 @@ static std::string mdsconvertPath(const char *inputpath)
     while ( (ptr=strtok(NULL, SEPARATORS)) != NULL) {
 	strcat(mdsCpoPath,".");
 	if (!isdigit(*ptr)) {
-          strcat(mdsCpoPath,path2MDS(ptr));
+	    if(isAos && (!strncmp((const char *)ptr, "timed_", 6) || !strcmp((const char *)ptr, "static") || !strcmp((const char *)ptr, "time") || !strcmp((const char *)ptr, "aos")))
+	        strcat(mdsCpoPath,ptr);
+ 	    else
+                strcat(mdsCpoPath,path2MDS(ptr));
 	}
 	else {
 	  strcat(mdsCpoPath,ptr);
@@ -79,9 +91,9 @@ static std::string mdsconvertPath(const char *inputpath)
     return retStr;
 }
 
-static std::string checkFullPath(std::string &inStr)
+static std::string checkFullPath(std::string &inStr, bool isAos = false)
 {
-    return mdsconvertPath(inStr.c_str());
+    return mdsconvertPath(inStr.c_str(), isAos);
 }
 #else
 static std::string mdsconvertPath(const char *path)
@@ -384,6 +396,27 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	return retShot;
     }
  */
+
+    MDSplus::TreeNode * MDSplusBackend::getNode(const char *path)
+    {
+        return tree->getNode(path);
+	std::string pathStr(path);
+	MDSplus::TreeNode *node;
+ 	try {
+	    node = treeNodeMap.at(pathStr);
+	}
+ 	catch (const std::out_of_range& oor) 
+	{
+	    node = tree->getNode(path);
+	    treeNodeMap[pathStr] = node;
+	}
+	return node;
+    }
+
+
+
+
+
     int MDSplusBackend::getMdsShot(int shot, int run, bool translate)
     {
 	int runBunch = run/10000;
@@ -485,13 +518,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    std::string fullPath = composePaths(dataobjectPath, path);
 	    std::string checkedFullPath = checkFullPath(fullPath);
 	    const char *checkedFullPathPtr = checkedFullPath.c_str();
-	    MDSplus::TreeNode *node = tree->getNode(checkedFullPathPtr);
+	    MDSplus::TreeNode *node = getNode(checkedFullPathPtr);
 	    if(node->getLength() > 0)
 	        node->deleteData();
 	    MDSplus::Data *data = assembleData(dataPtr, datatype, numDims, dims);
 	    node->putData(data);
 	    MDSplus::deleteData(data);
-	    delete node;
+//	    delete node;
 	}
 	catch (MDSplus::MdsException &exc)
 	{
@@ -504,7 +537,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    
 	    
     void MDSplusBackend::writeTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims,
-	int *inDims)
+	int *inDims, bool isAos, bool isRefAos)
     {
 /** Steps:
 1) Compute slice dimension
@@ -527,9 +560,9 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
     	try {
 	    std::string fullPath = composePaths(dataobjectPath, path);
-	    std::string mdsPath = checkFullPath(fullPath);
-	    MDSplus::TreeNode *node = tree->getNode(mdsPath.c_str());
-//	    MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	    std::string mdsPath = checkFullPath(fullPath, isAos);
+	    MDSplus::TreeNode *node = getNode(mdsPath.c_str());
+//	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
 	    if(node->getLength() > 0)
 	        node->deleteData();
 		
@@ -578,7 +611,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		  timeEndSegmentOffset = (sliceIdx + slicesPerSegment - 1) - timeEndSegmentIdx * timeSlicesPerSegment;
 //		else
 //		  timeEndSegmentOffset = (sliceIdx + slicesPerSegment - 1) - timeEndSegmentIdx * timeSlicesPerSegment;
-		sprintf(nameBuf, "data(getSegment(build_path('%s'), %d))[%d]", mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, 
+		sprintf(nameBuf, "data(getSegment(build_path('%s'), %d))[%d]", mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, 
 			timeStartSegmentOffset);
 		MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
 
@@ -589,8 +622,8 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
 		sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(getSegment(build_path(\'%s\'), %d))[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1]; else _a = data(getSegment(build_path(\'%s\'), %d))[%d]; _a;",
 		    mdsPath.c_str(), numSegments, 
-		    mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeSlicesPerSegment, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-		    mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
+		    mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+		    mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 ///////////////////////////////////////////////Gabriele February 2018
 
 		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
@@ -604,8 +637,8 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
 		    sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(getSegment(build_path(\'%s\'), %d))[%d:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]; else _a = data(getSegment(build_path(\'%s\'), %d))[%d:%d]; _a;",
 			mdsPath.c_str(), numSegments, 
-			mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeEndSegmentOffset);
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeEndSegmentOffset);
 /////////////////////////////////////////////Gabriele February 2018
 
 		}
@@ -620,13 +653,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 */
 		  sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
 		  sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(getSegment(build_path('%s'), %d))[%d:%d], data(getSegment(build_path('%s'), %d))[0:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]])); else _a = data(set_range(", 
-			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeSlicesPerSegment,
-		 	mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx);
+			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeSlicesPerSegment,
+		 	mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx);
 
 		  sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(getSegment(build_path('%s'), %d))[%d:%d], data(getSegment(build_path('%s'), %d))[0:%d]])); _a;", 
-			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
+			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 /////////////////////////////////////////////Gabriele February 2018
 		}
 		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
@@ -660,7 +693,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		MDSplus::deleteData(endTime);
 		MDSplus::deleteData(dimension);
 	    }
-	    delete node;
+//	    delete node;
 	    delete []currDims;
 	}catch(MDSplus::MdsException &exc)
 	{
@@ -675,13 +708,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       MDSplus::TreeNode *node;
       try {
 	std::string fullPath = composePaths(dataobjectPath, path);
-	node = tree->getNode(checkFullPath(fullPath).c_str());
+	node = getNode(checkFullPath(fullPath).c_str());
       }catch(MDSplus::MdsException &exc)
       {
 	throw UALBackendException(exc.what(),LOG);
       }
       readTimedData(node, dataPtr, datatype, numDims, outDims);
-      delete node;
+//      delete node;
     }
 
 
@@ -765,7 +798,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	outDims[*numDims - 1 - i] = dims[i];
     }
 		
-    void MDSplusBackend::writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims, int *inDims)
+    void MDSplusBackend::writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims, int *inDims, bool isAos, bool isRefAos)
     {
 /** Steps:
 1) Compute slice dimension
@@ -774,6 +807,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     if Unsuccessful(segment filled) create a new segment and prepare new dimension start and end time
 
 */
+//std::cout << "WRITE SLICE START" << std::endl;
       int dims[MAX_DIMS];
       for(int i = 0; i < numDims; i++)
 	  dims[i] = inDims[i];
@@ -785,9 +819,9 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
     	try {
 	    std::string fullPath = composePaths(dataobjectPath, path);
-	    std::string mdsPath = checkFullPath(fullPath);
-	    MDSplus::TreeNode *node = tree->getNode(mdsPath.c_str());
-	   // MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	    std::string mdsPath = checkFullPath(fullPath, isAos);
+	    MDSplus::TreeNode *node = getNode(mdsPath.c_str());
+	   // MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
 
 	    int sliceSize = getSliceSize(node, data, datatype, numDims, dims, false);
 	    int slicesPerSegment;
@@ -848,7 +882,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		if(timePath == fullPath) //If writing time
 		    sprintf(nameBuf, "%d", sliceIdx );
 		else
-		    sprintf(nameBuf, "data(getSegment(build_path(\'%s\'), %d))[%d]", mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, timeStartSegmentOffset);
+		    sprintf(nameBuf, "data(getSegment(build_path(\'%s\'), %d))[%d]", mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, timeStartSegmentOffset);
 	    	MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
 //	    	sprintf(nameBuf, "data(getSegment(build_path(\'%s\'), %d))[%d]", timePath.c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 		//MDSplus fun GetSegmentInfo(path, seg_idx) returns the number of items
@@ -858,8 +892,8 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 //		    sprintf(nameBuf, "data(getSegment(build_path(\'%s\'), %d))[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1];", mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeSlicesPerSegment, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx);
 		    sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(getSegment(build_path(\'%s\'), %d))[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1]; else _a = data(getSegment(build_path(\'%s\'), %d))[%d]; _a;",
 			mdsPath.c_str(), numSegments, 
-			mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeSlicesPerSegment, mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx,
-			mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx,
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 ///////////////////////////////////////////////Gabriele February 2018
 
 
@@ -879,8 +913,8 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		    {
 		    	sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(getSegment(build_path(\'%s\'), %d))[%d:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]; else _a = data(getSegment(build_path(\'%s\'), %d))[%d:%d]; _a;",
 			mdsPath.c_str(), numSegments, 
-			mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeEndSegmentOffset);
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx, timeStartSegmentOffset, timeEndSegmentOffset);
 		    }
 		    else //Times are splitted in two different segments
 		    {
@@ -893,13 +927,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 */
 		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') < %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(getSegment(build_path('%s'), %d))[%d:%d], data(getSegment(build_path('%s'), %d))[0:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]])); else _a = data(set_range(", 
-			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			  timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeSlicesPerSegment,
-		 	  mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx);
+			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			  timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeSlicesPerSegment,
+		 	  mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx);
 
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(getSegment(build_path('%s'), %d))[%d:%d], data(getSegment(build_path('%s'), %d))[0:%d]])); _a;", 
-			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str()).c_str(), timeStartSegmentIdx,
-			  timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str()).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
+			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			  timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 		    }
 		}
 /////////////////////////////////////////////Gabriele February 2018
@@ -914,13 +948,18 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		node->putSegment((MDSplus::Array *)slice, -1);
 	    }
 	    MDSplus::deleteData(slice);
-	    delete node;
+//	    delete node;
 	    delete [] currDims;
 
 	}catch(MDSplus::MdsException &exc)
 	{
 	  throw UALBackendException(exc.what(),LOG);
  	}
+
+//std::cout << "WRITE SLICE END" << std::endl << std::endl;
+
+
+
     }
 
 
@@ -932,7 +971,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
       try {
 	std::string fullPath = composePaths(dataobjectPath, path);
-	MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
 	
 	int numSegments = node->getNumSegments();
 	if(numSegments > 0)
@@ -945,7 +984,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    MDSplus::deleteData(data);
 	    MDSplus::deleteData(evaluatedData);
 	}
-	delete node;
+//	delete node;
       }catch(MDSplus::MdsException &exc)
       {
 	throw UALNoDataException(exc.what(),LOG);
@@ -957,44 +996,51 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     {
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
 //Workaround for the fact that default nid mau be left changed if TreeNode::getNode() generates an exception. Fixed in new MDSplus releases.
-      MDSplus::TreeNode *topNode = tree->getNode("\\TOP");
+      MDSplus::TreeNode *topNode = getNode("\\TOP");
 
       try {
 	std::string fullPath = composePaths(dataobjectPath, path);
-	MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
 	node->deleteData();
 //Handle the possibility that the node refers to a AoS
         if(node->getNumChildren() > 0)
 	{
-	    std::string currPath(":STATIC");
-	    MDSplus::TreeNode *currNode = node->getNode(checkFullPath(currPath).c_str());
+//	    std::string currPath(":STATIC");
+	    std::string currPath(":static");
+	    MDSplus::TreeNode *currNode = node->getNode(checkFullPath(currPath, true).c_str());
 	    currNode->deleteData();
 	    int numChildren = node->getNumChildren();
+	
+	    //if(numChildren > 100) numChildren = 100;
+
 	    for(int childIdx = 1; childIdx <= numChildren; childIdx++)
 	    {
 		char buf[16];
-		sprintf(buf, "TIMED_%d:AOS", childIdx);
+//		sprintf(buf, "TIMED_%d:AOS", childIdx);
+		sprintf(buf, "timed_%d:aos", childIdx);
 		currPath = buf;
-		MDSplus::TreeNode *currChild = node->getNode(checkFullPath(currPath).c_str());
+		MDSplus::TreeNode *currChild = node->getNode(checkFullPath(currPath, true).c_str());
+		if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
 		currChild->deleteData();
 		delete currChild;
-		sprintf(buf, "TIMED_%d:TIME", childIdx);
+//		sprintf(buf, "TIMED_%d:TIME", childIdx);
+		sprintf(buf, "timed_%d:time", childIdx);
 		currPath = buf;
-		currChild = node->getNode(checkFullPath(currPath).c_str());
+		currChild = node->getNode(checkFullPath(currPath, true).c_str());
 		currChild->deleteData();
 		delete currChild;
 	    }
 	    delete currNode;
 	}
-	delete node;
+//	delete node;
       }catch(MDSplus::MdsException &exc)
       {
 //	throw UALBackendException(exc.what(),LOG);
 	tree->setDefault(topNode);
-	delete topNode;
+//	delete topNode;
 	throw UALNoDataException(exc.what(),LOG);
       }
-      delete topNode;
+//      delete topNode;
     }
 
 	
@@ -1020,9 +1066,9 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     	try {
 	    fullPath = composePaths(dataobjectPath, path);
 	    if(manglePath)
-	    	node = tree->getNode(checkFullPath(fullPath).c_str());
+	    	node = getNode(checkFullPath(fullPath).c_str());
 	    else
-	    	node = tree->getNode(fullPath.c_str());
+	    	node = getNode(fullPath.c_str());
 	}catch(MDSplus::MdsException &exc) 
 	{	
 	    throw UALNoDataException(exc.what(),LOG);
@@ -1039,10 +1085,11 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    {
 	      MDSplus::Data *startTimeData, *endTimeData;
 	      node->getSegmentLimits(segmentIdx, &startTimeData, &endTimeData);
+	      
+	//      std::cout << "START TIME: " << startTimeData << std::endl;
+	//      std::cout << "END TIME: " << endTimeData << std::endl;
+	      
 	      double startTime = startTimeData->getDouble();
-	      
-//	      std::cout << "END TIME: " << endTimeData << std::endl;
-	      
 	      double endTime = endTimeData->getDouble();
 	      MDSplus::deleteData(startTimeData);
 	      MDSplus::deleteData(endTimeData);
@@ -1256,7 +1303,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    for(int i = 0; i < dimct-1; i++)
 	      (dims)[i] = segDims[i];
 	    
-	    delete node;
+//	    delete node;
 /* Gabriele July 2017: return additional dimension
 	    for(int i = 0; i < *numDims; i++)
 	      outDims[i] = dims[i];
@@ -1342,11 +1389,11 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
     	try {
 	    std::string extPath = path;
-	    extPath += ":STATIC";
+	    extPath += ":static";
 	    std::string fullPath = composePaths(dataobjectPath, extPath);
-	    MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath, true).c_str());
 	    node->putData(apd);
-	    delete node;
+//	    delete node;
 	}catch(MDSplus::MdsException &exc)	
 	{
 	  throw  UALBackendException(exc.what(),LOG); 
@@ -1376,7 +1423,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	      }
 	      std::string newTimebasePath = composePaths(aosPath, "time");
 	      int dims[] = {numElements};
-	      writeTimedData(tree, aosPath, time, time, times, ualconst::double_data, 1, dims);
+	      writeTimedData(tree, aosPath, time, time, times, ualconst::double_data, 1, dims, true, true);
 	      timePath = newTimebasePath;
 	      delete[] times;
 	  }
@@ -1385,7 +1432,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
 
 	std::string aos = composePaths(aosPath, "aos");
-	MDSplus::TreeNode *node = tree->getNode(checkFullPath(aos).c_str());
+	MDSplus::TreeNode *node = getNode(checkFullPath(aos, true).c_str());
 	char nameBuf[256];
 	size_t sliceIdx = 0;
 	while(sliceIdx < apd->len())
@@ -1468,7 +1515,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    serializedV.clear();
 	    serializedLenV.clear();
 	}
-	delete node;
+//	delete node;
       }catch(MDSplus::MdsException &exc)	
       {
 	  throw  UALBackendException(exc.what(),LOG); 
@@ -1511,14 +1558,14 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	        int dims[] = {1};
 		//Gabriele July 2017
  		//writeSlice(tree, aosPath, "time", "time",  &sliceTime, ualconst::double_data, 0, dims);
- 		writeSlice(tree, aosPath, "time", "time",  &sliceTime, ualconst::double_data, 1, dims);
+ 		writeSlice(tree, aosPath, "time", "time",  &sliceTime, ualconst::double_data, 1, dims, true, true);
 	        timePath = composePaths(aosPath, time);
 	    }
 	    else
 	        timePath = timebasePath;  //Timebase is already defined somewhere else
 
 	     std::string aos = composePaths(aosPath, "aos");
-	    MDSplus::TreeNode *node = tree->getNode(checkFullPath(aos).c_str());
+	    MDSplus::TreeNode *node = getNode(checkFullPath(aos, true).c_str());
 
 	    int apdLen;
 //	    unsigned char *apdSerialized = (unsigned char *)inApd->serialize(&apdLen);
@@ -1560,7 +1607,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		    MDSplus::deleteData(endData);
 		    MDSplus::deleteData(dim);
 		    delete []apdSerialized;
-		    delete node;
+//		    delete node;
 		    return;
 		}
 	    }
@@ -1617,7 +1664,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    MDSplus::deleteData(startData);
 	    delete []apdSerialized;
 
-	    delete node;
+//	    delete node;
  	}catch(MDSplus::MdsException &exc)	
 	{
 	  throw  UALBackendException(exc.what(),LOG); 
@@ -1629,14 +1676,14 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
 	try {
 	    std::string fullPath = composePaths(dataobjectPath, path);
-	    MDSplus::TreeNode *node = tree->getNode(checkFullPath(fullPath).c_str());
+	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath, true).c_str());
 	    MDSplus::Data *retData = node->getData();
 	    if(retData->clazz != CLASS_APD)
 		throw  UALException("Internal error: array of structure is not an APD data");
 
 	   // std::cout << "readApd" << std::endl;
 	   //dumpArrayStruct((MDSplus::Apd *)retData, 0);
-	    delete node;
+//	    delete node;
 	    return (MDSplus::Apd *)retData;
 	}catch(MDSplus::MdsException &exc)	
 	{
@@ -1871,17 +1918,17 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    if(timebasePath.empty())
 	    {	  
 	    	MDSplus::TreeNode *parentNode = inNode->getParent();
-//	    	timebaseNode = parentNode->getNode(":TIME");
-	    	timebaseNode = parentNode->getNode(":TIME0");  //Node name is mangled!!
+	    	timebaseNode = parentNode->getNode(":time");
+//	    	timebaseNode = parentNode->getNode(":TIME0");  //Node name is mangled!!
 		delete parentNode;
 	    }
 	    else
 	    {
-		timebaseNode = tree->getNode(mdsconvertPath(timebasePath.c_str()).c_str());
+		timebaseNode = getNode(mdsconvertPath(timebasePath.c_str()).c_str());
 	    }
 	    int nDims, datatype, dims[64];
 	    readTimedData(timebaseNode, (void **)&timebase, &datatype, &nDims, dims);
-	    delete timebaseNode;
+//	    delete timebaseNode;
 	    if(datatype != ualconst::double_data || nDims != 1 || dims[0] < 1)
 	    	throw UALBackendException("Unexpected time type or dimension in beginAosSliceAction",LOG);
 
@@ -2404,9 +2451,12 @@ printf("Warning, struct field added more than once\n");
 		//First check if timebase path refers to a node external or internal the AoS. If it refers to an internal 
 		//node of the AoS, it is translated to the corresponding TIME_n/AOS node
 		std::string currTimebasePath = relativeToAbsolutePath(ctx, timebasePath, idx);
+		bool isInternalTime = false;
 		if(currTimebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
+		{
 		    currTimebasePath = getTimedNode(ctx, currTimebasePath)+"/aos";
-
+		    isInternalTime = true;
+		}
  		std::string timedPath = getTimedNode(ctx, path, idx)+"/aos";
 		if(isSlice)
 		{
@@ -2421,17 +2471,17 @@ printf("Warning, struct field added more than once\n");
 		    if(dim > 0)
 ///////////////////////////////////////////////////////////
 //   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, size);
-   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize);
+   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
 		    delete[] newSize;
 
 		}
 		else
 		{
-    		    writeTimedData(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, size);
+    		    writeTimedData(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, size, true, isInternalTime);
 		}
 		try {
 		    std::string currPath = composePaths(ctx->getDataobjectName(), timedPath);
-		    MDSplus::TreeNode *node = tree->getNode(checkFullPath(currPath).c_str());
+		    MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		    newApd->appendDesc(node);
 
 //std::cout << newApd->decompile() << std::endl;
@@ -2558,7 +2608,8 @@ printf("Warning, struct field added more than once\n");
 	}
 	timedNodeFreeIdxMap[toLower(aosPath)] = idx + 1;
 	char *buf = new char[aosPath.size()+16];
-	sprintf(buf, "%s/TIMED_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
+//	sprintf(buf, "%s/TIMED_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
+	sprintf(buf, "%s/timed_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
 	std::string retPath(buf);
 	delete []buf;
         timedNodePathMap[toLower(aosFullPath)] = retPath;
@@ -2772,7 +2823,7 @@ printf("Warning, struct field added more than once\n");
 	      std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getParent()->getIndex());  //Gabriele March 2018
 //	      std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getIndex());
  	      std::string currPath = composePaths(ctx->getDataobjectName(), nodePath+"/aos");
-	      MDSplus::TreeNode *node = tree->getNode(checkFullPath(currPath).c_str());
+	      MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 
  	      insertNewInApd(ctx, ctx->getPath(), parentApd, ctx->getParent()->getIndex(), ctx->getPath(),  emptyStr, false, node); //Gabriele March 2018
  	     // insertNewInApd(ctx, ctx->getPath(), parentApd, ctx->getIndex(), ctx->getPath(),  emptyStr, false, node); 
@@ -2862,14 +2913,16 @@ Gabriele Dec 2017 */
 	   // if(ctx->getTimed())
  	    if(!ctx->getTimebasePath().empty()) 
 	    {
-		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
-		MDSplus::TreeNode *node = tree->getNode(checkFullPath(currPath).c_str());
+		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
+//		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
+		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		currApd = readDynamicApd(node);
-		delete node;
+//		delete node;
 	    }
 	    else
 	    {
-		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/STATIC");
+		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
+//		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/STATIC");
 		MDSplus::Apd *resApd = resolveApdTimedFields(currApd);
 		MDSplus::deleteData(currApd);
 		currApd = resApd;
@@ -2881,8 +2934,9 @@ Gabriele Dec 2017 */
 	    //if(ctx->getTimed())
  	    if(!ctx->getTimebasePath().empty()) 
 	    {
-		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
-		MDSplus::TreeNode *node = tree->getNode(checkFullPath(currPath).c_str());
+		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
+//		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
+		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') //If it refers to a field which is internal to the AoS (must be time)
 		    currApd = readSliceApd(node, "", ctx->getTime(), ctx->getInterpmode());
 		else
@@ -2891,11 +2945,11 @@ Gabriele Dec 2017 */
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
-		delete node;
+//		delete node;
 	    }
 	    else
 	    {
-		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/STATIC");
+		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
 //std::cout << "PRIMA DI RESOLVED " << std::endl;
 //dumpArrayStruct(currApd, 0);
 		MDSplus::Apd *resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath());
@@ -3159,12 +3213,12 @@ Gabriele Dec 2017 */
 		      {
 	                  std::string staticName("static");
 			  std::string currPath = composePaths(getTopAoSPath((ArraystructContext *)inCtx), staticName);
-			  MDSplus::TreeNode *node = tree->getNode(checkFullPath(currPath).c_str());
+			  MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 			  if(node->getLength() == 0) //If it is the first time it is written 
 		      	  {
 			      writeStaticApd(currApd, ctx->getDataobjectName(), ctx->getPath());
 		      	  }
-			  delete node;	
+//			  delete node;	
 		      }
 		  }
 	      }
