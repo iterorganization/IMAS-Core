@@ -3,16 +3,29 @@
 #include "ual_const.h"
 
 
+static bool isErrorCritical(int errorCode)
+{  
+    if (errorCode > -1)
+        return false;
+    
+    if (errorCode == -5)
+        return false;
 
+   return true;
+ }
 
 static void raiseLowLevelException(JNIEnv *env, int errorCode)
 {
-    char* msg = "PROBLEM";
+    char msgBuffer[200]; 
+    bool isCritical = isErrorCritical(errorCode);
 
-      printf("Throwing EXC");
+    if (!isCritical)
+       return;
+
+     sprintf(msgBuffer, "ERROR: UAL LowLevel error code [%d]\n", errorCode);
+
     jclass exc = env->FindClass("imasjava/UALException");
-    printf("Throwing EXC");
-    env->ThrowNew(exc, msg);
+    env->ThrowNew(exc, msgBuffer);
  }
 
 
