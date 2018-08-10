@@ -155,8 +155,20 @@ void UDABackend::readData(Context *ctx,
         uda::Data* uda_data = result.data();
         if (uda_data->type() == typeid(double)) {
             *datatype = DOUBLE_DATA;
+            *data = malloc(uda_data->byte_length());
+            memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
         } else if (uda_data->type() == typeid(int)) {
             *datatype = INTEGER_DATA;
+            *data = malloc(uda_data->byte_length());
+            memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
+        } else if (uda_data->type() == typeid(float)) {
+            *datatype = DOUBLE_DATA;
+            auto fdata = reinterpret_cast<const float*>(uda_data->byte_data());
+            *data = malloc(uda_data->size() * sizeof(double));
+            auto ddata = reinterpret_cast<double*>(*data);
+            for (int i = 0; i < uda_data->size(); ++i) {
+                ddata[i] = fdata[i];
+            }
         } else {
             throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
@@ -165,8 +177,6 @@ void UDABackend::readData(Context *ctx,
         for (int i = 0; i < *dim; ++i) {
             size[i] = static_cast<int>(shape[i]);
         }
-        *data = malloc(uda_data->byte_length());
-        memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
     } catch (const uda::UDAException& ex) {
         throw UALNoDataException(ex.what(), LOG);
     }
@@ -186,7 +196,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
            << "::getdim(expName='" << ctx->getTokamak()
            << "', ctx=" << ctx->getUid()
            << ", group='" << ctx->getDataobjectName()
-           << "', path='" << path
+           << "', variable='" << path
            << "', shot=" << ctx->getShot()
            << ", run=" << ctx->getRun()
            << ", user='" << ctx->getUser() << "')";
