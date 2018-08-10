@@ -24,6 +24,9 @@ class MDSplusBackend:public Backend
     //Keep for every timed AoS field or dynamic AoS the full path of the corresponding node 
     std::unordered_map<std::string, std::string> timedNodePathMap;
 
+    //In ordert to increase efficiency of MDSplus find node
+    std::unordered_map<std::string, MDSplus::TreeNode *> treeNodeMap;
+
  
     std::vector<ArraystructContext *>arrayStructContextV;
     std::vector<MDSplus::Apd *>arrayStructDataV;
@@ -43,8 +46,9 @@ class MDSplusBackend:public Backend
     void writeData(MDSplus::Tree *tree, std::string dataobjectPath, std::string timePath, void *dataPtr, int datatype, int numDims,
 	int *dims);
     void writeTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims,
-	int *dims);
-    void writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase,  void *data, int datatype, int numDims, int *dims);
+	int *dims, bool isAos = false, bool isRefAos = false);
+    void writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase,  void *data, int datatype, int numDims, 
+	int *dims, bool isAos = false, bool isRefAos = false);
     void readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
 	int *numDims, int *dims);
     void readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
@@ -85,6 +89,7 @@ class MDSplusBackend:public Backend
     std::string  toLower(std::string s);
      std::string relativeToAbsolutePath(ArraystructContext *ctx, std::string relPath, int idx = 0);
     void resetNodePath();
+    MDSplus::TreeNode *getNode(const char *);
 /////Public section - Implementation of Backend interface		
       public:
 	
