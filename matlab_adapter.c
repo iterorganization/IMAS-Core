@@ -374,16 +374,16 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
    @param[in] version database data version 
    @result error status
  */
-int mtl_ual_open_env(const char *name, int shot, int run, 
+int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 		 char *user, char *tokamak, char *version)
 {
-  int pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
+  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
 				     user, tokamak, version); 
 
-  if (pulseCtx < 0)
-    return pulseCtx;
+  if (*pulseCtx < 0)
+    return *pulseCtx;
   else
-    return ual_open_pulse(pulseCtx, OPEN_PULSE, "");
+    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 }
 
 /**
@@ -632,9 +632,9 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
     {
       *dim1 = retSize[0];
       *dim2 = retSize[1];
-      *data = malloc(*dim1 + *dim2 + 1);
-      memset(*data, 0, *dim1 + *dim2 + 1);
-      strncpy(*data, szTemp, *dim1 + *dim2);
+      *data = malloc((*dim1)*(*dim2) + 1);
+      memset(*data, 0, (*dim1)*(*dim2) + 1);
+      strncpy(*data, szTemp, (*dim1)*(*dim2));
       free (szTemp);
     }
   return status;
@@ -666,9 +666,9 @@ int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *t
     {
       *dim1 = retSize[0];
       *dim2 = retSize[1];
-      *data = malloc(*dim1 + *dim2 + 1);
-      memset(*data, 0, *dim1 + *dim2 + 1);
-      strncpy(*data, szTemp, *dim1 + *dim2);
+      *data = malloc((*dim1)*(*dim2) + 1);
+      memset(*data, 0, (*dim1)*(*dim2) + 1);
+      strncpy(*data, szTemp, (*dim1)*(*dim2));
       free (szTemp);
     }
   return status;
