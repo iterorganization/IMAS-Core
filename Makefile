@@ -56,14 +56,6 @@ ifneq ("no","$(strip $(IMAS_MATLAB))")
  CSRC+= matlab_adapter.c
 endif
 
-#-------------- Options for JNI ----------------
-ifneq ("no","$(strip $(IMAS_JAVA))")
-
- INCLUDES += -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
- LIBS+= -L$(JAVA_HOME)/jre/lib/amd64
- COMMON_OBJECTS+= imasjava_wrapper_LowLevel.o
- CPPSRC+= imasjava_wrapper_LowLevel.cpp
-endif
 
 TARGETS = libimas.so libimas.a
 
