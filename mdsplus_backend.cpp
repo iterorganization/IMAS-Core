@@ -466,7 +466,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 		    translatedBaseStr += ';';
 		    translatedBaseStr += modelDir;
 		}
+#ifdef WIN32
+		char szEnv[256] = { 0 };
+		sprintf(szEnv, "ids_path=%s", translatedBaseStr.c_str());
+		putenv(szEnv);
+#else // WIN32
 		setenv("ids_path",translatedBaseStr.c_str(),1);
+#endif // WIN32
 	    }
 	}
 	int retShot =  (shot * 10000) + (run%10000);
@@ -511,7 +517,13 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    currMdsplusBaseDir += '0'+(char)i;
             char env_name[32];
 	    sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
+#ifdef WIN32
+		char szEnv[256] = { 0 };
+		sprintf(szEnv, "%s=%s", env_name, currMdsplusBaseDir.c_str());
+		putenv(szEnv);
+#else // WIN32
 	    setenv(env_name, currMdsplusBaseDir.c_str(), 1);
+#endif // WIN32
     	}
     }  
 
