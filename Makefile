@@ -31,13 +31,16 @@ endif
 ## MDSPlus install (require recent alpha tarball)
 ifneq ("no","$(strip $(SYS_WIN))")
     INCLUDES= -I$(MDSPLUS_HOME)/include -I.
-    LIBDIR= -L. -L$(MDSPLUS_HOME)/devtools/lib64/mingw
-    LIBS= $(MDSPLUS_HOME)/devtools/lib64/mingw/TreeShr.lib
-    LIBS+= $(MDSPLUS_HOME)/devtools/lib64/mingw/TdiShr.lib
-    LIBS+= $(MDSPLUS_HOME)/devtools/lib64/mingw/MdsShr.lib
-    LIBS+= $(MDSPLUS_HOME)/devtools/lib64/mingw/XTreeShr.lib
-    LIBS+= $(MDSPLUS_HOME)/devtools/lib64/mingw/MdsIpShr.lib
-    LIBS+= $(MDSPLUS_HOME)/devtools/lib64/mingw/MdsObjectsCppShr.lib
+    LIBDIR= -L. -L$(MDSPLUS_HOME)/lib
+    #LIBS= $(MDSPLUS_HOME)/lib/TreeShr.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/TdiShr.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/MdsLib.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/MdsMisc.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/MdsShr.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/XTreeShr.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/MdsIpShr.a
+    #LIBS+= $(MDSPLUS_HOME)/lib/MdsObjectsCppShr.a
+    LIBS= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 else
     INCLUDES= -I$(MDSPLUS_DIR)/include -I.
     LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
