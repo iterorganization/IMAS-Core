@@ -16,7 +16,7 @@
 #define FALSE 0
 
 
-//const double _Complex EMPTY_COMPLEX = EMPTY_DOUBLE + EMPTY_DOUBLE*I;
+//const Complex EMPTY_COMPLEX = EMPTY_DOUBLE + EMPTY_DOUBLE*I;
 
 
 void check_status(int status, const char *file, const int line)
@@ -420,7 +420,7 @@ int putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double
    - additional timebasePath argument
 */
 int putComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-	       double _Complex data)
+	       Complex data)
 {
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
 			COMPLEX_DATA, 0, NULL);
@@ -508,7 +508,7 @@ int putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim)
+		     Complex *data, int dim)
 {
   int size[1] = {dim};
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
@@ -600,7 +600,7 @@ int putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2)
+		     Complex *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
@@ -672,7 +672,7 @@ int putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3)
+		     Complex *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
@@ -747,7 +747,7 @@ int putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4)
+		     Complex *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
@@ -826,7 +826,7 @@ int putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
@@ -910,7 +910,7 @@ int putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
@@ -997,7 +997,7 @@ int putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - remove isTimed argument
 */
 int putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
+		     Complex *data, int dim1, int dim2, int dim3, int dim4, 
 		     int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
@@ -1081,7 +1081,7 @@ int getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    @result error status
  */
 int getComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-	       double _Complex *data)
+	       Complex *data)
 {
   int status;
   int retSize[MAXDIM];
@@ -1185,7 +1185,7 @@ int getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim)
+		     Complex **data, int *dim)
 {
   int status;
   int retSize[MAXDIM];
@@ -1300,7 +1300,7 @@ int getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2)
+		     Complex **data, int *dim1, int *dim2)
 {
   int status;
   int retSize[MAXDIM];
@@ -1394,7 +1394,7 @@ int getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
+		     Complex **data, int *dim1, int *dim2, 
 		     int *dim3)
 {
   int status;
@@ -1495,7 +1495,7 @@ int getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
+		     Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4)
 {
   int status;
@@ -1602,7 +1602,7 @@ int getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
+		     Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5)
 {
   int status;
@@ -1715,7 +1715,7 @@ int getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
+		     Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5, int *dim6)
 {
   int status;
@@ -1834,7 +1834,7 @@ int getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
+		     Complex **data, int *dim1, int *dim2, 
 		     int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
 {
   int status;
@@ -2018,7 +2018,7 @@ int putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePat
    - result = error status (int) instead of opaque pointer (void *)
  */
 int putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-		       int idx, double _Complex data)
+		       int idx, Complex data)
 {
   return ual_write_data(aosCtx, fieldPath, timebasePath, 
 			(void *)(&data), COMPLEX_DATA, 0, NULL);
@@ -2114,7 +2114,7 @@ int putVect1DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect1DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim)
+			     Complex *data, int dim)
 {
   int size[1] = {dim};
   return ual_write_data(aosCtx, fieldPath, timebasePath, 
@@ -2219,7 +2219,7 @@ int putVect2DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect2DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2)
+			     Complex *data, int dim1, int dim2)
 {
   int size[2] = {dim1, dim2};
   return ual_write_data(aosCtx, fieldPath, timebasePath, 
@@ -2300,7 +2300,7 @@ int putVect3DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect3DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2, int dim3)
+			     Complex *data, int dim1, int dim2, int dim3)
 {
   int size[3] = {dim1, dim2, dim3};
   return ual_write_data(aosCtx, fieldPath, timebasePath, 
@@ -2384,7 +2384,7 @@ int putVect4DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect4DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
@@ -2474,7 +2474,7 @@ int putVect5DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect5DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
@@ -2567,7 +2567,7 @@ int putVect6DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect6DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
@@ -2606,7 +2606,7 @@ int putVect7DDoubleInObject(int aosCtx, const char *fieldPath,
  */
 int putVect7DComplexInObject(int aosCtx, const char *fieldPath, 
 			     const char *timebasePath, int idx, 
-			     double _Complex *data, int dim1, int dim2, int dim3, 
+			     Complex *data, int dim1, int dim2, int dim3, 
 			     int dim4, int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
@@ -2708,7 +2708,7 @@ int getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebaseP
    - no passed pointer on array of structure (void *obj)
  */
 int getComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			 double _Complex *data)
+			 Complex *data)
 {
   int status;
   int retSize[MAXDIM];
@@ -2823,7 +2823,7 @@ int getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect1DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim)
+			       Complex **data, int *dim)
 {
   int status;
   int retSize[MAXDIM];
@@ -2950,7 +2950,7 @@ int getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim1, int *dim2)
+			       Complex **data, int *dim1, int *dim2)
 {
   int status;
   int retSize[MAXDIM];
@@ -3051,7 +3051,7 @@ int getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim1, int *dim2, 
+			       Complex **data, int *dim1, int *dim2, 
 			       int *dim3)
 {
   int status;
@@ -3161,7 +3161,7 @@ int getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim1, int *dim2, 
+			       Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4)
 {
   int status;
@@ -3276,7 +3276,7 @@ int getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim1, int *dim2, 
+			       Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4, int *dim5)
 {
   int status;
@@ -3398,7 +3398,7 @@ int getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *tim
    - no passed pointer on array of structure (void *obj)
  */
 int getVect6DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int idx, 
-			       double _Complex **data, int *dim1, int *dim2, 
+			       Complex **data, int *dim1, int *dim2, 
 			       int *dim3, int *dim4, int *dim5, int *dim6)
 {
   int status;

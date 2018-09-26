@@ -30,17 +30,17 @@ endif
 
 ## MDSPlus install (require recent alpha tarball)
 ifneq ("no","$(strip $(SYS_WIN))")
-    INCLUDES= -I$(MDSPLUS_HOME)/include -I.
-    LIBDIR= -L. -L$(MDSPLUS_HOME)/lib
-    #LIBS= $(MDSPLUS_HOME)/lib/TreeShr.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/TdiShr.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/MdsLib.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/MdsMisc.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/MdsShr.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/XTreeShr.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/MdsIpShr.a
-    #LIBS+= $(MDSPLUS_HOME)/lib/MdsObjectsCppShr.a
-    LIBS= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
+    INCLUDES= -I$(MDSPLUS_DIR)/include -I.
+    LIBDIR= -L. -L$(MDSPLUS_DIR)/lib
+	LIBS= -lMdsShr -lTreeShr -lTdiShr -lMdsLib -lMdsIpShr -lMdsObjectsCppShr -lXTreeShr -lpthread
+	#LIBS= $(MDSPLUS_DIR)/lib/XTreeShr.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/MdsLib.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
+	#LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
+	#LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 else
     INCLUDES= -I$(MDSPLUS_DIR)/include -I.
     LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
@@ -64,6 +64,14 @@ ifneq ("no","$(strip $(IMAS_UDA))")
     LIBS+= `pkg-config --libs uda-fat-cpp`
     COMMON_OBJECTS+= uda_backend.o
     CPPSRC+=uda_backend.cpp
+endif
+
+#-------------- Options for HDF5 ---------------
+ifneq ("no","$(strip $(IMAS_HDF5))")
+    INCLUDES+= -DUDA `pkg-config --cflags hdf5`
+    LIBS+= `pkg-config --libs hdf5`
+    COMMON_OBJECTS+= hdf5_backend.o
+    CPPSRC+=hdf5_backend.cpp
 endif
 
 #-------------- Options for Matlab -------------
@@ -112,7 +120,7 @@ endif
 	cp -r latex html $(docdir)/dev/lowlevel
 
 clean: pkgconfig_clean
-	$(RM) -f *.o *.mod *.a *.so *.lib
+	$(RM) -f *.o *.mod *.a *.so *.lib *.dll
 	$(RM) -rf $(libdir) $(includedir)
 
 clean-src: clean clean-doc
@@ -166,7 +174,7 @@ libimas.a: $(COMMON_OBJECTS)
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)

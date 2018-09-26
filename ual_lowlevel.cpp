@@ -350,8 +350,9 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     if (pctx==NULL) 
       throw UALLowlevelException("Wrong Context type stored",LOG);
   
+    std::string sDataobjectname = dataobjectname;
     octx = new OperationContext(*pctx, 
-				std::string(dataobjectname), 
+				sDataobjectname, 
 				rwmode);
     lle.backend->beginAction(octx);
     octxID = Lowlevel::addLLenv(lle.backend, octx); 
@@ -407,9 +408,10 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
-
+    
+	std::string sDataobjectname = dataobjectname;
     OperationContext *octx= new OperationContext(*pctx, 
-						 std::string(dataobjectname), 
+						 sDataobjectname, 
 						 rwmode, 
 						 ualconst::slice_op, 
 						 time, 
@@ -510,10 +512,12 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   int status=0;
 
   try {
+	std::string sField = field;
+	std::string sTimebase = timebase;
     LLenv lle = Lowlevel::getLLenv(ctxID);
     lle.backend->writeData(lle.context,
-			   std::string(field),
-			   std::string(timebase),
+			   sField,
+			   sTimebase,
 			   data,
 			   datatype,
 			   dim,
@@ -564,10 +568,12 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
   int retDim=dim;
 
   try {
+    std::string sField = field;
+	std::string sTimebase = timebase;
     LLenv lle = Lowlevel::getLLenv(ctxID);
     lle.backend->readData(lle.context, 
-			  std::string(field),
-			  std::string(timebase),
+			  sField,
+			  sTimebase,
 			  &retData,
 			  &retType,
 			  &retDim,
@@ -642,7 +648,8 @@ int ual_delete_data(int octxID, const char *field)
     if (octx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    lle.backend->deleteData(octx, std::string(field));
+    std::string sField = field;
+    lle.backend->deleteData(octx, sField);
   }
   catch (const UALNoDataException e) {
     std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
@@ -695,9 +702,11 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 	// top-level array of structure
       case CTX_OPERATION_TYPE:
 	{
-	  actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
-					std::string(path),
-					std::string(timebase),
+	   std::string sPath = path;
+	   std::string sTimebase = timebase;
+       actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
+					sPath,
+					sTimebase,
 					NULL);
 	}
 	break;
@@ -705,9 +714,11 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 	// nested array of structure
       case CTX_ARRAYSTRUCT_TYPE:
 	{
-	  actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
-					std::string(path),
-					std::string(timebase),
+	   std::string sPath = path;
+	   std::string sTimebase = timebase;
+       actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
+					sPath,
+					sTimebase,
 					static_cast<ArraystructContext *>(lle.context));
 	}
 	break;
