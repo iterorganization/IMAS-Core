@@ -20,8 +20,9 @@
 class UDABackend : public Backend {
 private:
     bool verbose = false;
-    const char* plugin = "IMAS_MAPPING";
+    const char* plugin = "IMAS";
     uda::Client uda_client;
+    int ctx_id = -1;
 
 public:
 
@@ -41,29 +42,13 @@ public:
         }
     }
 
-    void openPulse(PulseContext *ctx,
-                   int mode,
-                   std::string options) override;
+    void openPulse(PulseContext *ctx, int mode, std::string options) override;
 
-    void closePulse(PulseContext *ctx,
-                    int mode,
-                    std::string options) override;
+    void closePulse(PulseContext *ctx, int mode, std::string options) override;
 
-    void beginAction(OperationContext *ctx) override
-    {
-        if (verbose) {
-            std::cout << "UDABackend beginAction\n";
-        }
-        //throw UALBackendException("Not implemented", LOG);
-    }
+    void beginAction(OperationContext *ctx) override;
 
-    void endAction(Context *ctx) override
-    {
-        if (verbose) {
-            std::cout << "UDABackend endAction\n";
-        }
-        //throw UALBackendException("Not implemented", LOG);
-    }
+    void endAction(Context *ctx) override;
 
     void writeData(Context *ctx,
                    std::string fieldname,
@@ -71,13 +56,7 @@ public:
                    void* data,
                    int datatype,
                    int dim,
-                   int* size) override
-    {
-        if (verbose) {
-            std::cout << "UDABackend writeData\n";
-        }
-        throw UALBackendException("Not implemented", LOG);
-    }
+                   int* size) override;
 
     void readData(Context *ctx,
                   std::string fieldname,
@@ -88,16 +67,11 @@ public:
                   int* size) override;
 
     void deleteData(OperationContext *ctx,
-                    std::string path) override
-    {
-        if (verbose) {
-            std::cout << "UDABackend deleteData\n";
-        }
-        //throw UALBackendException("Not implemented", LOG);
-    }
+                    std::string path) override;
 
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
 };
-
+        
 #endif // UDA_BACKEND_H
+
