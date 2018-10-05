@@ -42,16 +42,12 @@ void HDF5Backend::beginArraystructAction(ArraystructContext *ctx, int *size)
 	throw UALBackendException("beginArraystructAction method has to be completed for HDF5 Backend",LOG);
 }
 
-<<<<<<< HEAD
 void HDF5Backend::endAction(Context *ctx)
-=======
-void Hdf5Backend::endAction(Context *ctx)
 {
-<<<<<<< HEAD
+	throw UALBackendException("endAction method has to be completed for HDF5 Backend",LOG);
+}
+
 void HDF5Backend::beginAction(OperationContext *ctx)
-=======
-void Hdf5Backend::beginAction(OperationContext *ctx)
->>>>>>> Fix to compile and execute correctly lowlevel with static and shared MDSplus libraries
 {
 	throw UALBackendException("beginAction method has to be completed for HDF5 Backend",LOG);
 }
