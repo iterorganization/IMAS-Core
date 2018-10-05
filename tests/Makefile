@@ -46,7 +46,7 @@ else
 		LIBDIR+= -L$(MDSPLUS_DIR)/lib
 		LIBS+= -lTreeShr -lTdiShr -lMdsShr -lMdsIpShr -lXTreeShr
 	endif
-	ifneq ("no","$(strip $(IMAS_UDA)")
+	ifneq ("no","$(strip $(IMAS_UDA))")
 		LIBDIR+= -L$(UDA_HOME)/lib
 		LIBS+= -uda_cpp -portablexdr
 	endif
