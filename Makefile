@@ -89,14 +89,6 @@ ifneq ("no","$(strip $(IMAS_HDF5))")
 	CPPSRC+=hdf5_backend.cpp
 endif
 
-#-------------- Options for HDF5 ---------------
-ifneq ("no","$(strip $(IMAS_HDF5))")
-    INCLUDES+= -DUDA `pkg-config --cflags hdf5`
-    LIBS+= `pkg-config --libs hdf5`
-    COMMON_OBJECTS+= hdf5_backend.o
-    CPPSRC+=hdf5_backend.cpp
-endif
-
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
 	COMMON_OBJECTS+= matlab_adapter.o

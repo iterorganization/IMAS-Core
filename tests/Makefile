@@ -39,9 +39,9 @@ ifneq ("no","$(strip $(SYS_WIN))")
 	CFLAGS+= -DWIN32
 	CXXFLAGS+= -DWIN32
 else
-    INCDIR= -I$(UAL)/lowlevel
-    LIBDIR= -I$(UAL)/lowlevel
-    LIBS= -limas
+	INCDIR= -I$(UAL)/lowlevel
+	LIBDIR= -I$(UAL)/lowlevel
+	LIBS= -limas
 	ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 		LIBDIR+= -L$(MDSPLUS_DIR)/lib
 		LIBS+= -lTreeShr -lTdiShr -lMdsShr -lMdsIpShr -lXTreeShr
@@ -54,7 +54,7 @@ else
 		LIBDIR+= -L$(HDF5_HOME)/lib
 		LIBS+= -lhdf5 -ldl -lz
 	endif
-    BINOUT=testlowlevel
+	BINOUT=testlowlevel
 endif
 
 
