@@ -10,9 +10,9 @@ CXXFLAGS=-std=c++11 -pthread -g -O0 -Wa,-mbig-obj -fPIC
 LDFLAGS=-g #-pthread 
 
 ifneq ("no","$(strip $(SYS_WIN))")
-    INCDIR= -I$(UAL)/lowlevel
-    LIBDIR= -L$(UAL)/lowlevel
-    LIBS= $(UAL)/lowlevel/libimas.lib
+	INCDIR= -I$(UAL)/lowlevel
+	LIBDIR= -L$(UAL)/lowlevel
+	LIBS= $(UAL)/lowlevel/libimas.lib
 	ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 		LIBDIR+= -L$(MDSPLUS_DIR)/lib
 		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
@@ -36,8 +36,8 @@ ifneq ("no","$(strip $(SYS_WIN))")
 		LIBS+= -ldl -lz
 	endif
 	BINOUT=testlowlevel.exe
-    CFLAGS+= -DWIN32
-    CXXFLAGS+= -DWIN32
+	CFLAGS+= -DWIN32
+	CXXFLAGS+= -DWIN32
 else
     INCDIR= -I$(UAL)/lowlevel
     LIBDIR= -I$(UAL)/lowlevel
@@ -52,7 +52,7 @@ else
 	endif
 	ifneq ("no","$(strip $(IMAS_HDF5))")
 		LIBDIR+= -L$(HDF5_HOME)/lib
-		LIBS+= -hdf5 -ldl -lz
+		LIBS+= -lhdf5 -ldl -lz
 	endif
     BINOUT=testlowlevel
 endif
@@ -61,7 +61,7 @@ endif
 all:$(BINOUT)
 
 clean:
-	rm -f $(BINOUT) *~ *.o
+	$(RM) $(BINOUT) *~ *.o
 
 $(BINOUT): testlowlevel.o 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBDIR) $(LIBS)
