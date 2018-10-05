@@ -6,92 +6,105 @@ SHELL=/bin/sh
 ## Adding DEBUG=yes to make command to print additional debug info
 DBGFLAGS= -g
 ifeq (${DEBUG},yes)
-    DBGFLAGS+= -DDEBUG
+	DBGFLAGS+= -DDEBUG
 endif
 ifeq (${STOPONEXCEPT},yes)
-    DBGFLAGS+= -DSOE
+	DBGFLAGS+= -DSOE
 endif
 
 
 
 ifeq "$(strip $(CC))" "icc"
-    ## intel compiler should be >= 13 to meet C++11 requirement
-    CXX=icpc
-    CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
-    CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
-    LDF=ifort -lc -lstdc++ 
+	## intel compiler should be >= 13 to meet C++11 requirement
+	CXX=icpc
+	CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
+	CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
+	LDF=ifort -lc -lstdc++ 
 else
-    CXX=g++
-    CFLAGS=--std=c99 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
-    CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0  -fno-inline-functions ${DBGFLAGS}
-    LDF=gfortran -lc -lstdc++ 
+	CXX=g++
+	CFLAGS=--std=c11 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
+	CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
+	LDF=gfortran -lc -lstdc++ 
 endif
 
 
-## MDSPlus install (require recent alpha tarball)
-ifneq ("no","$(strip $(SYS_WIN))")
-    INCLUDES= -I$(MDSPLUS_DIR)/include -I.
-    LIBDIR= -L. -L$(MDSPLUS_DIR)/lib
-	LIBS= -lMdsShr -lTreeShr -lTdiShr -lMdsLib -lMdsIpShr -lMdsObjectsCppShr -lXTreeShr -lpthread
-	#LIBS= $(MDSPLUS_DIR)/lib/XTreeShr.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/MdsLib.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
-	#LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
-	#LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
-else
-    INCLUDES= -I$(MDSPLUS_DIR)/include -I.
-    LIBDIR= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-    LIBS= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
-endif
-
-
-
-CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp context_test.cpp ual_const.cpp \
-	mdsplus_backend.cpp memory_backend.cpp 
-CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c 
+CPPSRC=ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
+		context_test.cpp ual_const.cpp memory_backend.cpp 
+CSRC=lowlevel_test.c ual_low_level.c test_lowlevel.c 
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
-		ual_low_level.o ual_backend.o \
-		mdsplus_backend.o memory_backend.o 
+		ual_low_level.o ual_backend.o memory_backend.o 
 
+		
+#-------------- Options for MDSplus ------------
+ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+	ifneq ("no","$(strip $(SYS_WIN))")
+		INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
+		#LIBS+= -lMdsShr -lTreeShr -lTdiShr -lMdsLib -lMdsIpShr -lMdsObjectsCppShr -lXTreeShr -lpthread
+		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsLib.a
+		LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
+		LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
+	else
+		INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
+		LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
+	endif
+	COMMON_OBJECTS+=mdsplus_backend.o
+	CPPSRC+=mdsplus_backend.cpp memory_backend.cpp 
+endif
 
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
-    INCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
-    LIBS+= `pkg-config --libs uda-fat-cpp`
-    COMMON_OBJECTS+= uda_backend.o
-    CPPSRC+=uda_backend.cpp
+	ifneq ("no","$(strip $(SYS_WIN))")
+		INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
+		LIBS+= -L$(UDA_HOME)/lib
+		LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
+		LIBS+= $(UDA_HOME)/lib/libportablexdr.a
+		LIBS+= -lws2_32 -lssl -lcrypto
+	else
+		INCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
+		LIBS+= `pkg-config --libs uda-cpp`
+	endif
+	COMMON_OBJECTS+= uda_backend.o
+	CPPSRC+=uda_backend.cpp
 endif
 
 #-------------- Options for HDF5 ---------------
 ifneq ("no","$(strip $(IMAS_HDF5))")
-    INCLUDES+= -DUDA `pkg-config --cflags hdf5`
-    LIBS+= `pkg-config --libs hdf5`
-    COMMON_OBJECTS+= hdf5_backend.o
-    CPPSRC+=hdf5_backend.cpp
+	ifneq ("no","$(strip $(SYS_WIN))")
+		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
+		LIBS+= -L$(HDF5_HOME)/lib
+		LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
+	else
+		INCLUDES+= -DHDF5 `pkg-config --cflags hdf5`
+		LIBS+= `pkg-config --libs hdf5`
+	endif
+	COMMON_OBJECTS+= hdf5_backend.o
+	CPPSRC+=hdf5_backend.cpp
 endif
 
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
-    COMMON_OBJECTS+= matlab_adapter.o
-    CSRC+= matlab_adapter.c
+	COMMON_OBJECTS+= matlab_adapter.o
+	CSRC+= matlab_adapter.c
 endif
 
 #-------------- Options for Windows ------------
 ifneq ("no","$(strip $(SYS_WIN))")
-    CFLAGS+= -DWIN32
-    CXXFLAGS+= -DWIN32
-    INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
+	CFLAGS+= -DWIN32
+	CXXFLAGS+= -DWIN32
+	INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
+	TARGETS = libimas.dll libimas.lib
+else
+	TARGETS = libimas.so libimas.a
 endif
 
-ifneq ("no","$(strip $(SYS_WIN))")
-    TARGETS = libimas.dll libimas.lib
-else
-    TARGETS = libimas.so libimas.a
-endif
 
 all: $(TARGETS) pkgconfig doc
 sources:
@@ -122,10 +135,14 @@ endif
 clean: pkgconfig_clean
 	$(RM) -f *.o *.mod *.a *.so *.lib *.dll
 	$(RM) -rf $(libdir) $(includedir)
+	cd tests && $(MAKE) clean
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
 	$(RM) -r $(INSTALL)/documentation/dev
+
+test: $(TARGETS)
+	cd tests && $(MAKE)
 
 
 # Create embedded documentation

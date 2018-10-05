@@ -1,0 +1,261 @@
+#include <stdio.h>
+#include <regex>
+#include <ual_low_level.h>
+#include <ual_lowlevel.h>
+
+void usage()
+{
+	printf("testlowlevel\n");
+	printf("\n");
+	printf("usage: testlowlevel [-s=shot] [-r=run] [-b=backend] [-u=user] [-m=machine] [-h]\n");
+	printf("\n");
+	printf("with:\n");
+	printf("\t-s\tShot number\n");
+	printf("\t-r\tRun number\n");
+	printf("\t-b\tBackend to use: M=MDSplus, U=UDA, H=HDF5\n");
+	printf("\t-u\tUser name\n");
+	printf("\t-m\tMachine name\n");
+	printf("\t-h\tShow this help\n");
+	printf("\n");
+}
+
+// Format: -x /x
+bool ExtractOpt(char& cOption, const char* szString)
+{
+	bool bRet = false;
+	std::cmatch rxResults;
+	std::regex rxInt("([\\s\\r\\n]*)([-/][a-zA-Z])([\\s\\r\\n]*)");
+	
+	if (std::regex_match(szString, rxResults, rxInt) && rxResults.size() == 4)
+	{
+		cOption = rxResults[2].str().c_str()[1];
+		bRet = true;
+	}
+
+	return bRet;
+}
+
+// Format: -x=123 /x:123
+bool ExtractInt(char& cOption, int& iValue, const char* szString)
+{
+	bool bRet = false;
+	std::cmatch rxResults;
+	std::regex rxInt("([\\s\\r\\n]*)([-/][a-zA-Z][=:])([+-]?[\\d]+)([\\s\\r\\n]*)");
+	
+	if (std::regex_match(szString, rxResults, rxInt) && rxResults.size() == 5)
+	{
+		cOption = rxResults[2].str().c_str()[1];
+		iValue = atoi(rxResults[3].str().c_str());
+		bRet = true;
+	}
+
+	return bRet;
+}
+
+// Format: -x=azerty /x:azerty
+bool ExtractString(char& cOption, char* szValue, size_t sSize, const char* szString)
+{
+	bool bRet = false;
+	std::cmatch rxResults;
+	std::regex rxStr("([\\s\\r\\n]*)([-/][a-zA-Z][=:])(.+)([\\s\\r\\n]*)");
+
+	if (std::regex_match(szString, rxResults, rxStr) && rxResults.size() == 5)
+	{
+		cOption = rxResults[2].str().c_str()[1];
+		strcpy_s(szValue, sSize, rxResults[3].str().c_str());
+		bRet = true;
+	}
+	
+	return bRet;
+}
+
+int main(int argc, char *argv[])
+{
+	bool bUsage = false;
+	bool bRead = false;
+	bool bWrite = false;
+	int iRet = 0;
+	int iShot = 12;
+	int iRun = 0;
+	int iBackend = MDSPLUS_BACKEND;
+	int iAction = FORCE_OPEN_PULSE;
+	int iTemp = 0;
+	char cOption = 0;
+	char szTemp[1024] = { 0 };
+	char szUser[1024] = "imas_public";
+	char szTokamak[1024] = "west";
+	char szVersion[1024] = "3";
+	
+	for (int i = 1; i < argc; i++)
+	{
+		if (ExtractOpt(cOption, argv[i]))
+		{
+			if (cOption == 'h')
+			{
+				bUsage = true;
+			}
+		}
+		else if (ExtractInt(cOption, iTemp, argv[i]))
+		{
+			if (cOption == 's')
+			{
+				iShot = iTemp;
+			}
+			else if (cOption == 'r')
+			{
+				iRun = iTemp;
+			}
+		}
+		else if (ExtractString(cOption, szTemp, _countof(szTemp), argv[i]))
+		{
+			if (cOption == 'b')
+			{
+				if (_stricmp(szTemp, "M") == 0)
+				{
+					iBackend = MDSPLUS_BACKEND;
+					// Read/write
+					bRead = true;
+					bWrite = true;
+				}
+				else if (_stricmp(szTemp, "U") == 0)
+				{
+					iBackend = UDA_BACKEND;
+					// Read only
+					bRead = true;
+					// Machine in CAPITAL
+					strcpy(szTokamak, strupr(szTokamak));
+				}
+				else if (_stricmp(szTemp, "H") == 0)
+				{
+					iBackend = HDF5_BACKEND;
+					// Read/write
+					bRead = true;
+					bWrite = true;
+			}
+				else
+				{
+					bUsage = true;
+				}
+			}
+			else if (cOption == 'u')
+			{
+				strcpy(szUser, szTemp);
+			}
+			else if (cOption == 'm')
+			{
+				strcpy(szTokamak, szTemp);
+			}
+		}
+	}
+	
+	if (bUsage)
+	{
+		usage();
+	}
+	else
+	{		
+		printf("Shot number:\t%d\n", iShot);
+		printf("Run number:\t%d\n", iRun);
+		printf("Backend:\t%s\n", ualconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
+		printf("User name:\t%s\n", szUser);
+		printf("Machine:\t%s\n", szTokamak);
+		printf("\n", szTokamak);
+		
+		// Low Level
+		int iPulseCtx = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion);
+		if (iPulseCtx < 0)
+		{
+			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_pulse_action\n", iShot, iRun);
+			iRet = iPulseCtx;
+		}
+		else
+		{
+			printf("Opening imas pulse action ctx %d OK!\n", iPulseCtx);
+			
+			int iStatus = ual_open_pulse(iPulseCtx, iAction, "");
+			if (iStatus != 0)
+			{
+				printf("Error opening imas pulse ctx %d: ual_open_pulse\n", iPulseCtx);
+				iRet = iStatus;
+			}
+			else
+			{
+				printf("Opening imas pulse ctx %d OK!\n", iPulseCtx);
+				
+				int iGetOpCtx = -1;
+				int iValue = 123456789;
+				const char* szFieldPath = "ids_properties/homogeneous_time";
+				const char* szTimeBasePath = "";
+				const char* szIdsFullName = "magnetics";
+				
+				if (bWrite)
+				{
+					printf("\r============================\n");
+					printf("Writing data...\n");
+					
+					iGetOpCtx = ual_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP);
+					if (iGetOpCtx < 0) 
+					{
+						printf("Error opening imas %s for writing: ual_begin_global_action\n", szIdsFullName);
+						iRet = iGetOpCtx;
+					}
+					else
+					{
+						printf("Opening imas global ctx %d OK!\n", iGetOpCtx);
+						
+						iStatus = ual_write_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void*)(&iValue), INTEGER_DATA, 0, NULL);
+						if (iStatus != 0)
+						{
+							printf("Error writing imas global ctx %d: ual_write_data\n", iGetOpCtx);
+							iRet = iStatus;
+						}
+						else
+						{
+							printf("Wrting data in global ctx %d OK!\n", iGetOpCtx);
+						}
+						
+						iStatus = ual_end_action(iGetOpCtx);
+					}
+				}
+				
+				if (bRead)
+				{
+					printf("\r============================\n");
+					printf("Reading data...\n");
+					
+					iGetOpCtx = ual_begin_global_action(iPulseCtx, szIdsFullName, READ_OP);
+					if (iGetOpCtx < 0) 
+					{
+						printf("Error opening imas %s for reading: ual_begin_global_action\n", szIdsFullName);
+						iRet = iGetOpCtx;
+					}
+					else
+					{
+						printf("Opening imas global ctx %d OK!\n", iGetOpCtx);
+						
+						int iTemp = -1;
+						void* pData = &iTemp;
+						int retSize[MAXDIM] = { 0 };
+						
+						iStatus = ual_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
+						if (iStatus != 0)
+						{
+							printf("Error reading imas global ctx %d: ual_read_data\n", iGetOpCtx);
+							iRet = iStatus;
+						}
+						else
+						{
+							printf("Reading imas global ctx %d OK! -> %d\n", iGetOpCtx, iTemp);
+						}
+						
+						iStatus = ual_end_action(iGetOpCtx);
+					}
+				}
+				
+				iStatus = ual_close_pulse(iPulseCtx, CLOSE_PULSE, "");
+			}
+		}
+	}
+	
+	return iRet;
+}

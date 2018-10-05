@@ -1,14 +1,18 @@
 #ifndef HDF5_BACKEND_H
 #define HDF5_BACKEND_H 1
 
+#include <hdf5.h>
 #include "ual_backend.h"
 
 
-class Hdf5Backend : public Backend 
+class HDF5Backend : public Backend
 {
 public:
-  // virtual desctructor
-    Hdf5Backend();
+
+    HDF5Backend();
+	HDF5Backend(Backend *targetB);
+	
+	virtual ~HDF5Backend();
 	
   /**
      Opens a database entry.
@@ -81,7 +85,7 @@ public:
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
   */
-  virtual void readData(Context *ctx,
+    virtual void readData(Context *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
