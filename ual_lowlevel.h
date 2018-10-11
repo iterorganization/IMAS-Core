@@ -92,7 +92,7 @@ public:
      @param[in] usr username [_optional, empty string for default_]
      @param[in] tok tokamak name [_optional, empty string for default_]
      @param[in] ver data version [_optional, empty string for default_]
-     @return pulse context id [_or error status < 0_]
+     @return pulse context id [_error status < 0 or null context if = 0_]
   */
   static int beginPulseAction(int backendID,
 			      int shot,
@@ -118,7 +118,7 @@ extern "C"
   /**
      Print all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
    */
   int ual_print_context(int ctx);
 
@@ -132,7 +132,7 @@ extern "C"
      @param[in] user username [_optional, "" for default_]
      @param[in] tokamak tokamak name [_optional, "" for default_]
      @param[in] version data version [_optional, "" for default_]
-     @return pulse context id [_or error status < 0_]
+     @return pulse context id [_error status if < 0 or null context if = 0_]
   */
   int ual_begin_pulse_action(const int backendID, 
 			     const int shot, 
@@ -152,7 +152,7 @@ extern "C"
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
      @param[in] options additional options, ex: "name=treename refShot=1 refRun=2"
      (possibly backend specific)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
   */
   int ual_open_pulse(int pulseCtx, 
 		     int mode, 
@@ -166,7 +166,7 @@ extern "C"
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
      @param[in] options additional options (possibly backend specific)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
   */
   int ual_close_pulse(int pulseCtx, 
 		      int mode,
@@ -180,7 +180,7 @@ extern "C"
      @param[in] rwmode mode for this operation:
      - READ_OP = read operation
      - WRITE_OP = write operation
-     @result operation context id [_or error status if < 0_]
+     @result operation context id [_error status if < 0 or null context if = 0_]
      
      @test Low-level API, implementation of beginDataObjectPut()
      @snippet ual_low_level.c ex_ual_begin_global_action
@@ -205,7 +205,7 @@ extern "C"
      - PREVIOUS_INTERP take the slice at the previous time
      - LINEAR_INTERP interpolate the slice between the values of the previous and next slice
      - UNDEFINED_INTERP if not relevant (for write operations)
-     @result operation context id [_or error status if < 0_]
+     @result operation context id [_error status if < 0 or null context if = 0_]
      
      @test Low-level API, implementation of beginDataObjectGetSlice()
      @snippet ual_low_level.c ex_ual_begin_slice_action
@@ -221,7 +221,7 @@ extern "C"
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
      @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
      
      @test Low-level API, implementation of endDataObjectGetSlice()
      @snippet ual_low_level.c ex_ual_end_action
@@ -243,7 +243,7 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
 
      @test Low-level API, implementation of putVect2DIntSlice()
      @snippet ual_low_level.c ex_ual_write_data
@@ -271,7 +271,7 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
      
      @test Low-level API, implementation of getVect3DDouble() 
      @snippet ual_low_level.c ex_ual_read_data
@@ -290,7 +290,7 @@ extern "C"
     given the passed context.
     @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action())
     @param[in] path path of the data structure element to delete (suppress the whole subtree)
-    @result error status
+    @result error status [_success if = 0 or failure if < 0_]
   **/
   int ual_delete_data(int ctx,
 		      const char *path);
@@ -307,7 +307,7 @@ extern "C"
      @param[in] path path of array of structure (relative to ctx, or absolute if starts with "/")
      @param[in] timebase path of timebase associated with the array of structure 
      @param[in,out] size specify the size of the struct_array (number of elements)
-     @result array of structure context [_or error status if < 0_]
+     @result array of structure context [_error status if < 0 or null context if = 0_]
   */
   int ual_begin_arraystruct_action(int ctx,
 				   const char *path,
@@ -321,7 +321,7 @@ extern "C"
      This function updates the index pointing at the current element of interest within an array of structure.
      @param[in] aosctx array of structure Context
      @param[in] step iteration step size (typically=1)
-     @result error status
+     @result error status [_success if = 0 or failure if < 0_]
    */
   int ual_iterate_over_arraystruct(int aosctx, 
 				   int step);

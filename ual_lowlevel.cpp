@@ -15,10 +15,10 @@
 
 std::mutex Lowlevel::mutex;
 
-
-int Lowlevel::curStoreElt = 0;
-int Lowlevel::maxStoreElt = 0; //STORE_CHUNCK;
-std::vector<LLenv> Lowlevel::llenvStore; //(STORE_CHUNCK);
+const LLenv llnull = { .backend=NULL , .context=NULL };
+int Lowlevel::curStoreElt = 1;
+int Lowlevel::maxStoreElt = 1; //STORE_CHUNCK;
+std::vector<LLenv> Lowlevel::llenvStore = {llnull}; //(STORE_CHUNCK);
 
 const char Lowlevel::EMPTY_CHAR = '\0';
 const int Lowlevel::EMPTY_INT   = -999999999;
@@ -163,16 +163,8 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
   if (pctx != NULL) 
     {
       be = Backend::initBackend(backendID);
-      
       // store reference of this object 
       ctxID = Lowlevel::addLLenv(be, pctx);
-
-      // atomic
-      //Lowlevel::addBackend(backendID, be);
-      // atomic
-      //ctxID = Lowlevel::addContext(static_cast<Context *>(pctx));
-      // do we want to add some additional checks? which ones?
-      // treat error
     }
 
   return ctxID;
@@ -206,7 +198,7 @@ int ual_print_context(int ctxID)
 int ual_begin_pulse_action(const int backendID, const int shot, const int run, 
 			   const char *usr, const char *tok, const char *ver)
 {
-  int pctxID;
+  int pctxID = 0;
 
   try {
     pctxID = Lowlevel::beginPulseAction(backendID, 
@@ -220,7 +212,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -229,7 +220,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -238,7 +228,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << WHERE << "\n";
     pctxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -274,7 +263,6 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -283,7 +271,6 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_open_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -311,7 +298,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -320,7 +306,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -329,7 +314,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -341,7 +325,7 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 
 int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
 {
-  int octxID;
+  int octxID = 0;
   OperationContext *octx=NULL;
 
   try {
@@ -360,7 +344,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -369,7 +352,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -378,7 +360,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -387,7 +368,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -400,7 +380,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
 int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
 			   double time, int interpmode)
 {
-  int octxID;
+  int octxID = 0;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
@@ -422,7 +402,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -431,7 +410,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -440,7 +418,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -449,7 +426,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -476,7 +452,6 @@ int ual_end_action(int ctxID)
     std::cout << "ual_end_action: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -485,7 +460,6 @@ int ual_end_action(int ctxID)
     std::cout << "ual_end_action: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -494,7 +468,6 @@ int ual_end_action(int ctxID)
     std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -522,12 +495,13 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   catch (const UALNoDataException e) {
     std::cout << "ual_write_data: " << e.what() << " *recoverable* \n";
     // DO WE HAVE SUCH CASE WHEN WRITING???
+    status = 0;
+    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
   }
   catch (const UALBackendException e) {
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -536,7 +510,6 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -545,7 +518,6 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_write_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -604,7 +576,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -613,7 +584,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -622,7 +592,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -645,15 +614,15 @@ int ual_delete_data(int octxID, const char *field)
     lle.backend->deleteData(octx, std::string(field));
   }
   catch (const UALNoDataException e) {
-    std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
-    status = ualerror::nodata_err; 
     // informative only
+    //std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
+    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
+    status = 0;
   }
   catch (const UALBackendException e) {
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -662,7 +631,6 @@ int ual_delete_data(int octxID, const char *field)
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -671,7 +639,6 @@ int ual_delete_data(int octxID, const char *field)
     std::cout << "ual_delete_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -684,7 +651,7 @@ int ual_delete_data(int octxID, const char *field)
 int ual_begin_arraystruct_action(int ctxID, const char *path, 
 				 const char *timebase, int *size)
 {
-  int actxID;
+  int actxID = 0;
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
@@ -722,7 +689,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   }
   catch (const UALNoDataException e) {
     //std::cout << e.what() << " *recoverable* \n";
-    actxID = ualerror::nodata_err; 
+    actxID = 0; //ualerror::nodata_err; 
   }
   catch (const UALContextException e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
