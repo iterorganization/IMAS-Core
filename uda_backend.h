@@ -20,7 +20,7 @@
 class UDABackend : public Backend {
 private:
     bool verbose = false;
-    const char* plugin = "IMAS";
+    const char* plugin = "IMAS_MAPPING";
     uda::Client uda_client;
     int ctx_id = -1;
 
