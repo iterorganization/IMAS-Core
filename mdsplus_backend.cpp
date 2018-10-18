@@ -22,7 +22,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 #ifdef NODENAME_MANGLING
-static char *path2MDS(char *path)
+/*static char *path2MDS(char *path)
 {
     static char MDSpath[13];
     char SUM[10];
@@ -44,7 +44,30 @@ static char *path2MDS(char *path)
 //    printf("path = %s, MDSpath = %s\n",path, MDSpath);
     return  MDSpath;
 }
-
+*/ 
+static char *path2MDS(char *path)  //Unlimited nodename length
+{
+    static char MDSpath[512];
+    std::string inPath(path);
+    if(inPath.length() > 12)
+    {
+   	std::string inPath(path);
+    	std::string outPath = "";
+    	while(inPath.length() > 12)
+    	{
+	    outPath += ".";
+	    outPath += inPath.substr(0,12);
+	    inPath = inPath.substr(12);
+     	}
+    	outPath += ".";
+	outPath += inPath;
+//std::cout << "OutPath: " << outPath << std::endl;
+	strcpy(MDSpath, outPath.substr(1).c_str());
+	return MDSpath;
+    }
+    strcpy(MDSpath, path);
+    return MDSpath;
+}
 
 static std::string mdsconvertPath(const char *inputpath, bool isAos = false
 )
@@ -146,6 +169,7 @@ static void skipTabs(int tabs)
     for(int i = 0; i < tabs; i++)
 	std::cout<<"    ";
 }
+
 static void dumpStruct(MDSplus::Apd *apd, int tabs);
 static void dumpArrayStruct(MDSplus::Apd *apd, int tabs)
 {
