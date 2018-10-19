@@ -72,7 +72,13 @@ void UDABackend::openPulse(PulseContext* ctx,
     try {
         const uda::Result& result = uda_client.get(directive, "");
         uda::Data* data = result.data();
+        if (data->type() != typeid(int)) {
+            throw UALBackendException(std::string("Unknown data type returned: ") + data->type().name(), LOG);
+        }
         uda::Scalar* scalar = dynamic_cast<uda::Scalar*>(data);
+        if (scalar == nullptr) {
+            throw UALBackendException("UDA openPulse did not return scalar data");
+        }
         ctx_id = scalar->as<int>();
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
@@ -129,14 +135,19 @@ void UDABackend::readData(Context* ctx,
     }
 
     try {
+        auto arrCtx = dynamic_cast<ArraystructContext*>(ctx);
+
         std::stringstream ss;
         ss << this->plugin
            << "::readData("
            << "ctxId=" << ctx_id
            << ", field='" << fieldname << "'"
            << ", timebase='" << timebasename << "'"
-           << ", datatype=" << *datatype
-           << ")";
+           << ", datatype=" << *datatype;
+        if (arrCtx != nullptr) {
+            ss << ", index=" << arrCtx->getIndex() + 1;
+        }
+        ss << ")";
 
         std::string directive = ss.str();
 
@@ -174,6 +185,8 @@ void UDABackend::readData(Context* ctx,
             memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
             char n = '\0';
             memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
+        } else if (uda_data->type() == typeid(void)) {
+            throw UALNoDataException();
         } else {
             throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
@@ -224,6 +237,9 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
             throw UALBackendException(
                     std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
                     LOG);
+        } else if (uda_data->type() == typeid(void)) {
+            *size = 0;
+            throw UALNoDataException();
         }
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     } catch (const uda::UDAException& ex) {
