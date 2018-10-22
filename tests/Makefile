@@ -10,11 +10,11 @@ CXXFLAGS=-std=c++11 -pthread -g -O0 -Wa,-mbig-obj -fPIC
 LDFLAGS=-g #-pthread 
 
 ifneq ("no","$(strip $(SYS_WIN))")
-    INCDIR=-I$(UAL)/lowlevel
-    LIBDIR=-L$(UAL)/lowlevel
+    INCDIR= -I$(UAL)/lowlevel
+    LIBDIR= -L$(UAL)/lowlevel
     LIBS= $(UAL)/lowlevel/libimas.lib
 	ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-		LIBDIR=-L$(MDSPLUS_DIR)/lib
+		LIBDIR+= -L$(MDSPLUS_DIR)/lib
 		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
@@ -25,13 +25,13 @@ ifneq ("no","$(strip $(SYS_WIN))")
 		LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 	endif
 	ifneq ("no","$(strip $(IMAS_UDA))")
-		LIBDIR=-L$(UDA_HOME)/lib
+		LIBDIR+= -L$(UDA_HOME)/lib
 		LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 		LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 		LIBS+= -lws2_32 -lssl -lcrypto
 	endif
 	ifneq ("no","$(strip $(IMAS_HDF5))")
-		LIBDIR=-L$(HDF5_HOME)/lib
+		LIBDIR+= -L$(HDF5_HOME)/lib
 		LIBS+= $(HDF5_HOME)/lib/libhdf5.a
 		LIBS+= -ldl -lz
 	endif
@@ -39,16 +39,20 @@ ifneq ("no","$(strip $(SYS_WIN))")
     CFLAGS+= -DWIN32
     CXXFLAGS+= -DWIN32
 else
-    INCDIR=-I$(UAL)/lowlevel
-    LIBDIR=-L$(UAL)/lowlevel
-    LIBS=-limas
+    INCDIR= -I$(UAL)/lowlevel
+    LIBDIR= -I$(UAL)/lowlevel
+    LIBS= -limas
 	ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-		LIBDIR=-L$(MDSPLUS_DIR)/lib
-		LIBS=-lTreeShr -lTdiShr -lMdsShr -lMdsIpShr -lXTreeShr
+		LIBDIR+= -L$(MDSPLUS_DIR)/lib
+		LIBS+= -lTreeShr -lTdiShr -lMdsShr -lMdsIpShr -lXTreeShr
 	endif
 	ifneq ("no","$(strip $(IMAS_UDA)")
-		LIBDIR=-L$(UDA_HOME)/lib
-		LIBS=-uda_cpp -portablexdr
+		LIBDIR+= -L$(UDA_HOME)/lib
+		LIBS+= -uda_cpp -portablexdr
+	endif
+	ifneq ("no","$(strip $(IMAS_HDF5))")
+		LIBDIR+= -L$(HDF5_HOME)/lib
+		LIBS+= -hdf5 -ldl -lz
 	endif
     BINOUT=testlowlevel
 endif

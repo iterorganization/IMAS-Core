@@ -316,7 +316,7 @@ public:
     try {
       ualconst::op_access_str.at(access-OP_ACCESS_0);
     } 
-    catch (std::out_of_range) {
+    catch (const std::out_of_range& e) {
       throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
     }
     accessmode = access;
@@ -349,7 +349,7 @@ public:
     try {
       ualconst::op_range_str.at(range-OP_RANGE_0);
     } 
-    catch (std::out_of_range) {
+    catch (const std::out_of_range& e) {
       throw UALContextException("Wrong range mode "+std::to_string(range),LOG);
     }
     rangemode = range;
@@ -357,7 +357,7 @@ public:
     try {
       ualconst::op_access_str.at(access-OP_ACCESS_0);
     } 
-    catch (std::out_of_range) {
+    catch (const std::out_of_range& e) {
       throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
     }
     accessmode = access;
@@ -365,7 +365,7 @@ public:
     try {
       ualconst::op_interp_str.at(interp-OP_INTERP_0);
     } 
-    catch (std::out_of_range) {
+    catch (const std::out_of_range& e) {
       throw UALContextException("Wrong interp mode "+std::to_string(interp),LOG);
     }
     interpmode = interp;

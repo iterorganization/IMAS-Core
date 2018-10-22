@@ -41,7 +41,6 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	ifneq ("no","$(strip $(SYS_WIN))")
 		INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
 		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
-		#LIBS+= -lMdsShr -lTreeShr -lTdiShr -lMdsLib -lMdsIpShr -lMdsObjectsCppShr -lXTreeShr -lpthread
 		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
@@ -82,8 +81,9 @@ ifneq ("no","$(strip $(IMAS_HDF5))")
 		LIBS+= -L$(HDF5_HOME)/lib
 		LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
 	else
-		INCLUDES+= -DHDF5 `pkg-config --cflags hdf5`
-		LIBS+= `pkg-config --libs hdf5`
+		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
+		LIBS+= -L$(HDF5_HOME)/lib
+		LIBS+= -hdf5 -ldl -lz
 	endif
 	COMMON_OBJECTS+= hdf5_backend.o
 	CPPSRC+=hdf5_backend.cpp
@@ -109,19 +109,22 @@ endif
 all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h)
+ifeq ("no","$(strip $(SYS_WIN))")
 	$(mkdir_p) $(datadir)/src/lowlevel
 	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
+endif
 
 install: all pkgconfig_install sources_install
-	$(mkdir_p) $(libdir) $(includedir) $(docdir)/dev/lowlevel
 ifeq ("no","$(strip $(SYS_WIN))")
+	$(mkdir_p) $(libdir) $(includedir) $(docdir)/dev/lowlevel
+	# Copy libraries
 	for OBJECT in *.so; do \
 		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
 	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
 	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
 	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
 	done
-endif
+	# Copy includes
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
 	$(INSTALL_DATA) matlab_adapter.h $(includedir)
 	$(INSTALL_DATA) ual_defs.h $(includedir)
@@ -130,7 +133,61 @@ endif
 	$(INSTALL_DATA) ual_context.h $(includedir)
 	$(INSTALL_DATA) ual_exception.h $(includedir)
 	$(INSTALL_DATA) ual_const.h $(includedir)
+	# Copy documentation
 	cp -r latex html $(docdir)/dev/lowlevel
+else
+	$(mkdir_p) $(packagedir)/lowlevel/lib
+	$(mkdir_p) $(packagedir)/lowlevel/include
+	# Copy libraries
+	for OBJECT in `find . -type f \( -name "*.lib" -or -name "*.dll" \)`; do \
+		cp $$OBJECT $(packagedir)/lowlevel/lib; \
+	done
+	# Copy MDSplus libraries
+ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+	$(mkdir_p) $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/XTreeShr.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/MdsIpShr.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/MdsLib.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/TdiShr.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
+	cp $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
+endif
+	# Copy UDA libraries
+ifneq ("no","$(strip $(IMAS_UDA))")
+	$(mkdir_p) $(packagedir)/uda/lib
+	cp $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
+	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+endif
+	# Copy HDF5 libraries
+ifneq ("no","$(strip $(IMAS_HDF5))")
+	$(mkdir_p) $(packagedir)/hdf5/lib
+	cp $(HDF5_HOME)/lib/libhdf5.a $(packagedir)/hdf5/lib
+endif
+	# Copy includes
+	cp ual_low_level.h $(packagedir)/lowlevel/include
+	cp matlab_adapter.h $(packagedir)/lowlevel/include
+	cp ual_defs.h $(packagedir)/lowlevel/include
+	cp ual_lowlevel.h $(packagedir)/lowlevel/include
+	cp ual_backend.h $(packagedir)/lowlevel/include
+	cp ual_context.h $(packagedir)/lowlevel/include
+	cp ual_exception.h $(packagedir)/lowlevel/include
+	cp ual_const.h $(packagedir)/lowlevel/include
+	# Copy documentation
+	$(mkdir_p) $(packagedir)/doc/lowlevel
+	cp -r latex html $(packagedir)/doc/lowlevel
+	# Copy system shared libraries
+	$(mkdir_p) $(packagedir)/bin
+	cp /mingw64/bin/libstdc++-6.dll $(packagedir)/bin
+	cp /mingw64/bin/libgcc_s_seh-1.dll $(packagedir)/bin
+	cp /mingw64/bin/libwinpthread-1.dll $(packagedir)/bin
+	cp /mingw64/bin/libcrypto-1_1-x64.dll $(packagedir)/bin
+	cp /mingw64/bin/libdl.dll $(packagedir)/bin
+	cp /mingw64/bin/libxml2-2.dll $(packagedir)/bin
+	cp /mingw64/bin/libiconv-2.dll $(packagedir)/bin
+	cp /mingw64/bin/liblzma-5.dll $(packagedir)/bin
+	cp /mingw64/bin/zlib1.dll $(packagedir)/bin
+endif
 
 clean: pkgconfig_clean
 	$(RM) -f *.o *.mod *.a *.so *.lib *.dll
