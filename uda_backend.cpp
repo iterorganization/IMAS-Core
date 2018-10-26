@@ -233,13 +233,13 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         std::cout << "UDA directive: " << directive << "\n";
         const uda::Result& result = uda_client.get(directive, "");
         uda::Data* uda_data = result.data();
-        if (uda_data->type() != typeid(int)) {
+        if (uda_data->type() == typeid(void)) {
+            *size = 0;
+            throw UALNoDataException();
+        } else if (uda_data->type() != typeid(int)) {
             throw UALBackendException(
                     std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
                     LOG);
-        } else if (uda_data->type() == typeid(void)) {
-            *size = 0;
-            throw UALNoDataException();
         }
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     } catch (const uda::UDAException& ex) {
