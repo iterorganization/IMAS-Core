@@ -288,9 +288,9 @@ static int checkShotRun(int shot, int run)
         sprintf(errmsg, "Invalid shot number %d. Must be between 0 and 214748", shot);
         return 0;
     }
-    if(run < 0 || run > 9999)
+    if(run < 0 || run > 99999)
     {
-        sprintf(errmsg, "Invalid run number %d. Must be between 0 and 9999", shot);
+        sprintf(errmsg, "Invalid run number %d. Must be between 0 and 99999", run);
         return 0;
     }
     return 1;
