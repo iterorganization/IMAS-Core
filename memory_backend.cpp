@@ -1095,7 +1095,8 @@ else
 
     void UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
-	if(mapState != MAPPED)
+//Gabriele November 2018
+	if(mapState != MAPPED || bufV.size() == 0)
 	    throw UALNoDataException("No data in memory" ,LOG);
 	*datatype  = type;
 	int totSize = 1;
