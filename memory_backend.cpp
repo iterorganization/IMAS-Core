@@ -1126,6 +1126,10 @@ else
     }
     void UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
+//Gabriele November 2018
+	if(mapState != MAPPED || bufV.size() == 0)
+	    throw UALNoDataException("No data in memory" ,LOG);
+
 	if((size_t)sliceIdx >= bufV.size())
 	{
 	    std::cout << "Warning: slice idx outside limits converting mapped data to slice. Clipped." << std::endl;
