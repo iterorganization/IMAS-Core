@@ -281,13 +281,18 @@ else
 	    targetB->beginArraystructAction(ctx, size);
 	    return;
 	}
+//Gabriele November 2018. If it is a slice, then size = 1
 	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
+	{
 	    prepareSlice(ctx);
-
-
+	    *size = 1;
+	}
+	else
+	{
     //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    	UalAoS *aos = getAoS(ctx, false);
-	*size = aos->aos.size();
+    	    UalAoS *aos = getAoS(ctx, false);
+	    *size = aos->aos.size();
+	}
     }
 
   /**
