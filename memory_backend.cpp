@@ -540,8 +540,15 @@ else
 	{
 	    int sliceIdx1, sliceIdx2;
 	    currentAos.timebase = topAos->timebase;
- 	    getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
-// 	    getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2);
+/*
+GABRIELE NOVEMBRE 2018: qua il timebase e riferito a OPERATION context e quindi se non ha slash fa riferimento al root dell IDS e NON al root del AoS
+occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per riportarlo relativo al AoS
+
+*/
+	    std::string currTimebase = topAos->timebase.substr(ctx->getPath().size() + 1);
+
+ 	    getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
+ 	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //For the moment only PREVIOUS SAMPLE is supported
 	    currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
 	    return; //Done!!
@@ -777,7 +784,8 @@ else
 	}
 	else
 	{
-	    for(int currSlice = 0; currSlice < timesV[timesV.size() - 1]; currSlice++)
+//	    for(int currSlice = 0; currSlice < timesV[timesV.size() - 1]; currSlice++)
+	    for(size_t currSlice = 0; currSlice < timesV.size(); currSlice++)
 	    {
 		if(time >= timesV[currSlice] && time < timesV[currSlice+1])
 		{
