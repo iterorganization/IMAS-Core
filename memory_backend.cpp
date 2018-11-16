@@ -550,7 +550,12 @@ GABRIELE NOVEMBRE 2018: qua il timebase e riferito a OPERATION context e quindi 
 occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per riportarlo relativo al AoS
 
 */
-	    std::string currTimebase = topAos->timebase.substr(ctx->getPath().size() + 1);
+	    std::string currTimebase;
+//	    if(topAos->timebase.size() > ctx->getPath().size() && ctx->getPath() == topAos->timebase.substr(ctx->getPath().size()))
+	    if(!(topAos->timebase[0] == '/'))
+	    	currTimebase = topAos->timebase.substr(ctx->getPath().size() + 1);
+	    else
+	    	currTimebase = topAos->timebase;
 
  	    getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
  	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
