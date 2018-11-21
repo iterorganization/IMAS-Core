@@ -50,7 +50,7 @@
 	//Second step: check time dependent ApS fields	
 	for(auto &aosField: aosFields)
 	{
-//Gabriele March 2018: check if the AoS to be added has been declared in the slice
+//Check if the AoS to be added has been declared in the slice
 	    if(ualSlice.aosFields[aosField.first])
 	    	aosField.second->addSlice(*ualSlice.aosFields[aosField.first], ctx);
 	}
@@ -165,7 +165,7 @@ else
 	    int timeDatatype;
 	    int timeNumDims;
 	    int timeDims[16];
-	    if(timebase.length() == 0)  //Gabriele March 2018 handle empty time and /time
+	    if(timebase.length() == 0)  //handle empty time and /time
 	    {
 		ualData->readData(data, datatype, dim, size);  //Not time dependent
 		return;
@@ -281,7 +281,7 @@ else
 	    targetB->beginArraystructAction(ctx, size);
 	    return;
 	}
-//Gabriele November 2018. If it is a slice, then size = 1
+//If it is a slice, then size = 1
 	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
 	{
 	    prepareSlice(ctx);
@@ -313,7 +313,7 @@ else
   */
   void MemoryBackend::putInArraystruct(ArraystructContext *ctx,
 				std::string fieldname,
-				std::string timebase,  //Gabriele 2017: Added to handle time dependent signals as firlds of static AoS
+				std::string timebase,  //Added to handle time dependent signals as firlds of static AoS
 				int idx,
 				void* data,
 				int datatype,
@@ -375,7 +375,7 @@ else
 //Otherwise data are mapped
 	if(ctx->getRangemode() == SLICE_OP)
 	{
-	    if(timebase.size() > 0)  //Gabriele March 2018 for timed AoS slices, the dimension must be increased putting 1 as 0D
+	    if(timebase.size() > 0)  //For timed AoS slices, the dimension must be increased putting 1 as 0D
 	    {
 	    	getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
 		size[*dim] = 1;
@@ -539,17 +539,12 @@ else
 	StructPath topSp(ids, ctx->getDataobjectName());
 	ctxV.push_back(topSp);
 	StructPath sp(topAos->aos[ctx->getIndex()], ctx->getPath());
-//	StructPath sp(topAos->aos[ctx->getParent()->getIndex()], ctx->getPath()); //Gabriele March 2018
 	ctxV.push_back(sp);
 	if(topAos->timebase != "") //if the top AoS is timed
 	{
 	    int sliceIdx1, sliceIdx2;
 	    currentAos.timebase = topAos->timebase;
-/*
-GABRIELE NOVEMBRE 2018: qua il timebase e riferito a OPERATION context e quindi se non ha slash fa riferimento al root dell IDS e NON al root del AoS
-occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per riportarlo relativo al AoS
 
-*/
 	    std::string currTimebase;
 //	    if(topAos->timebase.size() > ctx->getPath().size() && ctx->getPath() == topAos->timebase.substr(ctx->getPath().size()))
 	    if(!(topAos->timebase[0] == '/'))
@@ -853,17 +848,17 @@ occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per ri
 
 	for(int i = currCtxV.size() - 2; i >= 0; i--)
 	{
-	    if(topAos->aos.size() <= (size_t)(currCtxV[i]->getParent()->getIndex()))  //gabriele March 2018
+	    if(topAos->aos.size() <= (size_t)(currCtxV[i]->getParent()->getIndex()))  
 //	    if(topAos->aos.size() <= (size_t)(currCtxV[i]->getIndex()))
 	    {
 		int prevSize = topAos->aos.size();
 //		topAos->aos.resize(currCtxV[i]->getIndex()+1);
-		topAos->aos.resize(currCtxV[i]->getParent()->getIndex()+1);  //Gabriele March 2018
-		for(int j = prevSize; j <= currCtxV[i]->getParent()->getIndex(); j++) //Gabriele March 2018
+		topAos->aos.resize(currCtxV[i]->getParent()->getIndex()+1);  
+		for(int j = prevSize; j <= currCtxV[i]->getParent()->getIndex(); j++) 
 //		for(int j = prevSize; j <= currCtxV[i]->getIndex(); j++)
 		    topAos->aos[j] = new UalStruct;
 	    }
-	    topAos = topAos->aos[currCtxV[i]->getParent()->getIndex()]->getSubAoS(currCtxV[i]->getPath()); //Gabriele March 2018
+	    topAos = topAos->aos[currCtxV[i]->getParent()->getIndex()]->getSubAoS(currCtxV[i]->getPath()); 
 //	    topAos = topAos->aos[currCtxV[i]->getIndex()]->getSubAoS(currCtxV[i]->getPath());
 
 	    if(topAos->timebase != currCtxV[i]->getTimebasePath())
@@ -1113,7 +1108,6 @@ occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per ri
 
     void UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
-//Gabriele November 2018
 	if(mapState != MAPPED || bufV.size() == 0)
 	    throw UALNoDataException("No data in memory" ,LOG);
 	*datatype  = type;
@@ -1144,7 +1138,6 @@ occorre quindi rimuovere la parte iniziale corrispondente al path del AoS per ri
     }
     void UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
-//Gabriele November 2018
 	if(mapState != MAPPED || bufV.size() == 0)
 	    throw UALNoDataException("No data in memory" ,LOG);
 
