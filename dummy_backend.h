@@ -119,7 +119,7 @@ public:
     virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size)
     {
-	throw  UALBackendException("beginArraystructAction method cannot be called for Dummy Backend",LOG);
+//	throw  UALBackendException("beginArraystructAction method cannot be called for Dummy Backend",LOG);
     }
 
   	virtual void endAction(Context *ctx){}
