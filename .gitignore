@@ -9,3 +9,5 @@
 /html/
 /latex/
 /uda_backend.d
+/mdsplus_backend.d
+doxygen_sqlite3.db
