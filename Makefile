@@ -136,6 +136,6 @@ libimas.a: $(COMMON_OBJECTS)
 
 
 
-# add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc
+#----------------------- pkgconfig ---------------------
 include ../Makefile.pkgconfig
