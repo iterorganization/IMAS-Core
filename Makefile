@@ -98,6 +98,6 @@ libimas.a: $(COMMON_OBJECTS)
 timed_struct_array.h:
 	./timed_struct_array.sh
 
-# add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc
+#----------------------- pkgconfig ---------------------
 include ../Makefile.pkgconfig
