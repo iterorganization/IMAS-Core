@@ -69,6 +69,7 @@ ifneq ("no","$(strip $(IMAS_UDA))")
 	else
 		INCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 		LIBS+= `pkg-config --libs uda-cpp`
+		LIBS+= -lssl -lcrypto
 	endif
 	COMMON_OBJECTS+= uda_backend.o
 	CPPSRC+=uda_backend.cpp
