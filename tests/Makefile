@@ -6,8 +6,13 @@ endif
 
 CXX=g++
 LD=$(CXX)
-CXXFLAGS=-std=c++11 -pthread -g -O0 -Wa,-mbig-obj -fPIC
-LDFLAGS=-g #-pthread 
+ifneq ("no","$(strip $(SYS_WIN))")
+	CXXFLAGS=-std=c++11 -pthread -g -O0 -Wa,-mbig-obj -fPIC
+	LDFLAGS=-g -pthread
+else
+	CXXFLAGS=-std=c++11 -pthread -g -O0 -fPIC
+	LDFLAGS=-g -pthread
+endif
 
 ifneq ("no","$(strip $(SYS_WIN))")
 	INCDIR= -I$(UAL)/lowlevel
@@ -40,7 +45,7 @@ ifneq ("no","$(strip $(SYS_WIN))")
 	CXXFLAGS+= -DWIN32
 else
 	INCDIR= -I$(UAL)/lowlevel
-	LIBDIR= -I$(UAL)/lowlevel
+	LIBDIR= -L$(UAL)/lowlevel
 	LIBS= -limas
 	ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 		LIBDIR+= -L$(MDSPLUS_DIR)/lib
@@ -48,7 +53,8 @@ else
 	endif
 	ifneq ("no","$(strip $(IMAS_UDA))")
 		LIBDIR+= -L$(UDA_HOME)/lib
-		LIBS+= -uda_cpp -portablexdr
+		LIBS+= `pkg-config --libs uda-cpp`
+		LIBS+= -lssl -lcrypto
 	endif
 	ifneq ("no","$(strip $(IMAS_HDF5))")
 		LIBDIR+= -L$(HDF5_HOME)/lib

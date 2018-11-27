@@ -246,7 +246,7 @@ clean-doc:
 
 # dynamic library
 libimas.so: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS) $(LIBDIR)
 	ln -svfT $@ $@.$(IMAS_MAJOR).$(IMAS_MINOR)
 
 # static library
@@ -255,7 +255,7 @@ libimas.a: $(COMMON_OBJECTS)
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBS) $(LIBDIR)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)

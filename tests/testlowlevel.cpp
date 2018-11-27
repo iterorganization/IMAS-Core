@@ -1,7 +1,25 @@
 #include <stdio.h>
+#include <string.h>
 #include <regex>
 #include <ual_low_level.h>
 #include <ual_lowlevel.h>
+
+#ifndef WIN32
+#define _countof(x) sizeof(x)
+#define _stricmp(x, y) strcasecmp(x, y)
+#define strcpy_s(a, b, c) strcpy(a, c)
+
+const char* strupr(char* s)
+{
+	char* p = s;
+	while (*p = toupper(*p))
+	{
+		p++;
+	}
+	return s;
+}
+#endif
+
 
 void usage()
 {
@@ -123,7 +141,7 @@ int main(int argc, char *argv[])
 					// Read only
 					bRead = true;
 					// Machine in CAPITAL
-					strcpy(szTokamak, strupr(szTokamak));
+					strupr(szTokamak);
 				}
 				else if (_stricmp(szTemp, "H") == 0)
 				{
@@ -159,7 +177,7 @@ int main(int argc, char *argv[])
 		printf("Backend:\t%s\n", ualconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
 		printf("User name:\t%s\n", szUser);
 		printf("Machine:\t%s\n", szTokamak);
-		printf("\n", szTokamak);
+		printf("\n");
 		
 		// Low Level
 		int iPulseCtx = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion);
