@@ -94,7 +94,7 @@ clean-src: clean clean-doc
 
 # Create embedded documentation
 doc: latex/files.tex html/files.html
-tex/files.tex html/files.html:
+latex/files.tex html/files.html:
 	doxygen Doxyfile || $(RM) $@
 
 clean-doc:
