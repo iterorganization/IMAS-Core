@@ -479,13 +479,26 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	}
 
 */
-
-	char *home = getenv("HOME");
-	std::string mdsplusBaseStr(home);
-	mdsplusBaseStr += "/public/imasdb/";
-	mdsplusBaseStr += tokamak;
-	mdsplusBaseStr += "/";
-	mdsplusBaseStr += version;
+	std::string mdsplusBaseStr;
+//Check for public user 
+	if(!strcmp(user, "public")) 
+	{
+	    char *home = getenv("IMAS_HOME");
+	    mdsplusBaseStr += home;
+	    mdsplusBaseStr += "/shared/imasdb/";
+	    mdsplusBaseStr += tokamak;
+	    mdsplusBaseStr += "/";
+	    mdsplusBaseStr += version;
+	}
+	else
+	{
+	    char *home = getenv("HOME");
+	    mdsplusBaseStr += home;
+	    mdsplusBaseStr += "/public/imasdb/";
+	    mdsplusBaseStr += tokamak;
+	    mdsplusBaseStr += "/";
+	    mdsplusBaseStr += version;
+	}
 
     // set every MDSPLUS_TREE_BASE_n env. variable
     	for (i = 0; i < 10; i++) 
