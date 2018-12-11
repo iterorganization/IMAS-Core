@@ -43,10 +43,9 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
 		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsLib.a
 		LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 		LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 	else
@@ -62,7 +61,7 @@ endif
 ifneq ("no","$(strip $(IMAS_UDA))")
 	ifneq ("no","$(strip $(SYS_WIN))")
 		INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
-		LIBS+= -L$(UDA_HOME)/lib
+		LIBDIR+= -L$(UDA_HOME)/lib
 		LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 		LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 		LIBS+= -lws2_32 -lssl -lcrypto
@@ -79,11 +78,11 @@ endif
 ifneq ("no","$(strip $(IMAS_HDF5))")
 	ifneq ("no","$(strip $(SYS_WIN))")
 		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-		LIBS+= -L$(HDF5_HOME)/lib
+		LIBDIR+= -L$(HDF5_HOME)/lib
 		LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
 	else
 		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-		LIBS+= -L$(HDF5_HOME)/lib
+		LIBDIR+= -L$(HDF5_HOME)/lib
 		LIBS+= -lhdf5 -ldl -lz
 	endif
 	COMMON_OBJECTS+= hdf5_backend.o
@@ -121,9 +120,9 @@ ifeq ("no","$(strip $(SYS_WIN))")
 	# Copy libraries
 	for OBJECT in *.so; do \
 		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
+	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
+	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
+	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
 	done
 	# Copy includes
 	$(INSTALL_DATA) ual_low_level.h $(includedir)
@@ -143,8 +142,8 @@ else
 	for OBJECT in `find . -type f \( -name "*.lib" -or -name "*.dll" \)`; do \
 		cp $$OBJECT $(packagedir)/lowlevel/lib; \
 	done
-	# Copy MDSplus libraries
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+	# Copy MDSplus libraries
 	$(mkdir_p) $(packagedir)/mdsplus/lib
 	cp $(MDSPLUS_DIR)/lib/XTreeShr.a $(packagedir)/mdsplus/lib
 	cp $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a $(packagedir)/mdsplus/lib
@@ -154,16 +153,21 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	cp $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
 	cp $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
 endif
-	# Copy UDA libraries
 ifneq ("no","$(strip $(IMAS_UDA))")
+	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
 endif
-	# Copy HDF5 libraries
 ifneq ("no","$(strip $(IMAS_HDF5))")
+	# Copy HDF5 libraries
 	$(mkdir_p) $(packagedir)/hdf5/lib
 	cp $(HDF5_HOME)/lib/libhdf5.a $(packagedir)/hdf5/lib
+ifneq ("no","$(strip $(IMAS_MPI))")
+	# Copy Open MPI libraries
+	$(mkdir_p) $(packagedir)/openmpi/lib
+	cp $(MPI_HOME)/lib/mpi.a $(packagedir)/openmpi/lib
+endif
 endif
 	# Copy includes
 	cp ual_low_level.h $(packagedir)/lowlevel/include
@@ -246,8 +250,8 @@ clean-doc:
 
 # dynamic library
 libimas.so: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS) $(LIBDIR)
-	ln -svfT $@ $@.$(IMAS_MAJOR).$(IMAS_MINOR)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBDIR) $(LIBS)
+	$(ln_s) $@ $@.$(IMAS_MAJOR).$(IMAS_MINOR)
 
 # static library
 libimas.a: $(COMMON_OBJECTS) 
@@ -255,7 +259,7 @@ libimas.a: $(COMMON_OBJECTS)
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBS) $(LIBDIR)
+	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBDIR) $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)

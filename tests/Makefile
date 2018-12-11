@@ -22,10 +22,9 @@ ifneq ("no","$(strip $(SYS_WIN))")
 		LIBDIR+= -L$(MDSPLUS_DIR)/lib
 		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsLib.a
 		LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
+		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
 		LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 		LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 	endif
