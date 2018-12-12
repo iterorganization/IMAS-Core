@@ -467,20 +467,12 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     }
  
  #define PATH_MAX  2048
-    void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) //Taken from old ual lowlevel
+void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
     {
     	int i;
 
-/*	
-	// $UAL is needed to get MDS+ models path
-	char *models = getenv("ids_path");
-    	if (models == NULL) {
-	  throw UALBackendException("Environment variable ids_path is not set!",LOG);
-	}
-
-*/
 	std::string mdsplusBaseStr;
-//Check for public user 
+	//Check for public user 
 	if(!strcmp(user, "public")) 
 	{
 	    char *home = getenv("IMAS_HOME");
@@ -492,15 +484,20 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	}
 	else
 	{
-	    char *home = getenv("HOME");
-	    mdsplusBaseStr += home;
+	  struct passwd *pw = getpwnam( user );
+	  if( pw != NULL ) {
+	    mdsplusBaseStr += pw->pw_dir;
 	    mdsplusBaseStr += "/public/imasdb/";
 	    mdsplusBaseStr += tokamak;
 	    mdsplusBaseStr += "/";
 	    mdsplusBaseStr += version;
+	  }
+	  else {
+	    throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+	  }
 	}
 
-    // set every MDSPLUS_TREE_BASE_n env. variable
+	// set every MDSPLUS_TREE_BASE_n env. variable
     	for (i = 0; i < 10; i++) 
 	{
 	    std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
