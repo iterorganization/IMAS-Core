@@ -72,7 +72,7 @@ public:
 			 int dim,
 			 int* size)
     {
-	throw  UALBackendException("writeData method cannot be called for Dummy Backend",LOG);
+	throw  UALNoDataException("writeData method cannot be called for Dummy Backend",LOG);
     }
 
 
@@ -100,7 +100,7 @@ public:
 			int* dim,
 			int* size)
     {
-	throw  UALBackendException("readData method cannot be called for Dummy Backend",LOG);
+	throw  UALNoDataException("readData method cannot be called for Dummy Backend",LOG);
     }
 
   /*
@@ -114,12 +114,12 @@ public:
     virtual void deleteData(OperationContext *ctx,
 			  std::string path)
     {
-	throw  UALBackendException("deleteData method cannot be called for Dummy Backend",LOG);
+	throw  UALNoDataException("deleteData method cannot be called for Dummy Backend",LOG);
     }
     virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size)
     {
-	throw  UALBackendException("beginArraystructAction method cannot be called for Dummy Backend",LOG);
+	throw  UALNoDataException("beginArraystructAction method cannot be called for Dummy Backend",LOG);
     }
 
   	virtual void endAction(Context *ctx){}
