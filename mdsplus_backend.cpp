@@ -16,7 +16,8 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // Then sum the ASCII codes of the other characters and store them in the name
 // SliceApd
 
-
+//Original ids_path
+static std::string originalIdsPath = "";
 
 
 
@@ -453,7 +454,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    if(translatedBase && *translatedBase)	// There is a translation for MDSPLUS_TREE_BASE_XX
 	    {
 		std::string translatedBaseStr(translatedBase);
-		char *modelDir = getenv("ids_path");		
+		if(originalIdsPath == "")
+		{
+		    char *origPath = getenv("ids_path");
+		    if(origPath)
+		        originalIdsPath = origPath; 
+		}
+		const char *modelDir = originalIdsPath.c_str();
 		if(modelDir && *modelDir)  // ids_path is already set?
 		{
 		    translatedBaseStr += ';';
