@@ -2,6 +2,9 @@
 #include <string>
 #include <unordered_map>
 
+#include <sys/types.h>
+#include <pwd.h>
+
 #include "ual_context.h"
 #include "ual_backend.h"
 #include "ual_defs.h"

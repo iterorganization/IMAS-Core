@@ -16,7 +16,8 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // Then sum the ASCII codes of the other characters and store them in the name
 // SliceApd
 
-
+//Original ids_path
+static std::string originalIdsPath = "";
 
 
 
@@ -453,7 +454,13 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    if(translatedBase && *translatedBase)	// There is a translation for MDSPLUS_TREE_BASE_XX
 	    {
 		std::string translatedBaseStr(translatedBase);
-		char *modelDir = getenv("ids_path");		
+		if(originalIdsPath == "")
+		{
+		    char *origPath = getenv("ids_path");
+		    if(origPath)
+		        originalIdsPath = origPath; 
+		}
+		const char *modelDir = originalIdsPath.c_str();
 		if(modelDir && *modelDir)  // ids_path is already set?
 		{
 		    translatedBaseStr += ';';
@@ -467,27 +474,37 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     }
  
  #define PATH_MAX  2048
-    void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) //Taken from old ual lowlevel
+void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
     {
     	int i;
 
-/*	
-	// $UAL is needed to get MDS+ models path
-	char *models = getenv("ids_path");
-    	if (models == NULL) {
-	  throw UALBackendException("Environment variable ids_path is not set!",LOG);
+	std::string mdsplusBaseStr;
+	//Check for public user 
+	if(!strcmp(user, "public")) 
+	{
+	    char *home = getenv("IMAS_HOME");
+	    mdsplusBaseStr += home;
+	    mdsplusBaseStr += "/shared/imasdb/";
+	    mdsplusBaseStr += tokamak;
+	    mdsplusBaseStr += "/";
+	    mdsplusBaseStr += version;
+	}
+	else
+	{
+	  struct passwd *pw = getpwnam( user );
+	  if( pw != NULL ) {
+	    mdsplusBaseStr += pw->pw_dir;
+	    mdsplusBaseStr += "/public/imasdb/";
+	    mdsplusBaseStr += tokamak;
+	    mdsplusBaseStr += "/";
+	    mdsplusBaseStr += version;
+	  }
+	  else {
+	    throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+	  }
 	}
 
-*/
-
-	char *home = getenv("HOME");
-	std::string mdsplusBaseStr(home);
-	mdsplusBaseStr += "/public/imasdb/";
-	mdsplusBaseStr += tokamak;
-	mdsplusBaseStr += "/";
-	mdsplusBaseStr += version;
-
-    // set every MDSPLUS_TREE_BASE_n env. variable
+	// set every MDSPLUS_TREE_BASE_n env. variable
     	for (i = 0; i < 10; i++) 
 	{
 	    std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
