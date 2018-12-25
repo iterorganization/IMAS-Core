@@ -62,27 +62,16 @@ TARGETS = libimas.so libimas.a
 
 all: $(TARGETS) pkgconfig doc
 sources:
-sources_install: $(wildcard *.c *.h)
-	$(mkdir_p) $(datadir)/src/lowlevel
+sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
 
-install: all pkgconfig_install sources_install
-	$(mkdir_p) $(libdir) $(includedir) $(docdir)/dev/lowlevel
-	for OBJECT in *.so; do \
-		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
-	   	ln -svfT $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
-	done
-	$(INSTALL_DATA) ual_low_level.h $(includedir)
-	$(INSTALL_DATA) matlab_adapter.h $(includedir)
-	$(INSTALL_DATA) ual_defs.h $(includedir)
-	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
-	$(INSTALL_DATA) ual_backend.h $(includedir)
-	$(INSTALL_DATA) ual_context.h $(includedir)
-	$(INSTALL_DATA) ual_exception.h $(includedir)
-	$(INSTALL_DATA) ual_const.h $(includedir)
+install: all libimas.so_install libimas.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel
+	$(INSTALL_DATA) ual_low_level.h matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
+		$(includedir)
 	cp -r latex html $(docdir)/dev/lowlevel
+
+$(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
+	$(mkdir_p) $@
 
 clean: pkgconfig_clean
 	$(RM) *.o *.mod *.a *.so
@@ -125,17 +114,20 @@ clean-doc:
 %.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
 
+# Dynamic library
+libimas.so.$(UAL_EPOCH): $(COMMON_OBJECTS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@ $^ $(LIBS)
+libimas.so: %:%.$(UAL_EPOCH)
+	ln -svfT $< $@
+libimas.so_install: %.so_install:%.so.$(UAL_EPOCH) | $(libdir)
+	$(INSTALL_DATA) $< $(libdir)
+	ln -svfT $< $(libdir)/$*.so
 
-
-# dynamic library
-libimas.so: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBS)
-	ln -svfT $@ $@.$(IMAS_MAJOR).$(IMAS_MINOR)
-
-# static library
-libimas.a: $(COMMON_OBJECTS) 
+# Static library
+libimas.a: $(COMMON_OBJECTS)
 	$(AR) rvs $@ $^
-
+libimas.a_install: %_install:% | $(libdir)
+	$(INSTALL_DATA) $< $(libdir)
 
 
 PC_FILES = imas-lowlevel.pc
