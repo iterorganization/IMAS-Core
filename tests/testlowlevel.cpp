@@ -25,14 +25,16 @@ void usage()
 {
 	printf("testlowlevel\n");
 	printf("\n");
-	printf("usage: testlowlevel [-s=shot] [-r=run] [-b=backend] [-u=user] [-m=machine] [-h]\n");
+	printf("usage: testlowlevel [-s=shot] [-r=run] [-b=backend] [-u=user] [-m=machine] [-o=action] [-c=action] [-h]\n");
 	printf("\n");
 	printf("with:\n");
 	printf("\t-s\tShot number\n");
 	printf("\t-r\tRun number\n");
-	printf("\t-b\tBackend to use: M=MDSplus, U=UDA, H=HDF5\n");
+	printf("\t-b\tBackend to use: M=MDSplus (default), U=UDA, H=HDF5\n");
 	printf("\t-u\tUser name\n");
 	printf("\t-m\tMachine name\n");
+	printf("\t-o\tOpen action to do: O=Open (default), C=Create\n");
+	printf("\t-c\tClose action to do: C=Close (default), E=Close and erase\n");
 	printf("\t-h\tShow this help\n");
 	printf("\n");
 }
@@ -96,7 +98,8 @@ int main(int argc, char *argv[])
 	int iShot = 12;
 	int iRun = 0;
 	int iBackend = MDSPLUS_BACKEND;
-	int iAction = FORCE_OPEN_PULSE;
+	int iOpenAction = FORCE_OPEN_PULSE;
+	int iCloseAction = CLOSE_PULSE;
 	int iTemp = 0;
 	char cOption = 0;
 	char szTemp[1024] = { 0 };
@@ -149,7 +152,7 @@ int main(int argc, char *argv[])
 					// Read/write
 					bRead = true;
 					bWrite = true;
-			}
+				}
 				else
 				{
 					bUsage = true;
@@ -162,6 +165,36 @@ int main(int argc, char *argv[])
 			else if (cOption == 'm')
 			{
 				strcpy(szTokamak, szTemp);
+			}
+			else if (cOption == 'o')
+			{
+				if (_stricmp(szTemp, "O") == 0)
+				{
+					iOpenAction = FORCE_OPEN_PULSE;
+				}
+				else if (_stricmp(szTemp, "C") == 0)
+				{
+					iOpenAction = FORCE_CREATE_PULSE;
+				}
+				else
+				{
+					bUsage = true;
+				}
+			}
+			else if (cOption == 'c')
+			{
+				if (_stricmp(szTemp, "C") == 0)
+				{
+					iCloseAction = CLOSE_PULSE;
+				}
+				else if (_stricmp(szTemp, "E") == 0)
+				{
+					iCloseAction = ERASE_PULSE;
+				}
+				else
+				{
+					bUsage = true;
+				}
 			}
 		}
 	}
@@ -177,6 +210,8 @@ int main(int argc, char *argv[])
 		printf("Backend:\t%s\n", ualconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
 		printf("User name:\t%s\n", szUser);
 		printf("Machine:\t%s\n", szTokamak);
+		printf("Open action:\t%s\n", ualconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
+		printf("Close action:\t%s\n", ualconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
 		printf("\n");
 		
 		// Low Level
@@ -190,7 +225,7 @@ int main(int argc, char *argv[])
 		{
 			printf("Opening imas pulse action ctx %d OK!\n", iPulseCtx);
 			
-			int iStatus = ual_open_pulse(iPulseCtx, iAction, "");
+			int iStatus = ual_open_pulse(iPulseCtx, iOpenAction, "");
 			if (iStatus != 0)
 			{
 				printf("Error opening imas pulse ctx %d: ual_open_pulse\n", iPulseCtx);
@@ -270,7 +305,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				
-				iStatus = ual_close_pulse(iPulseCtx, CLOSE_PULSE, "");
+				iStatus = ual_close_pulse(iPulseCtx, iCloseAction, "");
 			}
 		}
 	}

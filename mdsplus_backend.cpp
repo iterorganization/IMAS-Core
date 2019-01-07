@@ -497,9 +497,15 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	}
 	else
 	{
+#ifdef WIN32
+	  char szHomeDir[MAX_PATH];
+	  if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+	    mdsplusBaseStr += szHomeDir;
+#else // WIN32
 	  struct passwd *pw = getpwnam( user );
 	  if( pw != NULL ) {
 	    mdsplusBaseStr += pw->pw_dir;
+#endif // WIN32
 	    mdsplusBaseStr += "/public/imasdb/";
 	    mdsplusBaseStr += tokamak;
 	    mdsplusBaseStr += "/";

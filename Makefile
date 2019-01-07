@@ -35,7 +35,7 @@ CSRC=lowlevel_test.c ual_low_level.c test_lowlevel.c
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o memory_backend.o 
 
-		
+
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	ifneq ("no","$(strip $(SYS_WIN))")
@@ -202,15 +202,6 @@ clean: pkgconfig_clean
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
 	$(RM) -r $(INSTALL)/documentation/dev
-
-test: $(TARGETS)
-	cd tests && $(MAKE)
-
-test: $(TARGETS)
-	cd tests && $(MAKE)
-
-test: $(TARGETS)
-	cd tests && $(MAKE)
 
 test: $(TARGETS)
 	cd tests && $(MAKE)

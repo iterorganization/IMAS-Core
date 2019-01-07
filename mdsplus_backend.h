@@ -3,7 +3,12 @@
 #include <unordered_map>
 
 #include <sys/types.h>
+#ifdef WIN32
+#include <windows.h>
+#include <Shlobj.h>
+#else // WIN32
 #include <pwd.h>
+#endif // WIN32
 
 #include "ual_context.h"
 #include "ual_backend.h"
