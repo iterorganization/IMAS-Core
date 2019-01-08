@@ -212,6 +212,9 @@ test: $(TARGETS)
 test: $(TARGETS)
 	cd tests && $(MAKE)
 
+test: $(TARGETS)
+	cd tests && $(MAKE)
+
 
 # Create embedded documentation
 doc: latex/files.tex html/files.html
