@@ -80,9 +80,11 @@ def dump(s):
     
     
     
-    
-    
-    
+t=Tree('ids',1000010001)
+n=t.getNode('\IDS::TOP.CORE_SOURCES.SOURCE:static')  
+d = n.getData()
+dumpAoS(d, 0)
+
     
     
     
