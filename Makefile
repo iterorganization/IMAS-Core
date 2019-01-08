@@ -106,7 +106,7 @@ else
 endif
 
 
-all: $(TARGETS) pkgconfig doc
+all: $(TARGETS) pkgconfig doc link
 sources:
 sources_install: $(wildcard *.c *.h)
 ifeq ("no","$(strip $(SYS_WIN))")
@@ -194,7 +194,7 @@ endif
 	cp /mingw64/bin/zlib1.dll $(packagedir)/bin
 endif
 
-clean: pkgconfig_clean
+clean: pkgconfig_clean link_clean
 	$(RM) -f *.o *.mod *.a *.so *.lib *.dll
 	$(RM) -rf $(libdir) $(includedir)
 	cd tests && $(MAKE) clean
@@ -205,6 +205,14 @@ clean-src: clean clean-doc
 
 test: $(TARGETS)
 	cd tests && $(MAKE)
+
+link:
+LN_LIB:=$(shell cd .. && test ! -d lib && $(ln_s) lowlevel lib)
+LN_INC:=$(shell cd .. && test ! -d include && $(ln_s) lowlevel include)
+
+link_clean:
+LN_LIB:=$(shell cd .. && test -d lib && $(RM) lib)
+LN_INC:=$(shell cd .. && test -d include && $(RM) include)
 
 
 # Create embedded documentation
