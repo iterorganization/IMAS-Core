@@ -1,6 +1,15 @@
 # -*- makefile -*- #
 include ../Makefile.common
 
+# Library interface number (used as soname suffix)
+# If any interfaces have been added, removed, or changed since the last update,
+# increment this number. Do not increment if it is certain the changes retain
+# ABI compatibility. This may be possible if the changes are only in the
+# implementation and do not change any function signatures or data structures.
+# N.B. this number is not tied to the AL major version number whatsoever.
+SO_NUM=4
+
+
 SHELL=/bin/sh
 
 ## Adding DEBUG=yes to make command to print additional debug info
@@ -115,11 +124,11 @@ clean-doc:
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
 
 # Dynamic library
-libimas.so.$(UAL_EPOCH): $(COMMON_OBJECTS)
+libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@ $^ $(LIBS)
-libimas.so: %:%.$(UAL_EPOCH)
+libimas.so: %:%.$(SO_NUM)
 	ln -svfT $< $@
-libimas.so_install: %.so_install:%.so.$(UAL_EPOCH) | $(libdir)
+libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
 	ln -svfT $< $(libdir)/$*.so
 
