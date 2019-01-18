@@ -3017,7 +3017,10 @@ Gabriele Dec 2017 */
       {
 	  MDSplus::Data *currDescr = apd->getDescAt(i);
 	  if(!currDescr)
-	    continue;
+	  {
+	      retApd->appendDesc(NULL);
+	      continue;
+	  }
 	  if(currDescr->clazz == CLASS_APD)
 	  {
 	      MDSplus::Data *currData = resolveApdTimedFields((MDSplus::Apd *)currDescr);
