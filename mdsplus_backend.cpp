@@ -2377,7 +2377,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     void MDSplusBackend::insertNewInApd(ArraystructContext *ctx, std::string rootName, MDSplus::Apd *apd, int idx, std::string path, std::string timebasePath, bool isSlice, MDSplus::Data *mdsData, void* data, int datatype, int dim, int* size)
 //If not empty, path and timebase path contain already the full path to the nodes going to contain timed data andtime
     {
-//std::cout << "INSERT NEW IN APD: " << rootName << "   " << path << "   "  << timebasePath << "     " << idx << std::endl;
+std::cout << "INSERT NEW IN APD: " << rootName << "   " << path << "   "  << timebasePath << "     " << idx << std::endl;
 
 	MDSplus::Apd *currApd;
 	if(!apd->hasDescAt(idx))
@@ -2843,7 +2843,7 @@ printf("Warning, struct field added more than once\n");
 				     int size)
   {
 
-//std::cout << "BEGIN WRITE ARRAY STRUCT " << ctx->getParent() << "   " << ctx->getPath() << "  " << ctx->getIndex() << std::endl;
+std::cout << "BEGIN WRITE ARRAY STRUCT " << ctx->getParent() << "   " << ctx->getPath() << "  " << ctx->getIndex() << std::endl;
 
 //NOTE: size is not required as Apd uses std::vector to keep descriptors    
       std::string emptyStr("");
@@ -3216,7 +3216,12 @@ Gabriele Dec 2017 */
 	  	  MDSplus::deleteData(currApd);
 
 	      }
-	  }  //A nested static AoS does not require any action
+	      else //Nested static AoS, need to check for trailing empty AoS fields
+	      {
+		  for (int idx = currApd->len(); idx < ctx->getIndex(); idx++)
+			currApd->appendDesc(NULL);
+              }
+	  }  
 
 	  if(ctx->getParent() == NULL)
 	  {
@@ -3238,6 +3243,10 @@ Gabriele Dec 2017 */
 		      }
 		      else
 		      {
+//Check for empty trailing fields
+
+		  	  for (int idx = currApd->len(); idx < ctx->getIndex(); idx++)
+			      currApd->appendDesc(NULL);
 			  writeStaticApd(currApd, ctx->getDataobjectName(), ctx->getPath());
 		      }	
 		  }
