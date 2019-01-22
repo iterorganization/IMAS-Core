@@ -3017,7 +3017,10 @@ Gabriele Dec 2017 */
       {
 	  MDSplus::Data *currDescr = apd->getDescAt(i);
 	  if(!currDescr)
-	    continue;
+	  {
+	      retApd->appendDesc(NULL);
+	      continue;
+	  }
 	  if(currDescr->clazz == CLASS_APD)
 	  {
 	      MDSplus::Data *currData = resolveApdTimedFields((MDSplus::Apd *)currDescr);
@@ -3213,7 +3216,12 @@ Gabriele Dec 2017 */
 	  	  MDSplus::deleteData(currApd);
 
 	      }
-	  }  //A nested static AoS does not require any action
+	      else //Nested static AoS, need to check for trailing empty AoS fields
+	      {
+		  for (int idx = currApd->len(); idx < ctx->getIndex(); idx++)
+			currApd->appendDesc(NULL);
+              }
+	  }  
 
 	  if(ctx->getParent() == NULL)
 	  {
@@ -3235,6 +3243,10 @@ Gabriele Dec 2017 */
 		      }
 		      else
 		      {
+//Check for empty trailing fields
+
+		  	  for (int idx = currApd->len(); idx < ctx->getIndex(); idx++)
+			      currApd->appendDesc(NULL);
 			  writeStaticApd(currApd, ctx->getDataobjectName(), ctx->getPath());
 		      }	
 		  }
