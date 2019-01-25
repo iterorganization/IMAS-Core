@@ -127,10 +127,10 @@ clean-doc:
 libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@ $^ $(LIBS)
 libimas.so: %:%.$(SO_NUM)
-	ln -svfT $< $@
+	$(LN_S) $< $@
 libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
-	ln -svfT $< $(libdir)/$*.so
+	$(LN_S) $< $(libdir)/$*.so
 
 # Static library
 libimas.a: $(COMMON_OBJECTS)
