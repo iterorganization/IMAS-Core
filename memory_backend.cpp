@@ -284,8 +284,12 @@ else
 //If it is a slice, then size = 1
 	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
 	{
+	    UalAoS *aos = getAoS(ctx, false);  //Gabriele Jan 2019
+            if(aos->timebase == "")
+	        *size = aos->aos.size();  //Static AoS
+	    else
+		*size = 1;
 	    prepareSlice(ctx);
-	    *size = 1;
 	}
 	else
 	{
