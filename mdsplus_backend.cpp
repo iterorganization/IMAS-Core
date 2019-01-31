@@ -2164,8 +2164,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		        return retData;
 		    }
 		}
-
-
+		
+		delete [] currNameChar;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////	      
 		throw UALNoDataException("Missing component in array of structues",LOG);
 	    } 
