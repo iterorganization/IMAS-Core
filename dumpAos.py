@@ -11,6 +11,9 @@ def getTabs(tabs):
 
 
 def dumpStruct(s, tabs):
+  if s.__class__.__name__ == 'EmptyData':
+    print getTabs(tabs) + 'None'
+    return
   print getTabs(tabs) + s[0] + ':'
   for i in range(1, len(s)):
     if isinstance(s[i], Apd):
@@ -80,9 +83,11 @@ def dump(s):
     
     
     
-    
-    
-    
+t=Tree('ids',10066)
+n=t.getNode('\IDS::TOP.AMNS_DATA.COORDINATE_S.YSTEM:static')  
+d = n.getData()
+dumpAoS(d, 0)
+
     
     
     

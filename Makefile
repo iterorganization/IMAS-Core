@@ -1,30 +1,39 @@
 # -*- makefile -*- #
 include ../Makefile.common
 
+# Library interface number (used as soname suffix)
+# If any interfaces have been added, removed, or changed since the last update,
+# increment this number. Do not increment if it is certain the changes retain
+# ABI compatibility. This may be possible if the changes are only in the
+# implementation and do not change any function signatures or data structures.
+# N.B. this number is not tied to the AL major version number whatsoever.
+SO_NUM=4
+
+
 SHELL=/bin/sh
 
 ## Adding DEBUG=yes to make command to print additional debug info
 DBGFLAGS= -g
 ifeq (${DEBUG},yes)
-	DBGFLAGS+= -DDEBUG
+DBGFLAGS+= -DDEBUG
 endif
 ifeq (${STOPONEXCEPT},yes)
-	DBGFLAGS+= -DSOE
+DBGFLAGS+= -DSOE
 endif
 
 
 
 ifeq "$(strip $(CC))" "icc"
-	## intel compiler should be >= 13 to meet C++11 requirement
-	CXX=icpc
-	CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
-	CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
-	LDF=ifort -lc -lstdc++ 
+## intel compiler should be >= 13 to meet C++11 requirement
+CXX=icpc
+CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
+LDF=ifort -lc -lstdc++ 
 else
-	CXX=g++
-	CFLAGS=--std=c11 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
-	CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
-	LDF=gfortran -lc -lstdc++ 
+CXX=g++
+CFLAGS=--std=c11 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
+CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
+LDF=gfortran -lc -lstdc++ 
 endif
 
 
@@ -38,104 +47,88 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-	ifneq ("no","$(strip $(SYS_WIN))")
-		INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
-		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
-		LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
-		LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
-		LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
-	else
-		INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
-		LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-		LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
-	endif
-	COMMON_OBJECTS+=mdsplus_backend.o
-	CPPSRC+=mdsplus_backend.cpp memory_backend.cpp 
-endif
+ifneq ("no","$(strip $(SYS_WIN))")
+INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
+LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
+LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
+LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
+LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
+LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
+LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
+LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
+else
+INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
+LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
+endif # SYS_WIN
+COMMON_OBJECTS+=mdsplus_backend.o
+CPPSRC+=mdsplus_backend.cpp memory_backend.cpp 
+endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
-	ifneq ("no","$(strip $(SYS_WIN))")
-		INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
-		LIBDIR+= -L$(UDA_HOME)/lib
-		LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
-		LIBS+= $(UDA_HOME)/lib/libportablexdr.a
-		LIBS+= -lws2_32 -lssl -lcrypto
-	else
-		INCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
-		LIBS+= `pkg-config --libs uda-cpp`
-		LIBS+= -lssl -lcrypto
-	endif
-	COMMON_OBJECTS+= uda_backend.o
-	CPPSRC+=uda_backend.cpp
-endif
+ifneq ("no","$(strip $(SYS_WIN))")
+INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
+LIBDIR+= -L$(UDA_HOME)/lib
+LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
+LIBS+= $(UDA_HOME)/lib/libportablexdr.a
+LIBS+= -lws2_32 -lssl -lcrypto
+else
+INCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
+LIBS+= `pkg-config --libs uda-cpp`
+LIBS+= -lssl -lcrypto
+endif # SYS_WIN
+COMMON_OBJECTS+= uda_backend.o
+CPPSRC+=uda_backend.cpp
+endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
 ifneq ("no","$(strip $(IMAS_HDF5))")
-	ifneq ("no","$(strip $(SYS_WIN))")
-		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-		LIBDIR+= -L$(HDF5_HOME)/lib
-		LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
-	else
-		INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-		LIBDIR+= -L$(HDF5_HOME)/lib
-		LIBS+= -lhdf5 -ldl -lz
-	endif
-	COMMON_OBJECTS+= hdf5_backend.o
-	CPPSRC+=hdf5_backend.cpp
-endif
+ifneq ("no","$(strip $(SYS_WIN))")
+INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
+LIBDIR+= -L$(HDF5_HOME)/lib
+LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
+else
+INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
+LIBDIR+= -L$(HDF5_HOME)/lib
+LIBS+= -lhdf5 -ldl -lz
+endif # SYS_WIN
+COMMON_OBJECTS+= hdf5_backend.o
+CPPSRC+=hdf5_backend.cpp
+endif # IMAS_HDF5
 
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
-	COMMON_OBJECTS+= matlab_adapter.o
-	CSRC+= matlab_adapter.c
+COMMON_OBJECTS+= matlab_adapter.o
+CSRC+= matlab_adapter.c
 endif
 
 #-------------- Options for Windows ------------
 ifneq ("no","$(strip $(SYS_WIN))")
-	CFLAGS+= -DWIN32
-	CXXFLAGS+= -DWIN32
-	INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
-	TARGETS = libimas.dll libimas.lib
+CFLAGS+= -DWIN32
+CXXFLAGS+= -DWIN32
+INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
+TARGETS = libimas.dll libimas.lib
 else
-	TARGETS = libimas.so libimas.a
+TARGETS = libimas.so libimas.a
 endif
 
 
 all: $(TARGETS) pkgconfig doc link
 sources:
-sources_install: $(wildcard *.c *.h)
+sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 ifeq ("no","$(strip $(SYS_WIN))")
-	$(mkdir_p) $(datadir)/src/lowlevel
 	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
 endif
 
-install: all pkgconfig_install sources_install
 ifeq ("no","$(strip $(SYS_WIN))")
-	$(mkdir_p) $(libdir) $(includedir) $(docdir)/dev/lowlevel
-	# Copy libraries
-	for OBJECT in *.so; do \
-		$(INSTALL_DATA) -T $$OBJECT $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO); \
-	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR); \
-	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT.$(IMAS_MAJOR); \
-	   	$(ln_s) $$OBJECT.$(IMAS_MAJOR).$(IMAS_MINOR).$(IMAS_MICRO) $(libdir)/$$OBJECT; \
-	done
-	# Copy includes
-	$(INSTALL_DATA) ual_low_level.h $(includedir)
-	$(INSTALL_DATA) matlab_adapter.h $(includedir)
-	$(INSTALL_DATA) ual_defs.h $(includedir)
-	$(INSTALL_DATA) ual_lowlevel.h $(includedir)
-	$(INSTALL_DATA) ual_backend.h $(includedir)
-	$(INSTALL_DATA) ual_context.h $(includedir)
-	$(INSTALL_DATA) ual_exception.h $(includedir)
-	$(INSTALL_DATA) ual_const.h $(includedir)
-	# Copy documentation
+install: all libimas.so_install libimas.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel
+	$(INSTALL_DATA) ual_low_level.h matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
+		$(includedir)
 	cp -r latex html $(docdir)/dev/lowlevel
-else
+else # SYS_WIN
+install: all pkgconfig_install sources_install
 	$(mkdir_p) $(packagedir)/lowlevel/lib
 	$(mkdir_p) $(packagedir)/lowlevel/include
 	# Copy libraries
@@ -152,13 +145,13 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	cp $(MDSPLUS_DIR)/lib/TdiShr.a $(packagedir)/mdsplus/lib
 	cp $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
 	cp $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
-endif
+endif # IMAS_MDSPLUS
 ifneq ("no","$(strip $(IMAS_UDA))")
 	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
-endif
+endif # IMAS_UDA
 ifneq ("no","$(strip $(IMAS_HDF5))")
 	# Copy HDF5 libraries
 	$(mkdir_p) $(packagedir)/hdf5/lib
@@ -167,8 +160,8 @@ ifneq ("no","$(strip $(IMAS_MPI))")
 	# Copy Open MPI libraries
 	$(mkdir_p) $(packagedir)/openmpi/lib
 	cp $(MPI_HOME)/lib/mpi.a $(packagedir)/openmpi/lib
-endif
-endif
+endif # IMAS_MPI
+endif # IMAS_HDF5
 	# Copy includes
 	cp ual_low_level.h $(packagedir)/lowlevel/include
 	cp matlab_adapter.h $(packagedir)/lowlevel/include
@@ -192,23 +185,28 @@ endif
 	cp /mingw64/bin/libiconv-2.dll $(packagedir)/bin
 	cp /mingw64/bin/liblzma-5.dll $(packagedir)/bin
 	cp /mingw64/bin/zlib1.dll $(packagedir)/bin
+endif # SYS_WIN
+
+$(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
+ifeq ("no","$(strip $(SYS_WIN))")
+	$(mkdir_p) $@
 endif
 
-clean: pkgconfig_clean link_clean
-	$(RM) -f *.o *.mod *.a *.so *.lib *.dll
-	$(RM) -rf $(libdir) $(includedir)
-	cd tests && $(MAKE) clean
+clean: pkgconfig_clean link_clean test_clean
+	$(RM) *.o *.mod *.a *.so *.lib *.dll
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
 	$(RM) -r $(INSTALL)/documentation/dev
 
 test: $(TARGETS)
-	cd tests && $(MAKE)
+	$(MAKE) -C tests
+test_clean:
+	$(MAKE) -C tests clean
 
 link:
-LN_LIB:=$(shell cd .. && test ! -d lib && $(ln_s) lowlevel lib)
-LN_INC:=$(shell cd .. && test ! -d include && $(ln_s) lowlevel include)
+LN_LIB:=$(shell cd .. && test ! -d lib && $(LN_S) lowlevel lib)
+LN_INC:=$(shell cd .. && test ! -d include && $(LN_S) lowlevel include)
 
 link_clean:
 LN_LIB:=$(shell cd .. && test -d lib && $(RM) lib)
@@ -248,25 +246,29 @@ clean-doc:
 %.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
 
-
-
-# dynamic library
-libimas.so: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) $^ $(LIBDIR) $(LIBS)
-	$(ln_s) $@ $@.$(IMAS_MAJOR).$(IMAS_MINOR)
-
-# static library
-libimas.a: $(COMMON_OBJECTS) 
-	$(AR) rvs $@ $^
-
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(IMAS_MAJOR).$(IMAS_MINOR) -Wl,--out-implib,$@.lib $^ $(LIBDIR) $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBDIR) $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)
 	$(AR) rcvsu $@ $^
 	ranlib $@
+
+# Dynamic library
+libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@ $^ $(LIBS)
+libimas.so: %:%.$(SO_NUM)
+	$(LN_S) $< $@
+libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
+	$(INSTALL_DATA) $< $(libdir)
+	$(LN_S) $< $(libdir)/$*.so
+
+# Static library
+libimas.a: $(COMMON_OBJECTS)
+	$(AR) rvs $@ $^
+libimas.a_install: %_install:% | $(libdir)
+	$(INSTALL_DATA) $< $(libdir)
 
 	
 # add pkgconfig pkgconfig_install targets
