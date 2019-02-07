@@ -673,6 +673,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   }
   catch (const UALNoDataException e) {
     //std::cout << e.what() << " *recoverable* \n";
+    delete(actx);
     *size = 0;
     actxID = 0; //ualerror::nodata_err; 
   }
