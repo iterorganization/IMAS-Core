@@ -25,10 +25,22 @@
    Lowlevel environment structure.
    Associates a Context with the corresponding Backend.
 */
-struct LLenv
+class LLenv
 { 
+public:
   Backend* backend;                               /**< pointer on Backend object */
   Context* context;                               /**< pointer on Context object */
+
+  LLenv()
+  {
+    backend = NULL;
+    context = NULL;
+  }
+  LLenv(Backend *be, Context *ctx)
+  {
+    backend = be;
+    context = ctx;
+  }
 };
 
 
@@ -50,7 +62,7 @@ public:
      @param[in] ctx pointer on context object
      @result storage element identifier
   */
-  static int addLLenv(Backend* be, Context *ctx);
+  static int addLLenv(Backend *be, Context *ctx);
 
   /**
      Retrieves a stored lowlevel environment.

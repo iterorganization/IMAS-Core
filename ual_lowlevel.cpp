@@ -15,10 +15,9 @@
 
 std::mutex Lowlevel::mutex;
 
-const LLenv llnull = { .backend=NULL , .context=NULL };
 int Lowlevel::curStoreElt = 1;
 int Lowlevel::maxStoreElt = 1; //STORE_CHUNCK;
-std::vector<LLenv> Lowlevel::llenvStore = {llnull}; //(STORE_CHUNCK);
+std::vector<LLenv> Lowlevel::llenvStore = { LLenv()}; //(STORE_CHUNCK);
 
 const char Lowlevel::EMPTY_CHAR = '\0';
 const int Lowlevel::EMPTY_INT   = -999999999;
@@ -28,9 +27,7 @@ const std::complex<double> Lowlevel::EMPTY_COMPLEX = std::complex<double>(-9.0E4
 
 int Lowlevel::addLLenv(Backend *be, Context *ctx)
 {
-  LLenv lle; 
-  lle.backend = be;
-  lle.context = ctx;
+  LLenv lle = LLenv(be,ctx);
 
   // atomic operation
   std::lock_guard<std::mutex> guard(Lowlevel::mutex);
@@ -47,7 +44,6 @@ int Lowlevel::addLLenv(Backend *be, Context *ctx)
     }
 
   return Lowlevel::curStoreElt++;
-  //llenvStore.size()-1;
 }
 
 LLenv Lowlevel::getLLenv(int idx)
@@ -180,17 +176,24 @@ int ual_print_context(int ctxID)
 {
   int status=0;
 
-  try {
-    LLenv lle = Lowlevel::getLLenv(ctxID);
-    std::cout << "Context type = " 
-	      << lle.context->getType() << "\n";
-    std::cout << "Backend @ = " << lle.backend << "\n";
-    std::cout << lle.context->print();
-  }
-  catch (const UALLowlevelException e) {
-    std::cout << "ual_print_context: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-  }
+  if (ctxID==0)
+    {
+      std::cout << "NULL context\n";
+    }
+  else
+    {
+      try {
+	LLenv lle = Lowlevel::getLLenv(ctxID);
+	std::cout << "Context type = " 
+		  << lle.context->getType() << "\n";
+	std::cout << "Backend @ = " << lle.backend << "\n";
+	std::cout << lle.context->print();
+      }
+      catch (const UALLowlevelException e) {
+	std::cout << "ual_print_context: " << e.what() << "\n";
+	status = ualerror::lowlevel_err;
+      }
+    }
   return status;
 }
 
@@ -438,41 +441,44 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
 int ual_end_action(int ctxID)
 {
   int status=0;
-  
-  try {
-    LLenv lle = Lowlevel::delLLenv(ctxID);
-    lle.backend->endAction(lle.context);
 
-    if (lle.context->getType() == CTX_PULSE_TYPE) 
-      delete(lle.backend);
+  if (ctxID!=0)
+    {
+      try {
+	LLenv lle = Lowlevel::delLLenv(ctxID);
+	lle.backend->endAction(lle.context);
+
+	if (lle.context->getType() == CTX_PULSE_TYPE) 
+	  delete(lle.backend);
     
-    delete(lle.context);
-  }
-  catch (const UALBackendException e) {
-    std::cout << "ual_end_action: " << e.what() << "\n";
-    status = ualerror::backend_err;
+	delete(lle.context);
+      }
+      catch (const UALBackendException e) {
+	std::cout << "ual_end_action: " << e.what() << "\n";
+	status = ualerror::backend_err;
 #ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-  catch (const UALLowlevelException e) {
-    std::cout << "ual_end_action: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
+      }
+      catch (const UALLowlevelException e) {
+	std::cout << "ual_end_action: " << e.what() << "\n";
+	status = ualerror::lowlevel_err;
 #ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-  catch (const std::exception e) {
-    std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
+      }
+      catch (const std::exception e) {
+	std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
+	status = ualerror::unknown_err;
 #ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-
+      }
+    }
+  
   return status;
 }
 
@@ -652,43 +658,22 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 				 const char *timebase, int *size)
 {
   int actxID = 0;
+  ArraystructContext *actx=NULL;
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    ArraystructContext *actx=NULL;
 
-    switch (lle.context->getType())
-      {
-	// top-level array of structure
-      case CTX_OPERATION_TYPE:
-	{
-	  actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
+    actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
 					std::string(path),
 					std::string(timebase),
-					NULL);
-	}
-	break;
-
-	// nested array of structure
-      case CTX_ARRAYSTRUCT_TYPE:
-	{
-	  actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
-					std::string(path),
-					std::string(timebase),
-					static_cast<ArraystructContext *>(lle.context));
-	}
-	break;
-	
-	// error
-      default:
-	throw UALLowlevelException("Stored context should be either OPERATION or ARRAYSTRUCT type",LOG);
-      }
-
+				  dynamic_cast<ArraystructContext *>(lle.context));
+				  
     lle.backend->beginArraystructAction(actx, size);
     actxID = Lowlevel::addLLenv(lle.backend, actx); 
   }
   catch (const UALNoDataException e) {
     //std::cout << e.what() << " *recoverable* \n";
+    *size = 0;
     actxID = 0; //ualerror::nodata_err; 
   }
   catch (const UALContextException e) {
