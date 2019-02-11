@@ -670,6 +670,12 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 				  
     lle.backend->beginArraystructAction(actx, size);
     actxID = Lowlevel::addLLenv(lle.backend, actx); 
+
+    if (*size < 1)
+      {
+	std::cout << "Warning: beginArraystructAction returned size = "<< *size
+		  << " for AoS " << path << "\n";
+      }
   }
   catch (const UALNoDataException e) {
     //std::cout << e.what() << " *recoverable* \n";
