@@ -15,10 +15,9 @@
 
 std::mutex Lowlevel::mutex;
 
-
-int Lowlevel::curStoreElt = 0;
-int Lowlevel::maxStoreElt = 0; //STORE_CHUNCK;
-std::vector<LLenv> Lowlevel::llenvStore; //(STORE_CHUNCK);
+int Lowlevel::curStoreElt = 1;
+int Lowlevel::maxStoreElt = 1; //STORE_CHUNCK;
+std::vector<LLenv> Lowlevel::llenvStore = { LLenv()}; //(STORE_CHUNCK);
 
 const char Lowlevel::EMPTY_CHAR = '\0';
 const int Lowlevel::EMPTY_INT   = -999999999;
@@ -28,9 +27,7 @@ const std::complex<double> Lowlevel::EMPTY_COMPLEX = std::complex<double>(-9.0E4
 
 int Lowlevel::addLLenv(Backend *be, Context *ctx)
 {
-  LLenv lle; 
-  lle.backend = be;
-  lle.context = ctx;
+  LLenv lle = LLenv(be,ctx);
 
   // atomic operation
   std::lock_guard<std::mutex> guard(Lowlevel::mutex);
@@ -47,7 +44,6 @@ int Lowlevel::addLLenv(Backend *be, Context *ctx)
     }
 
   return Lowlevel::curStoreElt++;
-  //llenvStore.size()-1;
 }
 
 LLenv Lowlevel::getLLenv(int idx)
@@ -163,16 +159,8 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
   if (pctx != NULL) 
     {
       be = Backend::initBackend(backendID);
-      
       // store reference of this object 
       ctxID = Lowlevel::addLLenv(be, pctx);
-
-      // atomic
-      //Lowlevel::addBackend(backendID, be);
-      // atomic
-      //ctxID = Lowlevel::addContext(static_cast<Context *>(pctx));
-      // do we want to add some additional checks? which ones?
-      // treat error
     }
 
   return ctxID;
@@ -188,17 +176,24 @@ int ual_print_context(int ctxID)
 {
   int status=0;
 
-  try {
-    LLenv lle = Lowlevel::getLLenv(ctxID);
-    std::cout << "Context type = " 
-	      << lle.context->getType() << "\n";
-    std::cout << "Backend @ = " << lle.backend << "\n";
-    std::cout << lle.context->print();
-  }
-  catch (const UALLowlevelException& e) {
-    std::cout << "ual_print_context: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-  }
+  if (ctxID==0)
+    {
+      std::cout << "NULL context\n";
+    }
+  else
+    {
+      try {
+	LLenv lle = Lowlevel::getLLenv(ctxID);
+	std::cout << "Context type = " 
+		  << lle.context->getType() << "\n";
+	std::cout << "Backend @ = " << lle.backend << "\n";
+	std::cout << lle.context->print();
+      }
+      catch (const UALLowlevelException& e) {
+	std::cout << "ual_print_context: " << e.what() << "\n";
+	status = ualerror::lowlevel_err;
+      }
+    }
   return status;
 }
 
@@ -206,7 +201,7 @@ int ual_print_context(int ctxID)
 int ual_begin_pulse_action(const int backendID, const int shot, const int run, 
 			   const char *usr, const char *tok, const char *ver)
 {
-  int pctxID;
+  int pctxID = 0;
 
   try {
     pctxID = Lowlevel::beginPulseAction(backendID, 
@@ -220,7 +215,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -229,7 +223,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -238,7 +231,6 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
     std::cout << "ual_begin_pulse_action: " << e.what() << WHERE << "\n";
     pctxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -274,7 +266,6 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -283,7 +274,6 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_open_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -311,7 +301,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -320,7 +309,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -329,7 +317,6 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
     std::cout << "ual_close_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -341,7 +328,7 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 
 int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
 {
-  int octxID;
+  int octxID = 0;
   OperationContext *octx=NULL;
 
   try {
@@ -352,7 +339,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
   
     std::string sDataobjectname = dataobjectname;
     octx = new OperationContext(*pctx, 
-				sDataobjectname, 
+                                sDataobjectname,
 				rwmode);
     lle.backend->beginAction(octx);
     octxID = Lowlevel::addLLenv(lle.backend, octx); 
@@ -361,7 +348,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -370,7 +356,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -379,7 +364,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -388,7 +372,6 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     std::cout << "ual_begin_global_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -401,17 +384,17 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
 int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
 			   double time, int interpmode)
 {
-  int octxID;
+  int octxID = 0;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
-    
-	std::string sDataobjectname = dataobjectname;
+
+    std::string sDataobjectname = dataobjectname;
     OperationContext *octx= new OperationContext(*pctx, 
-						 sDataobjectname, 
+						 sDataobjectname,
 						 rwmode, 
 						 ualconst::slice_op, 
 						 time, 
@@ -424,7 +407,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -433,7 +415,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -442,7 +423,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -451,7 +431,6 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     std::cout << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -464,44 +443,44 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
 int ual_end_action(int ctxID)
 {
   int status=0;
-  
-  try {
-    LLenv lle = Lowlevel::delLLenv(ctxID);
-    lle.backend->endAction(lle.context);
 
-    if (lle.context->getType() == CTX_PULSE_TYPE) 
-      delete(lle.backend);
+  if (ctxID!=0)
+    {
+      try {
+	LLenv lle = Lowlevel::delLLenv(ctxID);
+	lle.backend->endAction(lle.context);
+
+	if (lle.context->getType() == CTX_PULSE_TYPE) 
+	  delete(lle.backend);
     
-    delete(lle.context);
-  }
-  catch (const UALBackendException& e) {
-    std::cout << "ual_end_action: " << e.what() << "\n";
-    status = ualerror::backend_err;
+	delete(lle.context);
+      }
+      catch (const UALBackendException& e) {
+	std::cout << "ual_end_action: " << e.what() << "\n";
+	status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-  catch (const UALLowlevelException& e) {
-    std::cout << "ual_end_action: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
+      }
+      catch (const UALLowlevelException& e) {
+	std::cout << "ual_end_action: " << e.what() << "\n";
+	status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-  catch (const std::exception& e) {
-    std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
+      }
+      catch (const std::exception& e) {
+	std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
+	status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
+	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
+	std::exit(EXIT_FAILURE);
 #endif
-  }
-
+      }
+    }
+  
   return status;
 }
 
@@ -510,10 +489,9 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
 		   void *data, int datatype, int dim, int *size)
 {
   int status=0;
-
   try {
-	std::string sField = field;
-	std::string sTimebase = timebase;
+    std::string sField = field;
+    std::string sTimebase = timebase;
     LLenv lle = Lowlevel::getLLenv(ctxID);
     lle.backend->writeData(lle.context,
 			   sField,
@@ -526,12 +504,13 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   catch (const UALNoDataException& e) {
     std::cout << "ual_write_data: " << e.what() << " *recoverable* \n";
     // DO WE HAVE SUCH CASE WHEN WRITING???
+    status = 0;
+    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
   }
   catch (const UALBackendException& e) {
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -540,7 +519,6 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -549,7 +527,6 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_write_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -569,7 +546,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
 
   try {
     std::string sField = field;
-	std::string sTimebase = timebase;
+    std::string sTimebase = timebase;
     LLenv lle = Lowlevel::getLLenv(ctxID);
     lle.backend->readData(lle.context, 
 			  sField,
@@ -610,7 +587,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -619,7 +595,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -628,7 +603,6 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
     std::cout << "ual_read_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -647,20 +621,19 @@ int ual_delete_data(int octxID, const char *field)
     OperationContext *octx= dynamic_cast<OperationContext *>(lle.context); 
     if (octx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
-
     std::string sField = field;
     lle.backend->deleteData(octx, sField);
   }
   catch (const UALNoDataException& e) {
-    std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
-    status = ualerror::nodata_err; 
     // informative only
+    //std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
+    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
+    status = 0;
   }
   catch (const UALBackendException& e) {
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::backend_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -669,7 +642,6 @@ int ual_delete_data(int octxID, const char *field)
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -678,7 +650,6 @@ int ual_delete_data(int octxID, const char *field)
     std::cout << "ual_delete_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
 #ifdef SOE
-    //abort();//raise(SIGTSTP);
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
 #endif
@@ -691,49 +662,33 @@ int ual_delete_data(int octxID, const char *field)
 int ual_begin_arraystruct_action(int ctxID, const char *path, 
 				 const char *timebase, int *size)
 {
-  int actxID;
+  int actxID = 0;
+  ArraystructContext *actx=NULL;
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    ArraystructContext *actx=NULL;
 
-    switch (lle.context->getType())
-      {
-	// top-level array of structure
-      case CTX_OPERATION_TYPE:
-	{
-	   std::string sPath = path;
-	   std::string sTimebase = timebase;
-       actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
+    std::string sPath = path;
+    std::string sTimebase = timebase;
+    actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
 					sPath,
 					sTimebase,
-					NULL);
-	}
-	break;
-
-	// nested array of structure
-      case CTX_ARRAYSTRUCT_TYPE:
-	{
-	   std::string sPath = path;
-	   std::string sTimebase = timebase;
-       actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
-					sPath,
-					sTimebase,
-					static_cast<ArraystructContext *>(lle.context));
-	}
-	break;
-	
-	// error
-      default:
-	throw UALLowlevelException("Stored context should be either OPERATION or ARRAYSTRUCT type",LOG);
-      }
-
+				  dynamic_cast<ArraystructContext *>(lle.context));
+				  
     lle.backend->beginArraystructAction(actx, size);
     actxID = Lowlevel::addLLenv(lle.backend, actx); 
+
+    if (*size < 1)
+      {
+	std::cout << "Warning: beginArraystructAction returned size = "<< *size
+		  << " for AoS " << path << "\n";
+      }
   }
   catch (const UALNoDataException& e) {
     //std::cout << e.what() << " *recoverable* \n";
-    actxID = ualerror::nodata_err; 
+    delete(actx);
+    *size = 0;
+    actxID = 0; //ualerror::nodata_err; 
   }
   catch (const UALContextException& e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
