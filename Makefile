@@ -205,12 +205,12 @@ test_clean:
 	$(MAKE) -C tests clean
 
 link:
-LN_LIB:=$(shell cd .. && test ! -d lib && $(LN_S) lowlevel lib)
-LN_INC:=$(shell cd .. && test ! -d include && $(LN_S) lowlevel include)
+	cd .. && test ! -d lib && $(LN_SD) lowlevel lib || true
+	cd .. && test ! -d include && $(LN_SD) lowlevel include || true
 
 link_clean:
-LN_LIB:=$(shell cd .. && test -d lib && $(RM) lib)
-LN_INC:=$(shell cd .. && test -d include && $(RM) include)
+	cd .. && test -d lib && $(RM) lib || true
+	cd .. && test -d include && $(RM) include || true
 
 
 # Create embedded documentation
