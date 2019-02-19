@@ -820,7 +820,16 @@ else
 
 	UalStruct ids;
 	std::string idsPath = getIdsPath(ctx);
-	try {
+	if(idsMap.find(idsPath) != idsMap.end())
+	{
+	    return idsMap.at(idsPath);
+	} 
+	else
+	{
+	    idsMap[idsPath] = new UalStruct;
+	    return idsMap.at(idsPath);
+	}
+/*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
 	    return idsMap.at(idsPath);
 	} catch (const std::out_of_range& oor) 
@@ -828,7 +837,7 @@ else
 	    idsMap[idsPath] = new UalStruct;
 	    return idsMap.at(idsPath);
 	}
-    }
+*/    }
 
 
 
@@ -1271,21 +1280,23 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-//std::cout << "GET DATA " << path << "   " << &dataFields << std::endl;
-	try  {  
+	if(dataFields.find(path) != dataFields.end())  
+	{  
 	    return dataFields.at(path);
-	} catch (const std::out_of_range& oor) 
+	} 
+	else
 	{
-//std::cout << "NON TROVATO " << path << std::endl;
 	    dataFields[path] = new UalData; 
 	    return dataFields[path];
 	}
+/*	try  {  
+	    return dataFields.at(path);
+	} catch (const std::out_of_range& oor) 
+	{
+	    dataFields[path] = new UalData; 
+	    return dataFields[path];
+	} */
     }
- /*   void UalStruct::setData(std::string path, UalData &data)
-    {
-	dataFields[path] = data;
-    }
-*/   
 
     UalStruct *UalStruct::clone()
     {
@@ -1322,18 +1333,26 @@ else
     }
     UalAoS *UalStruct::getSubAoS(std::string path)
     {
-	try {
+	if(aosFields.find(path) != aosFields.end())
+	    return aosFields.at(path);
+	else
+	{
+	    aosFields[path]=new UalAoS;
+	    return aosFields[path];
+	}
+/*	try {
 	    return aosFields.at(path);
 	} catch (const std::out_of_range& oor) {aosFields[path]=new UalAoS;return aosFields[path];}
-    }
+*/    }
     bool UalStruct::isAoSMapped(std::string path)
     {
-	try {
+	return (aosFields.find(path) != aosFields.end());
+/*	try {
 	    aosFields.at(path);
 	    return true;
 	} catch (const std::out_of_range& oor) {}
 	return false;
-    }
+*/    }
 
 
     void UalAoS::dump(int tabs)

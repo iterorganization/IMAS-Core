@@ -424,17 +424,26 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
     MDSplus::TreeNode * MDSplusBackend::getNode(const char *path)
     {
-        return tree->getNode(path);
+//        return tree->getNode(path);
 	std::string pathStr(path);
 	MDSplus::TreeNode *node;
- 	try {
+	if(treeNodeMap.find(pathStr) != treeNodeMap.end())
+	{
+	    node = treeNodeMap.at(pathStr);
+	}
+	else
+	{
+	    node = tree->getNode(path);
+	    treeNodeMap[pathStr] = node;
+	}
+/* 	try {
 	    node = treeNodeMap.at(pathStr);
 	}
  	catch (const std::out_of_range& oor) 
 	{
 	    node = tree->getNode(path);
 	    treeNodeMap[pathStr] = node;
-	}
+	} */
 	return node;
     }
 
@@ -892,12 +901,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	        slice = assembleStringData(data, numDims+1, currDims, sliceSize);
 	    else
 		slice = assembleData(data, datatype, numDims+1, currDims);
-
-
 	    try {
 		node->putSegment((MDSplus::Array *)slice, -1);
 	    }catch (MDSplus::MdsException &exc)
 	    {
+std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		char *initBytes = new char[sliceSize * slicesPerSegment];
 		memset(initBytes, 0, sliceSize * slicesPerSegment);
 //Gabriele August 2015 Fortran order is assumed	    
@@ -1025,7 +1033,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    MDSplus::deleteData(data);
 	    MDSplus::deleteData(evaluatedData);
 	}
-//	delete node;
+	delete node;
       }catch(MDSplus::MdsException &exc)
       {
 	throw UALNoDataException(exc.what(),LOG);
@@ -2632,7 +2640,7 @@ printf("Warning, struct field added more than once\n");
 //Get the full path from tree top of the node selected to contain the time dependent item (timedependent field os serialed dynami AoS)
     std::string MDSplusBackend::getNodePathFor(std::string aosPath, std::string aosFullPath, std::string aosName)
     {
-	//Check if already assigned
+/*	//Check if already assigned
  	try {
 	    return timedNodePathMap.at(toLower(aosFullPath));
 	}
@@ -2647,6 +2655,22 @@ printf("Warning, struct field added more than once\n");
 	    maxAosTimedId++;
 	    timedNodeFreeIdxMap[toLower(aosPath)] = idx;
 	}
+*/
+	if (timedNodePathMap.find(toLower(aosFullPath)) != timedNodePathMap.end())
+	    return timedNodePathMap.at(toLower(aosFullPath));
+	int idx;
+	if (timedNodeFreeIdxMap.find(toLower(aosPath)) == timedNodeFreeIdxMap.end())
+	{
+	    idx = maxAosTimedId;
+	    maxAosTimedId++;
+	    timedNodeFreeIdxMap[toLower(aosPath)] = idx;
+	}
+	else
+	{
+	    idx = timedNodeFreeIdxMap[toLower(aosPath)];
+	}
+
+//////////////////////////////////////////////////////////////////////////////////////
 	timedNodeFreeIdxMap[toLower(aosPath)] = idx + 1;
 	char *buf = new char[aosPath.size()+16];
 //	sprintf(buf, "%s/TIMED_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
@@ -2766,6 +2790,7 @@ printf("Warning, struct field added more than once\n");
 	      throw  UALBackendException("Mode not yet supported",LOG);
 	  
 	  }
+	  treeNodeMap.clear();
       }
 
       
