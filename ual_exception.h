@@ -151,49 +151,6 @@ public:
 };
 
 
-class UALNoDataException : public UALBackendException
-{
-public:
-  UALNoDataException() {}
-  virtual ~UALNoDataException() throw() {}
-
-  UALNoDataException(const char *m) : UALBackendException(m) {
-    std::ostringstream o;
-    o << "[UALNoDataException = " << m << "]";
-    mesg = o.str();
-  }
-  UALNoDataException(const std::string &m) : UALBackendException(m) {
-    std::ostringstream o;
-    o << "[UALNoDataException = " << m << "]";
-    mesg = o.str();
-  }
-
-  UALNoDataException(const char *m, const std::string &f, const int l) : 
-    UALBackendException(m,f,l) {
-    std::ostringstream o;
-    if (VERBOSE) {
-      o << "[UALNoDataException (" << f << ":" << l << ") = " << m << "]";
-      mesg = o.str();
-    }
-    else {
-      o << "[UALNoDataException = " << m << "]";
-      mesg = o.str();
-    }
-  }
-  UALNoDataException(const std::string &m, const std::string &f, const int l) : 
-    UALBackendException(m,f,l) {
-    std::ostringstream o;
-    if (VERBOSE) {
-      o << "[UALNoDataException (" << f << ":" << l << ") = " << m << "]";
-      mesg = o.str();
-    }
-    else {
-      o << "[UALNoDataException = " << m << "]";
-      mesg = o.str();
-    }
-  }
-};
-
 
 class UALContextException : public UALException
 {

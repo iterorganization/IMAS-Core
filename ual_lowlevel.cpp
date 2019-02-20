@@ -498,12 +498,6 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
 			   dim,
 			   size);
   }
-  catch (const UALNoDataException e) {
-    std::cout << "ual_write_data: " << e.what() << " *recoverable* \n";
-    // DO WE HAVE SUCH CASE WHEN WRITING???
-    status = 0;
-    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
-  }
   catch (const UALBackendException e) {
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::backend_err;
@@ -543,40 +537,42 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
 
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    lle.backend->readData(lle.context, 
-			  std::string(field),
-			  std::string(timebase),
-			  &retData,
-			  &retType,
-			  &retDim,
-			  size);
 
-    if (retType!=datatype || retDim!=dim)
+    if (lle.backend->readData(lle.context, 
+			      std::string(field),
+			      std::string(timebase),
+			      &retData,
+			      &retType,
+			      &retDim,
+			      size) == 0)
       {
-	std::cout << "ual_read_data went wrong\n";
-	throw UALLowlevelException("Wrong Data returned by backend: expected "+
-				   std::to_string(datatype)+" ("+
-				   ualconst::data_type_str.at(datatype-DATA_TYPE_0)+") in "+
-				   std::to_string(dim)+"D but got "+
-				   std::to_string(retType)+" in "+
-				   std::to_string(retDim)+"D",LOG);
+	// no data
+	Lowlevel::setDefaultValue(datatype, dim, data, size);
+	status = 0;
       }
     else
       {
-	if (dim==0) 
+	if (retType!=datatype || retDim!=dim)
 	  {
-	    Lowlevel::setScalarValue(retData, datatype, data);
-	    free(retData);
+	    std::cout << "ual_read_data went wrong\n";
+	    throw UALLowlevelException("Wrong Data returned by backend: expected "+
+				       std::to_string(datatype)+" ("+
+				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+") in "+
+				       std::to_string(dim)+"D but got "+
+				       std::to_string(retType)+" in "+
+				       std::to_string(retDim)+"D",LOG);
 	  }
 	else
-	  *data = retData;
+	  {
+	    if (dim==0) 
+	      {
+		Lowlevel::setScalarValue(retData, datatype, data);
+		free(retData);
+	      }
+	    else
+	      *data = retData;
+	  }
       }
-  }
-  catch (const UALNoDataException e) {
-    //std::cout << e.what() << " *recoverable* \n";
-    Lowlevel::setDefaultValue(datatype, dim, data, size);
-    status = 0;
-    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
   }
   catch (const UALBackendException e) {
     std::cout << "ual_read_data: " << e.what() << "\n";
@@ -618,12 +614,6 @@ int ual_delete_data(int octxID, const char *field)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
     lle.backend->deleteData(octx, std::string(field));
-  }
-  catch (const UALNoDataException e) {
-    // informative only
-    //std::cout << "ual_delete_data: " << e.what() << " *recoverable* \n";
-    //status = ualerror::nodata_err; //<=== if different mode nodata not recoverable
-    status = 0;
   }
   catch (const UALBackendException e) {
     std::cout << "ual_delete_data: " << e.what() << "\n";
@@ -667,21 +657,23 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 					std::string(path),
 					std::string(timebase),
 				  dynamic_cast<ArraystructContext *>(lle.context));
-				  
-    lle.backend->beginArraystructAction(actx, size);
-    actxID = Lowlevel::addLLenv(lle.backend, actx); 
 
-    if (*size < 1)
+    if (lle.backend->beginArraystructAction(actx, size) == 0)
       {
-	std::cout << "Warning: beginArraystructAction returned size = "<< *size
-		  << " for AoS " << path << "\n";
+	// no data
+	delete(actx);
+	*size = 0;
+	actxID = 0; 
       }
-  }
-  catch (const UALNoDataException e) {
-    //std::cout << e.what() << " *recoverable* \n";
-    delete(actx);
-    *size = 0;
-    actxID = 0; //ualerror::nodata_err; 
+    else
+      {
+	actxID = Lowlevel::addLLenv(lle.backend, actx); 
+	if (*size < 1)
+	  {
+	    std::cout << "Warning: beginArraystructAction returned size = "<< *size
+		      << " for AoS " << path << "\n";
+	  }
+      }
   }
   catch (const UALContextException e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";

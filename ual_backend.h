@@ -119,15 +119,16 @@ public:
      - COMPLEX_DATA complex numbers
      @param[inout] dim returned dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[out] size array returned with elements filled at the size of each dimension 
+     @result returns 0 when there is no such data (or 1 on success)
      @throw BackendException
   */
-  virtual void readData(Context *ctx,
-			std::string fieldname,
-			std::string timebasename, 
-			void** data,
-			int* datatype,
-			int* dim,
-			int* size) = 0;
+  virtual int readData(Context *ctx,
+		       std::string fieldname,
+		       std::string timebasename, 
+		       void** data,
+		       int* datatype,
+		       int* dim,
+		       int* size) = 0;
 
   /*
     Deletes data.
@@ -145,10 +146,11 @@ public:
      This function initiates the writing of a new top-level or nested array of structure.
      @param[in] ctx pointer on array of structure context
      @param[in,out] size specify the size of the array (number of elements)
+     @result returns 0 when there is no such data in read mode (or 1 on success)
      @throw BackendException
   */
-  virtual void beginArraystructAction(ArraystructContext *ctx,
-				      int *size) = 0;
+  virtual int beginArraystructAction(ArraystructContext *ctx,
+				     int *size) = 0;
 
 };
 
