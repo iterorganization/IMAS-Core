@@ -67,7 +67,7 @@ public:
       std::cout << "NoBackend writeData\n";
   }
 
-  void readData(Context *ctx,
+  int readData(Context *ctx,
 		std::string fieldname,
 		std::string timebasename,
 		void** data,
@@ -96,9 +96,10 @@ public:
       {
 	if (verbose)
 	  std::cout << "NoBackend readData\n";
-	throw UALNoDataException("test recoverable exception",LOG);
+	return 0;
 	//throw UALBackendException("test unrecoverable exception",LOG);
       }
+     return 1;
   }
 
   void deleteData(OperationContext *ctx,

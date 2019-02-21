@@ -114,7 +114,7 @@ else
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
   */
-    void MemoryBackend::readData(OperationContext *ctx,
+    int MemoryBackend::readData(OperationContext *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
@@ -168,7 +168,7 @@ else
 	    if(timebase.length() == 0)  //handle empty time and /time
 	    {
 		ualData->readData(data, datatype, dim, size);  //Not time dependent
-		return;
+		return 1;
 	    }
 	    else
 	    {
@@ -193,6 +193,7 @@ else if (*datatype == INTEGER_DATA || *datatype == COMPLEX_DATA)
 else
     std::cout << "READ DATA IDS:" << ctx->getDataobjectName() << "   FIELD: " << fieldname << *(char **)data << std::endl;
 */
+        return 1;
     }
   /*
     Deletes data.
@@ -357,7 +358,7 @@ else
      @param[out] size returned array of the size of each dimension (NULL is dim=0)
      @throw BackendException
   */
-    void MemoryBackend::getFromArraystruct(ArraystructContext *ctx,
+    int MemoryBackend::getFromArraystruct(ArraystructContext *ctx,
 				  std::string fieldname,
 				  std::string timebase,
 				  int idx,
@@ -374,7 +375,7 @@ else
 	{
 //	    targetB->getFromArraystruct(ctx, fieldname, idx, data, datatype, dim, size);
 	    targetB->readData((Context *)ctx, fieldname, timebase, data, datatype, dim, size);
-	    return;
+	    return 1;
 	}
 //Otherwise data are mapped
 	if(ctx->getRangemode() == SLICE_OP)
@@ -391,6 +392,7 @@ else
 
 	else
 	    getFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	return 1;
     }
 
     void MemoryBackend::endAction(Context *inCtx)
@@ -1119,10 +1121,11 @@ else
 	}
     }
 
-    void UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
+    int UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
 	if(mapState != MAPPED || bufV.size() == 0)
-	    throw UALNoDataException("No data in memory" ,LOG);
+	    return 0;
+//	    throw UALNoDataException("No data in memory" ,LOG);
 	*datatype  = type;
 	int totSize = 1;
 	for(size_t i = 0; i < dimensionV.size(); i++)
@@ -1148,11 +1151,13 @@ else
 	    for(size_t i = 0; i < dimensionV.size(); i++)
 	    	retDims[i] = dimensionV[i];
 	}
+	return 1;
     }
-    void UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
+    int UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
 	if(mapState != MAPPED || bufV.size() == 0)
-	    throw UALNoDataException("No data in memory" ,LOG);
+	    return 0;
+//	    throw UALNoDataException("No data in memory" ,LOG);
 
 	if((size_t)sliceIdx >= bufV.size())
 	{
@@ -1173,6 +1178,7 @@ else
 	//The last dimension in returned slice is always 1
 	if(dimensionV.size() > 0)
 	    retDims[dimensionV.size()-1] = 1;
+	return 1;
     }
     void UalData::readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation)
     {

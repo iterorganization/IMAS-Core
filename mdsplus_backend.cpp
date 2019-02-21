@@ -751,7 +751,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	}
     }
 		
-    void MDSplusBackend::readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
+    int MDSplusBackend::readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
 	int *numDims, int *outDims)
     {
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
@@ -763,14 +763,14 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       {
 	throw UALBackendException(exc.what(),LOG);
       }
-      readTimedData(node, dataPtr, datatype, numDims, outDims);
+      return readTimedData(node, dataPtr, datatype, numDims, outDims);
 //      delete node;
     }
 
 
 
 
-    void MDSplusBackend::readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype,
+    int MDSplusBackend::readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype,
 	int *numDims, int *outDims)
     {
       int dims[MAX_DIMS];
@@ -779,7 +779,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	std::vector<MDSplus::Array *> segmentV;
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0)
-	  throw UALNoDataException("No segments in data item" ,LOG);
+	  return 0;
 	MDSplus::Array *firstSegment = node->getSegment(0);
 	int *segDims;
 	char clazz, dtype, nDims;
@@ -846,6 +846,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       }
       for(int i = 0; i < *numDims; i++)
 	outDims[*numDims - 1 - i] = dims[i];
+      return 1;
     }
 		
     void MDSplusBackend::writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims, int *inDims, bool isAos, bool isRefAos)
@@ -1014,7 +1015,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 
 
 
-    void MDSplusBackend::readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
+    int MDSplusBackend::readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
 	int *numDims, int *dims)
     {
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
@@ -1024,9 +1025,10 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	
 	int numSegments = node->getNumSegments();
 	if(numSegments > 0)
-	     readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims);
+	     return readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims);
 	else
 	{
+	    if(node->getLength() == 0) return 0;
 	    MDSplus::Data *data = node->getData();
 	    MDSplus::Data *evaluatedData = data->data();
 	    disassembleData(evaluatedData, dataPtr, datatype, numDims, dims);
@@ -1036,8 +1038,9 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	delete node;
       }catch(MDSplus::MdsException &exc)
       {
-	throw UALNoDataException(exc.what(),LOG);
+	throw UALBackendException(exc.what(),LOG);
       }
+      return 1;
     }
 
 
@@ -1087,7 +1090,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 //	throw UALBackendException(exc.what(),LOG);
 	tree->setDefault(topNode);
 //	delete topNode;
-	throw UALNoDataException(exc.what(),LOG);
+	throw UALBackendException(exc.what(),LOG);
       }
 //      delete topNode;
     }
@@ -1096,7 +1099,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 
 
 
-    void MDSplusBackend::readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int  MDSplusBackend::readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *outDims, bool manglePath)
     {
 /** Steps:
@@ -1120,12 +1123,13 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    	node = getNode(fullPath.c_str());
 	}catch(MDSplus::MdsException &exc) 
 	{	
-	    throw UALNoDataException(exc.what(),LOG);
+//	    throw UALNoDataException(exc.what(),LOG);
+	    throw UALBackendException(exc.what(),LOG);
 	}
 	try {
 	    int numSegments = node->getNumSegments();
 	    if(numSegments == 0)
-	      throw UALNoDataException("No Segments in data item",LOG);
+	      return 0;
 	      
 	    int segmentIdx;
 	    //Since the expression contains node reference, it is necessary to set the active tree
@@ -1363,7 +1367,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    (*numDims)++;
 ///////////////////////////////////////////	
 
-
+            return 1;
 
 	}catch(MDSplus::MdsException &exc)
 	{
@@ -1468,6 +1472,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	      for(int i = 0; i < numElements; i++)
 	      {
 		  MDSplus::Data *currTimeD = getFromApd(apd, i, time);
+		  if(!currTimeD)
+		      throw  UALBackendException("Cannot get Time information",LOG); 
 		  times[i] = currTimeD->getDouble();
 	      }
 	      std::string newTimebasePath = composePaths(aosPath, "time");
@@ -1603,6 +1609,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    //first step: extract time from "time" field of the passed AOS and store it in the timePath node as slice
 	    	std::string time("time");
 		MDSplus::Data *currTimeD = getFromApd(inApd, 0, time);  //Always the first slice (only 1 single time in the slice)
+		if(!currTimeD)
+		   throw  UALBackendException("Cannot get time information",LOG); 
 		double sliceTime = currTimeD->getDouble();
 	        int dims[] = {1};
 		//Gabriele July 2017
@@ -1726,6 +1734,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	try {
 	    std::string fullPath = composePaths(dataobjectPath, path);
 	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath, true).c_str());
+	    if (node->getLength() == 0)  return NULL;
 	    MDSplus::Data *retData = node->getData();
 	    if(retData->clazz != CLASS_APD)
 		throw  UALException("Internal error: array of structure is not an APD data");
@@ -1736,77 +1745,10 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    return (MDSplus::Apd *)retData;
 	}catch(MDSplus::MdsException &exc)	
 	{
-	  throw UALNoDataException(exc.what(),LOG);
-//	  throw  UALBackendException(exc.what(),LOG); 
+//	  throw UALNoDataException(exc.what(),LOG);
+	  throw  UALBackendException(exc.what(),LOG); 
 	}
     }
-
-//Gabriele 2017 
- /*  MDSplus::Apd *readDynamicApdBACATO(MDSplus::TreeNode *node)
-    {
-      if(!tree)  throw UALBackendException("Pulse file not open",LOG);
-    	try {
-	    MDSplus::Apd *retApd = new MDSplus::Apd();
-	    int numSegments = node->getNumSegments();
-	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
-	    {
-		MDSplus::Data *startData, *endData;
-		node->getSegmentLimits(segIdx, &startData, &endData);
-		int startIdx = startData->getInt();
-		int endIdx = endData->getInt();
-		if(startIdx == endIdx) 
-		{
-//Check Now if the segment is completely filled. Only in this case the content of the segment does
-//not include the size of the serialized slice
-		    char dtype, nDims;
-		    int dims[64];
-		    int leftRow;
-		    node->getSegmentInfo(numSegments - 1, &dtype, &nDims, dims, &leftRow);
-		    int leftSpace = dims[nDims - 1] - leftRow;
-		    if(leftSpace == 0) //Only in this case the segment only contains thhe serielized slice
-		    {
-			MDSplus::Data *serializedData = node->getSegment(segIdx);
-			int serLen;
-			char *serialized = serializedData->getByteArray(&serLen);
-			MDSplus::Data *sliceData = MDSplus::deserialize(serialized);
-			delete [] serialized;
-			MDSplus::deleteData(serializedData);
-			retApd->appendDesc(sliceData);
-			continue; //Mode to next segment
-		    }
-		}
-		//From here, slices are stored together their dimension
-		MDSplus::Data *serializedData = node->getSegment(segIdx);
-		int serializedLen;
-		char *serialized = serializedData->getByteArray(&serializedLen);
-		MDSplus::deleteData(serializedData);
-		int idx = 0;
-		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
-		{
-		    int sliceLen;
-		    memcpy(&sliceLen, &serialized[idx], sizeof(int));
-		    idx += sizeof(int);
-		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
-		    idx += sliceLen;
-		    retApd->appendDesc(sliceData);
-		}
-		delete [] serialized;
-	    }
-	    delete node;
-
-//	    std::cout << "readTimedApd\n";
-//	    dumpArrayStruct((MDSplus::Apd *)retApd, 0);
-	    
-	    return retApd;
-	}catch(MDSplus::MdsException &exc)	
-	{
-//	  throw  UALBackendException(exc.what(),LOG); 
-	  throw  UALNoDataException(exc.what(),LOG); 
-	}
-    }
-
-
-*/
 
 //Gabriele 2017 
    MDSplus::Apd *MDSplusBackend::readDynamicApd(MDSplus::TreeNode *node) 
@@ -1824,30 +1766,6 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    	MDSplus::deleteData(startData);
 	    	getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
 	    	MDSplus::deleteData(endData);
-/* Gabriele February 2018: ALWAYS store APD slices with serialized length first in segments
-		if(startIdx == endIdx) 
-		{
-//Check Now if the segment is completely filled. Only in this case the content of the segment does
-//not include the size of the serialized slice
-		    char dtype, nDims;
-		    int dims[64];
-		    int leftRow;
-		    node->getSegmentInfo(segIdx, &dtype, &nDims, dims, &leftRow);  //Gabriele February 2018
-		    int leftSpace = dims[nDims - 1] - leftRow;
-		    if(leftSpace == 0) //Only in this case the segment only contains thhe serielized slice
-		    {
-			MDSplus::Data *serializedData = node->getSegment(segIdx);
-			int serLen;
-			char *serialized = (char *)serializedData->getByteUnsignedArray(&serLen);
-			MDSplus::Data *sliceData = MDSplus::deserialize(serialized);
-			delete [] serialized;
-			MDSplus::deleteData(serializedData);
-			retApd->appendDesc(sliceData);
-			continue; //Mode to next segment
-		    }
-		}
-		//From here, slices are stored together their dimension
-*/
 		MDSplus::Data *serializedData = node->getSegment(segIdx);
 		int serializedLen;
 		char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
@@ -1867,8 +1785,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    return retApd;
 	}catch(MDSplus::MdsException &exc)	
 	{
-//	  throw  UALBackendException(exc.what(),LOG); 
-	  throw  UALNoDataException(exc.what(),LOG); 
+	  throw  UALBackendException(exc.what(),LOG); 
+//	  throw  UALNoDataException(exc.what(),LOG); 
 	}
     }
 	
@@ -1876,7 +1794,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
     {
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0)
-	  throw UALNoDataException("No segments in data item", LOG);
+	   return NULL;
+//	  throw UALNoDataException("No segments in data item", LOG);
 	MDSplus::Data *startData, *endData;
 	int segIdx;
 	for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -1976,7 +1895,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		timebaseNode = getNode(mdsconvertPath(timebasePath.c_str()).c_str());
 	    }
 	    int nDims, datatype, dims[64];
-	    readTimedData(timebaseNode, (void **)&timebase, &datatype, &nDims, dims);
+	    if(!readTimedData(timebaseNode, (void **)&timebase, &datatype, &nDims, dims)) return NULL;
 //	    delete timebaseNode;
 	    if(datatype != ualconst::double_data || nDims != 1 || dims[0] < 1)
 	    	throw UALBackendException("Unexpected time type or dimension in beginAosSliceAction",LOG);
@@ -2056,6 +1975,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		    {
 	    	    	MDSplus::Apd *apd = getApdSliceAt(inNode, sliceIdx);
 	    	    	MDSplus::Apd *apd1 = getApdSliceAt(inNode, sliceIdx1);
+			if(!apd || ! apd1) return NULL;
 			if(checkStruct(apd, apd1))
 			{
     			    MDSplus::Apd *retApd = MDSplusBackend::interpolateStruct(apd, apd1, time, timebase[sliceIdx], timebase[sliceIdx1]);
@@ -2072,11 +1992,11 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		    }
 		}
 		default:
-		   throw  UALNoDataException("INTERNAL ERROR: Invalid Interpolation", LOG);
+		   throw  UALBackendException("INTERNAL ERROR: Invalid Interpolation", LOG);
 	    }
 	}catch(MDSplus::MdsException &exc)	
 	{
-	  throw  UALNoDataException(exc.what(),LOG); 
+	  throw  UALBackendException(exc.what(),LOG); 
 	}
     }
 	    
@@ -2090,7 +2010,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	  throw UALBackendException("Invalid index in array of structures",LOG);
 	MDSplus::Apd *currApd = (MDSplus::Apd*)apd->getDescAt(idx);
 	if(!currApd)  //Jan 2015 allow holes in struct arrays
-	  throw UALNoDataException("Missing  Array of structures field");
+          return NULL;
+//	  throw UALNoDataException("Missing  Array of structures field");
 	if(currApd->clazz != CLASS_APD)
 	  throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
 	size_t prevPos = 0; 
@@ -2129,7 +2050,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		if(newApd->clazz != CLASS_APD)
 		{
 		    if(apdIdx > 0)
-		    	throw UALNoDataException("Missing component in array of structues");
+		    	throw UALBackendException("Missing component in array of structues");
 		       // throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
 		//May not be an internal error in case a Dynamic internal AoS is defined Just below the root of the static AoS
 		//in this case the APD has the name followed by NID
@@ -2137,7 +2058,8 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 			continue;
 		}
 		if(newApd->len() == 0)
-		    throw UALNoDataException("Missing component in array of structues");
+		    return NULL;
+		    //throw UALNoDataException("Missing component in array of structues");
 
 		MDSplus::Data *currNameData = newApd->getDescAt(0);
 		char *currNameChar = currNameData->getString();
@@ -2174,8 +2096,9 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		}
 		
 		delete [] currNameChar;
+		return NULL;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////	      
-		throw UALNoDataException("Missing component in array of structues",LOG);
+//		throw UALNoDataException("Missing component in array of structues",LOG);
 	    } 
 	    currPos++;
 	    prevPos = currPos;
@@ -2832,7 +2755,7 @@ printf("Warning, struct field added more than once\n");
 	    
     
    
-   void MDSplusBackend::readData(OperationContext *ctx,
+   int MDSplusBackend::readData(OperationContext *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
@@ -2843,17 +2766,18 @@ printf("Warning, struct field added more than once\n");
     switch(ctx->getRangemode()) {
       case ualconst::global_op:
 	if(!timebase.empty())
-	  readTimedData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
+	  return readTimedData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	else
-	  readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
+	  return readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	break;
       case ualconst::slice_op:
 	if(!timebase.empty())
-	  readSlice(tree, ctx->getDataobjectName(), fieldname, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
+	  return readSlice(tree, ctx->getDataobjectName(), fieldname, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
 	else
-	  readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
+	  return readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	break;
     }
+    return 1;
   }
   
   void MDSplusBackend::deleteData(OperationContext *ctx,
@@ -2909,15 +2833,24 @@ printf("Warning, struct field added more than once\n");
     if(ctx->getParent()) //We are going to start reading a nested array of structures
     {
 	MDSplus::Apd *parentApd = getApdFromContext(ctx->getParent());
+	
 	if ((int)parentApd->len()==0)
-	  throw UALNoDataException("Missing array of structure child named "+ctx->getPath(),LOG);
-//	if(ctx->getIndex() >= (int)parentApd->len()) //If wrong index
+	{
+	    *size = 0;
+	    return;
+	}
+	 // throw UALNoDataException("Missing array of structure child named "+ctx->getPath(),LOG);
 	if(ctx->getParent()->getIndex() >= (int)parentApd->len()) //If wrong index  Gabriele March 2018
 	  throw UALBackendException("Invalid index in array of structures",LOG);
  	if(ctx->getTimebasePath().empty() || (!ctx->getTimebasePath().empty() && !ctx->getParent()->getTimebasePath().empty())) 
 
 	{
 	    MDSplus::Apd *currApd = (MDSplus::Apd *)getFromApd(parentApd, ctx->getParent()->getIndex(), ctx->getPath()); //Gabriele March 2018
+	    if(!currApd) 
+	    {
+		*size = 0;
+		return;
+	    }
 	    //MDSplus::Apd *currApd = (MDSplus::Apd *)getFromApd(parentApd, ctx->getIndex(), ctx->getPath());
 	    if(currApd->clazz != CLASS_APD)
 	        throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
@@ -2929,20 +2862,13 @@ printf("Warning, struct field added more than once\n");
 //skip the first part of the name for nested Dynamic AoS
 	    std::string aosPath = ctx->getPath();
 	    size_t currPos = aosPath.find_first_of("/");
-/*	    if(currPos == std::string::npos)
-	    {
-		aosPath = "";
-	    }
-	    else
-	    {
-		aosPath = aosPath.substr(currPos + 1);
-	    }
-Gabriele Dec 2017 */
-
-		aosPath = aosPath.substr(currPos + 1);
-//////////////////////////////////
+	    aosPath = aosPath.substr(currPos + 1);
 	    MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getParent()->getIndex(), aosPath); //Gabriele March 2018
-//	    MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getIndex(), aosPath);
+	    if(!node)
+	    {
+		*size = 0;
+		return;
+	    }
 	    if(ctx->getRangemode() == GLOBAL_OP)
 	        currApd = readDynamicApd(node);
 	    else
@@ -2961,6 +2887,11 @@ Gabriele Dec 2017 */
 		    currApd = readSliceApd(node, "", ctx->getTime(), ctx->getInterpmode());
 		else
 		    currApd = readSliceApd(node, timebasePath, ctx->getTime(), ctx->getInterpmode());
+		if(!currApd)
+		{
+		    *size = 0;
+		    return;
+		}
 	    }
 
 
@@ -2988,7 +2919,11 @@ Gabriele Dec 2017 */
 	    else
 	    {
 		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
-//		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/STATIC");
+		if(!currApd)
+		{
+		    *size = 0;
+		    return;
+		}		
 		MDSplus::Apd *resApd = resolveApdTimedFields(currApd);
 		MDSplus::deleteData(currApd);
 		currApd = resApd;
@@ -3016,6 +2951,11 @@ Gabriele Dec 2017 */
 	    else
 	    {
 		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
+		if(!currApd)
+		{
+		    *size = 0; 
+		    return;
+		}
 //std::cout << "PRIMA DI RESOLVED " << std::endl;
 //dumpArrayStruct(currApd, 0);
 		MDSplus::Apd *resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath());
@@ -3126,7 +3066,10 @@ Gabriele Dec 2017 */
 		  std::string pathStr(path);
 		  delete [] path;
 		  std::string emptyStr("");
-		  readSlice(tree, pathStr, emptyStr, time, interpolation, &data, &datatype, &numDims, dims, false); //Do not mangle node name
+
+		  if(!readSlice(tree, pathStr, emptyStr, time, interpolation, &data, &datatype, &numDims, dims, false))
+		      throw UALBackendException("Internal error: expected valid slice in resolveApdSliceFields",LOG);
+		//Do not mangle node name
 //Gabriele July 2017 one additional dimension (=1) is now returned because it is expected by the high level. It must be removed here, however.
 //		  numDims--;
 /////////////////////////////////////////////////////////////////
@@ -3170,7 +3113,7 @@ Gabriele Dec 2017 */
   }
 
 
-    void MDSplusBackend::getFromArraystruct(ArraystructContext *ctx,
+    int MDSplusBackend::getFromArraystruct(ArraystructContext *ctx,
 				  std::string fieldname,
 				  int idx,
 				  void** retData,
@@ -3181,9 +3124,11 @@ Gabriele Dec 2017 */
     {
 	MDSplus::Apd *currApd = getApdFromContext(ctx);
         MDSplus::Data *data = getFromApd(currApd, idx, fieldname);
+	if(!data) return 0;
 	MDSplus::Data *evaluatedData = data->data();
 	MDSplusBackend::disassembleData(data, retData, datatype, dim, size);
 	MDSplus::deleteData(evaluatedData);
+	return 1;
     }
 
 
