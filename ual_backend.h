@@ -146,11 +146,10 @@ public:
      This function initiates the writing of a new top-level or nested array of structure.
      @param[in] ctx pointer on array of structure context
      @param[in,out] size specify the size of the array (number of elements)
-     @result returns 0 when there is no such data in read mode (or 1 on success)
      @throw BackendException
   */
-  virtual int beginArraystructAction(ArraystructContext *ctx,
-				     int *size) = 0;
+  virtual void beginArraystructAction(ArraystructContext *ctx,
+				      int *size) = 0;
 
 };
 

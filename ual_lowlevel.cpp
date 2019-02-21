@@ -658,17 +658,18 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
 					std::string(timebase),
 				  dynamic_cast<ArraystructContext *>(lle.context));
 
-    if (lle.backend->beginArraystructAction(actx, size) == 0)
+    lle.backend->beginArraystructAction(actx, size);
+
+    if (*size == 0)
       {
 	// no data
 	delete(actx);
-	*size = 0;
 	actxID = 0; 
       }
     else
       {
 	actxID = Lowlevel::addLLenv(lle.backend, actx); 
-	if (*size < 1)
+	if (*size < 0)
 	  {
 	    std::cout << "Warning: beginArraystructAction returned size = "<< *size
 		      << " for AoS " << path << "\n";
