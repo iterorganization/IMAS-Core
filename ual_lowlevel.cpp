@@ -337,9 +337,8 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     if (pctx==NULL) 
       throw UALLowlevelException("Wrong Context type stored",LOG);
   
-    std::string sDataobjectname = dataobjectname;
     octx = new OperationContext(*pctx, 
-                                sDataobjectname,
+                                std::string(dataobjectname),
 				rwmode);
     lle.backend->beginAction(octx);
     octxID = Lowlevel::addLLenv(lle.backend, octx); 
@@ -392,9 +391,8 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    std::string sDataobjectname = dataobjectname;
     OperationContext *octx= new OperationContext(*pctx, 
-						 sDataobjectname,
+						 std::string(dataobjectname),
 						 rwmode, 
 						 ualconst::slice_op, 
 						 time, 
