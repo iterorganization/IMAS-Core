@@ -52,13 +52,13 @@ class MDSplusBackend:public Backend
 	int *dims, bool isAos = false, bool isRefAos = false);
     void writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase,  void *data, int datatype, int numDims, 
 	int *dims, bool isAos = false, bool isRefAos = false);
-    void readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
+    int readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
 	int *numDims, int *dims);
-    void readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
+    int readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
 	int *numDims, int *dims);
-    void readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype, int *numDims, int *outDims);
+    int readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype, int *numDims, int *outDims);
     void deleteData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path);
-    void readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *dims, bool manglePath = true);
 
 //Array of structures stuff	
@@ -140,7 +140,7 @@ class MDSplusBackend:public Backend
 	    writeData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
     
-    virtual void readData(Context *ctx,
+    virtual int readData(Context *ctx,
 			  std::string fieldname,
 			  std::string timebase,
 			  void** data,
@@ -149,13 +149,13 @@ class MDSplusBackend:public Backend
 			  int* size)
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
-	    getFromArraystruct((ArraystructContext *)ctx, fieldname,
+	    return getFromArraystruct((ArraystructContext *)ctx, fieldname,
 				    ((ArraystructContext *)ctx)->getIndex(), data, datatype, dim, size);
 	else
-    	    readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
+    	    return readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
 
-    virtual void readData(OperationContext *ctx,
+    virtual int readData(OperationContext *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
@@ -182,7 +182,7 @@ class MDSplusBackend:public Backend
 				  int dim,
 				  int* size);
 
-    virtual void getFromArraystruct(ArraystructContext *ctx,
+    virtual int getFromArraystruct(ArraystructContext *ctx,
 				    std::string fieldname,
 				    int idx,
 				    void** data,
