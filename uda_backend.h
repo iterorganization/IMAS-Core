@@ -58,7 +58,7 @@ public:
                    int dim,
                    int* size) override;
 
-    void readData(Context *ctx,
+    int readData(Context *ctx,
                   std::string fieldname,
                   std::string timebasename,
                   void** data,

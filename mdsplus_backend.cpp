@@ -424,7 +424,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
     MDSplus::TreeNode * MDSplusBackend::getNode(const char *path)
     {
-//        return tree->getNode(path);
+ //       return tree->getNode(path);
 	std::string pathStr(path);
 	MDSplus::TreeNode *node;
 	if(treeNodeMap.find(pathStr) != treeNodeMap.end())
@@ -436,14 +436,7 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 	    node = tree->getNode(path);
 	    treeNodeMap[pathStr] = node;
 	}
-/* 	try {
-	    node = treeNodeMap.at(pathStr);
-	}
- 	catch (const std::out_of_range& oor) 
-	{
-	    node = tree->getNode(path);
-	    treeNodeMap[pathStr] = node;
-	} */
+
 	return node;
     }
 
@@ -780,7 +773,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0) 
 	  {
-	    delete node;
+//	    delete node;
 	    return 0;
 	  }
 	MDSplus::Array *firstSegment = node->getSegment(0);
@@ -850,7 +843,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       for(int i = 0; i < *numDims; i++)
 	outDims[*numDims - 1 - i] = dims[i];
     
-      delete node;
+      //delete node;
       return 1;
     }
 		
@@ -1035,7 +1028,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	{
 	    if(node->getLength() == 0) 
 	      {
-		delete node;
+//		delete node;
 		return 0;
 	      }
 	    MDSplus::Data *data = node->getData();
@@ -1044,7 +1037,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    MDSplus::deleteData(data);
 	    MDSplus::deleteData(evaluatedData);
 	}
-	delete node;
+//	delete node;
       }catch(MDSplus::MdsException &exc)
       {
 	throw UALBackendException(exc.what(),LOG);
@@ -2924,7 +2917,7 @@ printf("Warning, struct field added more than once\n");
 //		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
 		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		currApd = readDynamicApd(node);
-		delete node;
+		//delete node;
 	    }
 	    else
 	    {
@@ -2956,7 +2949,7 @@ printf("Warning, struct field added more than once\n");
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
-		delete node;
+		//delete node;
 	    }
 	    else
 	    {
