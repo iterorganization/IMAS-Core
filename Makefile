@@ -39,12 +39,13 @@ endif
 
 ## MDSPlus install (require recent alpha tarball)
 INCLUDES= -I$(MDSPLUS_DIR)/include -I.
+CXXINCLUDES= ${INCLUDES}
 LIBS= -L$(MDSPLUS_DIR)/lib -lMdsObjectsCppShr
 
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp context_test.cpp ual_const.cpp \
 	mdsplus_backend.cpp memory_backend.cpp 
-CSRC=   lowlevel_test.c ual_low_level.c test_lowlevel.c 
+CSRC=   ual_low_level.c 
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		ual_low_level.o ual_backend.o \
@@ -53,7 +54,7 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
- INCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
+ CXXINCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
  LIBS+= `pkg-config --libs uda-fat-cpp`
  COMMON_OBJECTS+= uda_backend.o
  CPPSRC+=uda_backend.cpp
@@ -108,7 +109,7 @@ clean-doc:
 
 %.d: %.cpp
 	@set -e; $(RM) $@; \
-	$(CXX) -MM $(CXXFLAGS) $(INCLUDES) $< > $@.$$$$; \
+	$(CXX) -MM $(CXXFLAGS) $(CXXINCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 
@@ -118,7 +119,7 @@ clean-doc:
 
 
 %.o: %.cpp 
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $< 
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $< 
 
 %.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
