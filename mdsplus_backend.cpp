@@ -778,8 +778,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       try {
 	std::vector<MDSplus::Array *> segmentV;
 	int numSegments = node->getNumSegments();
-	if(numSegments == 0)
-	  return 0;
+	if(numSegments == 0) 
+	  {
+	    delete node;
+	    return 0;
+	  }
 	MDSplus::Array *firstSegment = node->getSegment(0);
 	int *segDims;
 	char clazz, dtype, nDims;
@@ -842,10 +845,12 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	dims[0] = actSlices;
       }catch(MDSplus::MdsException &exc)
       {
-	throw UALBackendException(exc.what(),LOG);
+       throw UALBackendException(exc.what(),LOG);
       }
       for(int i = 0; i < *numDims; i++)
 	outDims[*numDims - 1 - i] = dims[i];
+    
+      delete node;
       return 1;
     }
 		
@@ -1028,7 +1033,11 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	     return readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims);
 	else
 	{
-	    if(node->getLength() == 0) return 0;
+	    if(node->getLength() == 0) 
+	      {
+		delete node;
+		return 0;
+	      }
 	    MDSplus::Data *data = node->getData();
 	    MDSplus::Data *evaluatedData = data->data();
 	    disassembleData(evaluatedData, dataPtr, datatype, numDims, dims);
@@ -2836,8 +2845,9 @@ printf("Warning, struct field added more than once\n");
 	
 	if ((int)parentApd->len()==0)
 	{
-	    *size = 0;
-	    return;
+	  delete parentApd;
+	  *size = 0;
+	  return;
 	}
 	 // throw UALNoDataException("Missing array of structure child named "+ctx->getPath(),LOG);
 	if(ctx->getParent()->getIndex() >= (int)parentApd->len()) //If wrong index  Gabriele March 2018
@@ -2889,15 +2899,15 @@ printf("Warning, struct field added more than once\n");
 		    currApd = readSliceApd(node, timebasePath, ctx->getTime(), ctx->getInterpmode());
 		if(!currApd)
 		{
-		    *size = 0;
-		    return;
+		  delete node;
+		  *size = 0;
+		  return;
 		}
 	    }
-
+	    delete node;
 
 //std::cout << "BEGIN READARRAYSTRUCT\n";
 //dumpArrayStruct(currApd, 0);
-
 	    addContextAndApd(ctx, currApd);   
 	    *size = currApd->len();
 	}
@@ -2914,7 +2924,7 @@ printf("Warning, struct field added more than once\n");
 //		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
 		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		currApd = readDynamicApd(node);
-//		delete node;
+		delete node;
 	    }
 	    else
 	    {
@@ -2946,7 +2956,7 @@ printf("Warning, struct field added more than once\n");
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
-//		delete node;
+		delete node;
 	    }
 	    else
 	    {

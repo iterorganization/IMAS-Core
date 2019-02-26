@@ -149,10 +149,10 @@ class MDSplusBackend:public Backend
 			  int* size)
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
-	    return getFromArraystruct((ArraystructContext *)ctx, fieldname,
-				    ((ArraystructContext *)ctx)->getIndex(), data, datatype, dim, size);
+	  return getFromArraystruct((ArraystructContext *)ctx, fieldname,
+			     ((ArraystructContext *)ctx)->getIndex(), data, datatype, dim, size);
 	else
-    	    return readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
+	  return readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
 
     virtual int readData(OperationContext *ctx,
