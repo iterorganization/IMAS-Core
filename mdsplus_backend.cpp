@@ -422,9 +422,10 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
     }
  */
 
-    MDSplus::TreeNode * MDSplusBackend::getNode(const char *path)
+    MDSplus::TreeNode * MDSplusBackend::getNode(const char *path, bool makeNew)
     {
- //       return tree->getNode(path);
+	if(makeNew)
+            return tree->getNode(path);
 	std::string pathStr(path);
 	MDSplus::TreeNode *node;
 	if(treeNodeMap.find(pathStr) != treeNodeMap.end())
@@ -2455,7 +2456,7 @@ printf("Warning, struct field added more than once\n");
 		}
 		try {
 		    std::string currPath = composePaths(ctx->getDataobjectName(), timedPath);
-		    MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
+		    MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str(), true); //In this case the node will be freed, so it cannot be reused!!
 		    newApd->appendDesc(node);
 
 //std::cout << newApd->decompile() << std::endl;
@@ -2815,7 +2816,7 @@ printf("Warning, struct field added more than once\n");
 	      std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getParent()->getIndex());  //Gabriele March 2018
 //	      std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getIndex());
  	      std::string currPath = composePaths(ctx->getDataobjectName(), nodePath+"/aos");
-	      MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
+	      MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str(), true);
 
  	      insertNewInApd(ctx, ctx->getPath(), parentApd, ctx->getParent()->getIndex(), ctx->getPath(),  emptyStr, false, node); //Gabriele March 2018
  	     // insertNewInApd(ctx, ctx->getPath(), parentApd, ctx->getIndex(), ctx->getPath(),  emptyStr, false, node); 
@@ -2897,7 +2898,6 @@ printf("Warning, struct field added more than once\n");
 		  return;
 		}
 	    }
-	    delete node;
 
 //std::cout << "BEGIN READARRAYSTRUCT\n";
 //dumpArrayStruct(currApd, 0);
@@ -3248,6 +3248,7 @@ printf("Warning, struct field added more than once\n");
 		      }
 		  }
 	      }
+//dumpArrayStruct(currApd, 0);
 	      MDSplus::deleteData(currApd);
 	  }
       }

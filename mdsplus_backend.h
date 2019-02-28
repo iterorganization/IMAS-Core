@@ -92,7 +92,7 @@ class MDSplusBackend:public Backend
     std::string  toLower(std::string s);
      std::string relativeToAbsolutePath(ArraystructContext *ctx, std::string relPath, int idx = 0);
     void resetNodePath();
-    MDSplus::TreeNode *getNode(const char *);
+    MDSplus::TreeNode *getNode(const char *, bool makeNew = false);
 /////Public section - Implementation of Backend interface		
       public:
 	
