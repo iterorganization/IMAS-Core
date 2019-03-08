@@ -1407,7 +1407,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	{
 	    if(arrayStructContextV[i] == arrStructCtx)
 	    {
-	        std::cout << "INTERNAL ERROR IN addContextAndApd\n";
+	       // std::cout << "INTERNAL ERROR IN addContextAndApd\n"; Gabriele March 2019: seems that context my be reused.....
 		arrayStructDataV[i] = arrStructData;
 		break;
 	    }
@@ -2969,8 +2969,14 @@ printf("Warning, struct field added more than once\n");
 
 //std::cout << "RESOLVED" << std::endl;
 //dumpArrayStruct(currApd, 0);
-	addContextAndApd(ctx, currApd);   
-	*size = currApd->len();
+//	addContextAndApd(ctx, currApd);   
+	if(!currApd)
+	    *size = 0;
+	else
+	{
+	    addContextAndApd(ctx, currApd);   
+	    *size = currApd->len();
+	}
     }
 }
 

@@ -428,14 +428,14 @@ public:
     void flush(PulseContext *ctx, std::string dataobjectName);
     void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);
     void recFlushAoS(UalAoS &ualAoS, OperationContext *opCtx, ArraystructContext *ctx);
-    void getFromAoS(ArraystructContext *ctx,
+    int getFromAoS(ArraystructContext *ctx,
 					std::string fieldname,
 					int idx,
 					void** data,
 					int* datatype,
 					int* dim,
 					int* size);
-    void getSliceFromAoS(ArraystructContext *ctx,
+    int getSliceFromAoS(ArraystructContext *ctx,
 					std::string fieldname,
 					int idx,
 					void** data,

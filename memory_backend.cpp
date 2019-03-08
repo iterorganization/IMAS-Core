@@ -125,12 +125,13 @@ else
 
 	UalStruct *ids = getIds(ctx);
 	UalData *ualData = ids->getData(fieldname);
+	int status = 1;
 	if(ctx->getRangemode() == GLOBAL_OP)
 	{
 	    switch(ualData->getMapState())
 	    {
 	    	case UalData::MAPPED:
-		    ualData->readData(data, datatype, dim, size);
+		    status= ualData->readData(data, datatype, dim, size);
 		    break;
 	    	case UalData::UNMAPPED:
 		    targetB->readData(ctx, fieldname, timebase, data, datatype, dim, size);
@@ -167,16 +168,16 @@ else
 	    int timeDims[16];
 	    if(timebase.length() == 0)  //handle empty time and /time
 	    {
-		ualData->readData(data, datatype, dim, size);  //Not time dependent
-		return 1;
+		return ualData->readData(data, datatype, dim, size);  //Not time dependent
 	    }
 	    else
 	    {
 		if(timebase[0] == '/')
-    	    	    readData(&newCtx, timebase.substr(1), timebase.substr(1), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
+    	    	    status = readData(&newCtx, timebase.substr(1), timebase.substr(1), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 		else
-    	    	    readData(&newCtx, timebase, timebase, (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
+    	    	    status = readData(&newCtx, timebase, timebase, (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    }
+	    if(!status) return 0;
 	    //Check timebase consistency
 	    if(timeDatatype != ualconst::double_data || timeNumDims != 1)
 	    {
@@ -193,7 +194,7 @@ else if (*datatype == INTEGER_DATA || *datatype == COMPLEX_DATA)
 else
     std::cout << "READ DATA IDS:" << ctx->getDataobjectName() << "   FIELD: " << fieldname << *(char **)data << std::endl;
 */
-        return 1;
+        return status;
     }
   /*
     Deletes data.
@@ -369,7 +370,7 @@ else
     {
 
 //std::cout << "GET FROM ARRAYSTRUCT " << ctx->getPath() << "   " << fieldname << "   IDX:" << idx << std::endl;
-
+        int status;
 //If we are starting a readArrayStruct for a SLICE_OP or the AoS is NOT mapped, take NO actio, just pass it to the target backend
 	if(!isMappedAoS(ctx))
 	{
@@ -382,16 +383,17 @@ else
 	{
 	    if(timebase.size() > 0)  //For timed AoS slices, the dimension must be increased putting 1 as 0D
 	    {
-	    	getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	    	status = getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
 		size[*dim] = 1;
 		(*dim)++;
 	    }
 	    else
-	    	getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	    	status = getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	    return status;
 	}
 
 	else
-	    getFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	    return getFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
 	return 1;
     }
 
@@ -505,7 +507,7 @@ else
     }
 
 
-    void MemoryBackend::getFromAoS(ArraystructContext *ctx,
+    int MemoryBackend::getFromAoS(ArraystructContext *ctx,
 				  std::string fieldname,
 				  int idx,
 				  void** data,
@@ -514,12 +516,12 @@ else
 				  int* size) 
     {
 	UalData *ualData = getData(ctx, idx, fieldname, false);  //We are going to read the AoS in main structure
-	ualData->readData(data, datatype, dim, size);
+	return ualData->readData(data, datatype, dim, size);
     }
 
 
 
-    void MemoryBackend::getSliceFromAoS(ArraystructContext *ctx,
+    int MemoryBackend::getSliceFromAoS(ArraystructContext *ctx,
 				  std::string fieldname,
 				  int idx,
 				  void** data,
@@ -528,7 +530,7 @@ else
 				  int* size) 
     {
 	UalData *ualData = getData(ctx, idx, fieldname, true);  //We are going to read the AoS slice in the memory struture prepared by prepareSlice()
-	ualData->readData(data, datatype, dim, size);
+	return ualData->readData(data, datatype, dim, size);
     }
 
 
