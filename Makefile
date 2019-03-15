@@ -115,7 +115,7 @@ TARGETS = libimas.so libimas.a
 endif
 
 
-all: $(TARGETS) pkgconfig doc link
+all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 ifeq ("no","$(strip $(SYS_WIN))")
@@ -192,7 +192,7 @@ ifeq ("no","$(strip $(SYS_WIN))")
 	$(mkdir_p) $@
 endif
 
-clean: pkgconfig_clean link_clean test_clean
+clean: pkgconfig_clean test_clean
 	$(RM) *.o *.mod *.a *.so *.lib *.dll
 
 clean-src: clean clean-doc
@@ -203,14 +203,6 @@ test: $(TARGETS)
 	$(MAKE) -C tests
 test_clean:
 	$(MAKE) -C tests clean
-
-link:
-	cd .. && test ! -d lib && $(LN_SD) lowlevel lib || true
-	cd .. && test ! -d include && $(LN_SD) lowlevel include || true
-
-link_clean:
-	cd .. && test -d lib && $(RM) lib || true
-	cd .. && test -d include && $(RM) include || true
 
 
 # Create embedded documentation
