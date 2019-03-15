@@ -33,10 +33,10 @@ Backend* Backend::initBackend(int id)
 #ifdef MDSPLUS
       MDSplusBackend* tbe = new MDSplusBackend();
       be = tbe;
-    }
 #else
       throw UALBackendException("MDSplus backend is not available within current install",LOG);
 #endif
+    }
   else if (id==ualconst::hdf5_backend)
     {
 #ifdef HDF5

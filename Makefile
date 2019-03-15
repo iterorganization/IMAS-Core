@@ -49,7 +49,7 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 ifneq ("no","$(strip $(SYS_WIN))")
 INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
-LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib
+LIBS+= -L. -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/TdiShr.a
@@ -59,7 +59,7 @@ LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 else
 INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
-LIBDIR+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
+LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 endif # SYS_WIN
 COMMON_OBJECTS+=mdsplus_backend.o
@@ -70,7 +70,7 @@ endif # IMAS_MDSPLUS
 ifneq ("no","$(strip $(IMAS_UDA))")
 ifneq ("no","$(strip $(SYS_WIN))")
 INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
-LIBDIR+= -L$(UDA_HOME)/lib
+LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= -lws2_32 -lssl -lcrypto
@@ -87,11 +87,11 @@ endif # IMAS_UDA
 ifneq ("no","$(strip $(IMAS_HDF5))")
 ifneq ("no","$(strip $(SYS_WIN))")
 INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-LIBDIR+= -L$(HDF5_HOME)/lib
+LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
 else
 INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-LIBDIR+= -L$(HDF5_HOME)/lib
+LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= -lhdf5 -ldl -lz
 endif # SYS_WIN
 COMMON_OBJECTS+= hdf5_backend.o
@@ -248,7 +248,7 @@ clean-doc:
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS) 
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBDIR) $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)
