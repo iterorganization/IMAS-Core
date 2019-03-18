@@ -760,7 +760,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	throw UALBackendException(exc.what(),LOG);
       }
       status = readTimedData(node, dataPtr, datatype, numDims, outDims);
-      delete node;
+   //   delete node;
       return status;
     }
 
@@ -1028,14 +1028,14 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	int numSegments = node->getNumSegments();
 	if(numSegments > 0)
 	  {
-	    delete node;
+//	    delete node;
 	    return readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims);
 	  }
 	else
 	  {
 	    if(node->getLength() == 0) 
 	      {
-		delete node;
+//		delete node;
 		return 0;
 	      }
 	    MDSplus::Data *data = node->getData();
@@ -1044,7 +1044,7 @@ std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 	    MDSplus::deleteData(data);
 	    MDSplus::deleteData(evaluatedData);
 	  }
-	delete node;
+//	delete node;
       }catch(MDSplus::MdsException &exc)
 	{
 	  throw UALBackendException(exc.what(),LOG);
@@ -2924,7 +2924,7 @@ printf("Warning, struct field added more than once\n");
 //		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_1/AOS");
 		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		currApd = readDynamicApd(node);
-		delete node;
+		//delete node;
 	    }
 	    else
 	    {
