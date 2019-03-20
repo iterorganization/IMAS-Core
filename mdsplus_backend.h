@@ -93,6 +93,7 @@ class MDSplusBackend:public Backend
      std::string relativeToAbsolutePath(ArraystructContext *ctx, std::string relPath, int idx = 0);
     void resetNodePath();
     MDSplus::TreeNode *getNode(const char *, bool makeNew = false);
+    void freeNodes();
 /////Public section - Implementation of Backend interface		
       public:
 	
@@ -102,7 +103,7 @@ class MDSplusBackend:public Backend
 	sliceIdxs[0] = sliceIdxs[1] = -1;
 	sliceTimes[0] = sliceTimes[1] = 0;
     }	
-    virtual ~MDSplusBackend(){}	
+    virtual ~MDSplusBackend(){freeNodes();}	
 
     static Backend* initBackend(int id);
 
