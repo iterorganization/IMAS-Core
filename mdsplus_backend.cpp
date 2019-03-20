@@ -462,7 +462,6 @@ static std::string getSegmentData(std::string path, int segIdx)
     {
 	for ( auto it = treeNodeMap.begin(); it != treeNodeMap.end(); ++it )
 	{
-	    MDSplus::TreeNode *node = treeNodeMap[it->first];
 	    delete treeNodeMap[it->first];
 	}
 	treeNodeMap.clear();
