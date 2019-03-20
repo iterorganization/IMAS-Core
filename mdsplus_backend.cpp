@@ -2916,7 +2916,7 @@ printf("Warning, struct field added more than once\n");
 	        throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
 	    addContextAndApd(ctx, currApd);  
 	    *size = currApd->len();
-	    MDSplus::deleteData(currApd);
+	    //MDSplus::deleteData(currApd);
 	}
 	else //Dynamic AoS
 	{
@@ -2955,7 +2955,7 @@ printf("Warning, struct field added more than once\n");
 		  return;
 		}
 	    }
-	    delete node;
+	    //delete node;
 //std::cout << "BEGIN READARRAYSTRUCT\n";
 //dumpArrayStruct(currApd, 0);
 	    addContextAndApd(ctx, currApd);   
