@@ -237,9 +237,9 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 }
 
 
-//#define MDSPLUS_7_49
+#define MDSPLUS_7_48
  
-# ifdef MDSPLUS_7_49 
+# ifndef MDSPLUS_7_48 
 static std::string getSegmentData(std::string path, int segIdx)
 {
     char segIdxBuf[16];
