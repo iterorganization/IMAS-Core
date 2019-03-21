@@ -16,9 +16,72 @@
 #define FALSE 0
 
 
-int mtl_ual_iterate_over_arraystruct(int aosctx, int step) 
+int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
 {
     return ual_iterate_over_arraystruct(aosctx, step);
+}
+
+/**
+   Reads an array of structure from a DATAOBJECT.
+   This function reads a signal made of an array of structures from a DATAOBJECT.
+   @param[in] opCtx operation context
+   @param[in] fieldPath name of the field
+   @param[in] timebasePath name of the timebase
+   @param[out] size returned size of the array of structure
+   @result array of structure context ID [__error if < 0__]
+
+   @todo Low-level API modification:
+   - returns array of structure context ID as result
+   - does not return void pointer on object
+   - returns size of the array of structure
+   - does not
+ */
+int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
+{
+  return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
+}
+
+/**
+   Reads an integer from an array of structure.
+   This function reads an integer field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
+  return status;
+}
+
+/**
+   Reads a double from an array of structure.
+   This function reads a double field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+
+   [ex_ual_mtl_get_from_arraystruct]*/
+int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double *data)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, DOUBLE_DATA, 0, &retSize[0]);
+  return status;
 }
 
 /**
@@ -147,6 +210,296 @@ double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const c
     return array;
 }
 
+
+/**
+   Reads a 3D integer array from an array of structure.
+   This function reads a 3D integer vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 3, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+    }
+  return status;
+}
+
+/**
+   Reads a 3D double array from an array of structure.
+   This function reads a 3D double vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+    double **data, int *dim1, int *dim2, int *dim3)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 3, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+    }
+  return status;
+}
+
+/**
+   Reads a 4D integer array from an array of structure.
+   This function reads a 4D integer vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			   int **data, int *dim1, int *dim2, int *dim3,
+			   int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+				    INTEGER_DATA, 4, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+    }
+  return status;
+}
+
+/**
+   Reads a 4D double array from an array of structure.
+   This function reads a 4D double vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			      double **data, int *dim1, int *dim2, int *dim3, int *dim4)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath,(void **)data, DOUBLE_DATA, 4, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+    }
+  return status;
+}
+
+
+/**
+   Reads a 5D integer array from an array of structure.
+   This function reads a 5D integer vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			   int **data, int *dim1, int *dim2, int *dim3,
+			   int *dim4, int *dim5)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 5, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+/**
+   Reads a 5D double array from an array of structure.
+   This function reads a 5D double vector field from an element of an array of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			      double **data, int *dim1, int *dim2, int *dim3,
+			      int *dim4, int *dim5)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+				    DOUBLE_DATA, 5, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+    }
+  return status;
+}
+
+
+/**
+   Reads a 6D integer array from an array of structure.
+   This function reads a 6D integer vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			   int **data, int *dim1, int *dim2, int *dim3,
+			   int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+				    INTEGER_DATA, 6, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
+/**
+   Reads a 6D double array from an array of structure.
+   This function reads a 6D double vector field from an element of an array
+   of structure.
+   @param[in] aosCtx array of structure context ID
+   @param[in] fieldPath field name
+   @param[in] timebasePath path to the field containing the timebase
+   @param[out] data field value
+   @param[out] dim1 size of first dimension
+   @param[out] dim2 size of second dimension
+   @param[out] dim3 size of third dimension
+   @param[out] dim4 size of fourth dimension
+   @param[out] dim5 size of fifth dimension
+   @param[out] dim6 size of sixth dimension
+   @result error status
+
+   @todo Low-level API modification:
+   - no passed pointer on array of structure (void *obj)
+ */
+int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
+			      double **data, int *dim1, int *dim2, int *dim3,
+			      int *dim4, int *dim5, int *dim6)
+{
+  int status;
+  int retSize[MAXDIM];
+  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+				    DOUBLE_DATA, 6, &retSize[0]);
+
+  if (status==0)
+    {
+      *dim1 = retSize[0];
+      *dim2 = retSize[1];
+      *dim3 = retSize[2];
+      *dim4 = retSize[3];
+      *dim5 = retSize[4];
+      *dim6 = retSize[5];
+    }
+  return status;
+}
+
 double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status)
 {
     double *array=malloc(sizeof(double*));
@@ -244,58 +597,6 @@ double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath,
 /*Low level function prototypes*/
 
 /**
-   Creates an entry in the MDSPlus database.
-   This function creates (overwrite existing entry) and opens a new pulse 
-   file in the MDSPlus database identified by environment variables.
-   @param[in] name identifier for the database [__deprecated???__]
-   @param[in] shot shot number (entry in the database)
-   @param[in] run run number (entry in the database)
-   @param[in] refShot reference shot number [__deprecated???__]
-   @param[in] refRun reference run number [__deprecated???__]
-   @param[out] pulseCtx returned pulse context ID
-   @result error status
-
-   @note what about name? is it really mandatory? same for refShot, refRun? 
-   - we can either pass a string filled with additional parameters for the 
-   backend
-   - and/or define additional function in lowlevel C++ API
- */
-int mtl_ual_create(const char *name, int shot, int run, int refShot, int refRun, 
-	       int *pulseCtx)
-{
-  /* name, refShot, refRun not considered */
-  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
-				      "", "", ""); 
-
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
-}
-
-/**
-   Opens an entry in the MDSPlus database.
-   This function opens an existing pulse file (fail if does not exist)
-   in the MDSPlus database identified by environment variables.
-   @param[in] name identifier for the database [__deprecated???__]
-   @param[in] shot shot number (entry in the database)
-   @param[in] run run number (entry in the database)
-   @param[out] pulseCtx returned pulse context ID
-   @result error status
- */
-int mtl_ual_open(const char *name, int shot, int run, int *pulseCtx)
-{
-  /* name not considered */
-  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
-				      "", "", ""); 
-
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
-}
-
-/**
    Closes an entry in the MDSPlus database.
    This function closes an opened pulse file in the MDSPlus database.
    @param[in] pulseCtx pulse context ID
@@ -306,9 +607,6 @@ int mtl_ual_close(int pulseCtx)
   return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
 }
 
-
-int ual_create_hdf5(const char *name, int shot, int run, int refShot, int refRun, int *retIdx);
-int ual_open_hdf5(const char *name, int shot, int run, int *retIdx);
 
 /**
    Creates an entry in the MDSPlus database.
@@ -498,10 +796,6 @@ int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
 }
 
 
-/* allow future extension where another slice than the last one is replaced */
-
-
-
 /* management 
 ********************************************************************************/
 
@@ -517,25 +811,6 @@ int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
 int mtl_deleteData(int ctx, const char *fieldPath)
 {
   return ual_delete_data(ctx, fieldPath);
-}
-
-
-/**
-   Flush cached data.
-   @todo TDB
- */
-int mtl_ual_flush_dataobject_mem_cache(int ctx, const char *path) 
-{
-  return 0;
-}
-
-/**
-   Discard cached data.
-   @todo TDB
- */
-int mtl_ual_discard_dataobject_mem_cache(int ctx, const char *path) 
-{
-  return 0;
 }
 
 
@@ -679,24 +954,6 @@ int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 ********************************************************************************/
 
 /**
-   Writes a character.
-   This function writes a scalar signal made of character into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-*/
-int mtl_putChar(int opCtx, const char *fieldPath, const char *timebasePath, char data)
-{
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
-			CHAR_DATA, 0, NULL);
-}
-
-/**
    Writes an integer.
    This function writes a scalar signal made of integer into a DATAOBJECT.
    @param[in] opCtx operation context ID
@@ -732,24 +989,6 @@ int mtl_putDouble(int opCtx, const char *fieldPath, const char *timebasePath, do
 			DOUBLE_DATA, 0, NULL);
 }
 
-/**
-   Writes a complex number.
-   This function writes a scalar signal made of complex number into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-*/
-int mtl_putComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-	       double _Complex data)
-{
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
-			COMPLEX_DATA, 0, NULL);
-}
 
 /**
    Writes a 1D char array.
@@ -815,29 +1054,6 @@ int mtl_putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePa
   int size[1] = {dim};
   return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
 			DOUBLE_DATA, 1, size);
-}
-
-/**
-   Writes a 1D complex number array.
-   This function writes a 1D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim size of first dimension
-   @result error status
-   @note draft 
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim)
-{
-  int size[1] = {dim};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 1, size);
 }
 
 /**
@@ -910,29 +1126,6 @@ int mtl_putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePa
 }
 
 /**
-   Writes a 2D complex number array.
-   This function writes a 2D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2)
-{
-  int size[2] = {dim1, dim2};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 2, size);
-}
-
-/**
    Writes a 3D integer array.
    This function writes a 3D vector signal made of integers into a DATAOBJECT.
    @param[in] opCtx operation context ID
@@ -981,43 +1174,19 @@ int mtl_putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePa
 }
 
 /**
-   Writes a 3D complex number array.
-   This function writes a 3D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3)
-{
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 3, size);
-}
-
-/**
    Writes a 4D integer array.
    This function writes a 4D vector signal made of integers into a DATAOBJECT.
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
    @param[in] dim4 size of fourth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
@@ -1025,7 +1194,7 @@ int mtl_putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 4, size);
 }
 
@@ -1035,14 +1204,14 @@ int mtl_putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
    @param[in] dim4 size of fourth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
@@ -1050,33 +1219,8 @@ int mtl_putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePa
 		    double *data, int dim1, int dim2, int dim3, int dim4)
 {
   int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 4, size);
-}
-
-/**
-   Writes a 4D complex number array.
-   This function writes a 4D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4)
-{
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 4, size);
 }
 
 /**
@@ -1085,7 +1229,7 @@ int mtl_putVect4DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1093,7 +1237,7 @@ int mtl_putVect4DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] dim5 size of fifth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
@@ -1101,7 +1245,7 @@ int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 5, size);
 }
 
@@ -1111,7 +1255,7 @@ int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1119,44 +1263,17 @@ int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] dim5 size of fifth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
 int mtl_putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    double *data, int dim1, int dim2, int dim3, int dim4,
 		    int dim5)
 {
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 5, size);
-}
-
-/**
-   Writes a 5D complex number array.
-   This function writes a 5D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @param[in] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
-		     int dim5)
-{
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 5, size);
 }
 
 /**
@@ -1165,7 +1282,7 @@ int mtl_putVect5DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1174,16 +1291,16 @@ int mtl_putVect5DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] dim6 size of sixth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
 int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
+		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
 		 int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 6, size);
 }
 
@@ -1193,7 +1310,7 @@ int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1202,45 +1319,17 @@ int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] dim6 size of sixth dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
 int mtl_putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    double *data, int dim1, int dim2, int dim3, int dim4,
 		    int dim5, int dim6)
 {
   int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 6, size);
-}
-
-/**
-   Writes a 6D complex number array.
-   This function writes a 6D vector signal made of complex numbers into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @param[in] dim5 size of fifth dimension
-   @param[in] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
-		     int dim5, int dim6)
-{
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 6, size);
 }
 
 /**
@@ -1249,7 +1338,7 @@ int mtl_putVect6DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1259,16 +1348,16 @@ int mtl_putVect6DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] dim7 size of seventh dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
 int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5, 
+		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
 		 int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 7, size);
 }
 
@@ -1278,7 +1367,7 @@ int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
+   @param[in] data field value
    @param[in] dim1 size of first dimension
    @param[in] dim2 size of second dimension
    @param[in] dim3 size of third dimension
@@ -1288,75 +1377,22 @@ int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] dim7 size of seventh dimension
    @result error status
 
-   @todo Low-level API modification: 
+   @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
 */
 int mtl_putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4, 
+		    double *data, int dim1, int dim2, int dim3, int dim4,
 		    int dim5, int dim6, int dim7)
 {
   int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 7, size);
 }
-
-/**
-   Writes a 7D complex number array.
-   This function writes a 7D vector signal made of doubles into a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath field name for the timebase
-   @param[in] data field value 
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @param[in] dim5 size of fifth dimension
-   @param[in] dim6 size of sixth dimension
-   @param[in] dim7 size of seventh dimension
-   @result error status
-
-   @todo Low-level API modification: 
-   - additional timebasePath argument
-   - remove isTimed argument
-*/
-int mtl_putVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-		     double _Complex *data, int dim1, int dim2, int dim3, int dim4, 
-		     int dim5, int dim6, int dim7)
-{
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
-			COMPLEX_DATA, 7, size);
-}
-
 
 
 /* readers
 ********************************************************************************/
-
-
-/**
-   Reads a character.
-   This function reads a scalar signal made of a character from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int mtl_getChar(int opCtx, const char *fieldPath, const char *timebasePath,
-	    char *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
-			 CHAR_DATA, 0, &retSize[0]);
-  return status;
-}
 
 /**
    Reads an integer.
@@ -1394,51 +1430,6 @@ int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
   return status;
 }
 
-/**
-   Reads a complex number.
-   This function reads a scalar signal made of a complex number from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @result error status
- */
-int mtl_getComplex(int opCtx, const char *fieldPath, const char *timebasePath,
-	       double _Complex *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
-			 COMPLEX_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads a 1D complex number array.
-   This function reads a 1D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect1DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 1, &retSize[0]);
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
-  return status;
-}
 
 /**
    Reads a 2D integer array.
@@ -1454,7 +1445,7 @@ int mtl_getVect1DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int **data, int *dim1, int *dim2)
 {
   int status;
@@ -1483,7 +1474,7 @@ int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-/*int mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+/*int mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2)
 {
   int status;
@@ -1495,37 +1486,8 @@ int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
       *dim1 = retSize[0];
       *dim2 = retSize[1];
     }
-  return status;  
+  return status;
 }*/
-
-/**
-   Reads a 2D complex number array.
-   This function reads a 2D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect2DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 2, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-  return status;  
-}
 
 /**
    Reads a 3D integer array.
@@ -1533,7 +1495,7 @@ int mtl_getVect2DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath timebase name
-   @param[out] data field value 
+   @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
    @param[out] dim3 size of third dimension
@@ -1542,12 +1504,12 @@ int mtl_getVect2DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
 			 INTEGER_DATA, 3, &retSize[0]);
   if (status==0)
     {
@@ -1574,46 +1536,13 @@ int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
 
    [ex_ual_read_data]*/
-int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2, int *dim3)
 {
   int status;
   int retSize[MAXDIM];
   status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
 			 DOUBLE_DATA, 3, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
-}
-/*[ex_ual_read_data]*/
-
-/**
-   Reads a 3D complex number array.
-   This function reads a 3D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect3DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
-		     int *dim3)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 3, &retSize[0]);
   if (status==0)
     {
       *dim1 = retSize[0];
@@ -1639,8 +1568,8 @@ int mtl_getVect3DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
-		 int **data, int *dim1, int *dim2, int *dim3, 
+int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int **data, int *dim1, int *dim2, int *dim3,
 		 int *dim4)
 {
   int status;
@@ -1673,7 +1602,7 @@ int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4)
 {
@@ -1681,40 +1610,6 @@ int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePa
   int retSize[MAXDIM];
   status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
 			 DOUBLE_DATA, 4, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
-}
-
-/**
-   Reads a 4D complex number array.
-   This function reads a 4D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect4DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
-		     int *dim3, int *dim4)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 4, &retSize[0]);
   if (status==0)
     {
       *dim1 = retSize[0];
@@ -1742,8 +1637,8 @@ int mtl_getVect4DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
-		 int **data, int *dim1, int *dim2, int *dim3, 
+int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int **data, int *dim1, int *dim2, int *dim3,
 		 int *dim4, int *dim5)
 {
   int status;
@@ -1778,7 +1673,7 @@ int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5)
 {
@@ -1798,48 +1693,12 @@ int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePa
 }
 
 /**
-   Reads a 5D complex number array.
-   This function reads a 5D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect5DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
-		     int *dim3, int *dim4, int *dim5)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 5, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
-}
-
-/**
    Reads a 6D integer array.
    This function reads a 6D vector signal made of integers from a DATAOBJECT.
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath timebase name
-   @param[out] data field value 
+   @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
    @param[out] dim3 size of third dimension
@@ -1851,13 +1710,13 @@ int mtl_getVect5DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 		 int **data, int *dim1, int *dim2, int *dim3,
 		 int *dim4, int *dim5, int *dim6)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
 			 INTEGER_DATA, 6, &retSize[0]);
   if (status==0)
     {
@@ -1877,7 +1736,7 @@ int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath timebase name
-   @param[out] data field value 
+   @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
    @param[out] dim3 size of third dimension
@@ -1889,52 +1748,14 @@ int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5, int *dim6)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
 			 DOUBLE_DATA, 6, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
-}
-
-/**
-   Reads a 6D complex number array.
-   This function reads a 6D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @param[out] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect6DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
-		     int *dim3, int *dim4, int *dim5, int *dim6)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 6, &retSize[0]);
   if (status==0)
     {
       *dim1 = retSize[0];
@@ -1953,7 +1774,7 @@ int mtl_getVect6DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath timebase name
-   @param[out] data field value 
+   @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
    @param[out] dim3 size of third dimension
@@ -1966,13 +1787,13 @@ int mtl_getVect6DComplex(int opCtx, const char *fieldPath, const char *timebaseP
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, 
-		 int **data, int *dim1, int *dim2, int *dim3, 
+int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
+		 int **data, int *dim1, int *dim2, int *dim3,
 		 int *dim4, int *dim5, int *dim6, int *dim7)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
 			 INTEGER_DATA, 7, &retSize[0]);
   if (status==0)
     {
@@ -1993,7 +1814,7 @@ int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @param[in] opCtx operation context ID
    @param[in] fieldPath field name
    @param[in] timebasePath timebase name
-   @param[out] data field value 
+   @param[out] data field value
    @param[out] dim1 size of first dimension
    @param[out] dim2 size of second dimension
    @param[out] dim3 size of third dimension
@@ -2006,13 +1827,13 @@ int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional parameter isTimed
  */
-int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, 
+int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		    double **data, int *dim1, int *dim2, int *dim3,
 		    int *dim4, int *dim5, int *dim6, int *dim7)
 {
   int status;
   int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
+  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
 			 DOUBLE_DATA, 7, &retSize[0]);
   if (status==0)
     {
@@ -2026,166 +1847,6 @@ int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePa
     }
   return status;
 }
-
-/**
-   Reads a 7D complex number array.
-   This function reads a 7D vector signal made of complex numbers from a DATAOBJECT.
-   @param[in] opCtx operation context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath timebase name
-   @param[out] data field value 
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @param[out] dim6 size of sixth dimension
-   @param[out] dim7 size of seventh dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - additional parameter isTimed
- */
-int mtl_getVect7DComplex(int opCtx, const char *fieldPath, const char *timebasePath, 
-		     double _Complex **data, int *dim1, int *dim2, 
-		     int *dim3, int *dim4, int *dim5, int *dim6, int *dim7)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 COMPLEX_DATA, 7, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-      *dim7 = retSize[6];
-    }
-  return status;
-}
-
-
-/* objects management
-*******************************************************************************/
-
-
-/* OH: present in F90 in release_object F77 implementation, but not in C++???
-   there is a releaseObject at lowlevel and a releaseObject at high level, at 
-   high level it is defined as getObjectFromList + removeObjectFromList + 
-   releaseObject...
-   => in C++ HL interface, only releaseObject (lowlevel function) is called!!! 
-   Also present in F90 impl of put_object_in_object (recent fix june 2013)
-   => in this case, both C++ and Java diverge !!! 
-
-   Are these 'List' functions related to memcache management? In that case they
-   should not appear at this level but be kept within the virtual back-end / 
-   ual_lowlevel.cpp code.
-*/
-void removeObjectFromList(int idx);
-int addObjectToList(void *obj);
-void replaceObjectInList(int idx, void *obj);
-void *getObjectFromList(int idx);
-/*********************************************/
-
-/**
-   Deallocates an array of structure.
-   This function deallocate the memory reserved for an array of structures.
-   @param[in] aosCtx array of structure context ID
-   @result error status
-
-   @todo Low-level API modification: 
-   - return an error status
- */
-int releaseObject(int aosCtx)
-{
-  return ual_end_action(aosCtx);
-}
-
-/**
-   Writes an array of structure in slice.
-   This function writes a signal made of an array of structures into a DATAOBJECT slice.
-   @param[in] aosCtx object context (for the array of structure to write)
-   @result error status
-
-   @deprecated is this function mandatory? (very narrow usage)
-
-   @todo Low-level API modification:
-   - passed integer (int aosCtx) instead of void pointer (void *obj) + order!
-   - shouldn't we pass the size of the array of structure (for consistency with 
-   other putVect1DSlice, eventually checks at back-end)
-
-   @note is this function deprecated? => beginObject and putObjectSlice putObject 
-   might be redundant
- */
-int putObjectSlice(int aosCtx)
-{
-  return ual_end_action(aosCtx);
-}
-
-
-/**
-   Writes an array of structure in a DATAOBJECT.
-   This function writes a signal made of an array of structures into a DATAOBJECT.
-   @param[in] aosCtx object context (for the array of structure to write)
-   @result error status
-
-   @deprecated it was a flush signal (not used in all back-end), naturally 
-   replaced by ual_end_action
-
-   @todo Low-level API modification:
-   - passed integer (int aosCtx) instead of void pointer on object (void *obj)
-
-   @note same as putObjectSlice or replaceObjectSlice, deprecated???
- */
-int putObject(int aosCtx)
-{
-  return ual_end_action(aosCtx);
-}
-
-/**
-   Reads an array of structure from a DATAOBJECT.
-   This function reads a signal made of an array of structures from a DATAOBJECT.
-   @param[in] opCtx operation context 
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath name of the timebase 
-   @param[out] size returned size of the array of structure
-   @result array of structure context ID [__error if < 0__]
-
-   @todo Low-level API modification:
-   - returns array of structure context ID as result
-   - does not return void pointer on object
-   - returns size of the array of structure
-   - does not 
- */
-int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
-{
-  return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
-}
-
-
-/**
-   Returns the size of an array of structure.
-   This function returns the number of elements of an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @return size of the array of structure [_-1 if failed_]
-
-   @deprecated as dimension is returned with ual_begin_read_arraystruct(), 
-   called from either getObject(), getObjectFromObject() or getObjectSlice()
- */
-int getObjectDim(int aosCtx);
-
-
-/**
-   @deprecated usage ISO_C_BINDING for converting C pointer to Fortran array?
- */
-int getDimensionFromObject(int opCtx, void *obj, const char *fieldPath, int idx,
-			   int *numDims, int *dim1, int *dim2, int *dim3, 
-			   int *dim4, int *dim5, int *dim6, int *dim7);
-
-
 
 
 /* array of structure element writers
@@ -2232,26 +1893,6 @@ int mtl_putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebas
   return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)(&data), DOUBLE_DATA, 0, NULL);
 }
 
-/**
-   Writes a complex number in an array of structure.
-   This function writes a complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putComplexInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-		       double _Complex data)
-{
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)(&data), COMPLEX_DATA, 0, NULL);
-}
 
 /**
    Writes a 1D character array in an array of structure.
@@ -2321,29 +1962,6 @@ int mtl_putVect1DDoubleInObject(int aosCtx, const char *fieldPath,
 				(void *)data, DOUBLE_DATA, 1, size);
 }
 
-/**
-   Writes a 1D complex number array in an array of structure.
-   This function writes a 1D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect1DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim)
-{
-  int size[1] = {dim};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 1, size);
-}
 
 /**
    Writes a 2D character array in an array of structure.
@@ -2419,32 +2037,6 @@ int mtl_putVect2DDoubleInObject(int aosCtx, const char *fieldPath,
   return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 2, size);
 }
-/*[ex_ual_mtl_put_in_arraystruct]*/
-
-/**
-   Writes a 2D complex number array in an array of structure.
-   This function writes a 2D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect2DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2)
-{
-  int size[2] = {dim1, dim2};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 2, size);
-}
 
 /**
    Writes a 3D integer array in an array of structure.
@@ -2496,32 +2088,6 @@ int mtl_putVect3DDoubleInObject(int aosCtx, const char *fieldPath,
   int size[3] = {dim1, dim2, dim3};
   return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 3, size);
-}
-
-/**
-   Writes a 3D complex number array in an array of structure.
-   This function writes a 3D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect3DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2, int dim3)
-{
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 3, size);
 }
 
 /**
@@ -2578,33 +2144,6 @@ int mtl_putVect4DDoubleInObject(int aosCtx, const char *fieldPath,
         (void *)data, DOUBLE_DATA, 4, size);
 }
 
-/**
-   Writes a 4D complex number array in an array of structure.
-   This function writes a 4D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect4DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2, int dim3, 
-			     int dim4)
-{
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 4, size);
-}
 
 /**
    Writes a 5D integer array in an array of structure.
@@ -2662,35 +2201,6 @@ int mtl_putVect5DDoubleInObject(int aosCtx, const char *fieldPath,
   int size[5] = {dim1, dim2, dim3, dim4, dim5};
   return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 5, size);
-}
-
-/**
-   Writes a 5D complex number array in an array of structure.
-   This function writes a 5D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @param[in] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect5DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2, int dim3, 
-			     int dim4, int dim5)
-{
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 5, size);
 }
 
 /**
@@ -2752,743 +2262,3 @@ int mtl_putVect6DDoubleInObject(int aosCtx, const char *fieldPath,
   return ual_write_data(aosCtx, fieldPath, timebasePath,
 				(void *)data, DOUBLE_DATA, 6, size);
 }
-
-/**
-   Writes a 6D complex number array in an array of structure.
-   This function writes a 6D complex number field into an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath name of the field
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] data field value
-   @param[in] dim1 size of first dimension
-   @param[in] dim2 size of second dimension
-   @param[in] dim3 size of third dimension
-   @param[in] dim4 size of fourth dimension
-   @param[in] dim5 size of fifth dimension
-   @param[in] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-   - result = error status (int) instead of opaque pointer (void *)
- */
-int mtl_putVect6DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2, int dim3, 
-			     int dim4, int dim5, int dim6)
-{
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 6, size);
-}
-
-/**
-   @deprecated no 7D field in an array of structure (7D = 6D + time)
- */
-int mtl_putVect7DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, 
-			 int *data, int dim1, int dim2, int dim3, int dim4, 
-			 int dim5, int dim6, int dim7)
-{
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 7, size);
-}
-
-/**
-   @deprecated no 7D field in an array of structure (7D = 6D + time)
- */
-int mtl_putVect7DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim1, int dim2, int dim3, 
-			    int dim4, int dim5, int dim6, int dim7)
-{
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 7, size);
-}
-
-/**
-   @deprecated no 7D field in an array of structure (7D = 6D + time)
- */
-int mtl_putVect7DComplexInObject(int aosCtx, const char *fieldPath, 
-			     const char *timebasePath,
-			     double _Complex *data, int dim1, int dim2, int dim3, 
-			     int dim4, int dim5, int dim6, int dim7)
-{
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, COMPLEX_DATA, 7, size);
-}
-
-
-
-
-
-/* array of structure element readers
-*******************************************************************************/
-
-/**
-   Reads a character from an array of structure.
-   This function reads a character field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - new function
- */
-int mtl_getCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, CHAR_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads an integer from an array of structure.
-   This function reads an integer field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads a double from an array of structure.
-   This function reads a double field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
-
-   [ex_ual_mtl_get_from_arraystruct]*/
-int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, DOUBLE_DATA, 0, &retSize[0]);
-  return status;
-}
-/*[ex_ual_get_from_arraystruct]*/
-
-/**
-   Reads a complex number from an array of structure.
-   This function reads a complex number field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			 double _Complex *data)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
-  return status;
-}
-
-/**
-   Reads a 1D double array from an array of structure.
-   This function reads a 1D double vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-/*int mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 1, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
-  return status;
-}*/
-
-
-/**
-   Reads a 1D complex number array from an array of structure.
-   This function reads a 1D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim size of first dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect1DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double _Complex **data, int *dim)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 1, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim = retSize[0];
-    }
-  return status;
-}
-
-/**
-   Reads a 2D integer array from an array of structure.
-   This function reads a 2D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-/*int mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 2, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-  return status;
-}*/
-
-/**
-   Reads a 2D double array from an array of structure.
-   This function reads a 2D double vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-/*int mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 2, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-  return status;
-}*/
-
-/**
-   Reads a 2D complex number array from an array of structure.
-   This function reads a 2D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect2DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			       double _Complex **data, int *dim1, int *dim2)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 2, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-  return status;
-}
-
-/**
-   Reads a 3D integer array from an array of structure.
-   This function reads a 3D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 3, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
-}
-
-/**
-   Reads a 3D double array from an array of structure.
-   This function reads a 3D double vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
-    double **data, int *dim1, int *dim2, int *dim3)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 3, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
-}
-
-/**
-   Reads a 3D complex number array from an array of structure.
-   This function reads a 3D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect3DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			       double _Complex **data, int *dim1, int *dim2, 
-			       int *dim3)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 3, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
-}
-
-/**
-   Reads a 4D integer array from an array of structure.
-   This function reads a 4D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3, 
-			   int *dim4)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
-				    INTEGER_DATA, 4, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
-}
-
-/**
-   Reads a 4D double array from an array of structure.
-   This function reads a 4D double vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3, int *dim4)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath,(void **)data, DOUBLE_DATA, 4, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
-}
-
-/**
-   Reads a 4D complex number array from an array of structure.
-   This function reads a 4D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect4DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			       double _Complex **data, int *dim1, int *dim2, 
-			       int *dim3, int *dim4)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 4, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
-}
-
-/**
-   Reads a 5D integer array from an array of structure.
-   This function reads a 5D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3, 
-			   int *dim4, int *dim5)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 5, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
-}
-
-/**
-   Reads a 5D double array from an array of structure.
-   This function reads a 5D double vector field from an element of an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3, 
-			      int *dim4, int *dim5)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
-				    DOUBLE_DATA, 5, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
-}
-
-/**
-   Reads a 5D complex number array from an array of structure.
-   This function reads a 5D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect5DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			       double _Complex **data, int *dim1, int *dim2, 
-			       int *dim3, int *dim4, int *dim5)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 5, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
-}
-
-/**
-   Reads a 6D integer array from an array of structure.
-   This function reads a 6D integer vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @param[out] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3, 
-			   int *dim4, int *dim5, int *dim6)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
-				    INTEGER_DATA, 6, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
-}
-
-/**
-   Reads a 6D double array from an array of structure.
-   This function reads a 6D double vector field from an element of an array 
-   of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @param[out] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3, 
-			      int *dim4, int *dim5, int *dim6)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, 
-				    DOUBLE_DATA, 6, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
-}
-
-/**
-   Reads a 6D complex number array from an array of structure.
-   This function reads a 6D complex number vector field from an element of 
-   an array of structure.
-   @param[in] aosCtx array of structure context ID
-   @param[in] fieldPath field name
-   @param[in] timebasePath path to the field containing the timebase
-   @param[in] idx index of the array element
-   @param[out] data field value
-   @param[out] dim1 size of first dimension
-   @param[out] dim2 size of second dimension
-   @param[out] dim3 size of third dimension
-   @param[out] dim4 size of fourth dimension
-   @param[out] dim5 size of fifth dimension
-   @param[out] dim6 size of sixth dimension
-   @result error status
-
-   @todo Low-level API modification:
-   - no passed pointer on array of structure (void *obj)
- */
-int mtl_getVect6DComplexFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			       double _Complex **data, int *dim1, int *dim2, 
-			       int *dim3, int *dim4, int *dim5, int *dim6)
-{
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, COMPLEX_DATA, 6, &retSize[0]);
-
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
-}
-

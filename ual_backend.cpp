@@ -1,9 +1,13 @@
 #include "ual_backend.h"
 #include "no_backend.h"
-#include "mdsplus_backend.h"
 #include "memory_backend.h"
 //#include "ascii_backend.h"
-//#include "hdf5_backend.h"
+#ifdef MDSPLUS
+#include "mdsplus_backend.h"
+#endif
+#ifdef HDF5
+#include "hdf5_backend.h"
+#endif
 #ifdef UDA
 #include "uda_backend.h"
 #endif
@@ -26,16 +30,22 @@ Backend* Backend::initBackend(int id)
   */
   else if (id==ualconst::mdsplus_backend)
     {
+#ifdef MDSPLUS
       MDSplusBackend* tbe = new MDSplusBackend();
       be = tbe;
+#else
+      throw UALBackendException("MDSplus backend is not available within current install",LOG);
+#endif
     }
-  /*
   else if (id==ualconst::hdf5_backend)
     {
-    HDF5Backend* tbe = new HDF5Backend();
-    be = tbe;
+#ifdef HDF5
+      HDF5Backend* tbe = new HDF5Backend();
+      be = tbe;
+#else
+      throw UALBackendException("HDF5 backend is not available within current install",LOG);
+#endif
     }
-  */
   else if (id==ualconst::memory_backend)
     {
       MemoryBackend* tbe = new MemoryBackend();
