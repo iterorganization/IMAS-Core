@@ -38,7 +38,7 @@ endif
 
 
 ## MDSPlus install (require recent alpha tarball)
-INCLUDES= -I$(MDSPLUS_DIR)/include -I.
+INCLUDES= -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 CXXINCLUDES= ${INCLUDES}
 LIBS= -L$(MDSPLUS_DIR)/lib -lMdsObjectsCppShr
 
