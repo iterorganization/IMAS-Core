@@ -198,6 +198,22 @@ int ual_print_context(int ctxID)
 }
 
 
+int ual_get_backendID(int ctxID)
+{
+  int id = ualerror::unknown_err;
+
+  try {
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    id = lle.context->getBackendID();
+  }
+  catch (const UALLowlevelException e) {
+    std::cout << "ual_get_backendID: " << e.what() << "\n";
+    id = ualerror::lowlevel_err;
+  }
+  return id;
+}
+
+
 int ual_begin_pulse_action(const int backendID, const int shot, const int run, 
 			   const char *usr, const char *tok, const char *ver)
 {
