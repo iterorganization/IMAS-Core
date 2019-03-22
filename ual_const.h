@@ -82,9 +82,8 @@ namespace ualerror {
   const int context_err = CONTEXT_ERR;
   const int backend_err = BACKEND_ERR;
   const int lowlevel_err = LOWLEVEL_ERR;
-  const int nodata_err = NODATA_ERR;
 
-  extern const std::array<std::string,5> ual_err_str;
+  extern const std::array<std::string,4> ual_err_str;
 }
 #endif
 

@@ -187,7 +187,6 @@ int UDABackend::readData(Context* ctx,
             memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
         } else if (uda_data->type() == typeid(void)) {
 	    return 0;
-//            throw UALNoDataException();
         } else {
             throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
@@ -199,7 +198,6 @@ int UDABackend::readData(Context* ctx,
         }
     } catch (const uda::UDAException& ex) {
 	return 0;
-//        throw UALNoDataException(ex.what(), LOG);
     }
     return 1;
 }
@@ -238,7 +236,6 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         uda::Data* uda_data = result.data();
         if (uda_data->type() == typeid(void)) {
             *size = 0;
-//            throw UALNoDataException();
 	    return;
         } else if (uda_data->type() != typeid(int)) {
             throw UALBackendException(
@@ -248,7 +245,6 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     } catch (const uda::UDAException& ex) {
         *size = 0;
-//        throw UALNoDataException(ex.what(), LOG);
 	return;
     }
 }

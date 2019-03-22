@@ -41,6 +41,5 @@
 #define CONTEXT_ERR                 ERR_0-1
 #define BACKEND_ERR                 ERR_0-2
 #define LOWLEVEL_ERR                ERR_0-3
-#define NODATA_ERR                  ERR_0-4
 
 

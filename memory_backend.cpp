@@ -1127,7 +1127,6 @@ else
     {
 	if(mapState != MAPPED || bufV.size() == 0)
 	    return 0;
-//	    throw UALNoDataException("No data in memory" ,LOG);
 	*datatype  = type;
 	int totSize = 1;
 	for(size_t i = 0; i < dimensionV.size(); i++)
@@ -1159,7 +1158,6 @@ else
     {
 	if(mapState != MAPPED || bufV.size() == 0)
 	    return 0;
-//	    throw UALNoDataException("No data in memory" ,LOG);
 
 	if((size_t)sliceIdx >= bufV.size())
 	{

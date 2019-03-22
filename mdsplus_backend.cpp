@@ -1202,7 +1202,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	node = getNode(fullPath.c_str());
 	}catch(MDSplus::MdsException &exc) 
 	{	
-//	    throw UALNoDataException(exc.what(),LOG);
 	    throw UALBackendException(exc.what(),LOG);
 	}
 	try {
@@ -1824,7 +1823,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    return (MDSplus::Apd *)retData;
 	}catch(MDSplus::MdsException &exc)	
 	{
-//	  throw UALNoDataException(exc.what(),LOG);
 	  throw  UALBackendException(exc.what(),LOG); 
 	}
     }
@@ -1865,7 +1863,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	}catch(MDSplus::MdsException &exc)	
 	{
 	  throw  UALBackendException(exc.what(),LOG); 
-//	  throw  UALNoDataException(exc.what(),LOG); 
 	}
     }
 	
@@ -1874,7 +1871,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0)
 	   return NULL;
-//	  throw UALNoDataException("No segments in data item", LOG);
 	MDSplus::Data *startData, *endData;
 	int segIdx;
 	for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -2090,7 +2086,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	MDSplus::Apd *currApd = (MDSplus::Apd*)apd->getDescAt(idx);
 	if(!currApd)  //Jan 2015 allow holes in struct arrays
           return NULL;
-//	  throw UALNoDataException("Missing  Array of structures field");
 	if(currApd->clazz != CLASS_APD)
 	  throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
 	size_t prevPos = 0; 
@@ -2138,7 +2133,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		}
 		if(newApd->len() == 0)
 		    return NULL;
-		    //throw UALNoDataException("Missing component in array of structues");
 
 		MDSplus::Data *currNameData = newApd->getDescAt(0);
 		char *currNameChar = currNameData->getString();
@@ -2177,7 +2171,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		delete [] currNameChar;
 		return NULL;
 //////////////////////////////////////////////////////////////////////////////////////////////////////////	      
-//		throw UALNoDataException("Missing component in array of structues",LOG);
+
 	    } 
 	    currPos++;
 	    prevPos = currPos;
@@ -2920,7 +2914,7 @@ printf("Warning, struct field added more than once\n");
 	  *size = 0;
 	  return;
 	}
-	 // throw UALNoDataException("Missing array of structure child named "+ctx->getPath(),LOG);
+
 	if(ctx->getParent()->getIndex() >= (int)parentApd->len()) //If wrong index  Gabriele March 2018
 	  throw UALBackendException("Invalid index in array of structures",LOG);
  	if(ctx->getTimebasePath().empty() || (!ctx->getTimebasePath().empty() && !ctx->getParent()->getTimebasePath().empty())) 
