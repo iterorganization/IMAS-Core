@@ -15,45 +15,21 @@ private:
 
 public:
   
-  NoBackend(bool verb=false) : verbose(verb)
-  {
-    if (verbose)
-      std::cout << "NoBackend constructor\n";
-  }
-  
-  ~NoBackend() 
-  {
-    if (verbose)
-      std::cout << "NoBackend destructor\n";
-  }
+  NoBackend(bool verb=false);
+
+  ~NoBackend() {};
 
   void openPulse(PulseContext *ctx,
 		 int mode,
-		 std::string options) 
-  {
-    if (verbose)
-      std::cout << "NoBackend openPulse\n";
-  }
+		 std::string options);
 
   void closePulse(PulseContext *ctx,
 		  int mode,
-		  std::string options) 
-  {
-    if (verbose)
-      std::cout << "NoBackend closePulse\n";
-  }
+		  std::string options);
 
-  void beginAction(OperationContext *ctx) 
-  {
-    if (verbose)
-      std::cout << "NoBackend beginAction\n";
-  }
+  void beginAction(OperationContext *ctx);
 
-  void endAction(Context *ctx) 
-  {
-    if (verbose)
-      std::cout << "NoBackend endAction\n";
-  } 
+  void endAction(Context *ctx);
 
   void writeData(Context *ctx,
 		 std::string fieldname,
@@ -61,60 +37,21 @@ public:
 		 void* data,
 		 int datatype,
 		 int dim,
-		 int* size) 
-  {
-    if (verbose)
-      std::cout << "NoBackend writeData\n";
-  }
+		 int* size);
 
   int readData(Context *ctx,
-		std::string fieldname,
-		std::string timebasename,
-		void** data,
-		int* datatype,
-		int* dim,
-		int* size) 
-  {
-    if (verbose)
-      std::cout << "NoBackend readData, test scalar\n";
-    
-    if (fieldname=="path/to/double") 
-      {
-	**(double**)data = 123.45;
-	*datatype = DOUBLE_DATA;
-	*dim = 0;
-	size[0] = 0; // size is optional with scalar
-      }
-    else if (fieldname=="path/to/int") 
-      {
-	**(int**)data = 42;
-	*datatype = INTEGER_DATA;
-	*dim = 0;
-	size[0] = 0; // size is optional with scalar
-      }
-    else
-      {
-	if (verbose)
-	  std::cout << "NoBackend readData\n";
-	return 0;
-	//throw UALBackendException("test unrecoverable exception",LOG);
-      }
-     return 1;
-  }
+	       std::string fieldname,
+	       std::string timebasename,
+	       void** data,
+	       int* datatype,
+	       int* dim,
+	       int* size);
 
   void deleteData(OperationContext *ctx,
-		  std::string path)
-  {
-    if (verbose)
-      std::cout << "NoBackend deleteData\n";
-  }
+		  std::string path);
 
   void beginArraystructAction(ArraystructContext *ctx,
-			      int *size) 
-  {
-    if (verbose)
-      std::cout << "NoBackend beginWriteArraystruct\n";
-  }
+			      int *size);
 
 
 };
