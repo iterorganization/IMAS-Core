@@ -125,6 +125,10 @@ else
 
 	UalStruct *ids = getIds(ctx);
 	UalData *ualData = ids->getData(fieldname);
+	if(ualData->isEmpty()) return 0;
+
+
+
 	int status = 1;
 	if(ctx->getRangemode() == GLOBAL_OP)
 	{

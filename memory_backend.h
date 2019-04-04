@@ -53,6 +53,7 @@ public:
     void addSlice(int type, int numDims, int *dims, unsigned char *buf);
     void addSlice(UalData &slice);
 
+    bool isEmpty() { return bufV.size() == 0;}
     void shrinkDimension() //TEMPORARY , MAY BE REMOVED LATER
     {
 	if(dimensionV.size() > 0)
