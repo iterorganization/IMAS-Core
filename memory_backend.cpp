@@ -1165,7 +1165,7 @@ else
 
 	if((size_t)sliceIdx >= bufV.size())
 	{
-	    std::cout << "Warning: slice idx outside limits converting mapped data to slice. Clipped." << std::endl;
+//	    std::cout << "Warning: You are asking a time outside the samples stored in the IDS.  Last available sample returned." << std::endl;
 	    sliceIdx = bufV.size() - 1;
 	}
 	int sliceSize = 1;
@@ -1204,6 +1204,8 @@ else
 	}
 	if(sliceIdx1 == sliceIdx2)
 	{
+	    if(bufV.size() > 0 && (size_t)sliceIdx1 >= bufV.size())
+	    	std::cout << "Warning: You are asking a time outside the samples stored in the IDS.  Last available sample is at time " << times[bufV.size() - 1] <<  std::endl;
 	    readSlice(sliceIdx1, retDataPtr, datatype, retNumDims, retDims);
 	}
 	else
