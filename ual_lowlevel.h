@@ -134,6 +134,16 @@ extern "C"
    */
   int ual_print_context(int ctx);
 
+
+  /**
+     Get backendID from the passed Context identifier.
+     @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
+     @result backendID [_or error status < 0_]
+   */
+  int ual_get_backendID(int ctx);
+
+
+
   
   /**
      Starts an action on a pulse in the database.

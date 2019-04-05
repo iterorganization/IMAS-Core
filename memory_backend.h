@@ -53,14 +53,15 @@ public:
     void addSlice(int type, int numDims, int *dims, unsigned char *buf);
     void addSlice(UalData &slice);
 
+    bool isEmpty() { return bufV.size() == 0;}
     void shrinkDimension() //TEMPORARY , MAY BE REMOVED LATER
     {
 	if(dimensionV.size() > 0)
 	    dimensionV.resize(dimensionV.size() - 1);
     }
 
-    void readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
-    void readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
+    int readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
+    int readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     void readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation);
     UalData *clone();
     std::string toString()
@@ -312,14 +313,14 @@ public:
 	    writeData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
     
-   virtual void readData(OperationContext *ctx,
+   virtual int readData(OperationContext *ctx,
 			  std::string fieldname,
 			  std::string timebase,
 			  void** data,
 			  int* datatype,
 			  int* dim,
 			  int* size);
-    virtual void readData(Context *ctx,
+    virtual int readData(Context *ctx,
 			  std::string fieldname,
 			  std::string timebase,
 			  void** data,
@@ -328,10 +329,10 @@ public:
 			  int* size)
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
-	    getFromArraystruct((ArraystructContext *)ctx, fieldname, timebase, 
+	    return getFromArraystruct((ArraystructContext *)ctx, fieldname, timebase, 
 				    ((ArraystructContext *)ctx)->getIndex(), data, datatype, dim, size);
 	else
-    	    readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
+    	    return readData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
   /*
     Deletes data.
@@ -405,7 +406,7 @@ public:
      @param[out] size returned array of the size of each dimension (NULL is dim=0)
      @throw BackendException
   */
-    virtual void getFromArraystruct(ArraystructContext *ctx,
+    virtual int getFromArraystruct(ArraystructContext *ctx,
 				  std::string fieldname,
 				  std::string timebase,
 				  int idx,
@@ -428,14 +429,14 @@ public:
     void flush(PulseContext *ctx, std::string dataobjectName);
     void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);
     void recFlushAoS(UalAoS &ualAoS, OperationContext *opCtx, ArraystructContext *ctx);
-    void getFromAoS(ArraystructContext *ctx,
+    int getFromAoS(ArraystructContext *ctx,
 					std::string fieldname,
 					int idx,
 					void** data,
 					int* datatype,
 					int* dim,
 					int* size);
-    void getSliceFromAoS(ArraystructContext *ctx,
+    int getSliceFromAoS(ArraystructContext *ctx,
 					std::string fieldname,
 					int idx,
 					void** data,

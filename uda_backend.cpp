@@ -118,7 +118,7 @@ void UDABackend::closePulse(PulseContext* ctx,
     }
 }
 
-void UDABackend::readData(Context* ctx,
+int UDABackend::readData(Context* ctx,
                           std::string fieldname,
                           std::string timebasename,
                           void** data,
@@ -186,7 +186,7 @@ void UDABackend::readData(Context* ctx,
             char n = '\0';
             memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
         } else if (uda_data->type() == typeid(void)) {
-            throw UALNoDataException();
+	    return 0;
         } else {
             throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
@@ -197,8 +197,9 @@ void UDABackend::readData(Context* ctx,
             size[i] = static_cast<int>(shape[i]);
         }
     } catch (const uda::UDAException& ex) {
-        throw UALNoDataException(ex.what(), LOG);
+	return 0;
     }
+    return 1;
 }
 
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
@@ -235,7 +236,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         uda::Data* uda_data = result.data();
         if (uda_data->type() == typeid(void)) {
             *size = 0;
-            throw UALNoDataException();
+	    return;
         } else if (uda_data->type() != typeid(int)) {
             throw UALBackendException(
                     std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
@@ -244,7 +245,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     } catch (const uda::UDAException& ex) {
         *size = 0;
-        throw UALNoDataException(ex.what(), LOG);
+	return;
     }
 }
 

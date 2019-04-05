@@ -42,66 +42,43 @@ public:
    */
   virtual ~Context() {}
 
-  friend std::ostream& operator<< (std::ostream& o, Context const& ctx)
-  {
-    return o << ctx.print();
-  }
+  friend std::ostream& operator<< (std::ostream& o, Context const& ctx);
 
   /**
      Prints content of the context.
   */
-  virtual std::string print() const 
-  {
-    std::string s = "context_uid \t\t = " + 
-      std::to_string(this->uid) + "\n" + 
-      "backend_id \t\t = " + 
-      std::to_string(this->backend_id) + " (" + 
-      this->getBackendName() + ")\n";
-    return s;
-  }
+  virtual std::string print() const; 
 
   /**
      Returns the ID of associated backend.
      @result backend_id
   */
-  int getBackendID() { return backend_id; }
+  int getBackendID() const;
 
   /**
      Returns the name of associated backend.
      @result name of the backend
   */
-  std::string getBackendName() const 
-  { 
-    return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
-  }
+  std::string getBackendName() const;
 
   /**
      Returns object unique id.
      @result uid
   */
-  unsigned long int getUid() const 
-  {
-    return uid;
-  }
+  unsigned long int getUid() const;
 
   /**
      Returns the type of context.
      @result CTX_TYPE
   */
-  virtual int getType() const 
-  {
-    return CTX_TYPE;
-  }
+  virtual int getType() const;
 
   /**
      Context copy constructor.
      Explicit definition to handle uid update.
   */
-  Context(const Context& ctx) 
-  {
-    backend_id = ctx.backend_id; 
-    ++uid;
-  }
+  Context(const Context& ctx);
+
   
 protected:
   /**
@@ -113,19 +90,7 @@ protected:
      @todo need to check if passed id is valid
      @todo how to check/configure available backends on a given system?
   */
-  Context(int id)
-  { 
-    try 
-      {
-	ualconst::backend_id_str.at(id-BACKEND_ID_0);
-      }
-    catch (const std::out_of_range& e) 
-      {
-	throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
-      }
-    backend_id = id; 
-    ++uid;
-  }
+  Context(int id);
 
   int backend_id;                       /**< a backend identifier */
   static std::atomic<unsigned long int> uid;
@@ -151,131 +116,55 @@ public:
      @param t tokamak name
      @param v data version
   */
-  PulseContext(int id, int s, int r, std::string u, std::string t, std::string v)
-    : Context(id), shot(s), run(r)
-  {
-    char *usr = std::getenv("USER"); 
-    if (u=="")
-      {
-	if (usr!=NULL)
-	  user = usr;
-	else
-	  throw UALContextException("Undefined env variable USER",LOG);
-      }
-    else 
-      user = u;
-
-    char *tok = std::getenv("TOKAMAKNAME"); 
-    if (t=="") 
-      {
-	if (tok!=NULL)
-	  tokamak = tok;
-	else
-	  throw UALContextException("Undefined env variable TOKAMAKNAME",LOG);
-      }
-    else
-      tokamak = t;
-
-    char *ver = std::getenv("DATAVERSION"); 
-    if (v=="") 
-      {
-	if (ver!=NULL) 
-	  {
-	    version = ver;
-	  }
-	else
-	  throw UALContextException("Undefined env variable DATAVERSION",LOG);
-      }
-    else
-      {
-	size_t pos = v.find('.');
-	if (pos == std::string::npos)
-	  version = v;
-	else
-	  version = v.substr(0,pos);
-      }
-
-    /* no version in env    
-    if (version!=ver)
-      {
-	std::cerr << "WARNING: selected data version (" << version 
-		  << ") differs from env DATAVERSION (" << ver
-		  << ")" << WHERE << "\n";
-    */
-	/* if environment version is older than data target version   */
-	/* we are probably not able to understand the data: exception */
-    /*
-	if (ver < version) 
-	  throw UALContextException("ERROR: try to read "+ version +
-				    " data with "+ ver +
-				    " UAL: operation not supported!",LOG);
-      }
-    */
-
-  }
+  PulseContext(int id, int s, int r, std::string u, std::string t, std::string v);
 
   /**
      Pulse context destructor.
   */
   virtual ~PulseContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, PulseContext const& ctx)
-  {
-    return o << ctx.print();
-  }
+  friend std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
 
   /**
      Prints content of the pulse context.
   */
-  virtual std::string print() const 
-  {
-    std::string s = ((Context)*this).print() +
-      "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
-      "run \t\t\t = " + std::to_string(this->run) + "\n" +
-      "user \t\t\t = \"" + this->user + "\"\n" +
-      "tokamak \t\t = \"" + this->tokamak + "\"\n" +
-      "version \t\t = \"" + this->version + "\"\n";
-    return s;
-  }
+  virtual std::string print() const; 
 
   /**
      Returns the type of context.
      @result CTX_PULSE_TYPE
   */
-  virtual int getType() const 
-  {
-    return CTX_PULSE_TYPE;
-  }
+  virtual int getType() const; 
 
   /**
      Returns the shot number.
      @result shot 
   */
-  int getShot() { return shot; }
+  int getShot() const;
 
   /**
      Returns the run number.
      @result run
   */
-  int getRun() { return run; }
+  int getRun() const;
 
   /**
      Returns the user name.
      @result user 
   */
-  std::string getUser() { return user; }
+  std::string getUser() const;
 
   /**
      Returns the tokamak name.
      @result tokamak 
   */
-  std::string getTokamak() { return tokamak; }
+  std::string getTokamak() const;
 
   /**
      Returns the version.
      @result version 
   */
-  std::string getVersion() { return version; }
+  std::string getVersion() const;
 
 
  protected:
@@ -306,21 +195,7 @@ public:
      - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
      "replace last slice"_]
   */
-  OperationContext(PulseContext ctx, std::string dataobject, int access)
-    : PulseContext(ctx), dataobjectname(dataobject)
-  {
-    rangemode = ualconst::global_op;
-    time = ualconst::undefined_time;
-    interpmode = ualconst::undefined_interp;
-
-    try {
-      ualconst::op_access_str.at(access-OP_ACCESS_0);
-    } 
-    catch (const std::out_of_range& e) {
-      throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
-    }
-    accessmode = access;
-  }
+  OperationContext(PulseContext ctx, std::string dataobject, int access);
 
   /**
      Operation context constructor.
@@ -343,87 +218,31 @@ public:
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
   */
   OperationContext(PulseContext ctx, std::string dataobject, int access, 
-		   int range, double t, int interp)
-    : PulseContext(ctx), dataobjectname(dataobject), time(t)
-  {
-    try {
-      ualconst::op_range_str.at(range-OP_RANGE_0);
-    } 
-    catch (const std::out_of_range& e) {
-      throw UALContextException("Wrong range mode "+std::to_string(range),LOG);
-    }
-    rangemode = range;
-
-    try {
-      ualconst::op_access_str.at(access-OP_ACCESS_0);
-    } 
-    catch (const std::out_of_range& e) {
-      throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
-    }
-    accessmode = access;
-
-    try {
-      ualconst::op_interp_str.at(interp-OP_INTERP_0);
-    } 
-    catch (const std::out_of_range& e) {
-      throw UALContextException("Wrong interp mode "+std::to_string(interp),LOG);
-    }
-    interpmode = interp;
-
-    // test consistency [missing or wrong expected args, not all possible missmatches!]
-    if (rangemode==ualconst::slice_op)
-      {
-	/* GM: possible negative times
-	if (time<0)
-	  throw UALContextException("Wrong time value "+std::to_string(time)
-				    +" for SLICE_OP",LOG);
-	*/
-	if (accessmode==ualconst::read_op && interpmode==ualconst::undefined_interp)
-	  throw UALContextException("Missing interpmode",LOG);
-      }
-  }
+		   int range, double t, int interp);
 
   /**
      Operation context destructor.
   */
   virtual ~OperationContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, OperationContext const& ctx)
-  {
-    return o << ctx.print();
-  }
+  friend std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
 
   /**
      Prints content of the operation context.
   */
-  virtual std::string print() const 
-  {
-    std::string s = ((PulseContext)*this).print() +
-      "dataobjectname \t\t = " + this->dataobjectname + "\n" +
-      "accessmode \t\t = " + std::to_string(this->accessmode) + 
-      " (" + ualconst::op_access_str.at(this->accessmode-OP_ACCESS_0) + ")\n" +
-      "rangemode \t\t = " + std::to_string(this->rangemode) +
-      " (" + ualconst::op_range_str.at(this->rangemode-OP_RANGE_0) + ")\n" +
-      "time \t\t\t = " + std::to_string(this->time) + "\n" +
-      "interpmode \t\t = " + std::to_string(this->interpmode) +
-      " (" + ualconst::op_interp_str.at(this->interpmode-OP_INTERP_0) + ")\n";
-    return s;
-  }
+  virtual std::string print() const; 
 
   /**
      Returns the type of context.
      @result CTX_OPERATION_TYPE
   */
-  virtual int getType() const 
-  {
-    return CTX_OPERATION_TYPE;
-  }
+  virtual int getType() const; 
 
   /**
      Returns the name of the DATAOBJECT.
      @result dataobjectname
   */
-  std::string getDataobjectName() { return dataobjectname; }
+  std::string getDataobjectName() const;
 
   /**
      Returns access type of the operation.
@@ -433,7 +252,7 @@ public:
      - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
      "replace last slice"_]
   */
-  int getAccessmode() { return accessmode; }
+  int getAccessmode() const;
 
   /**
      Returns range of the operation.
@@ -441,13 +260,13 @@ public:
      - GLOBAL_OP: operation on all slices [_also in non time-dependent case_]
      - SLICE_OP: operation on a single slice
   */
-  int getRangemode() { return rangemode; }
+  int getRangemode() const;
 
   /**
      Returns time of the operation.
      @result time [_=UNDEFINED_TIME when time is not relevant_]
   */
-  double getTime() { return time; }
+  double getTime() const;
 
   /**
      Returns type of interpolation selected for the operation.
@@ -457,7 +276,7 @@ public:
      - LINEAR_INTERP: interpolating linearly values at previous and next slices
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
   */
-  int getInterpmode() { return interpmode; }
+  int getInterpmode() const;
 
 protected:
   std::string dataobjectname;           /**< DATAOBJECT name */
@@ -483,13 +302,7 @@ class ArraystructContext : public OperationContext
      @param p path of the array of structure field [_within the DATAOBJECT if standalone, within its container if nested_]
      @param tb path of the timebase associated with the array of structure
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb)
-    : OperationContext(ctx), path(p), timebase(tb)
-  {
-    parent = NULL;
-    index = 0;
-  }
-
+  ArraystructContext(OperationContext ctx, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
@@ -504,11 +317,8 @@ class ArraystructContext : public OperationContext
      @param timed time dependency of the DATAOBJECT
   */
   ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont)
-    : OperationContext(ctx), path(p), timebase(tb), parent(cont)
-  {
-    index = 0;
-  }
+		     ArraystructContext *cont);
+
   /**
      Array of structure context constructor.
      Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
@@ -522,84 +332,63 @@ class ArraystructContext : public OperationContext
      @param timed time dependency of the DATAOBJECT
   */
   ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont, int idx)
-    : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx)
-  {
-    index = 0;
-  }
+		     ArraystructContext *cont, int idx);
 
   /**
      Array of structure context destructor.
   */
   virtual ~ArraystructContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx)
-  {
-    return o << ctx.print();
-  }
+  friend std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
   /**
      Prints content of the array of structure context.
   */
-  virtual std::string print() const
-  {
-    std::string s = ((OperationContext)*this).print() +
-      "path \t\t\t = \"" + this->path + "\"\n" +
-      "timebase \t\t = \"" + this->timebase + "\"\n" +
-      "timed \t\t\t = " + 
-      (timebase.empty()?"no":"yes") + "\n" +
-      "parent \t\t\t = " +
-      ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
-      "index \t\t\t = " + std::to_string(this->index) + "\n";
-    return s;
-  }
+  virtual std::string print() const;
 
   /**
      Returns the type of context.
      @result CTX_ARRAYSTRUCT_TYPE
   */
-  virtual int getType() const
-  {
-    return CTX_ARRAYSTRUCT_TYPE;
-  }
+  virtual int getType() const;
 
   /**
      Returns the path of the array of structure.
      This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
      @result path
   */
-  std::string getPath() { return path; }
+  std::string getPath() const;
 
  /**
      Returns the timebase path of the array of structure.
      This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
      @result path
   */
-  std::string getTimebasePath() { return timebase; }
+  std::string getTimebasePath() const;
 
   /**
      Returns whether the array of structure is time-dependent or not.
      @result timed
   */
-  bool getTimed() { return !timebase.empty(); }
+  bool getTimed() const; 
 
   /**
      Returns the context of the container array of structure
      @result parent
   */
-  ArraystructContext *getParent() { return parent; }
+  ArraystructContext *getParent();
 
   /**
      Returns the position of the current element of interest within the array of structure.
      @result index
   */
-  int getIndex() { return index; }
+  int getIndex() const;
 
   /**
      Updates the position of the current element of interest within the array of structure.
      @param[in] step step size for setting the next index
   */
-  void nextIndex(int step) { this->index += step; }
+  void nextIndex(int step);
 
 
 protected:

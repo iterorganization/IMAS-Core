@@ -36,19 +36,22 @@ CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS
 LDF=gfortran -lc -lstdc++ 
 endif
 
+CXXINCLUDES= ${INCLUDES}
 
-CPPSRC=ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
-		context_test.cpp ual_const.cpp memory_backend.cpp 
-CSRC=lowlevel_test.c ual_low_level.c test_lowlevel.c 
+
+CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
+	ual_const.cpp ual_exception.cpp no_backend.cpp memory_backend.cpp 
+CSRC= ual_low_level.c 
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
-		ual_low_level.o ual_backend.o memory_backend.o 
+		ual_low_level.o ual_exception.o ual_backend.o \
+		no_backend.o memory_backend.o 
 
 
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 ifneq ("no","$(strip $(SYS_WIN))")
-INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
@@ -58,7 +61,7 @@ LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 else
-INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
+INCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 endif # SYS_WIN
@@ -69,13 +72,13 @@ endif # IMAS_MDSPLUS
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
 ifneq ("no","$(strip $(SYS_WIN))")
-INCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
+CXXINCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= -lws2_32 -lssl -lcrypto
 else
-INCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
+CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
 LIBS+= -lssl -lcrypto
 endif # SYS_WIN
@@ -86,7 +89,7 @@ endif # IMAS_UDA
 #-------------- Options for HDF5 ---------------
 ifneq ("no","$(strip $(IMAS_HDF5))")
 ifneq ("no","$(strip $(SYS_WIN))")
-INCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
+CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
 else
@@ -97,6 +100,7 @@ endif # SYS_WIN
 COMMON_OBJECTS+= hdf5_backend.o
 CPPSRC+=hdf5_backend.cpp
 endif # IMAS_HDF5
+
 
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
@@ -223,7 +227,7 @@ clean-doc:
 
 %.d: %.cpp
 	@set -e; $(RM) $@; \
-	$(CXX) -MM $(CXXFLAGS) $(INCLUDES) $< > $@.$$$$; \
+	$(CXX) -MM $(CXXFLAGS) $(CXXINCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 
@@ -233,7 +237,7 @@ clean-doc:
 
 
 %.o: %.cpp 
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ -c $< 
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $< 
 
 %.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $< 
@@ -262,7 +266,7 @@ libimas.a: $(COMMON_OBJECTS)
 libimas.a_install: %_install:% | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
 
-	
+
 # add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc
 #----------------------- pkgconfig ---------------------

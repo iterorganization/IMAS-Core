@@ -34,8 +34,8 @@ const std::array<std::string,4> ualconst::data_type_str =
   {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};
 
 
-const std::array<std::string,5> ualerror::ual_err_str = 
-  {{"UNKNOWN_ERR","CONTEXT_ERR","BACKEND_ERR","LOWLEVEL_ERR","NODATA_ERR"}};
+const std::array<std::string,4> ualerror::ual_err_str = 
+  {{"UNKNOWN_ERR","CONTEXT_ERR","BACKEND_ERR","LOWLEVEL_ERR"}};
 
 
 const char * err2str(int err)
