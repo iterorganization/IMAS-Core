@@ -54,7 +54,7 @@ all sources sources_install install:
 endif
 
 clean: pkgconfig_clean test_clean
-	$(RM) *.o *.mod *.a *.so *.lib *.dll
+	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
