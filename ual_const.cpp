@@ -24,7 +24,7 @@ const std::array<std::string,3> ualconst::op_access_str =
   {{"READ_OP","WRITE_OP","REPLACE_OP"}};
 
 const std::array<std::string,4> ualconst::op_interp_str =
-  {{"CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP","UNDEFINED_INTERP"}};
+  {{"UNDEFINED_INTERP","CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP"}};
 
 const std::array<std::string,6> ualconst::access_pulse_str = 
   {{"OPEN_PULSE","FORCE_OPEN_PULSE","CREATE_PULSE","FORCE_CREATE_PULSE",
