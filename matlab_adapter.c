@@ -791,7 +791,7 @@ int mtl_ual_begin_global_action_write(int pulseCtx, const char *path)
 */
 int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
 {
-  return ual_begin_slice_action(pulseCtx, path, WRITE_OP, time, 
+  return ual_begin_slice_action(pulseCtx, path, WRITE_OP, UNDEFINED_TIME,
 				UNDEFINED_INTERP);
 }
 
