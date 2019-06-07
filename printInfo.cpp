@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {
     if(argc < 4)
     {
-	std::cout << "Usage: printInfo <directory> < shot> < run>" << std::endl;
+      std::cout << "Usage: " << argv[0] << " <directory> < shot> < run>" << std::endl;
 	exit(0);
     }
     int shot, run;
@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 	std::cout << "Cannot get Access Layer and Data Dictionary versions. Pulse file maybe too old." << std::endl;
 	exit(0);
     }
+    std::cout << "This MDS+ file has been created with the following versions of IMAS:" << std::endl;
     std::cout << "Access Layer: " << d1 << std::endl;
     std::cout << "Data Dictionary: " << d2 << std::endl;
 
