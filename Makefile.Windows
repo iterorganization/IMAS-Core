@@ -45,7 +45,7 @@ endif
 CFLAGS+= -DWIN32
 CXXFLAGS+= -DWIN32
 INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
-TARGETS = libimas.dll libimas.lib
+TARGETS = libimas.dll libimas.lib printInfo
 
 
 all: $(TARGETS) pkgconfig doc

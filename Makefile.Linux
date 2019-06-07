@@ -32,7 +32,7 @@ COMMON_OBJECTS+= matlab_adapter.o
 CSRC+= matlab_adapter.c
 endif
 
-TARGETS = libimas.so libimas.a
+TARGETS = libimas.so libimas.a printInfo
 
 all: $(TARGETS) pkgconfig doc
 sources:

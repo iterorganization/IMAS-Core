@@ -91,6 +91,9 @@ clean-doc:
 -include $(CSRC:.c=.d)
 -include $(CPPSRC:.cpp=.d)
 
+printInfo: printInfo.cpp
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $< $(LIBS)
+
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $<
 
