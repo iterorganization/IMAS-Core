@@ -20,7 +20,7 @@
 class UDABackend : public Backend {
 private:
     bool verbose = false;
-    const char* plugin = "IMAS_MAPPING";
+    std::string plugin = "IMAS_MAPPING";
     uda::Client uda_client;
     int ctx_id = -1;
 
@@ -28,10 +28,16 @@ public:
 
     explicit UDABackend(bool verb=false) : verbose(verb)
     {
+        const char* env = getenv("UDA_PLUGIN");
+        if (env != nullptr) {
+            plugin = env;
+        }
+
         if (verbose) {
             std::cout << "UDABackend constructor\n";
             std::cout << "UDA Server: " << uda_client.serverHostName() << "\n";
             std::cout << "UDA Port: " << uda_client.serverPort() << "\n";
+            std::cout << "UDA Plugin: " << plugin << "\n";
         }
     }
 

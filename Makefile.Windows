@@ -16,11 +16,19 @@ endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("fat","$(strip $(IMAS_UDA))")
+CXXINCLUDES+= -DUDA -DFATCLIENT -I$(UDA_HOME)/include/uda
+LIBS+= -L$(UDA_HOME)/lib
+LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
+LIBS+= $(UDA_HOME)/lib/libportablexdr.a
+LIBS+= -lws2_32 -lssl -lcrypto -lxml2 -lcrypto -lpq
+else
 CXXINCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= -lws2_32 -lssl -lcrypto
+endif
 COMMON_OBJECTS+= uda_backend.o
 CPPSRC+=uda_backend.cpp
 endif # IMAS_UDA

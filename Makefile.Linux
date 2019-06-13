@@ -10,8 +10,13 @@ endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
 ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("fat","$(strip $(IMAS_UDA))")
+CXXINCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
+LIBS+= `pkg-config --libs uda-fat-cpp`
+else
 CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
+endif
 LIBS+= -lssl -lcrypto
 COMMON_OBJECTS+= uda_backend.o
 CPPSRC+=uda_backend.cpp
