@@ -1,6 +1,7 @@
 from MDSplus import *
 import array
 import numpy as np
+import sys
 
 def getTabs(tabs):
   line = ''
@@ -26,12 +27,15 @@ def dumpStruct(s, tabs):
         print getTabs(tabs+1)+s[i].decompile()+':'
         if (s[i].getNumSegments() > 0 and (s[i].getDtype() == 'DTYPE_B' or s[i].getDtype() == 'DTYPE_BU')):
           dumpSlicedAoS(s[i], tabs+1)	 	
-        else:		
-          d = s[i].getData()
-          if isinstance(d, Apd):
-            print('INTERNAL ERROR: Reference canno be APD')
-            return
-          print getTabs(tabs+1) + d.decompile()
+        else:
+          try:		
+            d = s[i].getData()
+            if isinstance(d, Apd):
+              print('INTERNAL ERROR: Reference canno be APD')
+              return
+            print getTabs(tabs+1) + d.decompile()
+          except:
+            print getTabs(tabs) + 'None'
       else:
         if isinstance(s[i], Int8Array) or isinstance(s[i], Uint8Array):
           print getTabs(tabs+1) + '"'+array.array('B', s[i].data()).tostring()+'"'
@@ -83,8 +87,18 @@ def dump(s):
     
     
     
-t=Tree('ids',10066)
-n=t.getNode('\IDS::TOP.AMNS_DATA.COORDINATE_S.YSTEM:static')  
+if len(sys.argv) != 3:
+    print('Usage: python dumpAps.py <shot> <AoS path>')
+    sys.exit(0)
+shot = int(sys.argv[1])
+path = '\\'+ sys.argv[2]+':STATIC'
+
+t=Tree('ids',shot)
+#t=Tree('ids',440334)
+#n=t.getNode('\IDS::TOP.EDGE_SOURCES.SOURCE:STATIC')
+print(path)
+n=t.getNode(path)
+#'\IDS::TOP.DISTRIBUTION._SOURCES.SOURCE:STATIC')  
 d = n.getData()
 dumpAoS(d, 0)
 

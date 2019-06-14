@@ -3076,7 +3076,11 @@ printf("Warning, struct field added more than once\n");
 	  {
 	      //MDSplus::Data *currData = currDescr->data();
 	      const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
-//	      if(currData->dtype != DTYPE_B)  //if it is not a serialized APD (nested dynamic AoS)
+	      if(!strcmp(dtype, "DTYPE_MISSING")) //Gabriele June 2019: Handle Empty dynamic AoS
+	      {
+		  retApd->appendDesc(NULL);
+		  continue;
+	      }
 	      if(strcmp(dtype, "DTYPE_BU"))  //if it is not a serialized APD (nested dynamic AoS)
 	      {
 		  try {
