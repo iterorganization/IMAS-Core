@@ -1830,8 +1830,16 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //Gabriele 2017 
    MDSplus::Apd *MDSplusBackend::readDynamicApd(MDSplus::TreeNode *node) 
     {
-      if(!tree)  throw UALBackendException("Pulse file not open",LOG);
-    	try {
+        if(!tree)  throw UALBackendException("Pulse file not open",LOG);
+//Gabriele June 2019: handle the case of empty AoS
+        if(strcmp(node->getDType(), "DTYPE_MISSING") == 0)
+        {
+ 	    MDSplus::Apd *retApd = new MDSplus::Apd();
+	    retApd->appendDesc(NULL);
+	    return retApd;
+        }
+///////////////////////////////////
+        try {
 	    MDSplus::Apd *retApd = new MDSplus::Apd();
 	    int numSegments = node->getNumSegments();
 	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
@@ -3076,12 +3084,13 @@ printf("Warning, struct field added more than once\n");
 	  {
 	      //MDSplus::Data *currData = currDescr->data();
 	      const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
-	      if(!strcmp(dtype, "DTYPE_MISSING")) //Gabriele June 2019: Handle Empty dynamic AoS
+/*	      if(!strcmp(dtype, "DTYPE_MISSING")) //Gabriele June 2019: Handle Empty dynamic AoS
 	      {
 		  retApd->appendDesc(NULL);
+		  retApd->appendDesc(emptyApd);
 		  continue;
 	      }
-	      if(strcmp(dtype, "DTYPE_BU"))  //if it is not a serialized APD (nested dynamic AoS)
+*/	      if(strcmp(dtype, "DTYPE_BU") && strcmp(dtype, "DTYPE_MISSING"))  //if it is not a serialized APD (nested dynamic AoS)
 	      {
 		  try {
 
