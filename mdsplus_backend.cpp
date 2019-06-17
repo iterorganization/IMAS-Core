@@ -3138,15 +3138,19 @@ printf("Warning, struct field added more than once\n");
 	      currData->incRefCount();
 	      retApd->appendDesc(currData);
 	  }
-	  else if(currDescr->clazz == CLASS_S && currDescr->dtype == DTYPE_NID) //If it is a niod reference (either nested dynamic AoS or time dependent data
+	  else if(currDescr->clazz == CLASS_S && currDescr->dtype == DTYPE_NID) //If it is a nid reference (either nested dynamic AoS or time dependent data
 	  {
 	      void *data;
 	      int datatype, numDims;
 	      int dims[16];
 	      const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
+	      if(!strcmp(dtype, "DTYPE_MISSING"))  //Gabriele June 2019: If it refers to an allocated empty AoS
+	      {
+		 retApd->appendDesc(NULL);
+	      }
 	      //MDSplus::Data *currData = currDescr->data();
 //	      if(currData->dtype == DTYPE_B)  //It is a time dependent field of the statis AoS, so get the slice
-	      if(!strcmp(dtype, "DTYPE_BU"))  //It is a time dependent field of the statis AoS, so get the slice
+	      else if(!strcmp(dtype, "DTYPE_BU"))  //It is a time dependent field of the statis AoS, so get the slice
 	      {
 //		  MDSplus::Apd *resolvedApd = readSliceApd((MDSplus::TreeNode *)currDescr, timebasePath, time, interpolation);
 //dumpArrayStruct(resolvedApd, 0);
