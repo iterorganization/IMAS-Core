@@ -1206,9 +1206,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	}
 	try {
 	    int numSegments = node->getNumSegments();
-	    if(numSegments == 0)
-	      return 0;
-	      
+	    if(numSegments == 0) 
+	      return 0;	      
 	    int segmentIdx;
 	    //Since the expression contains node reference, it is necessary to set the active tree
 	    setActiveTree(tree);
@@ -1878,7 +1877,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     {
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0)
-	   return NULL;
+	{
+	   MDSplus::Apd *apd = new MDSplus::Apd();
+	   apd->appendDesc(NULL);
+	   return apd; ///XXXXXXXXXXXXXXXXXXXXXXXXXX
+	}
 	MDSplus::Data *startData, *endData;
 	int segIdx;
 	for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -2973,7 +2976,7 @@ printf("Warning, struct field added more than once\n");
 		    currApd = readSliceApd(node, timebasePath, ctx->getTime(), ctx->getInterpmode());
 		if(!currApd)
 		{
-		  delete node;
+		  //delete node;
 		  *size = 0;
 		  return;
 		}
@@ -3144,13 +3147,8 @@ printf("Warning, struct field added more than once\n");
 	      int datatype, numDims;
 	      int dims[16];
 	      const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
-	      if(!strcmp(dtype, "DTYPE_MISSING"))  //Gabriele June 2019: If it refers to an allocated empty AoS
-	      {
-		 retApd->appendDesc(NULL);
-	      }
-	      //MDSplus::Data *currData = currDescr->data();
-//	      if(currData->dtype == DTYPE_B)  //It is a time dependent field of the statis AoS, so get the slice
-	      else if(!strcmp(dtype, "DTYPE_BU"))  //It is a time dependent field of the statis AoS, so get the slice
+//Gabriele June 2019
+	      if(!strcmp(dtype, "DTYPE_BU") || !strcmp(dtype, "DTYPE_MISSING"))  //It is a serialized APD
 	      {
 //		  MDSplus::Apd *resolvedApd = readSliceApd((MDSplus::TreeNode *)currDescr, timebasePath, time, interpolation);
 //dumpArrayStruct(resolvedApd, 0);
@@ -3167,10 +3165,6 @@ printf("Warning, struct field added more than once\n");
 
 		  if(!readSlice(tree, pathStr, emptyStr, time, interpolation, &data, &datatype, &numDims, dims, false))
 		      throw UALBackendException("Internal error: expected valid slice in resolveApdSliceFields",LOG);
-		//Do not mangle node name
-//Gabriele July 2017 one additional dimension (=1) is now returned because it is expected by the high level. It must be removed here, however.
-//		  numDims--;
-/////////////////////////////////////////////////////////////////
 
 		  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
 		  free((char *)data);
