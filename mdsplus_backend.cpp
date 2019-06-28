@@ -1220,7 +1220,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //	      std::cout << "END TIME: " << endTimeData << std::endl;
 	      
 	      double startTime = startTimeData->getDouble();
-	      double endTime = endTimeData->getDouble();
+//Handle the case end time refers to a longer list that that contained in time node (homogenerous)
+	      double endTime;
+	      try {
+		 endTime = endTimeData->getDouble();
+		}catch(MDSplus::MdsException &exc) {endTime = startTime;}
 	      MDSplus::deleteData(startTimeData);
 	      MDSplus::deleteData(endTimeData);
 	   //   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
