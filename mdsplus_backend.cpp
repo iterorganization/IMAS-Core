@@ -1222,9 +1222,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      double startTime = startTimeData->getDouble();
 //Handle the case end time refers to a longer list that that contained in time node (homogenerous)
 	      double endTime;
-	      try {
+	      //try {
 		 endTime = endTimeData->getDouble();
-		}catch(MDSplus::MdsException &exc) {endTime = startTime;}
+		//}catch(MDSplus::MdsException &exc) {endTime = startTime;}
 	      MDSplus::deleteData(startTimeData);
 	      MDSplus::deleteData(endTimeData);
 	   //   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
