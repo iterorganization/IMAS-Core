@@ -19,7 +19,6 @@
 /**
    Abstract Backend class.
    Defines the back-end API, as pure virtual member functions. 
-   Contains the DataBrokerFactory, handle contexts, back-end IDs, error handling, mem-cache, etc...
 */
 class Backend 
 {

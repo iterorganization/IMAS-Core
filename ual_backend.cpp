@@ -1,7 +1,9 @@
 #include "ual_backend.h"
 #include "no_backend.h"
 #include "memory_backend.h"
-//#include "ascii_backend.h"
+#ifdef ASCII
+#include "ascii_backend.h"
+#endif
 #ifdef MDSPLUS
 #include "mdsplus_backend.h"
 #endif
@@ -21,13 +23,15 @@ Backend* Backend::initBackend(int id)
       NoBackend* tbe = new NoBackend();
       be = tbe;
     }
-  /*
   else if (id==ualconst::ascii_backend)
     {
+#ifdef ASCII
       AsciiBackend* tbe = new AsciiBackend(true);
       be = tbe;
+#else
+      throw UALBackendException("ASCII backend is not available within current install",LOG);
+#endif
     }
-  */
   else if (id==ualconst::mdsplus_backend)
     {
 #ifdef MDSPLUS

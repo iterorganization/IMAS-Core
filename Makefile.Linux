@@ -5,7 +5,7 @@ CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 COMMON_OBJECTS+=mdsplus_backend.o
-CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
+CPPSRC+=mdsplus_backend.cpp 
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------

@@ -1,0 +1,82 @@
+//-*-c++-*-
+
+/**
+   \file ascii_backend.h
+   Contains definition of simple ASCII Backend classe.
+*/
+
+#ifndef ASCII_BACKEND_H
+#define ASCII_BACKEND_H 1
+
+#include "ual_backend.h"
+#include <fstream>
+#include <complex>
+
+/* c++ only part */
+#if defined(__cplusplus)
+
+
+/**
+   Abstract Backend class.
+   Defines the back-end API, as pure virtual member functions. 
+   Contains the DataBrokerFactory, handle contexts, back-end IDs, error handling, mem-cache, etc...
+*/
+class AsciiBackend : public Backend
+{
+
+private:
+  std::stringstream fname; 
+  std::fstream pulsefile;
+  bool writemode;
+  std::string idsname;
+
+  std::string getArraystructPath(ArraystructContext *aosctx);
+  void writeData(char* data, int dim, int* size);
+  void writeData(int* data, int dim, int* size);
+  void writeData(double* data, int dim, int* size);
+  void writeData(std::complex<double> *data, int dim, int* size);
+
+public:
+
+  AsciiBackend();
+  virtual ~AsciiBackend() {};
+
+  virtual void openPulse(PulseContext *ctx,
+			 int mode,
+			 std::string options);
+
+  virtual void closePulse(PulseContext *ctx,
+			  int mode,
+			  std::string options);
+
+  virtual void beginAction(OperationContext *ctx);
+
+  virtual void endAction(Context *ctx); 
+
+  virtual void writeData(Context *ctx,
+			 std::string fieldname,
+			 std::string timebasename, 
+			 void* data,
+			 int datatype,
+			 int dim,
+			 int* size);
+
+  virtual int readData(Context *ctx,
+		       std::string fieldname,
+		       std::string timebasename, 
+		       void** data,
+		       int* datatype,
+		       int* dim,
+		       int* size);
+
+  virtual void deleteData(OperationContext *ctx,
+			  std::string path);
+
+  virtual void beginArraystructAction(ArraystructContext *ctx,
+				      int *size);
+
+};
+
+#endif 
+
+#endif
