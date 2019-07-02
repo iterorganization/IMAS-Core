@@ -61,6 +61,8 @@ void UDABackend::openPulse(PulseContext* ctx,
            << ", options='" << options << "'"
            << ")";
 
+    std::string directive = ss_request.str();
+
     try {
             const uda::Result& result = uda_client.get(directive, "");
             uda::Data* data = result.data();
@@ -91,7 +93,7 @@ void UDABackend::openPulse(PulseContext* ctx,
        << ", options='" << options << "'"
        << ")";
 
-    std::string directive = ss.str();
+    directive = ss.str();
 
     if (verbose) {
         std::cout << "UDA directive: " << directive << "\n";
