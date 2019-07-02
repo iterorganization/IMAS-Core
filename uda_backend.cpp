@@ -1,7 +1,5 @@
 #include "uda_backend.h"
 
-#include <sstream>
-
 namespace {
 
 const char* type_to_string(int datatype)
@@ -48,6 +46,36 @@ void UDABackend::openPulse(PulseContext* ctx,
     if (verbose) {
         std::cout << "UDABackend openPulse\n";
     }
+
+    char request[100];
+    std::pluginNameRequest ss_request;
+    ss_request << "IMAS_MAPPING"
+           << "::getRequestedPlugin("
+           << "backend_id=" << ualconst::mdsplus_backend
+           << ", shot=" << ctx->getShot()
+           << ", run=" << ctx->getRun()
+           << ", user=" << ctx->getUser()
+           << ", tokamak=" << ctx->getTokamak()
+           << ", version=" << ctx->getVersion()
+           << ", mode=" << mode
+           << ", options='" << options << "'"
+           << ")";
+
+    try {
+            const uda::Result& result = uda_client.get(directive, "");
+            uda::Data* data = result.data();
+            if (data->type().name() != typeid(char*).name()) {
+                throw UALBackendException(std::string("Unknown data type returned from getRequestedPlugin() request: ") + data->type().name(), LOG);
+            }
+            auto val = dynamic_cast<uda::String*>(data);
+            if (val == nullptr) {
+                throw UALBackendException("UDA getRequestedPlugin did not return string data");
+            }
+            this->plugin = std::string(val->str());
+
+        } catch (const uda::UDAException& ex) {
+            throw UALException(ex.what(), LOG);
+        }
 
     std::stringstream ss;
 

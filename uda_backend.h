@@ -1,6 +1,7 @@
 #ifndef UDA_BACKEND_H
 #define UDA_BACKEND_H
 
+#include <sstream>
 #include <iostream>
 #include <memory>
 #include <string>
