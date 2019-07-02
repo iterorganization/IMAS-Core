@@ -48,7 +48,7 @@ void UDABackend::openPulse(PulseContext* ctx,
     }
 
     char request[100];
-    std::pluginNameRequest ss_request;
+    std::stringstream ss_request;
     ss_request << "IMAS_MAPPING"
            << "::getRequestedPlugin("
            << "backend_id=" << ualconst::mdsplus_backend
