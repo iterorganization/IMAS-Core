@@ -53,20 +53,25 @@ public:
             }
 
             auto machine = words[0];
-            auto host = words[1];
-            auto plugin = words[2];
+            auto plugin = words[1];
 
-            mappings_[machine] = MappingValue{ host, plugin };
+            std::vector<std::string> args;
+            if (plugin.find('(') != std::string::npos) {
+                std::string arg_string = plugin.substr(0);
+                boost::split(args, arg_string, boost::is_any_of(","), boost::token_compress_on);
+            }
+
+            mappings_[machine] = MappingValue{ plugin, args };
         }
     }
 
-    std::string host(const std::string& machine)
+    std::vector<std::string> args(const std::string& machine)
     {
         if (mappings_.count(machine) == 0) {
             return {};
         }
         auto& plugin_map = mappings_[machine];
-        return plugin_map.host;
+        return plugin_map.args;
     }
 
     std::string plugin(const std::string& machine)
@@ -80,8 +85,8 @@ public:
 
 private:
     struct MappingValue {
-        std::string host;
         std::string plugin;
+        std::vector<std::string> args;
     };
 
     std::unordered_map<std::string, MappingValue> mappings_;

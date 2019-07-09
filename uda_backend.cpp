@@ -52,6 +52,32 @@ void UDABackend::openPulse(PulseContext* ctx,
     std::string plugin = machine_mapping.plugin(ctx->getTokamak());
     if (plugin.empty()) {
         plugin = this->plugin;
+    } else {
+        std::stringstream ss;
+
+        ss << plugin << "::init(";
+
+        auto args = machine_mapping.args(ctx->getTokamak());
+        std::string delim;
+        for (const auto& arg : args) {
+            ss << delim << arg;
+            delim = ", ";
+        }
+
+        ss << ")";
+
+        std::string directive = ss.str();
+        if (verbose) {
+            std::cout << "UDA directive: " << directive << "\n";
+        }
+
+        try {
+            uda_client.get(directive, "");
+        } catch (const uda::UDAException& ex) {
+            if (verbose) {
+                std::cout << "UDA error: " << ex.what() << "\n";
+            }
+        }
     }
 
     std::stringstream ss;
