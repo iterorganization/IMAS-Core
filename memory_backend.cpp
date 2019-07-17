@@ -547,32 +547,34 @@ else
 
 	currentAos.deleteData();  //Prapere currentAoS that is going to contain the selected slice
 
-	std::vector<StructPath> ctxV;
-	StructPath topSp(ids, ctx->getDataobjectName());
-	ctxV.push_back(topSp);
-	StructPath sp(topAos->aos[ctx->getIndex()], ctx->getPath());
-	ctxV.push_back(sp);
-	if(topAos->timebase != "") //if the top AoS is timed
+	if(topAos->aos.size() > 0)
 	{
-	    int sliceIdx1, sliceIdx2;
-	    currentAos.timebase = topAos->timebase;
+	    std::vector<StructPath> ctxV;
+	    StructPath topSp(ids, ctx->getDataobjectName());
+	    ctxV.push_back(topSp);
+	    StructPath sp(topAos->aos[ctx->getIndex()], ctx->getPath());
+	    ctxV.push_back(sp);
+	    if(topAos->timebase != "") //if the top AoS is timed
+	    {
+	        int sliceIdx1, sliceIdx2;
+	        currentAos.timebase = topAos->timebase;
 
-	    std::string currTimebase;
-//	    if(topAos->timebase.size() > ctx->getPath().size() && ctx->getPath() == topAos->timebase.substr(ctx->getPath().size()))
-	    if(!(topAos->timebase[0] == '/'))
-	    	currTimebase = topAos->timebase.substr(ctx->getPath().size() + 1);
-	    else
-	    	currTimebase = topAos->timebase;
+	        std::string currTimebase;
+	        if(!(topAos->timebase[0] == '/'))
+	    	    currTimebase = topAos->timebase.substr(ctx->getPath().size() + 1);
+	        else
+	    	    currTimebase = topAos->timebase;
 
- 	    getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
+ 	        getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
  	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //For the moment only PREVIOUS SAMPLE is supported
-	    currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
-	    return; //Done!!
-	}
-	for(size_t i = 0; i < topAos->aos.size(); i++)
-	{
-	    currentAos.aos.push_back(prepareSliceRec(ctx, *topAos->aos[i], *ids, time, ctxV, topAos));
+	        currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+	        return; //Done!!
+	    }
+	    for(size_t i = 0; i < topAos->aos.size(); i++)
+	    {
+	        currentAos.aos.push_back(prepareSliceRec(ctx, *topAos->aos[i], *ids, time, ctxV, topAos));
+	    }
 	}
     }		
 	
