@@ -38,6 +38,11 @@ const std::array<std::string,4> ualerror::ual_err_str =
   {{"UNKNOWN_ERR","CONTEXT_ERR","BACKEND_ERR","LOWLEVEL_ERR"}};
 
 
+const char * type2str(int type)
+{
+  return (ualconst::data_type_str.at(type-DATA_TYPE_0)).c_str();
+}
+
 const char * err2str(int err)
 {
   return (ualerror::ual_err_str.at(ERR_0-err)).c_str();

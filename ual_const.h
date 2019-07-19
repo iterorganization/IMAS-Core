@@ -93,6 +93,7 @@ extern "C"
 {
 #endif
 
+  const char * type2str(int type);
   const char * err2str(int err);
 
   /* c++ only part */

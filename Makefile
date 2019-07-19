@@ -35,7 +35,7 @@ CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS
 LDF=gfortran -lc -lstdc++
 endif
 
-CXXINCLUDES= ${INCLUDES}
+CXXINCLUDES= -DASCII ${INCLUDES}
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp memory_backend.cpp ascii_backend.cpp

@@ -26,7 +26,7 @@ Backend* Backend::initBackend(int id)
   else if (id==ualconst::ascii_backend)
     {
 #ifdef ASCII
-      AsciiBackend* tbe = new AsciiBackend(true);
+      AsciiBackend* tbe = new AsciiBackend();
       be = tbe;
 #else
       throw UALBackendException("ASCII backend is not available within current install",LOG);

@@ -25,16 +25,16 @@ class AsciiBackend : public Backend
 {
 
 private:
-  std::stringstream fname; 
   std::fstream pulsefile;
+  std::string dbname;
+  std::string fname; 
   bool writemode;
   std::string idsname;
 
   std::string getArraystructPath(ArraystructContext *aosctx);
-  void writeData(char* data, int dim, int* size);
-  void writeData(int* data, int dim, int* size);
-  void writeData(double* data, int dim, int* size);
-  void writeData(std::complex<double> *data, int dim, int* size);
+  void writeData(const char* data, int dim, int* size);
+  template <typename T> 
+  void writeData(const T* data, int dim, int* size);
 
 public:
 
