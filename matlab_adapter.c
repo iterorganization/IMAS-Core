@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <complex.h>
 
 #include "matlab_adapter.h"
 #include "ual_lowlevel.h"
@@ -18,7 +19,7 @@
 
 int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
 {
-    return ual_iterate_over_arraystruct(aosctx, step);
+	return ual_iterate_over_arraystruct(aosctx, step);
 }
 
 /**
@@ -38,7 +39,7 @@ int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
  */
 int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
 {
-  return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
+	return ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size);
 }
 
 /**
@@ -56,10 +57,10 @@ int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const cha
  */
 int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *data)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
+	return status;
 }
 
 /**
@@ -78,10 +79,10 @@ int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebase
    [ex_ual_mtl_get_from_arraystruct]*/
 int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, double *data)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, DOUBLE_DATA, 0, &retSize[0]);
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&data, DOUBLE_DATA, 0, &retSize[0]);
+	return status;
 }
 
 /**
@@ -96,15 +97,15 @@ int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timeb
  */
 int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status) 
 {
-    int *array=malloc(sizeof(int*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
-			 INTEGER_DATA, 1, &retSize[0]);
-    if (*status==0)
-    {
-      *dim = retSize[0];
-    }
-    return array;
+	int *array=malloc(sizeof(int*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
+			INTEGER_DATA, 1, &retSize[0]);
+	if (*status==0)
+	{
+		*dim = retSize[0];
+	}
+	return array;
 }
 
 /**
@@ -119,15 +120,15 @@ int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath
  */
 double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
-			 DOUBLE_DATA, 1, &retSize[0]);
-    if (*status==0)
-    {
-      *dim = retSize[0];
-    }
-    return array;
+	double *array=malloc(sizeof(double*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
+			DOUBLE_DATA, 1, &retSize[0]);
+	if (*status==0)
+	{
+		*dim = retSize[0];
+	}
+	return array;
 }
 
 /**
@@ -142,72 +143,72 @@ double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timeba
    @result 1D integer array
  */
 int *mtl_getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim, int* status)
+		int *dim, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 1, &retSize[0]);
-    if (*status==0)
-    {
-      *dim = retSize[0];
-    }
-    return array;
+	int *array=malloc(sizeof(int*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 1, &retSize[0]);
+	if (*status==0)
+	{
+		*dim = retSize[0];
+	}
+	return array;
 }
 
 double *mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      int *dim, int* status)
+		int *dim, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 1, &retSize[0]);
-    if (*status==0)
-    {
-      *dim = retSize[0];
-    }
-    return array;
+	double *array=malloc(sizeof(double*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 1, &retSize[0]);
+	if (*status==0)
+	{
+		*dim = retSize[0];
+	}
+	return array;
 }
 
 
 double *mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array, 
-			 DOUBLE_DATA, 2, &retSize[0]);
-    if (*status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-    return array;
+	double *array=malloc(sizeof(double*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
+			DOUBLE_DATA, 2, &retSize[0]);
+	if (*status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+	}
+	return array;
 }
 
 int *mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim1, int *dim2, int* status)
+		int *dim1, int *dim2, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 2, &retSize[0]);
-    if (*status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-    return array;
+	int *array=malloc(sizeof(int*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 2, &retSize[0]);
+	if (*status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+	}
+	return array;
 }
 
 double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      int *dim1, int *dim2, int* status)
+		int *dim1, int *dim2, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    int retSize[MAXDIM];
-    *status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 2, &retSize[0]);
-    if (*status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-    return array;
+	double *array=malloc(sizeof(double*));
+	int retSize[MAXDIM];
+	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 2, &retSize[0]);
+	if (*status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+	}
+	return array;
 }
 
 
@@ -229,17 +230,17 @@ double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const c
  */
 int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 3, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 3, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+	}
+	return status;
 }
 
 /**
@@ -259,19 +260,19 @@ int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *ti
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-    double **data, int *dim1, int *dim2, int *dim3)
+		double **data, int *dim1, int *dim2, int *dim3)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 3, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, DOUBLE_DATA, 3, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+	}
+	return status;
 }
 
 /**
@@ -292,22 +293,22 @@ int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char 
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3,
-			   int *dim4)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
-				    INTEGER_DATA, 4, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 4, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+	}
+	return status;
 }
 
 /**
@@ -328,20 +329,20 @@ int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *ti
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3, int *dim4)
+		double **data, int *dim1, int *dim2, int *dim3, int *dim4)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath,(void **)data, DOUBLE_DATA, 4, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath,(void **)data, DOUBLE_DATA, 4, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+	}
+	return status;
 }
 
 
@@ -364,22 +365,22 @@ int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char 
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3,
-			   int *dim4, int *dim5)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 5, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data, INTEGER_DATA, 5, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+	}
+	return status;
 }
 
 /**
@@ -400,23 +401,23 @@ int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *ti
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3,
-			      int *dim4, int *dim5)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
-				    DOUBLE_DATA, 5, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 5, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+	}
+	return status;
 }
 
 
@@ -440,24 +441,24 @@ int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char 
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int **data, int *dim1, int *dim2, int *dim3,
-			   int *dim4, int *dim5, int *dim6)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
-				    INTEGER_DATA, 6, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 6, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+	}
+	return status;
 }
 
 /**
@@ -480,117 +481,231 @@ int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *ti
    - no passed pointer on array of structure (void *obj)
  */
 int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      double **data, int *dim1, int *dim2, int *dim3,
-			      int *dim4, int *dim5, int *dim6)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
-				    DOUBLE_DATA, 6, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 6, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+	}
+	return status;
 }
 
 double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect3DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect3DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
+	return array;
 }
 
 int *mtl_getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim1, int *dim2, int *dim3, int* status)
+		int *dim1, int *dim2, int *dim3, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    *status =  mtl_getVect3DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
-    return array;
+	int *array=malloc(sizeof(int*));
+	*status =  mtl_getVect3DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
+	return array;
 }
 
 double *mtl_getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      int *dim1, int *dim2, int *dim3, int* status)
+		int *dim1, int *dim2, int *dim3, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect3DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect3DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
+	return array;
 }
 
 
 double *mtl_getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect4DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect4DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
+	return array;
 }
 
 int *mtl_getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim1, int *dim2, int *dim3, int *dim4, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    *status =  mtl_getVect4DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
-    return array;
+	int *array=malloc(sizeof(int*));
+	*status =  mtl_getVect4DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
+	return array;
 }
 
 double *mtl_getVect4DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      int *dim1, int *dim2, int *dim3, int *dim4, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect4DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect4DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
+	return array;
 }
 
 double *mtl_getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect5DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect5DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
+	return array;
 }
 
 int *mtl_getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    *status =  mtl_getVect5DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
-    return array;
+	int *array=malloc(sizeof(int*));
+	*status =  mtl_getVect5DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
+	return array;
 }
 
 double *mtl_getVect5DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			      int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect5DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect5DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
+	return array;
 }
 
 double *mtl_getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect6DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect6DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+	return array;
 }
 
 int *mtl_getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
-			   int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
-    int *array=malloc(sizeof(int*));
-    *status =  mtl_getVect6DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
-    return array;
+	int *array=malloc(sizeof(int*));
+	*status =  mtl_getVect6DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+	return array;
 }
 
 double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, 
-			      int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
+		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
-    double *array=malloc(sizeof(double*));
-    *status =  mtl_getVect6DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
-    return array;
+	double *array=malloc(sizeof(double*));
+	*status =  mtl_getVect6DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
+	return array;
+}
+
+/**
+   Reads a ND double complex array.
+   This function reads a ND vector signal made of complex double from a DATAOBJECT.
+   @param[in] ctx: context ID
+   @param[in] fieldPath: field name
+   @param[in] timebasePath: timebase path
+   @param[in] ndim: number of array dimensions
+   @param[out] status: low level error status
+   @param[out] c_complex_struct: struct defined in the header containing real and imaginary data arrays
+   */
+
+void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath,
+		int ndim, int *status, struct c_complex_struct **st)
+{
+	struct c_complex_struct* local=(struct c_complex_struct*) calloc(sizeof(struct c_complex_struct),1);
+	*st = local;
+
+	void* ptrData = NULL;
+	int* shapes = malloc(MAXDIM*sizeof(int));
+	*status = ual_read_data(ctx, fieldPath, timebasePath, &ptrData,
+			COMPLEX_DATA, ndim, shapes);
+	double _Complex *array = (double _Complex*) ptrData;
+	int i;
+	int n = 1;
+	for (i = 0; i < ndim; i++)
+		n = shapes[i]*n;
+
+	if (n == 0) {
+		for (i = 0; i < ndim; i++)
+			shapes[i]=0;
+		local->shapes = shapes;
+		return;
+	}
+
+	double *array_real_local = malloc(n*sizeof(double));
+	double *array_imag_local = malloc(n*sizeof(double));
+
+	local->array_real_part = array_real_local;
+	local->array_imag_part = array_imag_local;
+
+	for (i = 0; i < n; i++) {
+		array_real_local[i] = creal(array[i]);
+		array_imag_local[i] = cimag(array[i]);
+	}
+	local->shapes = shapes;
+}
+
+/**
+   Reads a complex scalar.
+   This function reads a complex scalar.
+   @param[in] ctx: context ID
+   @param[in] fieldPath: field name
+   @param[in] timebasePath: timebase path
+   @param[in] ndim: number of array dimensions
+   @param[out] cpx_real: complex real part
+   @param[out] cpx_imag: complex imaginary part
+   @param[out] status: low level error status
+   */
+
+int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, double *cpx_real, double *cpx_imag)
+{
+	int status;
+	int retSize[MAXDIM];
+	double _Complex *data = malloc(sizeof(double _Complex));
+	status = ual_read_data(ctx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
+	*cpx_real = creal(data[0]);
+	*cpx_imag = cimag(data[0]);
+	return status;
+}
+
+/**
+   Writes a complex double in an array of structure.
+   This function writes a double field into an element of an array
+   of structure.
+   @param[in] fieldPath: field path
+   @param[in] timebasePath: timebase path
+   @param[in] data: array data
+   @result error status
+ */
+int mtl_putCPX_0D(int ctx, const char *fieldPath, const char *timebasePath,
+		double data_real, double data_imag)
+{
+	double _Complex data = data_real + I*data_imag;
+	return ual_write_data(ctx, fieldPath, timebasePath, (void *)(&data), COMPLEX_DATA, 0, NULL);
+}
+
+/**
+   Writes a CPX_ND complex double array (N>0).
+   This function writes a CPX_ND matrix signal made of complex double
+   @param[in] ctx: context ID
+   @param[in] fieldPath: field path
+   @param[in] timebasePath: timebase path
+   @param[in] data: array data
+   @param[in] ndim: number of array dimensions
+   @param[in] data: data contained in the array
+   @param[in] shapes: size of each dimension (array)
+   @result error status
+ */
+int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *timebasePath,
+		double *data_real, double *data_imag, int ndim, int *shapes)
+{
+	int i;
+	int n = 1;
+	for (i = 0; i < ndim; i++) {
+		n = shapes[i]*n;
+	}
+	double _Complex *data = malloc(n*sizeof(double _Complex));
+	for (i = 0; i < n; i++) {
+		data[i] = data_real[i] + I*data_imag[i];
+	}
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+			COMPLEX_DATA, ndim, shapes);
 }
 
 
@@ -604,7 +719,7 @@ double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath,
  */
 int mtl_ual_close(int pulseCtx)
 {
-  return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
+	return ual_close_pulse(pulseCtx, CLOSE_PULSE, "");
 }
 
 
@@ -624,16 +739,16 @@ int mtl_ual_close(int pulseCtx)
    @result error status
  */
 int mtl_ual_create_env(const char *name, int shot, int run, int refShot, 
-		   int refRun, int *pulseCtx, char *user, char *tokamak, 
-		   char *version)
+		int refRun, int *pulseCtx, char *user, char *tokamak,
+		char *version)
 {
-  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
-				     user, tokamak, version); 
+	*pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
+			user, tokamak, version);
 
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
+	if (*pulseCtx < 0)
+		return *pulseCtx;
+	else
+		return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
 }
 
 /**
@@ -649,15 +764,15 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
    @result error status
  */
 int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, 
-		   char *version)
+		char *version)
 {
-  *pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run, 
-				     user, tokamak, version); 
+	*pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run,
+			user, tokamak, version);
 
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
+	if (*pulseCtx < 0)
+		return *pulseCtx;
+	else
+		return ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
 }
 
 /**
@@ -673,15 +788,15 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
    @result error status
  */
 int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
-		 char *user, char *tokamak, char *version)
+		char *user, char *tokamak, char *version)
 {
-  *pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run, 
-				     user, tokamak, version); 
+	*pulseCtx = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
+			user, tokamak, version);
 
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
+	if (*pulseCtx < 0)
+		return *pulseCtx;
+	else
+		return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 }
 
 /**
@@ -695,15 +810,15 @@ int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
    @result error status
  */
 int mtl_ual_open_public(int shot, int run, int *pulseCtx, 
-		 char *user, char *tokamak, char *version)
+		char *user, char *tokamak, char *version)
 {
-  *pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run, 
-				     user, tokamak, version); 
+	*pulseCtx = ual_begin_pulse_action(UDA_BACKEND, shot, run,
+			user, tokamak, version);
 
-  if (*pulseCtx < 0)
-    return *pulseCtx;
-  else
-    return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
+	if (*pulseCtx < 0)
+		return *pulseCtx;
+	else
+		return ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 }
 
 /**
@@ -716,7 +831,7 @@ int mtl_ual_open_public(int shot, int run, int *pulseCtx,
  */
 int mtl_ual_begin_global_action(int pulseCtx, const char *path) 
 {
-  return ual_begin_global_action(pulseCtx, path, READ_OP);
+	return ual_begin_global_action(pulseCtx, path, READ_OP);
 }
 
 /**
@@ -728,7 +843,7 @@ int mtl_ual_begin_global_action(int pulseCtx, const char *path)
  */
 int mtl_ual_end_action(int opCtx)
 {
-  return ual_end_action(opCtx);
+	return ual_end_action(opCtx);
 }
 
 /**
@@ -751,13 +866,13 @@ int mtl_ual_end_action(int opCtx)
 
    @todo Low-level API modification:
    - additional parameter interpMode 
-   
+
    [ex_ual_begin_slice_action]*/
 int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time, 
-			    int interpMode) 
+		int interpMode)
 {
-  return ual_begin_slice_action(pulseCtx, path, READ_OP, time, 
-				interpMode); 
+	return ual_begin_slice_action(pulseCtx, path, READ_OP, time,
+			interpMode);
 }
 /*[ex_ual_begin_slice_action]*/
 
@@ -765,7 +880,7 @@ int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time,
   OH: F90 interface, non timed DATAOBJECT are using beginDataobjectPutNonTimed, C++ is using 
   beginDataobjectPut => need to clarify use-cases in order to avoid possible bugs and 
   different behavior with different interfaces
-*/
+ */
 
 /**
    Starts a write action on the non-timed part of a DATAOBJECT.
@@ -777,7 +892,7 @@ int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time,
  */
 int mtl_ual_begin_global_action_write(int pulseCtx, const char *path)
 {
-  return ual_begin_global_action(pulseCtx, path, WRITE_OP);
+	return ual_begin_global_action(pulseCtx, path, WRITE_OP);
 }
 
 /**
@@ -788,16 +903,16 @@ int mtl_ual_begin_global_action_write(int pulseCtx, const char *path)
    @param[in] path name of the DATAOBJECT
    @param[in] time time of the slice to write
    @result operation context ID [_error if < 0_]
-*/
+ */
 int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
 {
-  return ual_begin_slice_action(pulseCtx, path, WRITE_OP, UNDEFINED_TIME,
-				UNDEFINED_INTERP);
+	return ual_begin_slice_action(pulseCtx, path, WRITE_OP, UNDEFINED_TIME,
+			UNDEFINED_INTERP);
 }
 
 
 /* management 
-********************************************************************************/
+ ********************************************************************************/
 
 /**
    Deletes data.
@@ -810,12 +925,12 @@ int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time)
  */
 int mtl_deleteData(int ctx, const char *fieldPath)
 {
-  return ual_delete_data(ctx, fieldPath);
+	return ual_delete_data(ctx, fieldPath);
 }
 
 
 /* readers
-********************************************************************************/
+ ********************************************************************************/
 
 /**
    Reads a 1D character array.
@@ -831,23 +946,23 @@ int mtl_deleteData(int ctx, const char *fieldPath)
    - new function
  */
 int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
-		  char **data, int *dim)
+		char **data, int *dim)
 {
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp = NULL;
-//  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, 
-			 CHAR_DATA, 1, &retSize[0]);
-  if (status==0)
-    {
-      *dim = retSize[0];
-      *data = malloc(*dim + 1);
-      memset(*data, 0, *dim + 1);
-      strncpy(*data, szTemp, *dim);
-      free (szTemp);
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	char* szTemp = NULL;
+	//  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp,
+			CHAR_DATA, 1, &retSize[0]);
+	if (status==0)
+	{
+		*dim = retSize[0];
+		*data = malloc(*dim + 1);
+		memset(*data, 0, *dim + 1);
+		strncpy(*data, szTemp, *dim);
+		free (szTemp);
+	}
+	return status;
 }
 
 /**
@@ -866,20 +981,20 @@ int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath
  */
 int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim)
 {
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp = NULL;
-  status =  ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 1, &retSize[0]);
+	int status;
+	int retSize[MAXDIM];
+	char* szTemp = NULL;
+	status =  ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 1, &retSize[0]);
 
-  if (status==0)
-    {
-      *dim = retSize[0];
-      *data = malloc(*dim + 1);
-      memset(*data, 0, *dim + 1);
-      strncpy(*data, szTemp, *dim);
-      free (szTemp);
-    }
-  return status;
+	if (status==0)
+	{
+		*dim = retSize[0];
+		*data = malloc(*dim + 1);
+		memset(*data, 0, *dim + 1);
+		strncpy(*data, szTemp, *dim);
+		free (szTemp);
+	}
+	return status;
 }
 
 /**
@@ -897,22 +1012,22 @@ int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *t
    - new function
  */
 int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath, 
-		  char **data, int *dim1, int *dim2)
+		char **data, int *dim1, int *dim2)
 {
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp = NULL;
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *data = malloc((*dim1)*(*dim2) + 1);
-      memset(*data, 0, (*dim1)*(*dim2) + 1);
-      strncpy(*data, szTemp, (*dim1)*(*dim2));
-      free (szTemp);
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	char* szTemp = NULL;
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*data = malloc((*dim1)*(*dim2) + 1);
+		memset(*data, 0, (*dim1)*(*dim2) + 1);
+		strncpy(*data, szTemp, (*dim1)*(*dim2));
+		free (szTemp);
+	}
+	return status;
 }
 
 /**
@@ -932,26 +1047,26 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
  */
 int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim1, int *dim2)
 {
-  int status;
-  int retSize[MAXDIM];
-  char* szTemp = NULL;
-  status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
-  
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *data = malloc((*dim1)*(*dim2) + 1);
-      memset(*data, 0, (*dim1)*(*dim2) + 1);
-      strncpy(*data, szTemp, (*dim1)*(*dim2));
-      free (szTemp);
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	char* szTemp = NULL;
+	status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
+
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*data = malloc((*dim1)*(*dim2) + 1);
+		memset(*data, 0, (*dim1)*(*dim2) + 1);
+		strncpy(*data, szTemp, (*dim1)*(*dim2));
+		free (szTemp);
+	}
+	return status;
 }
 
 
 /* writers 
-********************************************************************************/
+ ********************************************************************************/
 
 /**
    Writes an integer.
@@ -964,10 +1079,10 @@ int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 
    @todo Low-level API modification: 
    - additional timebasePath argument
-*/
+ */
 int mtl_putInt(int opCtx, const char *fieldPath, const char *timebasePath, int data)
 {
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data),
 			INTEGER_DATA, 0, NULL);
 }
 
@@ -982,10 +1097,10 @@ int mtl_putInt(int opCtx, const char *fieldPath, const char *timebasePath, int d
 
    @todo Low-level API modification: 
    - additional timebasePath argument
-*/
+ */
 int mtl_putDouble(int opCtx, const char *fieldPath, const char *timebasePath, double data)
 {
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data), 
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)(&data),
 			DOUBLE_DATA, 0, NULL);
 }
 
@@ -1003,12 +1118,12 @@ int mtl_putDouble(int opCtx, const char *fieldPath, const char *timebasePath, do
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath,
-		  char *data, int dim)
+		char *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[1] = {dim};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			CHAR_DATA, 1, size);
 }
 
@@ -1025,12 +1140,12 @@ int mtl_putVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim)
+		int *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[1] = {dim};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 1, size);
 }
 
@@ -1047,12 +1162,12 @@ int mtl_putVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim)
+		double *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[1] = {dim};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 1, size);
 }
 
@@ -1070,12 +1185,12 @@ int mtl_putVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath,
-		  char *data, int dim1, int dim2)
+		char *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[2] = {dim1, dim2};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			CHAR_DATA, 2, size);
 }
 
@@ -1093,12 +1208,12 @@ int mtl_putVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2)
+		int *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[2] = {dim1, dim2};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 2, size);
 }
 
@@ -1116,12 +1231,12 @@ int mtl_putVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2)
+		double *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[2] = {dim1, dim2};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 2, size);
 }
 
@@ -1140,12 +1255,12 @@ int mtl_putVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3)
+		int *data, int dim1, int dim2, int dim3)
 {
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[3] = {dim1, dim2, dim3};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 3, size);
 }
 
@@ -1164,12 +1279,12 @@ int mtl_putVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification: 
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3)
+		double *data, int dim1, int dim2, int dim3)
 {
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data, 
+	int size[3] = {dim1, dim2, dim3};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 3, size);
 }
 
@@ -1189,12 +1304,12 @@ int mtl_putVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4)
+		int *data, int dim1, int dim2, int dim3, int dim4)
 {
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[4] = {dim1, dim2, dim3, dim4};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 4, size);
 }
 
@@ -1214,12 +1329,12 @@ int mtl_putVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4)
+		double *data, int dim1, int dim2, int dim3, int dim4)
 {
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[4] = {dim1, dim2, dim3, dim4};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 4, size);
 }
 
@@ -1240,12 +1355,12 @@ int mtl_putVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
+		int *data, int dim1, int dim2, int dim3, int dim4, int dim5)
 {
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[5] = {dim1, dim2, dim3, dim4, dim5};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 5, size);
 }
 
@@ -1266,13 +1381,13 @@ int mtl_putVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4,
-		    int dim5)
+		double *data, int dim1, int dim2, int dim3, int dim4,
+		int dim5)
 {
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[5] = {dim1, dim2, dim3, dim4, dim5};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 5, size);
 }
 
@@ -1294,13 +1409,13 @@ int mtl_putVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
-		 int dim6)
+		int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
+		int dim6)
 {
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 6, size);
 }
 
@@ -1322,13 +1437,13 @@ int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4,
-		    int dim5, int dim6)
+		double *data, int dim1, int dim2, int dim3, int dim4,
+		int dim5, int dim6)
 {
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 6, size);
 }
 
@@ -1351,13 +1466,13 @@ int mtl_putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
-		 int dim6, int dim7)
+		int *data, int dim1, int dim2, int dim3, int dim4, int dim5,
+		int dim6, int dim7)
 {
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			INTEGER_DATA, 7, size);
 }
 
@@ -1380,19 +1495,19 @@ int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    @todo Low-level API modification:
    - additional timebasePath argument
    - remove isTimed argument
-*/
+ */
 int mtl_putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double *data, int dim1, int dim2, int dim3, int dim4,
-		    int dim5, int dim6, int dim7)
+		double *data, int dim1, int dim2, int dim3, int dim4,
+		int dim5, int dim6, int dim7)
 {
-  int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
-  return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
+	int size[7] = {dim1, dim2, dim3, dim4, dim5, dim6, dim7};
+	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			DOUBLE_DATA, 7, size);
 }
 
 
 /* readers
-********************************************************************************/
+ ********************************************************************************/
 
 /**
    Reads an integer.
@@ -1405,10 +1520,10 @@ int mtl_putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePa
  */
 int mtl_getInt(int opCtx, const char *fieldPath, const char *timebasePath, int *data)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&data, INTEGER_DATA, 0, &retSize[0]);
+	return status;
 }
 
 /**
@@ -1421,13 +1536,13 @@ int mtl_getInt(int opCtx, const char *fieldPath, const char *timebasePath, int *
    @result error status
  */
 int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-	      double *data)
+		double *data)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data, 
-			 DOUBLE_DATA, 0, &retSize[0]);
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data,
+			DOUBLE_DATA, 0, &retSize[0]);
+	return status;
 }
 
 
@@ -1446,18 +1561,18 @@ int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2)
+		int **data, int *dim1, int *dim2)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 INTEGER_DATA, 2, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 2, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+	}
+	return status;
 }
 
 /**
@@ -1483,8 +1598,8 @@ int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 			 DOUBLE_DATA, 2, &retSize[0]);
   if (status==0)
     {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
+ *dim1 = retSize[0];
+ *dim2 = retSize[1];
     }
   return status;
 }*/
@@ -1505,19 +1620,19 @@ int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2, int *dim3)
+		int **data, int *dim1, int *dim2, int *dim3)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-			 INTEGER_DATA, 3, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 3, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+	}
+	return status;
 }
 
 /**
@@ -1537,19 +1652,19 @@ int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath,
 
    [ex_ual_read_data]*/
 int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double **data, int *dim1, int *dim2, int *dim3)
+		double **data, int *dim1, int *dim2, int *dim3)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 DOUBLE_DATA, 3, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 3, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+	}
+	return status;
 }
 
 /**
@@ -1569,21 +1684,21 @@ int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    - additional parameter isTimed
  */
 int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2, int *dim3,
-		 int *dim4)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 INTEGER_DATA, 4, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 4, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+	}
+	return status;
 }
 
 /**
@@ -1603,21 +1718,21 @@ int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double **data, int *dim1, int *dim2, int *dim3,
-		    int *dim4)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 DOUBLE_DATA, 4, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 4, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+	}
+	return status;
 }
 
 /**
@@ -1638,22 +1753,22 @@ int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    - additional parameter isTimed
  */
 int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2, int *dim3,
-		 int *dim4, int *dim5)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 INTEGER_DATA, 5, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 5, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+	}
+	return status;
 }
 
 /**
@@ -1674,22 +1789,22 @@ int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double **data, int *dim1, int *dim2, int *dim3,
-		    int *dim4, int *dim5)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data, 
-			 DOUBLE_DATA, 5, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 5, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+	}
+	return status;
 }
 
 /**
@@ -1711,23 +1826,23 @@ int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    - additional parameter isTimed
  */
 int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2, int *dim3,
-		 int *dim4, int *dim5, int *dim6)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-			 INTEGER_DATA, 6, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 6, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+	}
+	return status;
 }
 
 /**
@@ -1749,23 +1864,23 @@ int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double **data, int *dim1, int *dim2, int *dim3,
-		    int *dim4, int *dim5, int *dim6)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-			 DOUBLE_DATA, 6, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 6, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+	}
+	return status;
 }
 
 /**
@@ -1788,24 +1903,24 @@ int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    - additional parameter isTimed
  */
 int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
-		 int **data, int *dim1, int *dim2, int *dim3,
-		 int *dim4, int *dim5, int *dim6, int *dim7)
+		int **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6, int *dim7)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-			 INTEGER_DATA, 7, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-      *dim7 = retSize[6];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			INTEGER_DATA, 7, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+		*dim7 = retSize[6];
+	}
+	return status;
 }
 
 /**
@@ -1828,29 +1943,29 @@ int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath,
    - additional parameter isTimed
  */
 int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath,
-		    double **data, int *dim1, int *dim2, int *dim3,
-		    int *dim4, int *dim5, int *dim6, int *dim7)
+		double **data, int *dim1, int *dim2, int *dim3,
+		int *dim4, int *dim5, int *dim6, int *dim7)
 {
-  int status;
-  int retSize[MAXDIM];
-  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-			 DOUBLE_DATA, 7, &retSize[0]);
-  if (status==0)
-    {
-      *dim1 = retSize[0];
-      *dim2 = retSize[1];
-      *dim3 = retSize[2];
-      *dim4 = retSize[3];
-      *dim5 = retSize[4];
-      *dim6 = retSize[5];
-      *dim7 = retSize[6];
-    }
-  return status;
+	int status;
+	int retSize[MAXDIM];
+	status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
+			DOUBLE_DATA, 7, &retSize[0]);
+	if (status==0)
+	{
+		*dim1 = retSize[0];
+		*dim2 = retSize[1];
+		*dim3 = retSize[2];
+		*dim4 = retSize[3];
+		*dim5 = retSize[4];
+		*dim6 = retSize[5];
+		*dim7 = retSize[6];
+	}
+	return status;
 }
 
 
 /* array of structure element writers
-*******************************************************************************/
+ *******************************************************************************/
 
 
 /**
@@ -1868,9 +1983,9 @@ int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePa
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath, 
-		   int data)
+		int data)
 {  
-  return ual_write_data(aosCtx, fieldPath, timebasePath,(void *)(&data), INTEGER_DATA, 0, NULL);
+	return ual_write_data(aosCtx, fieldPath, timebasePath,(void *)(&data), INTEGER_DATA, 0, NULL);
 }
 
 /**
@@ -1888,9 +2003,9 @@ int mtl_putIntInObject(int aosCtx, const char *fieldPath, const char *timebasePa
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-		     double data)
+		double data)
 {
-  return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)(&data), DOUBLE_DATA, 0, NULL);
+	return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)(&data), DOUBLE_DATA, 0, NULL);
 }
 
 
@@ -1909,10 +2024,10 @@ int mtl_putDoubleInObject(int aosCtx, const char *fieldPath, const char *timebas
    - new function
  */
 int mtl_putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			  char *data, int dim)
+		char *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)data, CHAR_DATA, 1, size);
+	int size[1] = {dim};
+	return ual_write_data(aosCtx, fieldPath, timebasePath, (void *)data, CHAR_DATA, 1, size);
 }
 
 /**
@@ -1931,11 +2046,11 @@ int mtl_putVect1DCharInObject(int aosCtx, const char *fieldPath, const char *tim
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *timebasePath,
-			 int *data, int dim)
+		int *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 1, size);
+	int size[1] = {dim};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 1, size);
 }
 
 /**
@@ -1954,12 +2069,12 @@ int mtl_putVect1DIntInObject(int aosCtx, const char *fieldPath, const char *time
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect1DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim)
+		const char *timebasePath,
+		double *data, int dim)
 {
-  int size[1] = {dim};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 1, size);
+	int size[1] = {dim};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 1, size);
 }
 
 
@@ -1979,12 +2094,12 @@ int mtl_putVect1DDoubleInObject(int aosCtx, const char *fieldPath,
    - new function
  */
 int mtl_putVect2DCharInObject(int aosCtx, const char *fieldPath, 
-			  const char *timebasePath,
-			  char *data, int dim1, int dim2)
+		const char *timebasePath,
+		char *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, CHAR_DATA, 2, size);
+	int size[2] = {dim1, dim2};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, CHAR_DATA, 2, size);
 }
 
 /**
@@ -2004,12 +2119,12 @@ int mtl_putVect2DCharInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect2DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath,
-			 int *data, int dim1, int dim2)
+		const char *timebasePath,
+		int *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 2, size);
+	int size[2] = {dim1, dim2};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 2, size);
 }
 
 /**
@@ -2030,12 +2145,12 @@ int mtl_putVect2DIntInObject(int aosCtx, const char *fieldPath,
 
    [ex_ual_mtl_put_in_arraystruct]*/
 int mtl_putVect2DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim1, int dim2)
+		const char *timebasePath,
+		double *data, int dim1, int dim2)
 {
-  int size[2] = {dim1, dim2};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 2, size);
+	int size[2] = {dim1, dim2};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 2, size);
 }
 
 /**
@@ -2056,12 +2171,12 @@ int mtl_putVect2DDoubleInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect3DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath, 
-			 int *data, int dim1, int dim2, int dim3)
+		const char *timebasePath,
+		int *data, int dim1, int dim2, int dim3)
 {
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 3, size);
+	int size[3] = {dim1, dim2, dim3};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 3, size);
 }
 
 /**
@@ -2082,12 +2197,12 @@ int mtl_putVect3DIntInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect3DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim1, int dim2, int dim3)
+		const char *timebasePath,
+		double *data, int dim1, int dim2, int dim3)
 {
-  int size[3] = {dim1, dim2, dim3};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 3, size);
+	int size[3] = {dim1, dim2, dim3};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 3, size);
 }
 
 /**
@@ -2109,12 +2224,12 @@ int mtl_putVect3DDoubleInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect4DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath,
-			 int *data, int dim1, int dim2, int dim3, int dim4)
+		const char *timebasePath,
+		int *data, int dim1, int dim2, int dim3, int dim4)
 {
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 4, size);
+	int size[4] = {dim1, dim2, dim3, dim4};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 4, size);
 }
 
 /**
@@ -2136,12 +2251,12 @@ int mtl_putVect4DIntInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect4DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char* timebasePath,
-			    double *data, int dim1, int dim2, int dim3, int dim4)
+		const char* timebasePath,
+		double *data, int dim1, int dim2, int dim3, int dim4)
 {
-  int size[4] = {dim1, dim2, dim3, dim4};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-        (void *)data, DOUBLE_DATA, 4, size);
+	int size[4] = {dim1, dim2, dim3, dim4};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 4, size);
 }
 
 
@@ -2165,13 +2280,13 @@ int mtl_putVect4DDoubleInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect5DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath,
-			 int *data, int dim1, int dim2, int dim3, int dim4, 
-			 int dim5)
+		const char *timebasePath,
+		int *data, int dim1, int dim2, int dim3, int dim4,
+		int dim5)
 {
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 5, size);
+	int size[5] = {dim1, dim2, dim3, dim4, dim5};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 5, size);
 }
 
 /**
@@ -2194,13 +2309,13 @@ int mtl_putVect5DIntInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect5DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim1, int dim2, int dim3, 
-			    int dim4, int dim5)
+		const char *timebasePath,
+		double *data, int dim1, int dim2, int dim3,
+		int dim4, int dim5)
 {
-  int size[5] = {dim1, dim2, dim3, dim4, dim5};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 5, size);
+	int size[5] = {dim1, dim2, dim3, dim4, dim5};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 5, size);
 }
 
 /**
@@ -2224,13 +2339,13 @@ int mtl_putVect5DDoubleInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect6DIntInObject(int aosCtx, const char *fieldPath, 
-			 const char *timebasePath,
-			 int *data, int dim1, int dim2, int dim3, int dim4, 
-			 int dim5, int dim6)
+		const char *timebasePath,
+		int *data, int dim1, int dim2, int dim3, int dim4,
+		int dim5, int dim6)
 {
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, INTEGER_DATA, 6, size);
+	int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, INTEGER_DATA, 6, size);
 }
 
 /**
@@ -2254,11 +2369,11 @@ int mtl_putVect6DIntInObject(int aosCtx, const char *fieldPath,
    - result = error status (int) instead of opaque pointer (void *)
  */
 int mtl_putVect6DDoubleInObject(int aosCtx, const char *fieldPath, 
-			    const char *timebasePath,
-			    double *data, int dim1, int dim2, int dim3, 
-			    int dim4, int dim5, int dim6)
+		const char *timebasePath,
+		double *data, int dim1, int dim2, int dim3,
+		int dim4, int dim5, int dim6)
 {
-  int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
-  return ual_write_data(aosCtx, fieldPath, timebasePath,
-				(void *)data, DOUBLE_DATA, 6, size);
+	int size[6] = {dim1, dim2, dim3, dim4, dim5, dim6};
+	return ual_write_data(aosCtx, fieldPath, timebasePath,
+			(void *)data, DOUBLE_DATA, 6, size);
 }
