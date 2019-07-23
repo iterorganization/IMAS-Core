@@ -19,9 +19,26 @@ void AsciiBackend::openPulse(PulseContext *ctx,
 			int mode, 
 			std::string options) 
 {
+  size_t n;
   this->dbname = ctx->getTokamak() + "_" 
     + std::to_string(ctx->getShot()) + "_" 
     + std::to_string(ctx->getRun()); 
+
+  std::stringstream ss;
+  std::string add;
+  n = options.find("-suffix ");
+  if (n != std::string::npos) {
+    ss << options.substr(n+8,options.length());
+    ss >> add;
+    this->dbname.insert(0,add);
+  }
+
+  n = options.find("-prefix ");
+  if (n != std::string::npos) {
+    ss << options.substr(n+8,options.length());
+    ss >> add;
+    this->dbname = this->dbname + add;
+  }
 }
 
 
@@ -41,21 +58,23 @@ void AsciiBackend::beginAction(OperationContext *ctx)
   if (ctx->getRangemode()==SLICE_OP)
     throw UALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
 
+  this->idsname = ctx->getDataobjectName();
+  this->fname = this->dbname + "_" + this->idsname + ".ids";
+
   switch(ctx->getAccessmode()) {
   case READ_OP : 
     this->writemode = false; 
+    this->pulsefile.open(this->fname, std::ios::in);
+    this->curcontent << this->pulsefile.rdbuf();
     break;
   case WRITE_OP: 
     this->writemode = true; 
+    this->pulsefile.open(this->fname, std::ios::out|std::ios::trunc);
     break;
   default: 
     throw UALBackendException("Unsupported access mode for ASCII Backend!",LOG);
     break;
   }
-
-  this->idsname = ctx->getDataobjectName();
-  this->fname = this->dbname + "_" + this->idsname + ".ids";
-  this->pulsefile.open(this->fname, std::ios::in|std::ios::out|std::ios::trunc);
 
   //DBG//if (this->pulsefile.is_open())
   //DBG//  std::cout << "OK, pulsefile is open in beginAction!\n";
@@ -189,7 +208,7 @@ void AsciiBackend::writeData(const T *data,
     break;
   case 1:
     for (int i=0; i<size[0]; i++)
-      this->pulsefile << data[i] << " ";
+      this->pulsefile << std::scientific << data[i] << " ";
     this->pulsefile << "\n";
     break;
   case 2:
@@ -271,8 +290,155 @@ int AsciiBackend::readData(Context *ctx,
 			   int* dim,
 			   int* size)
 {
+  std::string pathname;
 
-  return 0;
+  if (this->curline == "") {
+    std::getline(this->curcontent, this->curline);
+  }
+
+  if (ctx->getType()==CTX_OPERATION_TYPE) {
+    pathname = this->idsname + "/" + fieldname + "\n";
+  }
+  else { // CTX_ARRAYSTRUCT_TYPE
+    ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
+    pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname + "\n";
+  }
+
+  if (this->curline == pathname) { // found, process the content
+    std::getline(this->curcontent,this->curline,':'); 
+    this->curcontent >> *datatype;
+    std::getline(this->curcontent,this->curline,':'); 
+    this->curcontent >> *dim;
+    if (*dim>0) {
+      std::getline(this->curcontent,this->curline,':'); 
+      for (int i=0; i<*dim; i++)
+	this->curcontent >> size[i];
+    }
+
+    switch(*datatype) {
+    case CHAR_DATA:
+      this->readData((char **)data, *dim, size);
+      break;
+    case INTEGER_DATA:
+      this->readData<int>((int **)data, *dim, size);
+      break;
+    case DOUBLE_DATA:
+      this->readData<double>((double **)data, *dim, size);
+      break;
+    case COMPLEX_DATA:
+      this->readData<std::complex<double>>((std::complex<double> **)data, *dim, size);
+      break;
+    default:
+      throw UALBackendException("Unsupported data type for ASCII Backend!",LOG);
+      break;
+    }
+    
+    this->curline = "";
+  }
+  else { // not found, no data returned
+    return 0;
+  }
+
+  return 1;
+}
+
+
+void AsciiBackend::readData(char **data,
+			    int dim,
+			    int *size) 
+{
+  switch(dim){
+  case 0:
+    *data = static_cast<char *>(malloc(sizeof(char)));
+    this->pulsefile.read(&(*data[0]),1);
+    break;
+  case 1:
+    *data = static_cast<char *>(malloc(size[0]*sizeof(char)));
+    this->pulsefile.read(&(*data[0]),size[0]);
+    break;
+  case 2:
+    *data = static_cast<char *>(malloc(size[0]*size[1]*sizeof(char)));
+    for (int i=0; i<size[0]; i++) {
+      this->pulsefile.read(&(*data[i*size[1]]),size[1]);
+    }
+    break;
+  default:
+    throw UALBackendException("CHAR data > 2D is not implemented yet in ASCII Backend!",LOG);
+    break;
+  }
+}
+
+
+template <typename T>
+void AsciiBackend::readData(T **data,
+			    int dim,
+			    int *size) 
+{
+  switch(dim){
+  case 0:
+    *data = static_cast<T*>(malloc(sizeof(T)));
+    this->pulsefile >> std::scientific >> *data[0];
+    break;
+  case 1:
+    *data = static_cast<T*>(malloc(size[0]*sizeof(T)));
+    for (int i=0; i<size[0]; i++)
+      this->pulsefile >> std::scientific >> *data[i];
+    break;
+  case 2: 
+    *data = static_cast<T*>(malloc(size[0]*size[1]*sizeof(T)));
+    for (int j=0; j<size[1]; j++) 
+      for (int i=0; i<size[0]; i++) 
+	this->pulsefile >> std::scientific >> *data[j*size[0]+i];
+    break;
+  case 3:
+    *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*sizeof(T)));
+    for (int k=0; k<size[2]; k++)
+      for (int j=0; j<size[1]; j++) 
+	for (int i=0; i<size[0]; i++) 
+	  this->pulsefile >> std::scientific >> *data[k*size[0]*size[1]+j*size[0]+i];
+    break;
+  case 4:
+    *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*sizeof(T)));
+    for (int l=0; l<size[3]; l++) 
+      for (int k=0; k<size[2]; k++) 
+	for (int j=0; j<size[1]; j++) 
+	  for (int i=0; i<size[0]; i++) 
+	    this->pulsefile >> std::scientific >> *data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+    break;
+  case 5:
+    *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*sizeof(T)));
+    for (int m=0; m<size[4]; m++) 
+      for (int l=0; l<size[3]; l++) 
+	for (int k=0; k<size[2]; k++) 
+	  for (int j=0; j<size[1]; j++) 
+	    for (int i=0; i<size[0]; i++) 
+	      this->pulsefile >> std::scientific >> *data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+    break;
+  case 6:
+    *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*sizeof(T)));
+    for (int n=0; n<size[5]; n++) 
+      for (int m=0; m<size[4]; m++) 
+	for (int l=0; l<size[3]; l++) 
+	  for (int k=0; k<size[2]; k++) 
+	    for (int j=0; j<size[1]; j++) 
+	      for (int i=0; i<size[0]; i++) 
+		this->pulsefile >> std::scientific >> *data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+    break;
+  case 7:
+    *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*size[6]*sizeof(T)));
+    for (int o=0; o<size[6]; o++) 
+      for (int n=0; n<size[5]; n++) 
+	for (int m=0; m<size[4]; m++) 
+	  for (int l=0; l<size[3]; l++) 
+	    for (int k=0; k<size[2]; k++) 
+	      for (int j=0; j<size[1]; j++) 
+		for (int i=0; i<size[0]; i++) 
+		  this->pulsefile >> std::scientific >> *data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+    break;
+  default:
+    throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
+    break;
+  }
 }
 
 
@@ -288,7 +454,26 @@ void AsciiBackend::deleteData(OperationContext *ctx,
 void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
 					  int *size)
 {
+  int n;
   std::string aospath = this->getArraystructPath(ctx);
-  this->pulsefile << this->idsname << aospath.substr(0,aospath.length()-3) << "\n";
-  this->pulsefile << "\tsize: " << std::to_string(size[0]) << "\n";
+  std::string pathname = this->idsname + aospath.substr(0,aospath.length()-3) + "\n";
+  if (this->writemode) {
+    this->pulsefile << pathname;
+    this->pulsefile << "\tsize: " << std::to_string(size[0]) << "\n";
+  }
+  else {
+    std::stringstream ss;
+    if (this->curline == "") {
+      std::getline(this->curcontent,this->curline);
+    }
+    if (this->curline == pathname) {
+      std::getline(this->curcontent,this->curline,':');
+      this->curcontent >> n;
+      *size = n;
+      this->curline = "";
+    }
+    else {
+      *size = 0;
+    }
+  }
 }

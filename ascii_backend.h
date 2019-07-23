@@ -16,11 +16,6 @@
 #if defined(__cplusplus)
 
 
-/**
-   Abstract Backend class.
-   Defines the back-end API, as pure virtual member functions. 
-   Contains the DataBrokerFactory, handle contexts, back-end IDs, error handling, mem-cache, etc...
-*/
 class AsciiBackend : public Backend
 {
 
@@ -30,11 +25,19 @@ private:
   std::string fname; 
   bool writemode;
   std::string idsname;
-
+  std::stringstream curcontent;
+  std::string curline;
+  
   std::string getArraystructPath(ArraystructContext *aosctx);
+
   void writeData(const char* data, int dim, int* size);
   template <typename T> 
   void writeData(const T* data, int dim, int* size);
+
+  void readData(char** data, int dim, int* size);
+  template <typename T> 
+  void readData(T** data, int dim, int* size);
+
 
 public:
 
