@@ -1269,7 +1269,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      sprintf(exprBuf, "data(set_range(");
 	      for(int i = 0; i < nDims - 1; i++)
 		sprintf(&exprBuf[strlen(exprBuf)], "%d,", ddims[nDims - i - 1]); //ddims are returned in FORTRAN order!!!!!
-	      sprintf(&exprBuf[strlen(exprBuf)], "size($1,1)+size($2,1),[$1,$2]))");
+	      //sprintf(&exprBuf[strlen(exprBuf)], "size($1)+size($2),[$1,$2]))", 2, prevSegData, segData);
+	      sprintf(&exprBuf[strlen(exprBuf)], "size($1,%d)+size($2,%d),[$1,$2]))", nDims-1, nDims-1);
 	      MDSplus::Data *mergedSegData = MDSplus::executeWithArgs(exprBuf, 2, prevSegData, segData);
 	      MDSplus::deleteData(prevSegData);
 	      MDSplus::deleteData(segData);
