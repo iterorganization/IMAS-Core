@@ -47,6 +47,7 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 			 int mode, 
 			 std::string options)
 {
+  this->pulsefile.close();
   //DBG//std::cout << "closePulse has currently no effect in ASCII backend!\n";
 }
 
@@ -80,7 +81,6 @@ void AsciiBackend::beginAction(OperationContext *ctx)
   //DBG//  std::cout << "OK, pulsefile is open in beginAction!\n";
   //DBG//else
   //DBG//  std::cout << "WRONG, pulsefile is not open in beginAction!\n";
-
   //DBG//if (this->pulsefile.fail())
   //DBG//  std::cout << "WRONG, failbit or badbit detected in beginAction!\n";
 }
@@ -290,6 +290,11 @@ int AsciiBackend::readData(Context *ctx,
 			   int* dim,
 			   int* size)
 {
+  if (!this->pulsefile.is_open())
+    std::cout << "WRONG, pulsefile is not open in beginAction!\n";
+  if (this->pulsefile.fail())
+    std::cout << "WRONG, failbit or badbit detected in beginAction!\n";
+
   std::string pathname;
 
   if (this->curline == "") {
@@ -297,11 +302,11 @@ int AsciiBackend::readData(Context *ctx,
   }
 
   if (ctx->getType()==CTX_OPERATION_TYPE) {
-    pathname = this->idsname + "/" + fieldname + "\n";
+    pathname = this->idsname + "/" + fieldname;
   }
   else { // CTX_ARRAYSTRUCT_TYPE
     ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
-    pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname + "\n";
+    pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname;
   }
 
   if (this->curline == pathname) { // found, process the content
@@ -309,10 +314,19 @@ int AsciiBackend::readData(Context *ctx,
     this->curcontent >> *datatype;
     std::getline(this->curcontent,this->curline,':'); 
     this->curcontent >> *dim;
+    int totsize = 1;
     if (*dim>0) {
       std::getline(this->curcontent,this->curline,':'); 
-      for (int i=0; i<*dim; i++)
+      for (int i=0; i<*dim; i++) {
 	this->curcontent >> size[i];
+	totsize *= size[i];
+      }
+    }
+    std::getline(this->curcontent,this->curline); // consume current dim or size line
+    if (totsize == 0) { 
+      std::getline(this->curcontent,this->curline); // consume empty line
+      //this->curline = "";
+      return 0;
     }
 
     switch(*datatype) {
@@ -333,6 +347,7 @@ int AsciiBackend::readData(Context *ctx,
       break;
     }
     
+    std::getline(this->curcontent,this->curline); // consume rest of line
     this->curline = "";
   }
   else { // not found, no data returned
@@ -350,16 +365,16 @@ void AsciiBackend::readData(char **data,
   switch(dim){
   case 0:
     *data = static_cast<char *>(malloc(sizeof(char)));
-    this->pulsefile.read(&(*data[0]),1);
+    this->curcontent.read(&(*data[0]),1);
     break;
   case 1:
     *data = static_cast<char *>(malloc(size[0]*sizeof(char)));
-    this->pulsefile.read(&(*data[0]),size[0]);
+    this->curcontent.read(&(*data[0]),size[0]);
     break;
   case 2:
     *data = static_cast<char *>(malloc(size[0]*size[1]*sizeof(char)));
     for (int i=0; i<size[0]; i++) {
-      this->pulsefile.read(&(*data[i*size[1]]),size[1]);
+      this->curcontent.read(&(*data[i*size[1]]),size[1]);
     }
     break;
   default:
@@ -377,25 +392,25 @@ void AsciiBackend::readData(T **data,
   switch(dim){
   case 0:
     *data = static_cast<T*>(malloc(sizeof(T)));
-    this->pulsefile >> std::scientific >> *data[0];
+    this->curcontent >> std::scientific >> (*data)[0]; 
     break;
   case 1:
     *data = static_cast<T*>(malloc(size[0]*sizeof(T)));
     for (int i=0; i<size[0]; i++)
-      this->pulsefile >> std::scientific >> *data[i];
+      this->curcontent >> std::scientific >> (*data)[i];
     break;
   case 2: 
     *data = static_cast<T*>(malloc(size[0]*size[1]*sizeof(T)));
     for (int j=0; j<size[1]; j++) 
       for (int i=0; i<size[0]; i++) 
-	this->pulsefile >> std::scientific >> *data[j*size[0]+i];
+	this->curcontent >> std::scientific >> (*data)[j*size[0]+i];
     break;
   case 3:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*sizeof(T)));
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) 
 	for (int i=0; i<size[0]; i++) 
-	  this->pulsefile >> std::scientific >> *data[k*size[0]*size[1]+j*size[0]+i];
+	  this->curcontent >> std::scientific >> (*data)[k*size[0]*size[1]+j*size[0]+i];
     break;
   case 4:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*sizeof(T)));
@@ -403,7 +418,7 @@ void AsciiBackend::readData(T **data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) 
 	  for (int i=0; i<size[0]; i++) 
-	    this->pulsefile >> std::scientific >> *data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	    this->curcontent >> std::scientific >> (*data)[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 5:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*sizeof(T)));
@@ -412,7 +427,7 @@ void AsciiBackend::readData(T **data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) 
 	    for (int i=0; i<size[0]; i++) 
-	      this->pulsefile >> std::scientific >> *data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	      this->curcontent >> std::scientific >> (*data)[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 6:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*sizeof(T)));
@@ -422,7 +437,7 @@ void AsciiBackend::readData(T **data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) 
 	      for (int i=0; i<size[0]; i++) 
-		this->pulsefile >> std::scientific >> *data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		this->curcontent >> std::scientific >> (*data)[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 7:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*size[6]*sizeof(T)));
@@ -433,7 +448,7 @@ void AsciiBackend::readData(T **data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) 
 		for (int i=0; i<size[0]; i++) 
-		  this->pulsefile >> std::scientific >> *data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		  this->curcontent >> std::scientific >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   default:
     throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
@@ -456,9 +471,9 @@ void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
 {
   int n;
   std::string aospath = this->getArraystructPath(ctx);
-  std::string pathname = this->idsname + aospath.substr(0,aospath.length()-3) + "\n";
+  std::string pathname = this->idsname + aospath.substr(0,aospath.length()-3);
   if (this->writemode) {
-    this->pulsefile << pathname;
+    this->pulsefile << pathname << "\n";
     this->pulsefile << "\tsize: " << std::to_string(size[0]) << "\n";
   }
   else {
@@ -470,6 +485,7 @@ void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
       std::getline(this->curcontent,this->curline,':');
       this->curcontent >> n;
       *size = n;
+      std::getline(this->curcontent,this->curline); // consume rest of size line
       this->curline = "";
     }
     else {
