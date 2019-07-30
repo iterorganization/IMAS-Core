@@ -288,7 +288,7 @@ else
 	    return;
 	}
 //If it is a slice, then size = 1
-	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
+/*	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
 	{
 	    UalAoS *aos = getAoS(ctx, false);  //Gabriele Jan 2019
             if(aos->timebase == "")
@@ -297,10 +297,21 @@ else
 		*size = 1;
 	    prepareSlice(ctx);
 	}
+*/
+	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
+	{
+	    prepareSlice(ctx);
+	    UalAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
+            if(aos->timebase == "")
+	        *size = aos->aos.size();  //Static AoS
+	    else
+		*size = 1;
+	}
+
 	else
 	{
     //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    	    UalAoS *aos = getAoS(ctx, false);
+    	    UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
 	    *size = aos->aos.size();
 	}
     }
@@ -392,12 +403,16 @@ else
 		(*dim)++;
 	    }
 	    else
+	    {
 	    	status = getSliceFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	    }
 	    return status;
 	}
 
 	else
+	{
 	    return getFromAoS(ctx, fieldname, idx, data, datatype, dim, size);
+	}
 	return 1;
     }
 
@@ -568,7 +583,12 @@ else
  	        getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
  	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //For the moment only PREVIOUS SAMPLE is supported
+
 	        currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+//std::cout << "******************************************************" <<std::endl;
+//currentAos.dump(0);
+//std::cout << "******************************************************" <<std::endl;
+
 	        return; //Done!!
 	    }
 	    for(size_t i = 0; i < topAos->aos.size(); i++)
@@ -1369,12 +1389,24 @@ else
 */    }
 
 
-    void UalAoS::dump(int tabs)
+/*    void UalAoS::dump(int tabs)
     {
 	for(int i = 0; i < tabs; i++)
 	    std::cout << "  ";
 	for (size_t i = 0; i < aos.size(); i++)
 	{
+	    std::cout << "[" << i << "]" << std::endl;
+	    aos[i]->dump(tabs+1);
+	}
+    }*/
+
+
+    void UalAoS::dump(int tabs)
+    {
+	for (size_t i = 0; i < aos.size(); i++)
+	{
+	    for(int j = 0; j < tabs; j++)
+	        std::cout << "  ";
 	    std::cout << "[" << i << "]" << std::endl;
 	    aos[i]->dump(tabs+1);
 	}
