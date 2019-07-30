@@ -448,9 +448,10 @@ static std::string getSegmentData(std::string path, int segIdx)
             return tree->getNode(path);
 	std::string pathStr(path);
 	MDSplus::TreeNode *node;
-	if(treeNodeMap.find(pathStr) != treeNodeMap.end())
+	auto search = treeNodeMap.find(pathStr);
+	if(search != treeNodeMap.end())
 	{
-	    node = treeNodeMap.at(pathStr);
+	    node = search->second;
 	}
 	else
 	{
@@ -466,7 +467,7 @@ static std::string getSegmentData(std::string path, int segIdx)
     {
 	for ( auto it = treeNodeMap.begin(); it != treeNodeMap.end(); ++it )
 	{
-	    delete treeNodeMap[it->first];
+	    delete it->second;
 	}
 	treeNodeMap.clear();
     }
@@ -2667,10 +2668,12 @@ printf("Warning, struct field added more than once\n");
 	    timedNodeFreeIdxMap[toLower(aosPath)] = idx;
 	}
 */
-	if (timedNodePathMap.find(toLower(aosFullPath)) != timedNodePathMap.end())
-	    return timedNodePathMap.at(toLower(aosFullPath));
+        auto searchPath = timedNodePathMap.find(toLower(aosFullPath));
+	if (searchPath != timedNodePathMap.end())
+	    return searchPath->second;
 	int idx;
-	if (timedNodeFreeIdxMap.find(toLower(aosPath)) == timedNodeFreeIdxMap.end())
+        auto search = timedNodeFreeIdxMap.find(toLower(aosPath));
+	if (search == timedNodeFreeIdxMap.end())
 	{
 	    idx = maxAosTimedId;
 	    maxAosTimedId++;
@@ -2678,14 +2681,14 @@ printf("Warning, struct field added more than once\n");
 	}
 	else
 	{
-	    idx = timedNodeFreeIdxMap[toLower(aosPath)];
+	    idx = search->second;
 	}
 
 //////////////////////////////////////////////////////////////////////////////////////
 	timedNodeFreeIdxMap[toLower(aosPath)] = idx + 1;
 	char *buf = new char[aosPath.size()+16];
-//	sprintf(buf, "%s/TIMED_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
-	sprintf(buf, "%s/timed_%d", aosName.c_str(), timedNodeFreeIdxMap.at(toLower(aosPath)));
+//	sprintf(buf, "%s/TIMED_%d", aosName.c_str(), idx + 1);
+	sprintf(buf, "%s/timed_%d", aosName.c_str(), idx + 1);
 	std::string retPath(buf);
 	delete []buf;
         timedNodePathMap[toLower(aosFullPath)] = retPath;
