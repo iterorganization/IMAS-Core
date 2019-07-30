@@ -752,14 +752,16 @@ else
 	    else
 	    {
 	    	std::vector<double> retTimeV;
+		std::string path1 = path.substr(path.find_first_of("/")+1);
 	    	for(size_t i = 0; i < aos->aos.size(); i++)
 	    	{
-		    retTimeV.push_back(aos->aos[i]->getData(path)->getDouble());
+		    retTimeV.push_back(aos->aos[i]->getData(path1)->getDouble());
 	    	}
 	    	return retTimeV; 
 	    }
 	}
     }
+
 
 /*	
     std::vector<double> MemoryBackend::getTimebaseVect(std::string path, UalAoS &aos, std::vector<UalStruct *> &aosParentV, ArraystructContext *ctx)
