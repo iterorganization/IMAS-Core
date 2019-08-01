@@ -2,7 +2,10 @@
 #define HDF5_BACKEND_H 1
 
 #include <hdf5.h>
+#include "ual_context.h"
 #include "ual_backend.h"
+#include "ual_defs.h"
+#include "ual_const.h"
 
 
 class HDF5Backend : public Backend
@@ -68,6 +71,54 @@ public:
 			 int datatype,
 			 int dim,
 			 int* size);
+	
+  /**
+     Writes data.
+     This function writes a signal in the database given the passed operation context.
+     @param[in] ctx pointer on operation context
+     @param[in] fieldname field name 
+     @param[in] timebasename time base field name
+     @param[in] data pointer on the data to be written
+     @param[in] datatype type of data to be written:
+     - CHAR_DATA strings
+     - INTEGER_DATA integers
+     - DOUBLE_DATA double precision floating points
+     - COMPLEX_DATA complex numbers
+     @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
+     @param[in] size array of the size of each dimension (NULL is dim=0)
+     @throw BackendException
+  */
+     void writeData(OperationContext *ctx,
+			 std::string fieldname,
+			 std::string timebasename, 
+			 void* data,
+			 int datatype,
+			 int dim,
+			 int* size);
+	
+  /**
+     Reads data.
+     This function reads a signal in the database given the passed operation context.
+     @param[in] ctx pointer on operation context
+     @param[in] fieldname field name
+     @param[in] istimed specify the time-dependency of the field
+     @param[out] data returned pointer on the read data 
+     @param[out] datatype type of data to be read:
+     - CHAR_DATA strings
+     - INTEGER_DATA integers
+     - DOUBLE_DATA double precision floating points
+     - COMPLEX_DATA complex numbers
+     @param[out] dim returned dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
+     @param[out] size array returned with elements filled at the size of each dimension 
+     @throw BackendException
+  */
+    virtual int readData(Context *ctx,
+			std::string fieldname,
+			std::string timebase,
+			void** data,
+			int* datatype,
+			int* dim,
+			int* size);
 
   /**
      Reads data.
@@ -85,14 +136,14 @@ public:
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
   */
-    virtual void readData(Context *ctx,
+	virtual int readData(OperationContext *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
 			int* datatype,
 			int* dim,
 			int* size);
-
+	
   /**
     Deletes data.
     This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 

@@ -21,7 +21,8 @@ CXXINCLUDES+= -DUDA -DFATCLIENT -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
-LIBS+= -lws2_32 -lssl -lcrypto -lxml2 -lcrypto -lpq
+LIBS+= $(PostgresSQL_ROOT)/lib/libpq.a
+LIBS+= -lws2_32 -lssl -lcrypto -lxml2 -lcrypto
 else
 CXXINCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
