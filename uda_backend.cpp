@@ -53,6 +53,7 @@ void UDABackend::openPulse(PulseContext* ctx,
     if (plugin.empty()) {
         plugin = this->plugin;
     } else {
+        this->plugin = plugin;
         std::stringstream ss;
 
         ss << plugin << "::init(";
