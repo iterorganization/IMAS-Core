@@ -22,7 +22,7 @@ LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= $(PostgresSQL_ROOT)/lib/libpq.a
-LIBS+= -lws2_32 -lssl -lcrypto -lxml2 -lcrypto
+LIBS+= -lws2_32 -lssl -lcrypto -lxml2
 else
 CXXINCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
@@ -80,10 +80,20 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	cp $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
 endif # IMAS_MDSPLUS
 ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("fat","$(strip $(IMAS_UDA))")
+	# Copy UDA libraries
+	$(mkdir_p) $(packagedir)/uda/lib
+	cp $(UDA_HOME)/lib/libfatuda_cpp.a $(packagedir)/uda/lib
+	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+	# Copy PostgreSQL libraries
+	$(mkdir_p) $(packagedir)/postgresql/lib
+	cp $(PostgresSQL_ROOT)/lib/libpq.a $(packagedir)/postgresql/lib
+else
 	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
 	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+endif
 endif # IMAS_UDA
 ifneq ("no","$(strip $(IMAS_HDF5))")
 	# Copy HDF5 libraries
