@@ -8,6 +8,6 @@
 /ual_lowlevel.d
 /html/
 /latex/
-/uda_backend.d
+/uda_backend.d*
 /mdsplus_backend.d
 doxygen_sqlite3.db
