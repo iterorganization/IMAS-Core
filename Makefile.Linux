@@ -47,7 +47,7 @@ sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 install: all libimas.so_install libimas.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel
 	$(INSTALL_DATA) ual_low_level.h matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
 		$(includedir)
-	cp -r latex html $(docdir)/dev/lowlevel
+	$(CP) latex html $(docdir)/dev/lowlevel
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 	$(mkdir_p) $@
