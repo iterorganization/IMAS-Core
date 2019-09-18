@@ -25,6 +25,13 @@
 #define EXPORT
 #endif
 
+struct c_complex_struct {
+	int *shapes;
+    double *array_real_part;
+    double *array_imag_part;
+};
+
+//void test(struct c_struct**);
 /* management 
 ********************************************************************************/
 
@@ -80,8 +87,9 @@ EXPORT int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timeba
 EXPORT int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6);
 EXPORT int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
 EXPORT int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
-
-
+EXPORT int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, double *cpx_real, double *cpx_imag);
+//EXPORT int* mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath, int ndim, int *status, double **array_real, double **array_imag);
+EXPORT void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath, int ndim, int *status, struct c_complex_struct **st);
 /* writers
 ********************************************************************************/
 
@@ -103,6 +111,10 @@ EXPORT int mtl_putVect6DInt(int opCtx, const char *fieldPath, const char *timeba
 EXPORT int mtl_putVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double *data, int dim1, int dim2, int dim3, int dim4,int dim5, int dim6);
 EXPORT int mtl_putVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, int *data, int dim1, int dim2, int dim3, int dim4, int dim5, int dim6, int dim7);
 EXPORT int mtl_putVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double *data, int dim1, int dim2, int dim3, int dim4,int dim5, int dim6, int dim7);
+EXPORT int mtl_putCPX_0D(int ctx, const char *fieldPath, const char *timebasePath,
+		double data_real, double data_imag);
+EXPORT int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *timebasePath,
+		double *data_real, double *data_imag, int ndim, int *shapes);
 
 /* array of structure 
 ********************************************************************************/

@@ -820,7 +820,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	node = getNode(checkFullPath(fullPath).c_str());
       }catch(MDSplus::MdsException &exc)
       {
-	throw UALBackendException(exc.what(),LOG);
+	//throw UALBackendException(exc.what(),LOG);
+	return 0;
       }
       status = readTimedData(node, dataPtr, datatype, numDims, outDims);
    //   delete node;
@@ -1117,7 +1118,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //	delete node;
       }catch(MDSplus::MdsException &exc)
 	{
-	  throw UALBackendException(exc.what(),LOG);
+	  return 0;
+//	  throw UALBackendException(exc.what(),LOG);
 	}
       return 1;
     }
@@ -1202,7 +1204,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	node = getNode(fullPath.c_str());
 	}catch(MDSplus::MdsException &exc) 
 	{	
-	    throw UALBackendException(exc.what(),LOG);
+	    return 0;
+	    //throw UALBackendException(exc.what(),LOG);
 	}
 	try {
 	    int numSegments = node->getNumSegments();
@@ -1270,7 +1273,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      for(int i = 0; i < nDims - 1; i++)
 		sprintf(&exprBuf[strlen(exprBuf)], "%d,", ddims[nDims - i - 1]); //ddims are returned in FORTRAN order!!!!!
 	      //sprintf(&exprBuf[strlen(exprBuf)], "size($1)+size($2),[$1,$2]))", 2, prevSegData, segData);
-	      sprintf(&exprBuf[strlen(exprBuf)], "size($1)+size($2),[$1,$2]))");
+	      sprintf(&exprBuf[strlen(exprBuf)], "size($1,%d)+size($2,%d),[$1,$2]))", nDims-1, nDims-1);
 	      MDSplus::Data *mergedSegData = MDSplus::executeWithArgs(exprBuf, 2, prevSegData, segData);
 	      MDSplus::deleteData(prevSegData);
 	      MDSplus::deleteData(segData);
@@ -1814,7 +1817,10 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
 	try {
 	    std::string fullPath = composePaths(dataobjectPath, path);
-	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath, true).c_str());
+	    MDSplus::TreeNode *node;
+	    try {
+	    	node = getNode(checkFullPath(fullPath, true).c_str());
+	    } catch(MDSplus::MdsException &exc) { return NULL;}
 	    if (node->getLength() == 0)  return NULL;
 	    MDSplus::Data *retData = node->getData();
 	    if(retData->clazz != CLASS_APD)
