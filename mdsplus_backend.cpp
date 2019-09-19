@@ -238,26 +238,12 @@ static int getStringSizeInSegment(MDSplus::TreeNode *node)
 
 
  
-#ifdef MDSPLUS_POST_7_49
 static std::string getSegmentData(std::string path, int segIdx)
 {
     char segIdxBuf[16];
     sprintf(segIdxBuf, "%d", segIdx);
     return "(_=*;TreeShr->TreeGetSegment(val(getnci(build_path(\'"+path+"\'),\'NID_NUMBER\')),val("+segIdxBuf+"),xd(_),val(0));_;)";
 }
-#elif MDSPLUS_PRE_7_49
-static std::string getSegmentData(std::string path, int segIdx)
-{
-    char segIdxBuf[16];
-    sprintf(segIdxBuf, "%d", segIdx);
-    return "(_=*;__=*;TreeShr->TreeGetSegment(val(getnci(build_path(\'"+path+"\'),\'NID_NUMBER\')),val("+segIdxBuf+"),xd(_),xd(__));_;)";
-}
-#else
-static std::string getSegmentData(std::string path, int segIdx)
-{
-    throw UALBackendException("MDSplus backend should be compiled while specifying if version is PRE or POST 7.49.x! (Backend is incompatible with 7.49)",LOG);
-}
-#endif
 
     std::string MDSplusBackend::composePaths(std::string dataobjectPath, std::string path)
     {
