@@ -1122,7 +1122,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
 	node->deleteData();
 //Handle the possibility that the node refers to a AoS
-        if(node->getNumChildren() > 0)
+        if(strcmp(node->getUsage(),"STRUCTURE") == 0)
 	{
 //	    std::string currPath(":STATIC");
 	    std::string currPath(":static");
