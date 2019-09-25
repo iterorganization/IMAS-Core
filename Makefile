@@ -30,8 +30,8 @@ CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-inte
 LDF=ifort -lc -lstdc++
 else
 CXX=g++
-CFLAGS=--std=c11 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
-CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
+CFLAGS=-std=c11 -pedantic -Wall -fPIC -O0 ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
 LDF=gfortran -lc -lstdc++
 endif
 
