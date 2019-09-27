@@ -1,7 +1,7 @@
 
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
