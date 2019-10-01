@@ -3054,7 +3054,11 @@ printf("Warning, struct field added more than once\n");
 	else
 	{
 	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	    int outSize = currApd->len();
+//decrease based on last null components 
+	    for(int i = currApd->len() - 1; i >= 0 && currApd->getDescAt(i) == NULL; i--)
+		outSize--;
+            *size = outSize;
 	}
     }
 }
