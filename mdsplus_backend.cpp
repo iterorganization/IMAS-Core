@@ -2884,9 +2884,19 @@ printf("Warning, struct field added more than once\n");
 //NOTE: size is not required as Apd uses std::vector to keep descriptors    
       std::string emptyStr("");
       MDSplus::Apd *newApd = new MDSplus::Apd();
+      MDSplus::Apd *currApd;
+      std::string path = ctx->getPath();
+      int currPos = path.find_last_of("/");
+      std::string rootName;
+      if(currPos == (int)std::string::npos)
+	rootName = path;
+      else
+	rootName = path.substr(currPos+1, path.size() - currPos);
       //Jan 2015: Add as many empty fields as the passed size -  Oct 2019
-      for(int i = 0; i < size; i++)
-	  newApd->appendDesc(NULL); 
+      for(int i = 0; i < size; i++) {
+	newApd->setDescAt(i, currApd = new MDSplus::Apd());
+	currApd->appendDesc(new MDSplus::String(rootName.c_str()));
+      }
       if(ctx->getParent())
       {
  	  MDSplus::Apd *parentApd = getApdFromContext(ctx->getParent());
