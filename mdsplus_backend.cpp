@@ -1543,8 +1543,14 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      {
 		  MDSplus::Data *currTimeD = getFromApd(apd, i, time);
 		  if(!currTimeD)
-		      throw  UALBackendException("Cannot get Time information",LOG); 
-		  times[i] = currTimeD->getDouble();
+		  {
+		      if(apd->getDescAt(i) == NULL)
+			  times[i] = 0;
+		      else
+		      	  throw  UALBackendException("Cannot get Time information",LOG); //Gabriele  Oct 2019
+	   	  }
+		  else
+		      times[i] = currTimeD->getDouble();
 	      }
 	      std::string newTimebasePath = composePaths(aosPath, "time");
 	      int dims[] = {numElements};
@@ -1830,7 +1836,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
         if(strcmp(node->getDType(), "DTYPE_MISSING") == 0)
         {
  	    MDSplus::Apd *retApd = new MDSplus::Apd();
-	    retApd->appendDesc(NULL);
+//	    retApd->appendDesc(NULL); October 2019
 	    return retApd;
         }
 ///////////////////////////////////
@@ -2878,9 +2884,19 @@ printf("Warning, struct field added more than once\n");
 //NOTE: size is not required as Apd uses std::vector to keep descriptors    
       std::string emptyStr("");
       MDSplus::Apd *newApd = new MDSplus::Apd();
-      /*Jan 2015: Add as many empty fields as the passed size
-      for(int i = 0; i < size; i++)
-	  newApd->appendDesc(NULL); */
+      MDSplus::Apd *currApd;
+      std::string path = ctx->getPath();
+      int currPos = path.find_last_of("/");
+      std::string rootName;
+      if(currPos == (int)std::string::npos)
+	rootName = path;
+      else
+	rootName = path.substr(currPos+1, path.size() - currPos);
+      //Jan 2015: Add as many empty fields as the passed size -  Oct 2019
+      for(int i = 0; i < size; i++) {
+	newApd->setDescAt(i, currApd = new MDSplus::Apd());
+	currApd->appendDesc(new MDSplus::String(rootName.c_str()));
+      }
       if(ctx->getParent())
       {
  	  MDSplus::Apd *parentApd = getApdFromContext(ctx->getParent());
