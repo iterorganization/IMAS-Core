@@ -60,7 +60,11 @@ TARGETS = libimas.dll libimas.lib printMDSplusFileVersion
 all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
+sources_uninstall:
+	-rm -rf $(datadir)/src/lowlevel
+	-rmdir -p $(datadir)/src/lowlevel
 
+uninstall: pkgconfig_uninstall sources_unininstall
 install: all pkgconfig_install sources_install
 	$(mkdir_p) $(packagedir)/lowlevel/lib
 	$(mkdir_p) $(packagedir)/lowlevel/include
