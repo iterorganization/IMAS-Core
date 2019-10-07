@@ -43,11 +43,18 @@ all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 	$(INSTALL_DATA) $^ $(datadir)/src/lowlevel
+sources_uninstall:
+	-rm -rf $(datadir)/src/lowlevel
 
 install: all libimas.so_install libimas.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel
 	$(INSTALL_DATA) ual_low_level.h matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
 		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
+
+uninstall: libimas.so_uninstall libimas.a_uninstall pkgconfig_uninstall sources_uninstall
+	-rm -rf $(docdir)/dev/lowlevel
+	-rm -rf $(addprefix $(includedir)/,ual_low_level.h matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h)
+	-rm -f $(addprefix $(libdir)/,libimas-$(DD_GIT_DESCRIBE).so.$(SO_NUM) libimas-$(DD_GIT_DESCRIBE).so libimas.so libimas-$(DD_GIT_DESCRIBE).a libimas.a)
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 	$(mkdir_p) $@
@@ -66,3 +73,9 @@ libimas.a: $(COMMON_OBJECTS)
 	$(AR) rvs $@ $^
 libimas.a_install: %_install:% | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
+
+libimas.a_uninstall: %.a_uninstall
+	-rm -f $(libdir)/$(*F).a
+libimas.so_uninstall: %.so_uninstall
+	-rm -f $(libdir)/$(*F).so
+	-rm -f $(libdir)/$(*F).so.$(SO_NUM)

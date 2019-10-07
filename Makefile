@@ -49,7 +49,7 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 ifneq (,$(wildcard Makefile.$(SYSTEM)))
 include Makefile.$(SYSTEM)
 else
-all sources sources_install install:
+all sources sources_install install uninstall:
 	$(error No Makefile.$(SYSTEM) found for this system: $(UNAME_S))
 endif
 
