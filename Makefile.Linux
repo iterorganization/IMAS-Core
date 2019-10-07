@@ -74,8 +74,8 @@ libimas.a: $(COMMON_OBJECTS)
 libimas.a_install: %_install:% | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
 
-libimas.a_uninstall: %.a_uninstall
-	-rm -f $(libdir)/$(*F).a
-libimas.so_uninstall: %.so_uninstall
-	-rm -f $(libdir)/$(*F).so
-	-rm -f $(libdir)/$(*F).so.$(SO_NUM)
+libimas.a_uninstall:
+	-rm -f $(libdir)/libimas.a
+libimas.so_uninstall:
+	-rm -f $(libdir)/libimas.so
+	-rm -f $(libdir)/libimas.so.$(SO_NUM)
