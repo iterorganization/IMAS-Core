@@ -209,6 +209,7 @@ int ual_get_backendID(int ctxID)
   catch (const UALLowlevelException e) {
     std::cout << "ual_get_backendID: " << e.what() << "\n";
     id = ualerror::lowlevel_err;
+    ual_print_context(ctxID);
   }
   return id;
 }
@@ -273,6 +274,7 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
   catch (const UALBackendException& e) {
     std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -281,6 +283,7 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
   catch (const UALLowlevelException& e) {
     std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -289,6 +292,7 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
   catch (const std::exception& e) {
     std::cout << "ual_open_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -316,6 +320,7 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
   catch (const UALBackendException& e) {
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -324,6 +329,7 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
   catch (const UALLowlevelException& e) {
     std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -332,6 +338,7 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
   catch (const std::exception& e) {
     std::cout << "ual_close_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -362,6 +369,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
   catch (const UALContextException& e) {
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -370,6 +378,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
   catch (const UALBackendException& e) {
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -378,6 +387,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
   catch (const UALLowlevelException& e) {
     std::cout << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -386,6 +396,7 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
   catch (const std::exception& e) {
     std::cout << "ual_begin_global_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -420,6 +431,7 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
   catch (const UALContextException& e) {
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -428,6 +440,7 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
   catch (const UALBackendException& e) {
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -436,6 +449,7 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
   catch (const UALLowlevelException& e) {
     std::cout << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -444,6 +458,7 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
   catch (const std::exception& e) {
     std::cout << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
+    ual_print_context(pctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -472,6 +487,7 @@ int ual_end_action(int ctxID)
       catch (const UALBackendException& e) {
 	std::cout << "ual_end_action: " << e.what() << "\n";
 	status = ualerror::backend_err;
+	ual_print_context(ctxID);
 #ifdef SOE
 	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
 	std::exit(EXIT_FAILURE);
@@ -480,6 +496,7 @@ int ual_end_action(int ctxID)
       catch (const UALLowlevelException& e) {
 	std::cout << "ual_end_action: " << e.what() << "\n";
 	status = ualerror::lowlevel_err;
+	ual_print_context(ctxID);
 #ifdef SOE
 	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
 	std::exit(EXIT_FAILURE);
@@ -488,6 +505,7 @@ int ual_end_action(int ctxID)
       catch (const std::exception& e) {
 	std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
 	status = ualerror::unknown_err;
+	ual_print_context(ctxID);
 #ifdef SOE
 	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
 	std::exit(EXIT_FAILURE);
@@ -516,6 +534,7 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   catch (const UALBackendException& e) {
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::backend_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -524,6 +543,7 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   catch (const UALLowlevelException& e) {
     std::cout << "ual_write_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -532,6 +552,7 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
   catch (const std::exception& e) {
     std::cout << "ual_write_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -592,6 +613,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
   catch (const UALBackendException& e) {
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::backend_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -600,6 +622,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
   catch (const UALLowlevelException& e) {
     std::cout << "ual_read_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -608,6 +631,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
   catch (const std::exception& e) {
     std::cout << "ual_read_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -633,6 +657,7 @@ int ual_delete_data(int octxID, const char *field)
   catch (const UALBackendException& e) {
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::backend_err;
+    ual_print_context(octxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -641,6 +666,7 @@ int ual_delete_data(int octxID, const char *field)
   catch (const UALLowlevelException& e) {
     std::cout << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(octxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -649,6 +675,7 @@ int ual_delete_data(int octxID, const char *field)
   catch (const std::exception& e) {
     std::cout << "ual_delete_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(octxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -694,6 +721,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   catch (const UALContextException& e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::context_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -702,6 +730,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   catch (const UALBackendException& e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::backend_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -710,6 +739,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   catch (const UALLowlevelException& e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::lowlevel_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -718,6 +748,7 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
   catch (const std::exception& e) {
     std::cout << "ual_begin_arraystruct_action: " << e.what() << WHERE << "\n";
     actxID = ualerror::unknown_err;
+    ual_print_context(ctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -742,6 +773,7 @@ int ual_iterate_over_arraystruct(int aosctxID,
   catch (const UALContextException& e) {
     std::cout << "ual_iterate_over_arraystruct: " << e.what() << "\n";
     status = ualerror::context_err;
+    ual_print_context(aosctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -750,6 +782,7 @@ int ual_iterate_over_arraystruct(int aosctxID,
   catch (const UALLowlevelException& e) {
     std::cout << "ual_iterate_over_arraystruct: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
+    ual_print_context(aosctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
@@ -758,6 +791,7 @@ int ual_iterate_over_arraystruct(int aosctxID,
   catch (const std::exception& e) {
     std::cout << "ual_iterate_over_arraystruct: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
+    ual_print_context(aosctxID);
 #ifdef SOE
     std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
     std::exit(EXIT_FAILURE);
