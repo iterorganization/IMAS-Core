@@ -298,13 +298,13 @@ ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std:
 
 std::string ArraystructContext::print() const
 {
-  std::string s = ((OperationContext)*this).print() +
+  
+  std::string s = ((this->parent==NULL)?((OperationContext)*this).print():
+		   (this->parent->print() + "child \t\t\t = \n")) +
     "path \t\t\t = \"" + this->path + "\"\n" +
     "timebase \t\t = \"" + this->timebase + "\"\n" +
     "timed \t\t\t = " + 
     (timebase.empty()?"no":"yes") + "\n" +
-    "parent \t\t\t = " +
-    ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
     "index \t\t\t = " + std::to_string(this->index) + "\n";
   return s;
 }
