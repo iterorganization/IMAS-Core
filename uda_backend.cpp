@@ -49,11 +49,9 @@ void UDABackend::openPulse(PulseContext* ctx,
         std::cout << "UDABackend openPulse\n";
     }
 
-    std::string plugin = machine_mapping.plugin(ctx->getTokamak());
-    if (plugin.empty()) {
-        plugin = this->plugin;
-    } else {
-        this->plugin = plugin;
+    std::string mapped_plugin = machine_mapping.plugin(ctx->getTokamak());
+    if (!mapped_plugin.empty()) {
+        this->plugin = mapped_plugin;
         std::stringstream ss;
 
         ss << plugin << "::init(";
@@ -83,7 +81,7 @@ void UDABackend::openPulse(PulseContext* ctx,
 
     std::stringstream ss;
 
-    ss << plugin
+    ss << this->plugin
        << "::openPulse("
        << "backend_id=" << ualconst::mdsplus_backend
        << ", shot=" << ctx->getShot()
@@ -107,7 +105,7 @@ void UDABackend::openPulse(PulseContext* ctx,
         if (data->type() != typeid(int)) {
             throw UALBackendException(std::string("Unknown data type returned: ") + data->type().name(), LOG);
         }
-        uda::Scalar* scalar = dynamic_cast<uda::Scalar*>(data);
+        auto scalar = dynamic_cast<uda::Scalar*>(data);
         if (scalar == nullptr) {
             throw UALBackendException("UDA openPulse did not return scalar data");
         }
