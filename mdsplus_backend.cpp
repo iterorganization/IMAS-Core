@@ -513,6 +513,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     else if (user[0] == '/')
     {
         mdsplusBaseStr += user;
+        mdsplusBaseStr += "/";
         mdsplusBaseStr += tokamak;
         mdsplusBaseStr += "/";
         mdsplusBaseStr += version;
