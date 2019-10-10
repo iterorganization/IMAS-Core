@@ -61,7 +61,7 @@ $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
 # Dynamic library
 libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,-soname,$@ $^ $(LIBS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,$(SONAME_OPT),$@ $^ $(LIBS)
 libimas.so: %:%.$(SO_NUM)
 	$(LN_S) $< $@
 libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
