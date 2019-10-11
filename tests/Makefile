@@ -4,13 +4,12 @@ ifeq (,$(wildcard $(UAL)))
 $(error $$UAL is unset)
 endif
 
-CXX=g++
-LD=$(CXX)
-
 # Include OS-specific Makefile, if exists.
 ifneq (,$(wildcard Makefile.$(SYSTEM)))
 include Makefile.$(SYSTEM)
 endif
+
+LD=$(CXX)
 
 all:$(BINOUT)
 
