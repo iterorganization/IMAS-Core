@@ -137,7 +137,7 @@ $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,$(SONAME_OPT),$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)

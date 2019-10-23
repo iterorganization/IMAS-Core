@@ -510,6 +510,14 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    mdsplusBaseStr += "/";
 	    mdsplusBaseStr += version;
 	}
+    else if (user[0] == '/')
+    {
+        mdsplusBaseStr += user;
+        mdsplusBaseStr += "/";
+        mdsplusBaseStr += tokamak;
+        mdsplusBaseStr += "/";
+        mdsplusBaseStr += version;
+    }
 	else
 	{
 #ifdef WIN32

@@ -4,7 +4,6 @@ ifeq (,$(wildcard $(UAL)))
 $(error $$UAL is unset)
 endif
 
-CXX=g++
 LD=$(CXX)
 CXXFLAGS=-std=c++11 -pthread -g -O0 -fPIC
 LDFLAGS=-g -pthread
