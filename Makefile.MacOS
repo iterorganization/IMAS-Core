@@ -1,7 +1,6 @@
-
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 COMMON_OBJECTS+=mdsplus_backend.o
@@ -17,7 +16,7 @@ else
 CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
 endif
-LIBS+= -lssl -lcrypto
+LIBS+= -lssl -lcrypto -L/usr/local/opt/openssl@1.1/lib
 COMMON_OBJECTS+= uda_backend.o
 CPPSRC+=uda_backend.cpp
 endif # IMAS_UDA
@@ -61,7 +60,7 @@ $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
 # Dynamic library
 libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,$(SONAME_OPT),$@ $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-install_name,$@ $^ $(LIBS)
 libimas.so: %:%.$(SO_NUM)
 	$(LN_S) $< $@
 libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)

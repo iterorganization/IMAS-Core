@@ -1,6 +1,7 @@
 /*-*-c++-*-*/
 
 #include <exception>
+#include <stdexcept>
 #include <sstream>
 
 #define LOG __FILE__,__LINE__

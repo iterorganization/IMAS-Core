@@ -1,7 +1,7 @@
 
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
@@ -21,7 +21,8 @@ CXXINCLUDES+= -DUDA -DFATCLIENT -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
-LIBS+= -lws2_32 -lssl -lcrypto -lxml2 -lcrypto -lpq
+LIBS+= $(PostgresSQL_ROOT)/lib/libpq.a
+LIBS+= -lws2_32 -lssl -lcrypto -lxml2
 else
 CXXINCLUDES+= -DUDA -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
@@ -59,70 +60,84 @@ TARGETS = libimas.dll libimas.lib printMDSplusFileVersion
 all: $(TARGETS) pkgconfig doc
 sources:
 sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
+sources_uninstall:
+	-rm -rf $(datadir)/src/lowlevel
+	-rmdir -p $(datadir)/src/lowlevel
 
+uninstall: pkgconfig_uninstall sources_unininstall
 install: all pkgconfig_install sources_install
 	$(mkdir_p) $(packagedir)/lowlevel/lib
 	$(mkdir_p) $(packagedir)/lowlevel/include
 	# Copy libraries
 	for OBJECT in `find . -type f \( -name "*.lib" -or -name "*.dll" \)`; do \
-		cp $$OBJECT $(packagedir)/lowlevel/lib; \
+		$(CP) $$OBJECT $(packagedir)/lowlevel/lib; \
 	done
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	# Copy MDSplus libraries
 	$(mkdir_p) $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/XTreeShr.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/MdsIpShr.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/MdsLib.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/TdiShr.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
-	cp $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/XTreeShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/MdsIpShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/MdsLib.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/TdiShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
+	$(CP) $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
 endif # IMAS_MDSPLUS
 ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("fat","$(strip $(IMAS_UDA))")
 	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
-	cp $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
-	cp $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+	$(CP) $(UDA_HOME)/lib/libfatuda_cpp.a $(packagedir)/uda/lib
+	$(CP) $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+	# Copy PostgreSQL libraries
+	$(mkdir_p) $(packagedir)/postgresql/lib
+	$(CP) $(PostgresSQL_ROOT)/lib/libpq.a $(packagedir)/postgresql/lib
+else
+	# Copy UDA libraries
+	$(mkdir_p) $(packagedir)/uda/lib
+	$(CP) $(UDA_HOME)/lib/libuda_cpp.a $(packagedir)/uda/lib
+	$(CP) $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
+endif
 endif # IMAS_UDA
 ifneq ("no","$(strip $(IMAS_HDF5))")
 	# Copy HDF5 libraries
 	$(mkdir_p) $(packagedir)/hdf5/lib
-	cp $(HDF5_HOME)/lib/libhdf5.a $(packagedir)/hdf5/lib
+	$(CP) $(HDF5_HOME)/lib/libhdf5.a $(packagedir)/hdf5/lib
 ifneq ("no","$(strip $(IMAS_MPI))")
 	# Copy Open MPI libraries
 	$(mkdir_p) $(packagedir)/openmpi/lib
-	cp $(MPI_HOME)/lib/mpi.a $(packagedir)/openmpi/lib
+	$(CP) $(MPI_HOME)/lib/mpi.a $(packagedir)/openmpi/lib
 endif # IMAS_MPI
 endif # IMAS_HDF5
 	# Copy includes
-	cp ual_low_level.h $(packagedir)/lowlevel/include
-	cp matlab_adapter.h $(packagedir)/lowlevel/include
-	cp ual_defs.h $(packagedir)/lowlevel/include
-	cp ual_lowlevel.h $(packagedir)/lowlevel/include
-	cp ual_backend.h $(packagedir)/lowlevel/include
-	cp ual_context.h $(packagedir)/lowlevel/include
-	cp ual_exception.h $(packagedir)/lowlevel/include
-	cp ual_const.h $(packagedir)/lowlevel/include
+	$(CP) ual_low_level.h $(packagedir)/lowlevel/include
+	$(CP) matlab_adapter.h $(packagedir)/lowlevel/include
+	$(CP) ual_defs.h $(packagedir)/lowlevel/include
+	$(CP) ual_lowlevel.h $(packagedir)/lowlevel/include
+	$(CP) ual_backend.h $(packagedir)/lowlevel/include
+	$(CP) ual_context.h $(packagedir)/lowlevel/include
+	$(CP) ual_exception.h $(packagedir)/lowlevel/include
+	$(CP) ual_const.h $(packagedir)/lowlevel/include
 	# Copy documentation
 	$(mkdir_p) $(packagedir)/doc/lowlevel
-	cp -r latex html $(packagedir)/doc/lowlevel
+	$(CP) latex html $(packagedir)/doc/lowlevel
 	# Copy system shared libraries
 	$(mkdir_p) $(packagedir)/bin
-	cp /mingw64/bin/libstdc++-6.dll $(packagedir)/bin
-	cp /mingw64/bin/libgcc_s_seh-1.dll $(packagedir)/bin
-	cp /mingw64/bin/libwinpthread-1.dll $(packagedir)/bin
-	cp /mingw64/bin/libcrypto-1_1-x64.dll $(packagedir)/bin
-	cp /mingw64/bin/libdl.dll $(packagedir)/bin
-	cp /mingw64/bin/libxml2-2.dll $(packagedir)/bin
-	cp /mingw64/bin/libiconv-2.dll $(packagedir)/bin
-	cp /mingw64/bin/liblzma-5.dll $(packagedir)/bin
-	cp /mingw64/bin/zlib1.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libstdc++-6.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libgcc_s_seh-1.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libwinpthread-1.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libcrypto-1_1-x64.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libdl.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libxml2-2.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/libiconv-2.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/liblzma-5.dll $(packagedir)/bin
+	$(CP) /mingw64/bin/zlib1.dll $(packagedir)/bin
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -shared -Wl,-soname,$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,$(SONAME_OPT),$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
 
 # Windows static library
 libimas.lib: $(COMMON_OBJECTS)
