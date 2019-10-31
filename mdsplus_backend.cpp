@@ -3060,39 +3060,30 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     else //The array of structures must be read from the pulse file
     {
 	resetNodePath();  //Reset TIMED_*/ITEM_n mapping
-	if(ctx->getRangemode() == GLOBAL_OP)
+	// if(ctx->getTimed())
+	if(!ctx->getTimebasePath().empty()) 
 	{
-	   // if(ctx->getTimed())
- 	    if(!ctx->getTimebasePath().empty()) 
+	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/item_1/aos");
+//	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_AOS/ITEM_1/AOS");
+	    MDSplus::TreeNode *node;
+	    //NOTE: Instead of this try/catch block, one could test the ACCESS_LAYER version in the \TOP.REF_INFO.ACC_LAYER node.
+	    try {
+	        node = getNode(checkFullPath(currPath, true).c_str());
+	    }
+	    catch(MDSplus::MdsException &exc) {
+	      if (!strcmp(exc.what(),"%TREE-W-NNF, Node Not Found")) {
+		  // Backward compatibility for previous MDSplus backend versions
+		  currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
+		  node = getNode(checkFullPath(currPath, true).c_str());
+	      }
+	      else {throw;}
+	    }
+	    if(ctx->getRangemode() == GLOBAL_OP)
 	    {
-		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/item_1/aos");
-//		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_AOS/ITEM_1/AOS");
-		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		currApd = readDynamicApd(node);
-		//delete node;
 	    }
 	    else
 	    {
-		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
-		if(!currApd)
-		{
-		    *size = 0;
-		    return;
-		}		
-		MDSplus::Apd *resApd = resolveApdTimedFields(currApd);
-		MDSplus::deleteData(currApd);
-		currApd = resApd;
-	
-	    }
-	}
-	else //Sliced readApd
-	{
-	    //if(ctx->getTimed())
- 	    if(!ctx->getTimebasePath().empty()) 
-	    {
-		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/item_1/aos");
-//		std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_AOS/ITEM_1/AOS");
-		MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') //If it refers to a field which is internal to the AoS (must be time)
 		    currApd = readSliceApd(node, "", ctx->getTime(), ctx->getInterpmode());
 		else
@@ -3101,33 +3092,29 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
-		//delete node;
 	    }
-	    else
-	    {
-		currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
-		if(!currApd)
-		{
-		    *size = 0; 
-		    return;
-		}
-//std::cout << "PRIMA DI RESOLVED " << std::endl;
-//dumpArrayStruct(currApd, 0);
-		MDSplus::Apd *resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath());
-		MDSplus::deleteData(currApd);
-		currApd = resApd;
-	    }
+	    //delete node;
 	}
-
-//std::cout << "RESOLVED" << std::endl;
-//dumpArrayStruct(currApd, 0);
-//	addContextAndApd(ctx, currApd);   
-	if(!currApd)
-	    *size = 0;
 	else
 	{
-	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	    currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
+	    if(!currApd)
+	    {
+	        *size = 0;
+		return;
+	    }	
+	    MDSplus::Apd *resApd;	
+	    if(ctx->getRangemode() == GLOBAL_OP)
+	    {
+	        resApd = resolveApdTimedFields(currApd);
+	    } 
+	    else
+	    {
+	        resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath());
+	    }
+	    MDSplus::deleteData(currApd);
+	    currApd = resApd;
+	
 	}
 
 //std::cout << "RESOLVED" << std::endl;
