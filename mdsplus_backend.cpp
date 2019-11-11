@@ -1133,7 +1133,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //Handle the possibility that the node refers to a AoS
         if(strcmp(node->getUsage(),"STRUCTURE") == 0)
 	{
-//	    std::string currPath(":STATIC");
 	    std::string currPath(":static");
 	    MDSplus::TreeNode *currNode = node->getNode(checkFullPath(currPath, true).c_str());
 	    currNode->deleteData();
@@ -1141,41 +1140,60 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    currPath = ".timed_aos";
 	    currNode = node->getNode(checkFullPath(currPath, true).c_str());
-	    int numChildren = currNode->getNumChildren();
+	    int numGroups = currNode->getNumChildren();
 
-	    for(int childIdx = 1; childIdx <= numChildren; childIdx++)
+	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
 		char buf[16];
-//		sprintf(buf, "ITEM_%d:AOS", childIdx);
-		sprintf(buf, "item_%d:aos", childIdx);
+		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
-		MDSplus::TreeNode *currChild = currNode->getNode(checkFullPath(currPath, true).c_str());
-		if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
-		currChild->deleteData();
-		delete currChild;
-//		sprintf(buf, "ITEM_%d:TIME", childIdx);
-		sprintf(buf, "item_%d:time", childIdx);
-		currPath = buf;
-		currChild = currNode->getNode(checkFullPath(currPath, true).c_str());
-		currChild->deleteData();
-		delete currChild;
+		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
+		int numChildren = currGroup->getNumChildren();
+		int childIdx;
+		for(childIdx = 1; childIdx <= numChildren; childIdx++)
+		{
+		    char buf[16];
+		    sprintf(buf, "item_%d:aos", (groupIdx-1)*1000+childIdx);
+		    currPath = buf;
+		    MDSplus::TreeNode *currChild = currGroup->getNode(checkFullPath(currPath, true).c_str());
+		    if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
+		    currChild->deleteData();
+		    delete currChild;
+		    sprintf(buf, "item_%d:time", (groupIdx-1)*1000+childIdx);
+		    currPath = buf;
+		    currChild = currGroup->getNode(checkFullPath(currPath, true).c_str());
+		    currChild->deleteData();
+		    delete currChild;
+		}
+		if(childIdx <= numChildren) break; //Avoid goin through no more used timed_n
+		delete currGroup;
 	    }
 	    delete currNode;
 
 	    currPath = ".timed_data";
 	    currNode = node->getNode(checkFullPath(currPath, true).c_str());
-	    numChildren = currNode->getNumChildren();
+	    numGroups = currNode->getNumChildren();
 
-	    for(int childIdx = 1; childIdx <= numChildren; childIdx++)
+	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
 		char buf[16];
-//		sprintf(buf, "ITEM_%d", childIdx);
-		sprintf(buf, "item_%d", childIdx);
+		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
-		MDSplus::TreeNode *currChild = currNode->getNode(checkFullPath(currPath, true).c_str());
-		if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
-		currChild->deleteData();
-		delete currChild;
+		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
+		int numChildren = currGroup->getNumChildren();
+		int childIdx;
+		for(childIdx = 1; childIdx <= numChildren; childIdx++)
+		  {
+		    char buf[16];
+		    sprintf(buf, "item_%d", (groupIdx-1)*1000+childIdx);
+		    currPath = buf;
+		    MDSplus::TreeNode *currChild = currGroup->getNode(checkFullPath(currPath, true).c_str());
+		    if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
+		    currChild->deleteData();
+		    delete currChild;
+		}
+		if(childIdx <= numChildren) break; //Avoid goin through no more used timed_n
+		delete currGroup;
 	    }
 	    delete currNode;
 	}
@@ -2727,13 +2745,11 @@ printf("Warning, struct field added more than once\n");
 
 //////////////////////////////////////////////////////////////////////////////////////
 	(*nodeFreeIdxMap)[toLower(aosPath)] = idx + 1;
-	char *buf = new char[aosPath.size()+16];
+	char *buf = new char[aosName.size()+48];
 	if (isAos) {
-//	    sprintf(buf, "%s/TIMED_AOS/ITEM_%d", aosName.c_str(), idx + 1);
-            sprintf(buf, "%s/timed_aos/item_%d", aosName.c_str(), idx + 1);
+	  sprintf(buf, "%s/timed_aos/group_%d/item_%d", aosName.c_str(), idx/1000+1, idx + 1);
         } else {
-//	    sprintf(buf, "%s/TIMED_DATA/ITEM_%d", aosName.c_str(), idx + 1);
-            sprintf(buf, "%s/timed_data/item_%d", aosName.c_str(), idx + 1);
+	  sprintf(buf, "%s/timed_data/group_%d/item_%d", aosName.c_str(), idx/1000+1, idx + 1);
         }
 	std::string retPath(buf);
 	delete []buf;
@@ -3059,12 +3075,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
     else //The array of structures must be read from the pulse file
     {
-	resetNodePath();  //Reset TIMED_*/ITEM_n mapping
+	resetNodePath();  //Reset TIMED_*/GROUP_n/ITEM_n mapping
 	// if(ctx->getTimed())
 	if(!ctx->getTimebasePath().empty()) 
 	{
-	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/item_1/aos");
-//	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/TIMED_AOS/ITEM_1/AOS");
+	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/group_1/item_1/aos");
 	    MDSplus::TreeNode *node;
 	    //NOTE: Instead of this try/catch block, one could test the ACCESS_LAYER version in the \TOP.REF_INFO.ACC_LAYER node.
 	    try {
@@ -3358,16 +3373,16 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      {
 		  if(ctx->getRangemode() == GLOBAL_OP)
 		  {
-		    //  if(ctx->getTimed())   //not static AoS. Only a single dynamic AoS. In this case only TIMED_AOS/ITEM_1 is used
+		    //  if(ctx->getTimed())   //not static AoS. Only a single dynamic AoS. In this case only TIMED_AOS/GROUP_1/ITEM_1 is used
  		      if(!ctx->getTimebasePath().empty()) 
 		      {
 			  std::string aosPath = ctx->getDataobjectName() + "/" +ctx->getPath();
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-			      writeDynamicApd(currApd, aosPath+"/timed_aos/item_1", "");
+			      writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", "");
 			  else
 			  {
-			      writeDynamicApd(currApd, aosPath+"/timed_aos/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()));
+			      writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()));
 			  }
 		      }
 		      else
@@ -3387,9 +3402,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	          	  std::string aosPath = ctx->getDataobjectName() + "/" +ctx->getPath();
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-		     	      writeApdSlice(currApd, aosPath+"/timed_aos/item_1", "", ctx->getTime());
+		     	      writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", "", ctx->getTime());
 			  else
-		     	      writeApdSlice(currApd, aosPath+"/timed_aos/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getTime());
+		     	      writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getTime());
 		      }
 		      else //static AoS: needs to be written only once
 		      {
