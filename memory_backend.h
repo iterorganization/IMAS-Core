@@ -31,6 +31,7 @@ class UalData
     std::string timebase;
     int getItemSize(int inType);
 
+
 public:
     static const int UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3;
     UalData();
@@ -225,6 +226,13 @@ class MemoryBackend:public Backend
 
     UalData *getData(ArraystructContext *ctx, int idx, std::string path, bool isCurrent);
 
+
+//Optimization info
+    int lastIdsPathShot, lastIdsPathRun;
+    std::string lastIdsPath,lastIdsPathDataobjectName;
+
+
+
 //Check if the passed context refers to an AoS that is mapped in memory (i.e. for which deleteData or putData has been issued)
     bool isMappedAoS(ArraystructContext *ctx);
 	
@@ -233,6 +241,7 @@ public:
     MemoryBackend() 
     {
 	this->targetB = new DummyBackend();
+	lastIdsPathShot = lastIdsPathRun = 0;
     }
    MemoryBackend(Backend *targetB) 
     {

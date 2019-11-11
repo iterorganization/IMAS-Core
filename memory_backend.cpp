@@ -841,9 +841,18 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-	return std::to_string(ctx->getShot())+"/"+std::to_string(ctx->getRun())+"/"+ctx->getDataobjectName();
+     	int shot = ctx->getShot();
+	int run = ctx->getRun();
+	if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
+	    return lastIdsPath;
+	char buf[512];
+	sprintf(buf, "%d/%d/%s", ctx->getShot(), ctx->getRun(), ctx->getDataobjectName().c_str());
+	lastIdsPath = std::string(buf);
+	lastIdsPathShot = shot;
+	lastIdsPathRun = run;
+	lastIdsPathDataobjectName = ctx->getDataobjectName();
+	return lastIdsPath;
     }
-
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
