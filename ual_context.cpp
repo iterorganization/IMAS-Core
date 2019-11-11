@@ -175,7 +175,7 @@ std::string PulseContext::getVersion() const
 /// OperationContext ///
 
 OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access)
-  : PulseContext(ctx), dataobjectname(dataobject)
+  : PulseContext(ctx), dataobjectname(dataobject), userData(NULL)
 {
   rangemode = ualconst::global_op;
   time = ualconst::undefined_time;
@@ -192,7 +192,7 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
 
 OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access, 
 				   int range, double t, int interp)
-  : PulseContext(ctx), dataobjectname(dataobject), time(t)
+  : PulseContext(ctx), dataobjectname(dataobject), time(t), userData(NULL)
 {
   try {
     ualconst::op_range_str.at(range-OP_RANGE_0);
@@ -270,13 +270,22 @@ int OperationContext::getInterpmode() const
   return interpmode; 
 }
 
+void *OperationContext::getUserData()
+{
+  return userData;
+}
+
+void OperationContext::setUserData(void *userData)
+{
+this->userData = userData;
+}
 
 
 
 /// ArraystructContext ///
 
 ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb)
-  : OperationContext(ctx), path(p), timebase(tb)
+  : OperationContext(ctx), path(p), timebase(tb), userData(NULL)
 {
   parent = NULL;
   index = 0;
@@ -284,27 +293,27 @@ ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std:
 
 ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
 				       ArraystructContext *cont)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont)
+  : OperationContext(ctx), path(p), timebase(tb), parent(cont), userData(NULL)
 {
   index = 0;
 }
 
 ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
 				       ArraystructContext *cont, int idx)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx)
+  : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx), userData(NULL)
 {
   index = 0;
 }
 
 std::string ArraystructContext::print() const
 {
-  
-  std::string s = ((this->parent==NULL)?((OperationContext)*this).print():
-		   (this->parent->print() + "child \t\t\t = \n")) +
+  std::string s = ((OperationContext)*this).print() +
     "path \t\t\t = \"" + this->path + "\"\n" +
     "timebase \t\t = \"" + this->timebase + "\"\n" +
     "timed \t\t\t = " + 
     (timebase.empty()?"no":"yes") + "\n" +
+    "parent \t\t\t = " +
+    ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
     "index \t\t\t = " + std::to_string(this->index) + "\n";
   return s;
 }

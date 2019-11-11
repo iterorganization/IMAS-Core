@@ -445,6 +445,13 @@ else
 	    }
 	    return;
         }
+        if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
+	{
+	   OperationContext *ctx = (OperationContext *)inCtx; 
+	   IdsInfo *info = (IdsInfo *)ctx->getUserData();
+	    if(info) delete info;
+	}
+
 //Everything outside AoS is expected to be mapped, so no action is required in write
 //Only in read mode target end action is called NOTE: in MDSplus backend this is neutral, for others we shopuld check whether 
     }
@@ -838,9 +845,12 @@ else
 	}
     }
 
-
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
+
+	IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
+	if(idsInfo) return idsInfo->idsPath;
+
      	int shot = ctx->getShot();
 	int run = ctx->getRun();
 	if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
@@ -857,21 +867,25 @@ else
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
 
+	IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
+	if(idsInfo)
+	    return idsInfo->ids;
+
 //std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
-	UalStruct ids;
+	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
-	auto search = idsMap.find(idsPath);
-	if(search != idsMap.end())
+	if(idsMap.find(idsPath) != idsMap.end())
 	{
-	    return search->second;
+	    retIds =  idsMap.at(idsPath);
 	} 
 	else
 	{
-	    UalStruct * newIds = new UalStruct;
-	    idsMap[idsPath] = newIds;
-	    return newIds;
+	    idsMap[idsPath] = new UalStruct;
+	    retIds = idsMap.at(idsPath);
 	}
+	ctx->setUserData(new IdsInfo(idsPath, retIds));
+	return retIds;
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
 	    return idsMap.at(idsPath);
@@ -942,6 +956,11 @@ else
 //Check if the passed context refers to an AoS that is mapped in memory (i.e. for which deleteData or putData has been issued)
     bool MemoryBackend::isMappedAoS(ArraystructContext *ctx)
     {
+
+//Gabriele Oct 2019. When no alternate BAckend is defined (normal case for memory mapping) assumemalways true
+	return true;
+
+
 	std::vector<ArraystructContext *>currCtxV;
 	ArraystructContext *currCtx = ctx;
 	do {
@@ -955,7 +974,11 @@ else
 	fullAosPath += currCtxV[currCtxV.size() - 1]->getPath();
 
 	UalStruct *ids = getIds(currCtxV[currCtxV.size() - 1]);
-	return ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
+
+        bool isMapped = ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
+	if(!isMapped)
+	   std::cout << "WRONG OPTIMIZATION ASSUMPTION!!!!" << std::endl;
+	return isMapped;
     }	
 
 
@@ -1327,16 +1350,14 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-        auto search = dataFields.find(path);
-	if(search != dataFields.end())  
+	if(dataFields.find(path) != dataFields.end())  
 	{  
-	    return search->second;
+	    return dataFields.at(path);
 	} 
 	else
 	{
-	    UalData * newData = new UalData;
-	    dataFields[path] = newData; 
-	    return newData;
+	    dataFields[path] = new UalData; 
+	    return dataFields[path];
 	}
 /*	try  {  
 	    return dataFields.at(path);
@@ -1367,31 +1388,27 @@ else
     {
 	for(auto &field:dataFields)
 	{
-	    field.second->deleteData();
-	    delete field.second;
+	    dataFields[field.first]->deleteData();
+	    delete dataFields[field.first];
 	}
 	dataFields.clear();
 
 	for(auto &field:aosFields)
 	{
-	    if(field.second)
-	    	field.second->deleteData();
-	    delete field.second;
+	    if(aosFields[field.first])
+	    	aosFields[field.first]->deleteData();
+	    delete aosFields[field.first];
 	}
 	aosFields.clear();
     }
     UalAoS *UalStruct::getSubAoS(std::string path)
     {
-        auto search = aosFields.find(path);
-	if(search != aosFields.end())  
-	{  
-	    return search->second;
-	} 
+	if(aosFields.find(path) != aosFields.end())
+	    return aosFields.at(path);
 	else
 	{
-	    UalAoS * newAos = new UalAoS;
-	    aosFields[path] = newAos; 
-	    return newAos;
+	    aosFields[path]=new UalAoS;
+	    return aosFields[path];
 	}
 /*	try {
 	    return aosFields.at(path);

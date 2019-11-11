@@ -201,6 +201,17 @@ public:
 };
 
 
+class IdsInfo
+{
+public:
+    std::string idsPath;
+    UalStruct *ids;
+    IdsInfo(std::string idsPath, UalStruct *ids)
+    {
+	this->idsPath = idsPath;
+	this->ids = ids;
+    }
+};
 
 
 

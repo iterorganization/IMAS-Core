@@ -278,12 +278,17 @@ public:
   */
   int getInterpmode() const;
 
+  void *getUserData();
+  void setUserData(void *);
+
 protected:
   std::string dataobjectname;           /**< DATAOBJECT name */
   int accessmode;                       /**< operation access type */
   int rangemode;                        /**< operation range */
   double time;                          /**< operation time */
   int interpmode;                       /**< operation interpolation type */
+
+  void *userData;
 };
 
 
@@ -390,12 +395,15 @@ class ArraystructContext : public OperationContext
   */
   void nextIndex(int step);
 
-
+  void *getUserData() { return userData;}
+  void setUserData(void *userData) {this->userData = userData;}
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
   int index;                            /**< position of the current element of interest within the array of structure */
+
+  void *userData;
 };
 
 
