@@ -682,7 +682,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    memcpy(currDims, dims, numDims * sizeof(int));
 	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
 	    {	
-		char nameBuf[512];
+		char nameBuf[2048]; //TODO: Check size
 		size_t sliceIdx = segIdx * slicesPerSegment;
 		int timeSlicesPerSegment = MDSPLUS_SEGMENT_SIZE/sizeof(double);
 		int timeStartSegmentIdx = sliceIdx / timeSlicesPerSegment;
@@ -975,7 +975,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //		currDims[0] = slicesPerSegment;
 ///////////////////////////////////////////////////
 		MDSplus::Data *initData = assembleData(initBytes, datatype, numDims+1, currDims);
-	    	char nameBuf[512];
+	    	char nameBuf[2048]; //TODO: Check size
 		
 		/*Compute the right segment idx and offset for time. Recall that time is a sequence of double values
 		  and therefore the indexes and offsets may be diferent from the idx and offset for this segmented item
@@ -1143,7 +1143,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    for(int childIdx = 1; childIdx <= numChildren; childIdx++)
 	    {
-		char buf[16];
+		char buf[32]; //TODO: Check size
 //		sprintf(buf, "TIMED_%d:AOS", childIdx);
 		sprintf(buf, "timed_%d:aos", childIdx);
 		currPath = buf;
@@ -1291,7 +1291,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    MDSplus::Data *sliceData;
 	    //Build appropriate expression based on interpolation
 	    //If time outside segment limits, just return the upper or lower limit
-	    char expr[156];
+	    char expr[256]; //TODO: Check size
 	    if(time <= times[0])
 	    {
 	      sprintf(expr, "$1[");
@@ -1573,7 +1573,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	std::string aos = composePaths(aosPath, "aos");
 	MDSplus::TreeNode *node = getNode(checkFullPath(aos, true).c_str());
-	char nameBuf[256];
+	char nameBuf[2048]; //TODO: Check size
 	size_t sliceIdx = 0;
 	while(sliceIdx < apd->len())
 	{
@@ -1735,7 +1735,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    //int endIdx = endData->getInt();
 		    //int startIdx = startData->getInt();
 		    MDSplus::deleteData(endData);
-		    char nameBuf[64];
+		    char nameBuf[256]; //TODO: Check size
 //		    sprintf(nameBuf, "%s[%d]", mdsconvertPath(timePath.c_str()).c_str(), endIdx+1);
 		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), endIdx+1);
 		    endData = MDSplus::compile(nameBuf, tree);
@@ -2631,7 +2631,7 @@ printf("Warning, struct field added more than once\n");
 
     std::string MDSplusBackend::getAoSFullPath(ArraystructContext *ctx, int idx)
     {
-	char buf[16];
+	char buf[32]; //TODO: Check size
 	sprintf(buf, "[%d]/", idx);
 	std::string retPath = ctx->getPath();
 	retPath += buf;
