@@ -221,6 +221,7 @@ class MemoryBackend:public Backend
     Backend *targetB;
     bool isCreated;
     std::unordered_map<std::string, UalStruct *> idsMap;
+    std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
 
 //currentAoS will containg the fields being written when assembing a new AoS (or AoS slice)
     UalAoS currentAos;

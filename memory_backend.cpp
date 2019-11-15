@@ -447,9 +447,10 @@ else
         }
         if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
 	{
-	   OperationContext *ctx = (OperationContext *)inCtx; 
-	   IdsInfo *info = (IdsInfo *)ctx->getUserData();
-	    if(info) delete info;
+	  idsInfoMap.erase(inCtx->getUid());
+	  /*OperationContext *ctx = (OperationContext *)inCtx; 
+	  IdsInfo *info = (IdsInfo *)ctx->getUserData();
+	  if(info) delete info;*/
 	}
 
 //Everything outside AoS is expected to be mapped, so no action is required in write
@@ -847,29 +848,36 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
+      //std::cout << "MBE: ctx UID = " << ctx->getUid() << "\n";
+      //IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
+      //if(idsInfo) 
+      //return idsInfo->idsPath;
+      auto search = idsInfoMap.find(ctx->getUid()); 
+      if (search!=idsInfoMap.end()) 
+	return search->second->idsPath;
 
-	IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
-	if(idsInfo) return idsInfo->idsPath;
-
-     	int shot = ctx->getShot();
-	int run = ctx->getRun();
-	if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
-	    return lastIdsPath;
-	char buf[512];
-	sprintf(buf, "%d/%d/%s", ctx->getShot(), ctx->getRun(), ctx->getDataobjectName().c_str());
-	lastIdsPath = std::string(buf);
-	lastIdsPathShot = shot;
-	lastIdsPathRun = run;
-	lastIdsPathDataobjectName = ctx->getDataobjectName();
+      int shot = ctx->getShot();
+      int run = ctx->getRun();
+      if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
 	return lastIdsPath;
+      char buf[512];
+      sprintf(buf, "%d/%d/%s", ctx->getShot(), ctx->getRun(), ctx->getDataobjectName().c_str());
+      lastIdsPath = std::string(buf);
+      lastIdsPathShot = shot;
+      lastIdsPathRun = run;
+      lastIdsPathDataobjectName = ctx->getDataobjectName();
+      return lastIdsPath;
     }
+
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
-
-	IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
-	if(idsInfo)
-	    return idsInfo->ids;
+      //IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
+      //if(idsInfo)
+      //return idsInfo->ids;
+      auto search = idsInfoMap.find(ctx->getUid());
+      if (search!=idsInfoMap.end())
+	return search->second->ids;
 
 //std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
@@ -884,7 +892,8 @@ else
 	    idsMap[idsPath] = new UalStruct;
 	    retIds = idsMap.at(idsPath);
 	}
-	ctx->setUserData(new IdsInfo(idsPath, retIds));
+	//ctx->setUserData(new IdsInfo(idsPath, retIds));
+	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
 	return retIds;
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
