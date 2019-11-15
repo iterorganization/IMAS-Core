@@ -2693,7 +2693,6 @@ printf("Warning, struct field added more than once\n");
     }
 
 //Get the full path from tree top of the node selected to contain the time dependent item (timedependent field os serialed dynami AoS)
-//TODO[AM_30102019]
     std::string MDSplusBackend::getNodePathFor(std::string aosPath, std::string aosFullPath, std::string aosName, bool isAos)
     {
 /*	//Check if already assigned
