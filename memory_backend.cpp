@@ -219,15 +219,17 @@ else
 	}
 	else
 	{
-	    if(ids->isAoSMapped(fieldname))
+	  //if(ids->isAoSMapped(fieldname))
+	  auto search = ids->aosFields.find(fieldname);
+	  if (search!=ids->aosFields.end())
 	    {
-		UalAoS *aos = ids->getSubAoS(fieldname);
-		aos->deleteData();
+	      UalAoS *aos = search->second; //ids->getSubAoS(fieldname);
+	      aos->deleteData();
 	    }
-	    else
+	  else
 	    {
-	    	UalData *ualData = ids->getData(fieldname);
-	    	ualData->deleteData();
+	      UalData *ualData = ids->getData(fieldname);
+	      ualData->deleteData();
 	    }
 	}
     }
@@ -848,7 +850,7 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-      //std::cout << "MBE: ctx UID = " << ctx->getUid() << "\n";
+      std::cout << "MBE: ctx UID = " << ctx->getUid() << "\n";
       //IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
       //if(idsInfo) 
       //return idsInfo->idsPath;
@@ -883,14 +885,17 @@ else
 
 	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
-	if(idsMap.find(idsPath) != idsMap.end())
+	auto searchids = idsMap.find(idsPath);
+	if(searchids != idsMap.end())
 	{
-	    retIds =  idsMap.at(idsPath);
+	  retIds = searchids->second; // idsMap.at(idsPath);
 	} 
 	else
 	{
-	    idsMap[idsPath] = new UalStruct;
-	    retIds = idsMap.at(idsPath);
+	  //idsMap[idsPath] = new UalStruct;
+	  //retIds = idsMap.at(idsPath);
+	  retIds = new UalStruct;
+	  idsMap[idsPath] = retIds;
 	}
 	//ctx->setUserData(new IdsInfo(idsPath, retIds));
 	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
@@ -1359,14 +1364,17 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-	if(dataFields.find(path) != dataFields.end())  
+      //if(dataFields.find(path) != dataFields.end())  
+      auto search = dataFields.find(path);
+      if (search!=dataFields.end())
 	{  
-	    return dataFields.at(path);
+	  return search->second; //dataFields.at(path);
 	} 
 	else
 	{
-	    dataFields[path] = new UalData; 
-	    return dataFields[path];
+	  UalData * d = new UalData; 
+	  dataFields[path] = d;
+	  return d;//dataFields[path];
 	}
 /*	try  {  
 	    return dataFields.at(path);
@@ -1412,17 +1420,22 @@ else
     }
     UalAoS *UalStruct::getSubAoS(std::string path)
     {
-	if(aosFields.find(path) != aosFields.end())
-	    return aosFields.at(path);
-	else
+      //if(aosFields.find(path) != aosFields.end())
+      //    return aosFields.at(path);
+      auto search = aosFields.find(path);
+      if (search!=aosFields.end())
+	return search->second;
+      else
 	{
-	    aosFields[path]=new UalAoS;
-	    return aosFields[path];
+	  UalAoS *aos = new UalAoS;
+	  aosFields[path]=aos; //new UalAoS;
+	  return aos; //aosFields[path];
 	}
 /*	try {
 	    return aosFields.at(path);
 	} catch (const std::out_of_range& oor) {aosFields[path]=new UalAoS;return aosFields[path];}
 */    }
+
     bool UalStruct::isAoSMapped(std::string path)
     {
 	return (aosFields.find(path) != aosFields.end());
