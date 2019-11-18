@@ -852,14 +852,16 @@ else
 
 	UalStruct ids;
 	std::string idsPath = getIdsPath(ctx);
-	if(idsMap.find(idsPath) != idsMap.end())
+	auto search = idsMap.find(idsPath);
+	if(search != idsMap.end())
 	{
-	    return idsMap.at(idsPath);
+	    return search->second;
 	} 
 	else
 	{
-	    idsMap[idsPath] = new UalStruct;
-	    return idsMap.at(idsPath);
+	    UalStruct * newIds = new UalStruct;
+	    idsMap[idsPath] = newIds;
+	    return newIds;
 	}
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
@@ -1316,14 +1318,16 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-	if(dataFields.find(path) != dataFields.end())  
+        auto search = dataFields.find(path);
+	if(search != dataFields.end())  
 	{  
-	    return dataFields.at(path);
+	    return search->second;
 	} 
 	else
 	{
-	    dataFields[path] = new UalData; 
-	    return dataFields[path];
+	    UalData * newData = new UalData;
+	    dataFields[path] = newData; 
+	    return newData;
 	}
 /*	try  {  
 	    return dataFields.at(path);
@@ -1354,27 +1358,31 @@ else
     {
 	for(auto &field:dataFields)
 	{
-	    dataFields[field.first]->deleteData();
-	    delete dataFields[field.first];
+	    field.second->deleteData();
+	    delete field.second;
 	}
 	dataFields.clear();
 
 	for(auto &field:aosFields)
 	{
-	    if(aosFields[field.first])
-	    	aosFields[field.first]->deleteData();
-	    delete aosFields[field.first];
+	    if(field.second)
+	    	field.second->deleteData();
+	    delete field.second;
 	}
 	aosFields.clear();
     }
     UalAoS *UalStruct::getSubAoS(std::string path)
     {
-	if(aosFields.find(path) != aosFields.end())
-	    return aosFields.at(path);
+        auto search = aosFields.find(path);
+	if(search != aosFields.end())  
+	{  
+	    return search->second;
+	} 
 	else
 	{
-	    aosFields[path]=new UalAoS;
-	    return aosFields[path];
+	    UalAoS * newAos = new UalAoS;
+	    aosFields[path] = newAos; 
+	    return newAos;
 	}
 /*	try {
 	    return aosFields.at(path);

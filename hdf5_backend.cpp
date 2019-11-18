@@ -27,7 +27,17 @@ void HDF5Backend::writeData(Context *ctx, std::string fieldname, std::string tim
 	throw UALBackendException("writeData method has to be completed for HDF5 Backend",LOG);
 }
 
-void HDF5Backend::readData(Context *ctx, std::string fieldname, std::string timebase, void** data, int* datatype, int* dim, int* size)
+void HDF5Backend::writeData(OperationContext *ctx, std::string fieldname, std::string timebasename, void* data, int datatype, int dim, int* size)
+{
+	throw UALBackendException("writeData method has to be completed for HDF5 Backend",LOG);
+}
+
+int HDF5Backend::readData(Context *ctx, std::string fieldname, std::string timebase, void** data, int* datatype, int* dim, int* size)
+{
+	throw UALBackendException("readData method has to be completed for HDF5 Backend",LOG);
+}
+
+int HDF5Backend::readData(OperationContext *ctx, std::string fieldname, std::string timebase, void** data, int* datatype, int* dim, int* size)
 {
 	throw UALBackendException("readData method has to be completed for HDF5 Backend",LOG);
 }

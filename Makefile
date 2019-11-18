@@ -29,9 +29,8 @@ CFLAGS=-std=c99 -Wall -fPIC -O0 -shared-intel ${DBGFLAGS}
 CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions -shared-intel ${DBGFLAGS}
 LDF=ifort -lc -lstdc++
 else
-CXX=g++
-CFLAGS=--std=c11 --pedantic -Wall -fPIC -O0 ${DBGFLAGS}
-CXXFLAGS=--std=c++11 --pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
+CFLAGS=-std=c11 -pedantic -Wall -fPIC -O0 ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O0 -fno-inline-functions ${DBGFLAGS}
 LDF=gfortran -lc -lstdc++
 endif
 
@@ -47,10 +46,11 @@ COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
 		no_backend.o memory_backend.o ascii_backend.o
 
 # Include OS-specific Makefile, if exists.
+
 ifneq (,$(wildcard Makefile.$(SYSTEM)))
 include Makefile.$(SYSTEM)
 else
-all sources sources_install install:
+all sources sources_install install uninstall:
 	$(error No Makefile.$(SYSTEM) found for this system: $(UNAME_S))
 endif
 
