@@ -39,6 +39,20 @@ void AsciiBackend::openPulse(PulseContext *ctx,
     ss >> add;
     this->dbname = this->dbname + add;
   }
+  this->fname = "";
+
+  n = options.find("-stdout");
+  if (n != std::string::npos) {
+    ss << options.substr(n+7,options.length());
+    this->fname = "/dev/stdout";
+  }
+
+  n = options.find("-stdin");
+  if (n != std::string::npos) {
+    ss << options.substr(n+6,options.length());
+    this->fname = "/dev/stdin";
+  }
+
 }
 
 
@@ -60,17 +74,23 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     throw UALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
 
   this->idsname = ctx->getDataobjectName();
-  this->fname = this->dbname + "_" + this->idsname + ".ids";
+
+  if (this->fname.empty())
+    this->fname = this->dbname + "_" + this->idsname + ".ids";
 
   switch(ctx->getAccessmode()) {
   case READ_OP : 
     this->writemode = false; 
     this->pulsefile.open(this->fname, std::ios::in);
+    if (this->pulsefile.fail())
+      throw UALBackendException("Failed to open file "+this->fname+" in read mode",LOG);
     this->curcontent << this->pulsefile.rdbuf();
     break;
   case WRITE_OP: 
     this->writemode = true; 
     this->pulsefile.open(this->fname, std::ios::out|std::ios::trunc);
+    if (this->pulsefile.fail())
+      throw UALBackendException("Failed to open file "+this->fname+" in write mode",LOG);
     break;
   default: 
     throw UALBackendException("Unsupported access mode for ASCII Backend!",LOG);
