@@ -38,10 +38,10 @@ CXXINCLUDES= ${INCLUDES}
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp memory_backend.cpp
-CSRC= ual_low_level.c
+CSRC= 
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
-		ual_low_level.o ual_exception.o ual_backend.o \
+		ual_exception.o ual_backend.o \
 		no_backend.o memory_backend.o
 
 # Include OS-specific Makefile, if exists.

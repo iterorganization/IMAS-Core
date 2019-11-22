@@ -244,6 +244,9 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
 int ual_open_pulse(int pctxID, int mode, const char *options)
 {
   int status=0;
+  bool verbose = true;
+  if (options!=NULL && strstr(options,"-silent"))
+    verbose = false;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
@@ -256,19 +259,25 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 			   options);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_open_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << WHERE << "\n";
+      ual_print_context(pctxID);
+    }
   }
 
   return status;
@@ -278,6 +287,9 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 int ual_close_pulse(int pctxID, int mode, const char *options)
 {
   int status=0;
+  bool verbose = true;
+  if (options!=NULL && strstr(options,"-silent"))
+    verbose = false;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
@@ -290,19 +302,25 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 			    options);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_close_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-    ual_print_context(pctxID);
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << WHERE << "\n";
+      ual_print_context(pctxID);
+    }
   }
 
   return status;
