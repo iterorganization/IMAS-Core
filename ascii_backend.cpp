@@ -8,13 +8,6 @@ AsciiBackend::AsciiBackend()
 }
 
 
-
-/*AsciiBackend::~AsciiBackend()
-{
-}
-*/
-
-
 void AsciiBackend::openPulse(PulseContext *ctx,
 			int mode, 
 			std::string options) 
@@ -41,18 +34,12 @@ void AsciiBackend::openPulse(PulseContext *ctx,
   }
   this->fname = "";
 
-  n = options.find("-stdout");
+  n = options.find("-fullpath ");
   if (n != std::string::npos) {
-    ss << options.substr(n+7,options.length());
-    this->fname = "/dev/stdout";
+    ss << options.substr(n+10,options.length());
+    ss >> add;
+    this->fname = add;
   }
-
-  n = options.find("-stdin");
-  if (n != std::string::npos) {
-    ss << options.substr(n+6,options.length());
-    this->fname = "/dev/stdin";
-  }
-
 }
 
 
