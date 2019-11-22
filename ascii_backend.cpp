@@ -65,6 +65,9 @@ void AsciiBackend::beginAction(OperationContext *ctx)
   if (this->fname.empty())
     this->fname = this->dbname + "_" + this->idsname + ".ids";
 
+  if (this->pulsefile.is_open())
+    std::cerr << "pulsefile already opened!\n";
+
   switch(ctx->getAccessmode()) {
   case READ_OP : 
     this->writemode = false; 
@@ -97,10 +100,13 @@ void AsciiBackend::beginAction(OperationContext *ctx)
 void AsciiBackend::endAction(Context *ctx)
 {
   if (ctx->getType()==CTX_OPERATION_TYPE) {
-    //DBG//if (this->pulsefile.fail())
-    //DBG//  std::cout << "WRONG, failbit or badbit detected!\n";
     this->pulsefile.flush();
+    if (this->pulsefile.fail())
+      std::cerr << "WRONG, failbit or badbit detected!\n";
     this->pulsefile.close();
+    if (this->pulsefile.fail())
+      std::cerr << "WRONG, failbit or badbit detected!\n";
+    this->fname = "";
   }
   else {
     //DBG//std::cout << "Nothing to be done is non operation context closing?\n";
