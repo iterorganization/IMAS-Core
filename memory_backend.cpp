@@ -219,7 +219,6 @@ else
 	}
 	else
 	{
-	  //if(ids->isAoSMapped(fieldname))
 	  auto search = ids->aosFields.find(fieldname);
 	  if (search!=ids->aosFields.end())
 	    {
@@ -850,10 +849,6 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-      std::cout << "MBE: ctx UID = " << ctx->getUid() << "\n";
-      //IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
-      //if(idsInfo) 
-      //return idsInfo->idsPath;
       auto search = idsInfoMap.find(ctx->getUid()); 
       if (search!=idsInfoMap.end()) 
 	return search->second->idsPath;
@@ -874,9 +869,6 @@ else
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
-      //IdsInfo *idsInfo = (IdsInfo *)ctx->getUserData();
-      //if(idsInfo)
-      //return idsInfo->ids;
       auto search = idsInfoMap.find(ctx->getUid());
       if (search!=idsInfoMap.end())
 	return search->second->ids;
@@ -888,16 +880,13 @@ else
 	auto searchids = idsMap.find(idsPath);
 	if(searchids != idsMap.end())
 	{
-	  retIds = searchids->second; // idsMap.at(idsPath);
+	  retIds = searchids->second; 
 	} 
 	else
 	{
-	  //idsMap[idsPath] = new UalStruct;
-	  //retIds = idsMap.at(idsPath);
 	  retIds = new UalStruct;
 	  idsMap[idsPath] = retIds;
 	}
-	//ctx->setUserData(new IdsInfo(idsPath, retIds));
 	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
 	return retIds;
 /*	try {
@@ -1364,17 +1353,16 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-      //if(dataFields.find(path) != dataFields.end())  
       auto search = dataFields.find(path);
       if (search!=dataFields.end())
 	{  
-	  return search->second; //dataFields.at(path);
+	  return search->second; 
 	} 
 	else
 	{
 	  UalData * d = new UalData; 
 	  dataFields[path] = d;
-	  return d;//dataFields[path];
+	  return d;
 	}
 /*	try  {  
 	    return dataFields.at(path);
