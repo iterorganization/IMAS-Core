@@ -1269,7 +1269,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      MDSplus::Array *prevSegDataRead = node->getSegment(segmentIdx - 1);
 	      MDSplus::Data *prevSegData = prevSegDataRead->data();
 	      MDSplus::deleteData(prevSegDataRead);
-	      char exprBuf[512];
+	      char exprBuf[1024];
 	      sprintf(exprBuf, "data(set_range(");
 	      for(int i = 0; i < nDims - 1; i++)
 		sprintf(&exprBuf[strlen(exprBuf)], "%d,", ddims[nDims - i - 1]); //ddims are returned in FORTRAN order!!!!!
@@ -1731,13 +1731,13 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    //int endIdx = endData->getInt();
 		    //int startIdx = startData->getInt();
 		    MDSplus::deleteData(endData);
-		    std::string timePath = mdsconvertPath(timePath.c_str());
-		    char *nameBuf = new char[128+timePath.size()]; //TODO: Check size -- DONE
-		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", timePath.c_str(), endIdx+1);
+		    std::string currTimePath = mdsconvertPath(timePath.c_str());
+		    char *nameBuf = new char[128+currTimePath.size()]; //TODO: Check size -- DONE
+		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", currTimePath.c_str(), endIdx+1);
 //		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), endIdx+1);
 		    endData = MDSplus::compile(nameBuf, tree);
 //		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d : %d]", mdsconvertPath(timePath.c_str()).c_str(), startIdx, endIdx+1);
-		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d : %d]", timePath.c_str(), startIdx, endIdx+1);
+		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d : %d]", currTimePath.c_str(), startIdx, endIdx+1);
 		    MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
 		    delete[] nameBuf;
 		    node->putSegment((MDSplus::Array *)segData, -1);
