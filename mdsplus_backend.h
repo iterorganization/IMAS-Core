@@ -26,11 +26,14 @@ class MDSplusBackend:public Backend
 
     //Keep for every top AoS the index (from 1) of the next free node to store dynamic AoS or time dependent fields
     std::unordered_map<std::string, int> timedNodeFreeIdxMap;
+    std::unordered_map<std::string, int> timeaNodeFreeIdxMap;
     //Keep track of increasing idx assignment of times subAoS
     int maxAosTimedId;
+    int maxAosTimeaId;
 
     //Keep for every timed AoS field or dynamic AoS the full path of the corresponding node 
     std::unordered_map<std::string, std::string> timedNodePathMap;
+    std::unordered_map<std::string, std::string> timeaNodePathMap;
 
     //In ordert to increase efficiency of MDSplus find node
     std::unordered_map<std::string, MDSplus::TreeNode *> treeNodeMap;
@@ -90,9 +93,9 @@ class MDSplusBackend:public Backend
     void insertInApd(ArraystructContext *ctx,MDSplus::Apd *apd, int idx, std::string path, std::string timebasePath, bool isSlice, MDSplus::Data *mdsData, void* data = NULL, int datatype = 0, int dim = 0, int* size = NULL);
     std::string getTopAoSPath(ArraystructContext *ctx);
     std::string getAoSFullPath(ArraystructContext *ctx, int idx);  
-    std::string getNodePathFor(std::string aosPath, std::string aosFullPath, std::string aosName);
-    std::string getTimedNode(ArraystructContext *ctx, std::string field, int idx);
-    std::string getTimedNode(ArraystructContext *ctx, std::string fullAosPath);
+    std::string getNodePathFor(std::string aosPath, std::string aosFullPath, std::string aosName, bool isAos);
+    std::string getTimedNode(ArraystructContext *ctx, std::string field, int idx, bool isAos);
+    std::string getTimedNode(ArraystructContext *ctx, std::string fullAosPath, bool isAos);
     std::string getTopAoSName(ArraystructContext *ctx);
     std::string  toLower(std::string s);
      std::string relativeToAbsolutePath(ArraystructContext *ctx, std::string relPath, int idx = 0);
