@@ -219,15 +219,16 @@ else
 	}
 	else
 	{
-	    if(ids->isAoSMapped(fieldname))
+	  auto search = ids->aosFields.find(fieldname);
+	  if (search!=ids->aosFields.end())
 	    {
-		UalAoS *aos = ids->getSubAoS(fieldname);
-		aos->deleteData();
+	      UalAoS *aos = search->second; //ids->getSubAoS(fieldname);
+	      aos->deleteData();
 	    }
-	    else
+	  else
 	    {
-	    	UalData *ualData = ids->getData(fieldname);
-	    	ualData->deleteData();
+	      UalData *ualData = ids->getData(fieldname);
+	      ualData->deleteData();
 	    }
 	}
     }
@@ -445,6 +446,14 @@ else
 	    }
 	    return;
         }
+        if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
+	{
+	  idsInfoMap.erase(inCtx->getUid());
+	  /*OperationContext *ctx = (OperationContext *)inCtx; 
+	  IdsInfo *info = (IdsInfo *)ctx->getUserData();
+	  if(info) delete info;*/
+	}
+
 //Everything outside AoS is expected to be mapped, so no action is required in write
 //Only in read mode target end action is called NOTE: in MDSplus backend this is neutral, for others we shopuld check whether 
     }
@@ -838,31 +847,48 @@ else
 	}
     }
 
-
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-	return std::to_string(ctx->getShot())+"/"+std::to_string(ctx->getRun())+"/"+ctx->getDataobjectName();
+      auto search = idsInfoMap.find(ctx->getUid()); 
+      if (search!=idsInfoMap.end()) 
+	return search->second->idsPath;
+
+      int shot = ctx->getShot();
+      int run = ctx->getRun();
+      if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
+	return lastIdsPath;
+      char buf[512];
+      sprintf(buf, "%d/%d/%s", ctx->getShot(), ctx->getRun(), ctx->getDataobjectName().c_str());
+      lastIdsPath = std::string(buf);
+      lastIdsPathShot = shot;
+      lastIdsPathRun = run;
+      lastIdsPathDataobjectName = ctx->getDataobjectName();
+      return lastIdsPath;
     }
 
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
+      auto search = idsInfoMap.find(ctx->getUid());
+      if (search!=idsInfoMap.end())
+	return search->second->ids;
 
 //std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
-	UalStruct ids;
+	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
-	auto search = idsMap.find(idsPath);
-	if(search != idsMap.end())
+	auto searchids = idsMap.find(idsPath);
+	if(searchids != idsMap.end())
 	{
-	    return search->second;
+	  retIds = searchids->second; 
 	} 
 	else
 	{
-	    UalStruct * newIds = new UalStruct;
-	    idsMap[idsPath] = newIds;
-	    return newIds;
+	  retIds = new UalStruct;
+	  idsMap[idsPath] = retIds;
 	}
+	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
+	return retIds;
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
 	    return idsMap.at(idsPath);
@@ -933,6 +959,11 @@ else
 //Check if the passed context refers to an AoS that is mapped in memory (i.e. for which deleteData or putData has been issued)
     bool MemoryBackend::isMappedAoS(ArraystructContext *ctx)
     {
+
+//Gabriele Oct 2019. When no alternate BAckend is defined (normal case for memory mapping) assumemalways true
+	return true;
+
+
 	std::vector<ArraystructContext *>currCtxV;
 	ArraystructContext *currCtx = ctx;
 	do {
@@ -946,7 +977,11 @@ else
 	fullAosPath += currCtxV[currCtxV.size() - 1]->getPath();
 
 	UalStruct *ids = getIds(currCtxV[currCtxV.size() - 1]);
-	return ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
+
+        bool isMapped = ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
+	if(!isMapped)
+	   std::cout << "WRONG OPTIMIZATION ASSUMPTION!!!!" << std::endl;
+	return isMapped;
     }	
 
 
@@ -1318,16 +1353,16 @@ else
     }
     UalData *UalStruct::getData(std::string path)
     {
-        auto search = dataFields.find(path);
-	if(search != dataFields.end())  
+      auto search = dataFields.find(path);
+      if (search!=dataFields.end())
 	{  
-	    return search->second;
+	  return search->second; 
 	} 
 	else
 	{
-	    UalData * newData = new UalData;
-	    dataFields[path] = newData; 
-	    return newData;
+	  UalData * d = new UalData; 
+	  dataFields[path] = d;
+	  return d;
 	}
 /*	try  {  
 	    return dataFields.at(path);
@@ -1358,36 +1393,37 @@ else
     {
 	for(auto &field:dataFields)
 	{
-	    field.second->deleteData();
-	    delete field.second;
+	    dataFields[field.first]->deleteData();
+	    delete dataFields[field.first];
 	}
 	dataFields.clear();
 
 	for(auto &field:aosFields)
 	{
-	    if(field.second)
-	    	field.second->deleteData();
-	    delete field.second;
+	    if(aosFields[field.first])
+	    	aosFields[field.first]->deleteData();
+	    delete aosFields[field.first];
 	}
 	aosFields.clear();
     }
     UalAoS *UalStruct::getSubAoS(std::string path)
     {
-        auto search = aosFields.find(path);
-	if(search != aosFields.end())  
-	{  
-	    return search->second;
-	} 
-	else
+      //if(aosFields.find(path) != aosFields.end())
+      //    return aosFields.at(path);
+      auto search = aosFields.find(path);
+      if (search!=aosFields.end())
+	return search->second;
+      else
 	{
-	    UalAoS * newAos = new UalAoS;
-	    aosFields[path] = newAos; 
-	    return newAos;
+	  UalAoS *aos = new UalAoS;
+	  aosFields[path]=aos; //new UalAoS;
+	  return aos; //aosFields[path];
 	}
 /*	try {
 	    return aosFields.at(path);
 	} catch (const std::out_of_range& oor) {aosFields[path]=new UalAoS;return aosFields[path];}
 */    }
+
     bool UalStruct::isAoSMapped(std::string path)
     {
 	return (aosFields.find(path) != aosFields.end());

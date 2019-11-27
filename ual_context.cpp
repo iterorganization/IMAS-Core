@@ -1,7 +1,7 @@
 #include "ual_context.h"
 
 
-std::atomic<unsigned long int> Context::uid(0);
+std::atomic<unsigned long int> Context::SID(0);
 
 
 std::ostream& operator<< (std::ostream& o, Context const& ctx)
@@ -39,13 +39,11 @@ Context::Context(int id)
       throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
     }
   backend_id = id; 
-  ++uid;
 }
 
 Context::Context(const Context& ctx) 
 {
   backend_id = ctx.backend_id; 
-  ++uid;
 }
 
 std::string Context::print() const 
@@ -126,6 +124,7 @@ PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t,
       else
 	version = v.substr(0,pos);
     }
+  this->uid = ++SID;
 }
 
 std::string PulseContext::print() const 
@@ -188,6 +187,7 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
     throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
   }
   accessmode = access;
+  this->uid = ++SID;
 }
 
 OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access, 
@@ -224,6 +224,7 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
       if (accessmode==ualconst::read_op && interpmode==ualconst::undefined_interp)
 	throw UALContextException("Missing interpmode",LOG);
     }
+  this->uid = ++SID;
 }
 
 std::string OperationContext::print() const 
@@ -280,6 +281,7 @@ ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std:
 {
   parent = NULL;
   index = 0;
+  this->uid = ++SID;
 }
 
 ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
@@ -287,6 +289,7 @@ ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std:
   : OperationContext(ctx), path(p), timebase(tb), parent(cont)
 {
   index = 0;
+  this->uid = ++SID;
 }
 
 ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
@@ -294,17 +297,18 @@ ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std:
   : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx)
 {
   index = 0;
+  this->uid = ++SID;
 }
 
 std::string ArraystructContext::print() const
 {
-  
-  std::string s = ((this->parent==NULL)?((OperationContext)*this).print():
-		   (this->parent->print() + "child \t\t\t = \n")) +
+  std::string s = ((OperationContext)*this).print() +
     "path \t\t\t = \"" + this->path + "\"\n" +
     "timebase \t\t = \"" + this->timebase + "\"\n" +
     "timed \t\t\t = " + 
     (timebase.empty()?"no":"yes") + "\n" +
+    "parent \t\t\t = " +
+    ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
     "index \t\t\t = " + std::to_string(this->index) + "\n";
   return s;
 }

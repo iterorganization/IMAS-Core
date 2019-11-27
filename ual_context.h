@@ -90,10 +90,11 @@ protected:
      @todo need to check if passed id is valid
      @todo how to check/configure available backends on a given system?
   */
-  Context(int id);
+  Context(int beid);
 
-  int backend_id;                       /**< a backend identifier */
-  static std::atomic<unsigned long int> uid;
+  int backend_id;                            /**< a backend identifier */
+  static std::atomic<unsigned long int> SID; /**< a global UID */
+  unsigned long int uid;                     /**< a local ID to identify instances */
 };
 
 
@@ -284,6 +285,7 @@ protected:
   int rangemode;                        /**< operation range */
   double time;                          /**< operation time */
   int interpmode;                       /**< operation interpolation type */
+
 };
 
 
@@ -390,12 +392,12 @@ class ArraystructContext : public OperationContext
   */
   void nextIndex(int step);
 
-
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
   int index;                            /**< position of the current element of interest within the array of structure */
+
 };
 
 
