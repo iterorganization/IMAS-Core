@@ -146,13 +146,9 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
 			    ver);
   }
   catch (const UALContextException& e) {
-    std::cout << e.what() << "\n";
+    std::cerr << e.what() << "\n";
     ctxID = ualerror::context_err;
     pctx = NULL;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
   }
 
 
@@ -209,6 +205,7 @@ int ual_get_backendID(int ctxID)
   catch (const UALLowlevelException e) {
     std::cout << "ual_get_backendID: " << e.what() << "\n";
     id = ualerror::lowlevel_err;
+    ual_print_context(ctxID);
   }
   return id;
 }
@@ -228,28 +225,16 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
 					ver);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_begin_pulse_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_pulse_action: " << e.what() << "\n";
     pctxID = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
   }
   catch (const std::exception& e) {
-    std::cout << "ual_begin_pulse_action: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_begin_pulse_action: " << e.what() << WHERE << "\n";
     pctxID = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
   }
 
   return pctxID;
@@ -259,6 +244,9 @@ int ual_begin_pulse_action(const int backendID, const int shot, const int run,
 int ual_open_pulse(int pctxID, int mode, const char *options)
 {
   int status=0;
+  bool verbose = true;
+  if (options!=NULL && strstr(options,"-silent"))
+    verbose = false;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
@@ -271,28 +259,25 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 			   options);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_open_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const std::exception& e) {
-    std::cout << "ual_open_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_open_pulse: " << e.what() << WHERE << "\n";
+      ual_print_context(pctxID);
+    }
   }
 
   return status;
@@ -302,6 +287,9 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 int ual_close_pulse(int pctxID, int mode, const char *options)
 {
   int status=0;
+  bool verbose = true;
+  if (options!=NULL && strstr(options,"-silent"))
+    verbose = false;
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
@@ -314,28 +302,25 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 			    options);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_close_pulse: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << "\n";
+      ual_print_context(pctxID);
+    }
   }
   catch (const std::exception& e) {
-    std::cout << "ual_close_pulse: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    if (verbose) {
+      std::cerr << "ual_close_pulse: " << e.what() << WHERE << "\n";
+      ual_print_context(pctxID);
+    }
   }
 
   return status;
@@ -360,36 +345,24 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
     octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
-    std::cout << "ual_begin_global_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_begin_global_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_begin_global_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_begin_global_action: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_begin_global_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
 
   return octxID;
@@ -418,36 +391,24 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
     octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
-    std::cout << "ual_begin_slice_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::context_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_begin_slice_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_begin_slice_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
     octxID = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
     octxID = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(pctxID);
   }
 
   return octxID;
@@ -470,28 +431,19 @@ int ual_end_action(int ctxID)
 	delete(lle.context);
       }
       catch (const UALBackendException& e) {
-	std::cout << "ual_end_action: " << e.what() << "\n";
+	std::cerr << "ual_end_action: " << e.what() << "\n";
 	status = ualerror::backend_err;
-#ifdef SOE
-	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-	std::exit(EXIT_FAILURE);
-#endif
+	ual_print_context(ctxID);
       }
       catch (const UALLowlevelException& e) {
-	std::cout << "ual_end_action: " << e.what() << "\n";
+	std::cerr << "ual_end_action: " << e.what() << "\n";
 	status = ualerror::lowlevel_err;
-#ifdef SOE
-	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-	std::exit(EXIT_FAILURE);
-#endif
+	ual_print_context(ctxID);
       }
       catch (const std::exception& e) {
-	std::cout << "ual_end_action: " << e.what() << WHERE << "\n";
+	std::cerr << "ual_end_action: " << e.what() << WHERE << "\n";
 	status = ualerror::unknown_err;
-#ifdef SOE
-	std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-	std::exit(EXIT_FAILURE);
-#endif
+	ual_print_context(ctxID);
       }
     }
   
@@ -514,28 +466,19 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
 			   size);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_write_data: " << e.what() << "\n";
+    std::cerr << "ual_write_data: " << e.what() << "\n";
     status = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_write_data: " << e.what() << "\n";
+    std::cerr << "ual_write_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_write_data: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_write_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   
   return status;
@@ -569,7 +512,7 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
       {
 	if (retType!=datatype || retDim!=dim)
 	  {
-	    std::cout << "ual_read_data went wrong\n";
+	    std::cerr << "ual_read_data went wrong\n";
 	    throw UALLowlevelException("Wrong Data returned by backend: expected "+
 				       std::to_string(datatype)+" ("+
 				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+") in "+
@@ -590,28 +533,19 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
       }
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_read_data: " << e.what() << "\n";
+    std::cerr << "ual_read_data: " << e.what() << "\n";
     status = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_read_data: " << e.what() << "\n";
+    std::cerr << "ual_read_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_read_data: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_read_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
 
   return status;
@@ -631,28 +565,19 @@ int ual_delete_data(int octxID, const char *field)
     lle.backend->deleteData(octx, std::string(field));
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_delete_data: " << e.what() << "\n";
+    std::cerr << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(octxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_delete_data: " << e.what() << "\n";
+    std::cerr << "ual_delete_data: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(octxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_delete_data: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_delete_data: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(octxID);
   }
 
   return status;
@@ -692,36 +617,24 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
       }
   }
   catch (const UALContextException& e) {
-    std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::context_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const UALBackendException& e) {
-    std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::backend_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_begin_arraystruct_action: " << e.what() << "\n";
+    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
     actxID = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_begin_arraystruct_action: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_begin_arraystruct_action: " << e.what() << WHERE << "\n";
     actxID = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(ctxID);
   }
 
   return actxID;
@@ -740,28 +653,19 @@ int ual_iterate_over_arraystruct(int aosctxID,
     actx->nextIndex(step);
   }
   catch (const UALContextException& e) {
-    std::cout << "ual_iterate_over_arraystruct: " << e.what() << "\n";
+    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << "\n";
     status = ualerror::context_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(aosctxID);
   }
   catch (const UALLowlevelException& e) {
-    std::cout << "ual_iterate_over_arraystruct: " << e.what() << "\n";
+    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << "\n";
     status = ualerror::lowlevel_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(aosctxID);
   }
   catch (const std::exception& e) {
-    std::cout << "ual_iterate_over_arraystruct: " << e.what() << WHERE << "\n";
+    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << WHERE << "\n";
     status = ualerror::unknown_err;
-#ifdef SOE
-    std::cerr << "  *** UAL STOPPED ON EXCEPTION! ***  \n\n";
-    std::exit(EXIT_FAILURE);
-#endif
+    ual_print_context(aosctxID);
   }
 
   return status;
