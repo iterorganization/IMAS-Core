@@ -205,7 +205,6 @@ extern "C"
      @result operation context id [_error status if < 0 or null context if = 0_]
      
      @test Low-level API, implementation of beginDataObjectPut()
-     @snippet ual_low_level.c ex_ual_begin_global_action
   */
   int ual_begin_global_action(int ctx,
 			      const char *dataobjectname,
@@ -230,7 +229,6 @@ extern "C"
      @result operation context id [_error status if < 0 or null context if = 0_]
      
      @test Low-level API, implementation of beginDataObjectGetSlice()
-     @snippet ual_low_level.c ex_ual_begin_slice_action
   */
   int ual_begin_slice_action(int ctx,
 			     const char *dataobjectname,
@@ -246,7 +244,6 @@ extern "C"
      @result error status [_success if = 0 or failure if < 0_]
      
      @test Low-level API, implementation of endDataObjectGetSlice()
-     @snippet ual_low_level.c ex_ual_end_action
   */
   int ual_end_action(int ctx); 
 
@@ -268,7 +265,6 @@ extern "C"
      @result error status [_success if = 0 or failure if < 0_]
 
      @test Low-level API, implementation of putVect2DIntSlice()
-     @snippet ual_low_level.c ex_ual_write_data
   */
   int ual_write_data(int ctx,
 		     const char *fieldpath,
@@ -296,7 +292,6 @@ extern "C"
      @result error status [_success if = 0 or failure if < 0_]
      
      @test Low-level API, implementation of getVect3DDouble() 
-     @snippet ual_low_level.c ex_ual_read_data
   */
   int ual_read_data(int ctx,
 		    const char *fieldpath,
