@@ -203,8 +203,6 @@ extern "C"
      - READ_OP = read operation
      - WRITE_OP = write operation
      @result operation context id [_error status if < 0 or null context if = 0_]
-     
-     @test Low-level API, implementation of beginDataObjectPut()
   */
   int ual_begin_global_action(int ctx,
 			      const char *dataobjectname,
@@ -227,8 +225,6 @@ extern "C"
      - LINEAR_INTERP interpolate the slice between the values of the previous and next slice
      - UNDEFINED_INTERP if not relevant (for write operations)
      @result operation context id [_error status if < 0 or null context if = 0_]
-     
-     @test Low-level API, implementation of beginDataObjectGetSlice()
   */
   int ual_begin_slice_action(int ctx,
 			     const char *dataobjectname,
@@ -242,8 +238,6 @@ extern "C"
      not valide anymore.
      @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
      @result error status [_success if = 0 or failure if < 0_]
-     
-     @test Low-level API, implementation of endDataObjectGetSlice()
   */
   int ual_end_action(int ctx); 
 
@@ -263,8 +257,6 @@ extern "C"
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
      @result error status [_success if = 0 or failure if < 0_]
-
-     @test Low-level API, implementation of putVect2DIntSlice()
   */
   int ual_write_data(int ctx,
 		     const char *fieldpath,
@@ -290,8 +282,6 @@ extern "C"
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
      @result error status [_success if = 0 or failure if < 0_]
-     
-     @test Low-level API, implementation of getVect3DDouble() 
   */
   int ual_read_data(int ctx,
 		    const char *fieldpath,
