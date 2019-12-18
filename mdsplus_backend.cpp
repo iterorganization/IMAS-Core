@@ -223,6 +223,8 @@ static void dumpStruct(MDSplus::Apd *apd, int tabs)
 	}
     }
 }
+
+
  
 //Return the dimension in bytes of the first strring stored in seggmented data. If no segments return -1
 static int getStringSizeInSegment(MDSplus::TreeNode *node)
@@ -269,7 +271,68 @@ static std::string getSegmentData(std::string path, int segIdx)
 	}
 	return retStr;	
     }
- 
+
+/////////////////////METHODS
+
+    int MDSplusBackend::getTimebaseIdx(std::string dataobjectPath, std::string timebase, double time)
+    {
+	try {
+          double *times;
+	  int datatype = 0;
+          int numDims;
+          int dims[64];
+
+          int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims);
+	  if (datatype != ualconst::double_data)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
+	      return 0;
+	  }
+	  if (numDims != 1 || dims[0] <= 0)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
+	      return 0;
+	  }
+	  int numTimes = dims[0];
+	  if(time <= times[0])
+	      return 0;
+	  if(time >= times[numTimes - 1])
+              return numTimes - 1;
+	  int retIdx;
+	  for(retIdx = 0; retIdx < numTimes - 1; retIdx++)
+	      if(times[retIdx] <= time && times[retIdx + 1] >= time)
+	          break;
+          free(times);
+	  return retIdx;
+        }catch(MDSplus::MdsException exc)
+	{
+	    printf("INTERNAL ERROR in getTimebaseIdx: %s\n", exc.what());
+            return 0;
+	}
+    }
+
+    int MDSplusBackend::getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx)
+    {
+        int actSlices = 0;
+	int segIdx = 0;
+	int numSegments = node->getNumSegments();
+	char segNDims, segType;
+	int  nextRow;
+	int segDims[64];
+printf("GET SEG IDX numSegments: %d\n", numSegments);
+	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
+	    if (segIdx < numSegments - 1)
+		actSlices += segDims[0];
+	    else
+		actSlices += nextRow;
+	    if(actSlices > timebaseIdx)
+		break;
+	}
+	return segIdx;
+    }
+
  
     MDSplus::Data *MDSplusBackend::assembleStringData(void *data, int numDims, int *inDims, int expectedLen)
     {
@@ -370,63 +433,10 @@ static std::string getSegmentData(std::string path, int segIdx)
 	    memcpy(*retDataPtr, dataPtr, length * nItems);
 	}
     }
-/*  OLD VERSION
-    int MDSplusBackend::getMdsShot(int shot, int run, bool translate)
-    {
-	int runBunch = run/10000;
-	size_t i, j;
-	char *command;
-	
-	if(translate)
-	{
-	    char baseName[64];
-	    sprintf(baseName, "MDSPLUS_TREE_BASE_%d", runBunch);
-	    char *translatedBase =  getenv(baseName);
-	    if(translatedBase && *translatedBase)	// There is a translation for MDSPLUS_REE_BASE_XX
-	    {
-		char *prevLog = getenv("ids_path");
-		if(prevLog)							// ids_path is already set?
-		{
-		    char *currPattern;
-		    if ((currPattern = strstr(prevLog,translatedBase)) != NULL)	// ids_path already contains the correct path?
-		    {
-			//Yes, move it to the head of the list
-			int substrOfs = currPattern - prevLog; 
-			command=new char[strlen(prevLog)+4];
-			sprintf(command, "%s;", translatedBase);
-			int currLen = strlen(command);
-			memcpy(&command[currLen], prevLog, substrOfs);
-			command[currLen+substrOfs] = 0;
-			strcpy(&command[strlen(command)], &currPattern[strlen(translatedBase)]);
-		    }
-		    else									// otherwise add the new path
-		    {
-			command=new char[strlen(getenv(baseName))+strlen(prevLog)+4];
-			sprintf(command, "%s;%s", getenv(baseName), prevLog);
-		    }
-		}
-		else							// ids_path is not set yet
-		{
-		    command=new char[strlen(getenv(baseName))+4];
-		    sprintf(command, "%s", getenv(baseName));
-		}
-		//It may happen that command contains multiple semicolons: remove them
-		for(i = 0; i < strlen(command) - 1; i++)
-		{
-		    while(i < strlen(command) && command[i] == ';' && command[i+1] == ';')
-		    {
-			for(j = i; j < strlen(command); j++)
-			    command[j] = command[j+1];
-		    }
-		}	
-		setenv("ids_path",command,1);
-		delete[] command;
-	    }
-	}
-	int retShot =  (shot * 10000) + (run%10000);
-	return retShot;
-    }
- */
+
+
+
+
 
     MDSplus::TreeNode * MDSplusBackend::getNode(const char *path, bool makeNew)
     {
@@ -1181,7 +1191,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 
 
-    int  MDSplusBackend::readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int  MDSplusBackend::readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *outDims, bool manglePath)
     {
 /** Steps:
@@ -1208,35 +1218,54 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    return 0;
 	    //throw UALBackendException(exc.what(),LOG);
 	}
+
+
 	try {
+// Gabriele Dec 2019 --- OPTIMIZATION: avoid evaluating expressions for segment limits for non AoS fields
 	    int numSegments = node->getNumSegments();
+            int segmentIdx;
 	    if(numSegments == 0) 
 	      return 0;	      
-	    int segmentIdx;
+
 	    //Since the expression contains node reference, it is necessary to set the active tree
 	    setActiveTree(tree);
-	    for(segmentIdx = 0; segmentIdx < numSegments; segmentIdx++)
+
+	    if(path == "") //In case readSlice is called inside AoS
 	    {
-	      MDSplus::Data *startTimeData, *endTimeData;
-	      node->getSegmentLimits(segmentIdx, &startTimeData, &endTimeData);
-	      
-//	      std::cout << "START TIME: " << startTimeData << std::endl;
-//	      std::cout << "END TIME: " << endTimeData << std::endl;
-	      
-	      double startTime = startTimeData->getDouble();
-//Handle the case end time refers to a longer list that that contained in time node (homogenerous)
-	      double endTime;
-	      //try {
-		 endTime = endTimeData->getDouble();
-		//}catch(MDSplus::MdsException &exc) {endTime = startTime;}
-	      MDSplus::deleteData(startTimeData);
-	      MDSplus::deleteData(endTimeData);
-	   //   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
-	      if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || 
-		(time >= endTime && segmentIdx == numSegments - 1) || 
-		(time < startTime && segmentIdx > 0)) //consider the case in which the time is between two segments
-		break;
+		setActiveTree(tree);
+		for(segmentIdx = 0; segmentIdx < numSegments; segmentIdx++)
+		{
+		MDSplus::Data *startTimeData, *endTimeData;
+		node->getSegmentLimits(segmentIdx, &startTimeData, &endTimeData);
+		
+	//	      std::cout << "START TIME: " << startTimeData << std::endl;
+	//	      std::cout << "END TIME: " << endTimeData << std::endl;
+		
+		double startTime = startTimeData->getDouble();
+	//Handle the case end time refers to a longer list that that contained in time node (homogenerous)
+		double endTime;
+		//try {
+			endTime = endTimeData->getDouble();
+			//}catch(MDSplus::MdsException &exc) {endTime = startTime;}
+		MDSplus::deleteData(startTimeData);
+		MDSplus::deleteData(endTimeData);
+		//   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
+		if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || 
+			(time >= endTime && segmentIdx == numSegments - 1) || 
+			(time < startTime && segmentIdx > 0)) //consider the case in which the time is between two segments
+			break;
+		}
 	    }
+	    else
+	    {
+		int timebaseIdx = getTimebaseIdx(dataobjectPath, timebase, time);
+		//printf("TIMEBASE IDX: %d\n", timebaseIdx);
+		segmentIdx = getSegmentIdx(node, timebaseIdx);
+		//printf("SEGMENT IDX: %d\n", segmentIdx);
+		numSegments = node->getNumSegments();
+	    }
+///////////////////////////////////////OPTIMIZATION
+
 	    MDSplus::Array *segDataRead = node->getSegment(segmentIdx);
 //Workaround for MDSplus bug in complex management	    
 	    char clazz, ddtype, nDims;
@@ -2868,7 +2897,7 @@ printf("Warning, struct field added more than once\n");
 	break;
       case ualconst::slice_op:
 	if(!timebase.empty())
-	  return readSlice(tree, ctx->getDataobjectName(), fieldname, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
+	  return readSlice(tree, ctx->getDataobjectName(), fieldname, timebase, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
 	else
 	  return readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	break;
@@ -3184,7 +3213,7 @@ printf("Warning, struct field added more than once\n");
 		  delete [] path;
 		  std::string emptyStr("");
 
-		  if(!readSlice(tree, pathStr, emptyStr, time, interpolation, &data, &datatype, &numDims, dims, false))
+		  if(!readSlice(tree, pathStr, emptyStr, timebasePath, time, interpolation, &data, &datatype, &numDims, dims, false))
 		      throw UALBackendException("Internal error: expected valid slice in resolveApdSliceFields",LOG);
 
 		  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
@@ -3363,6 +3392,7 @@ printf("Warning, struct field added more than once\n");
 	  }
       }
   }
+
 
 
 

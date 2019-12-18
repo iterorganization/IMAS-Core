@@ -63,7 +63,7 @@ class MDSplusBackend:public Backend
 	int *numDims, int *dims);
     int readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype, int *numDims, int *outDims);
     void deleteData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path);
-    int readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *dims, bool manglePath = true);
 
 //Array of structures stuff	
@@ -99,6 +99,11 @@ class MDSplusBackend:public Backend
     void resetNodePath();
     MDSplus::TreeNode *getNode(const char *, bool makeNew = false);
     void freeNodes();
+
+    int getTimebaseIdx(std::string timebase, std::string dataobjectPath, double time);
+    int getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx);
+
+
 /////Public section - Implementation of Backend interface		
       public:
 	
@@ -210,5 +215,4 @@ class MDSplusBackend:public Backend
 
 
 };
-
 
