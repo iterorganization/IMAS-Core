@@ -1926,6 +1926,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
 	    	MDSplus::deleteData(endData);
 		MDSplus::Data *serializedData = node->getSegment(segIdx);
+/*
+
 		int serializedLen;
 		char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
 		MDSplus::deleteData(serializedData);
@@ -1940,6 +1942,33 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    retApd->appendDesc(sliceData);
 		}
 		delete [] serialized;
+*/
+//Gabriele Dec 2019
+		char clazz, dtype, nDims;
+		short length;
+		int *dims;
+		char *serialized;
+		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, &length, &nDims, &dims, (void **) &serialized);
+		if(dtype != DTYPE_B && dtype != DTYPE_BU)
+		{
+	  	    throw  UALBackendException("INTERNAL ERROR: unexpected dtype in serialized AoS: ", LOG); 
+		}
+		if(nDims != 1)
+		{
+	  	    throw  UALBackendException("INTERNAL ERROR: unexpected dimensions  in serialized AoS: ", LOG); 
+		}
+		int idx = 0;
+		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
+		{
+		    int sliceLen;
+		    memcpy(&sliceLen, &serialized[idx], sizeof(int));
+		    idx += sizeof(int);
+		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
+		    idx += sliceLen;
+		    retApd->appendDesc(sliceData);
+		}
+		MDSplus::deleteData(serializedData);
+/////////////////////
 	    }
 	    return retApd;
 	}catch(MDSplus::MdsException &exc)	
