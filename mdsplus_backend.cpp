@@ -319,7 +319,7 @@ static std::string getSegmentData(std::string path, int segIdx)
 	char segNDims, segType;
 	int  nextRow;
 	int segDims[64];
-printf("GET SEG IDX numSegments: %d\n", numSegments);
+	//printf("GET SEG IDX numSegments: %d\n", numSegments);
 	for(segIdx = 0; segIdx < numSegments; segIdx++)
 	{
 	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
@@ -1535,36 +1535,54 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     MDSplus::Apd *MDSplusBackend::getApdFromContext(ArraystructContext *arrStructCtx)
     {
 	pthread_mutex_lock(&mutex);
-	for(size_t i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-		pthread_mutex_unlock(&mutex);
-		return arrayStructDataV[i];
-	    }
-	}
+	MDSplus::Apd *arrStructData = NULL;
+	auto search = arrayStructCtxDataMap.find(arrStructCtx);
+	if (search!=arrayStructCtxDataMap.end())
+	  arrStructData = search->second;
+
 	pthread_mutex_unlock(&mutex);
-	return NULL;
+	return arrStructData;
+
+	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	// 	pthread_mutex_unlock(&mutex);
+	// 	return arrayStructDataV[i];
+	//     }
+	// }
+	// pthread_mutex_unlock(&mutex);
+	// return NULL;
     }
     
     void MDSplusBackend::addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
 	pthread_mutex_lock(&mutex);
-	size_t i;
-	for(i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-	       // std::cout << "INTERNAL ERROR IN addContextAndApd\n"; Gabriele March 2019: seems that context my be reused.....
-		arrayStructDataV[i] = arrStructData;
-		break;
-	    }
-	}
-	if(i == arrayStructContextV.size()) //New context
-	{
-	  arrayStructContextV.push_back(arrStructCtx);
-	  arrayStructDataV.push_back(arrStructData);
-	}
+	auto search = arrayStructCtxDataMap.find(arrStructCtx);
+	if (search!=arrayStructCtxDataMap.end())
+	  {
+	    search->second = arrStructData;
+	  }
+	else
+	  {
+	    arrayStructCtxDataMap.insert({arrStructCtx,arrStructData});
+	  }
+
+	// size_t i;
+	// for(i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	//        // std::cout << "INTERNAL ERROR IN addContextAndApd\n"; Gabriele March 2019: seems that context my be reused.....
+	// 	arrayStructDataV[i] = arrStructData;
+	// 	break;
+	//     }
+	// }
+	// if(i == arrayStructContextV.size()) //New context
+	// {
+	//   arrayStructContextV.push_back(arrStructCtx);
+	//   arrayStructDataV.push_back(arrStructData);
+	// }
 	pthread_mutex_unlock(&mutex);
     }
     
@@ -1572,14 +1590,16 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     void MDSplusBackend::removeContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
 	pthread_mutex_lock(&mutex);
-	for(size_t i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-		arrayStructContextV.erase(arrayStructContextV.begin()+i);
-		arrayStructDataV.erase(arrayStructDataV.begin()+i);
-	    }
-	}
+	arrayStructCtxDataMap.erase(arrStructCtx);
+
+	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	// 	arrayStructContextV.erase(arrayStructContextV.begin()+i);
+	// 	arrayStructDataV.erase(arrayStructDataV.begin()+i);
+	//     }
+	// }
 	pthread_mutex_unlock(&mutex);
     }
 //////////Array of structures stuff	
@@ -1916,6 +1936,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
         try {
 	    MDSplus::Apd *retApd = new MDSplus::Apd();
 	    int numSegments = node->getNumSegments();
+	    //std::cout << "numSegments = " << numSegments << "\n";
 	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
 	    {
 		MDSplus::Data *startData, *endData;
@@ -1929,9 +1950,13 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 /*
 
 		int serializedLen;
-		char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
+		//char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
+		char *serialized;
+		char clazz, dtype, nDims;
+		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, NULL, &nDims, NULL, (void **) &serialized);
 		MDSplus::deleteData(serializedData);
 		int idx = 0;
+		//std::cout << "segIdx = " << segIdx << ", startIdx = " << startIdx << ", endIdx = " << endIdx << "\n";
 		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
 		{
 		    int sliceLen;
@@ -1940,6 +1965,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
 		    idx += sliceLen;
 		    retApd->appendDesc(sliceData);
+		    //std::cout << "sliceIdx = " << sliceIdx << ", idx = " << idx<< "\n";
 		}
 		delete [] serialized;
 */

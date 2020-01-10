@@ -38,9 +38,9 @@ class MDSplusBackend:public Backend
     //In ordert to increase efficiency of MDSplus find node
     std::unordered_map<std::string, MDSplus::TreeNode *> treeNodeMap;
 
- 
-    std::vector<ArraystructContext *>arrayStructContextV;
-    std::vector<MDSplus::Apd *>arrayStructDataV;
+    std::unordered_map<ArraystructContext *, MDSplus::Apd *> arrayStructCtxDataMap;
+    //std::vector<ArraystructContext *>arrayStructContextV;
+    //std::vector<MDSplus::Apd *>arrayStructDataV;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);
