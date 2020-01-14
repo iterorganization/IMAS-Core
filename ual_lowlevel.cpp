@@ -162,92 +162,104 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
   return ctxID;
 }
 
+
 #endif
 
 
 //////////////////// IMPLEMENTATION OF C WRAPPERS ////////////////////
 
 
-int ual_print_context(int ctxID)
+ualstatus ual_print_context(int ctxID, char **info)
 {
-  int status=0;
+  ualstatus status;
+  std::stringstream desc;
 
+  status.code = 0;
   if (ctxID==0)
     {
-      std::cout << "NULL context\n";
+      const char *nullctx = "NULL context";
+      int nullctxsize = strlen(nullctx)+1;
+      *info = (char *)malloc(nullctxsize);
+      *((char *) mempcpy(*info, nullctx, nullctxsize)) = '\0';
     }
   else
     {
       try {
 	LLenv lle = Lowlevel::getLLenv(ctxID);
-	std::cout << "Context type = " 
-		  << lle.context->getType() << "\n";
-	std::cout << "Backend @ = " << lle.backend << "\n";
-	std::cout << lle.context->print();
+	desc << "Context type = " 
+	     << lle.context->getType() << "\n";
+	desc << "Backend @ = " << lle.backend << "\n";
+	desc << lle.context->print();
+	const std::string& tmp = desc.str();
+	int size = tmp.length()+1;
+	*info = (char *)malloc(size);
+	*((char *) mempcpy(*info, tmp.c_str(), size)) = '\0';
       }
       catch (const UALLowlevelException& e) {
-	std::cout << "ual_print_context: " << e.what() << "\n";
-	status = ualerror::lowlevel_err;
+	status.code = ualerror::lowlevel_err;
+	UALException::registerStatus(status.message, __func__, e);
       }
     }
+
   return status;
 }
 
 
-int ual_get_backendID(int ctxID)
+ualstatus ual_get_backendID(int ctxID, int *beid)
 {
-  int id = ualerror::unknown_err;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    id = lle.context->getBackendID();
+    *beid = lle.context->getBackendID();
   }
   catch (const UALLowlevelException e) {
-    std::cout << "ual_get_backendID: " << e.what() << "\n";
-    id = ualerror::lowlevel_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
-  return id;
+
+  return status;
 }
 
 
-int ual_begin_pulse_action(const int backendID, const int shot, const int run, 
-			   const char *usr, const char *tok, const char *ver)
+ualstatus ual_begin_pulse_action(const int backendID, const int shot, const int run, 
+				 const char *usr, const char *tok, const char *ver,
+				 int *pctxID)
 {
-  int pctxID = 0;
+  ualstatus status;
 
+  status.code = 0;
   try {
-    pctxID = Lowlevel::beginPulseAction(backendID, 
-					shot, 
-					run, 
-					usr, 
-					tok, 
-					ver);
+    *pctxID = Lowlevel::beginPulseAction(backendID, 
+					 shot, 
+					 run, 
+					 usr, 
+					 tok, 
+					 ver);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_begin_pulse_action: " << e.what() << "\n";
-    pctxID = ualerror::backend_err;
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_begin_pulse_action: " << e.what() << "\n";
-    pctxID = ualerror::lowlevel_err;
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_begin_pulse_action: " << e.what() << WHERE << "\n";
-    pctxID = ualerror::unknown_err;
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
-  return pctxID;
+  return status;
 }
 
 
-int ual_open_pulse(int pctxID, int mode, const char *options)
+ualstatus ual_open_pulse(int pctxID, int mode, const char *options)
 {
-  int status=0;
-  bool verbose = true;
-  if (options!=NULL && strstr(options,"-silent"))
-    verbose = false;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
@@ -259,38 +271,27 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 			   options);
   }
   catch (const UALBackendException& e) {
-    status = ualerror::backend_err;
-    if (verbose) {
-      std::cerr << "ual_open_pulse: " << e.what() << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    status = ualerror::lowlevel_err;
-    if (verbose) {
-      std::cerr << "ual_open_pulse: " << e.what() << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status = ualerror::unknown_err;
-    if (verbose) {
-      std::cerr << "ual_open_pulse: " << e.what() << WHERE << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-int ual_close_pulse(int pctxID, int mode, const char *options)
+ualstatus ual_close_pulse(int pctxID, int mode, const char *options)
 {
-  int status=0;
-  bool verbose = true;
-  if (options!=NULL && strstr(options,"-silent"))
-    verbose = false;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
@@ -302,36 +303,29 @@ int ual_close_pulse(int pctxID, int mode, const char *options)
 			    options);
   }
   catch (const UALBackendException& e) {
-    status = ualerror::backend_err;
-    if (verbose) {
-      std::cerr << "ual_close_pulse: " << e.what() << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    status = ualerror::lowlevel_err;
-    if (verbose) {
-      std::cerr << "ual_close_pulse: " << e.what() << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status = ualerror::unknown_err;
-    if (verbose) {
-      std::cerr << "ual_close_pulse: " << e.what() << WHERE << "\n";
-      ual_print_context(pctxID);
-    }
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
+ualstatus ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
+				  int *octxID)
 {
-  int octxID = 0;
+  ualstatus status;
   OperationContext *octx=NULL;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID); 
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
@@ -342,38 +336,35 @@ int ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode)
 				std::string(dataobjectname),
 				rwmode);
     lle.backend->beginAction(octx);
-    octxID = Lowlevel::addLLenv(lle.backend, octx); 
+    *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
-    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
-    octxID = ualerror::context_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
-    octxID = ualerror::backend_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_begin_global_action: " << e.what() << "\n";
-    octxID = ualerror::lowlevel_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_begin_global_action: " << e.what() << WHERE << "\n";
-    octxID = ualerror::unknown_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
-  return octxID;
+  return status;
 }
 
 
-int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
-			   double time, int interpmode)
+ualstatus ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+				 double time, int interpmode, int *octxID)
 {
-  int octxID = 0;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
@@ -388,37 +379,34 @@ int ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode,
 						 interpmode);
     lle.backend->beginAction(octx);
 
-    octxID = Lowlevel::addLLenv(lle.backend, octx); 
+    *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
-    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
-    octxID = ualerror::context_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
-    octxID = ualerror::backend_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_begin_slice_action: " << e.what() << "\n";
-    octxID = ualerror::lowlevel_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_begin_slice_action: " << e.what() << WHERE << "\n";
-    octxID = ualerror::unknown_err;
-    ual_print_context(pctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
-  return octxID;
+  return status;
 }
 
 
-int ual_end_action(int ctxID)
+ualstatus ual_end_action(int ctxID)
 {
-  int status=0;
+  ualstatus status;
 
+  status.code = 0;
   if (ctxID!=0)
     {
       try {
@@ -431,19 +419,16 @@ int ual_end_action(int ctxID)
 	delete(lle.context);
       }
       catch (const UALBackendException& e) {
-	std::cerr << "ual_end_action: " << e.what() << "\n";
-	status = ualerror::backend_err;
-	ual_print_context(ctxID);
+	status.code = ualerror::backend_err;
+	UALException::registerStatus(status.message, __func__, e);
       }
       catch (const UALLowlevelException& e) {
-	std::cerr << "ual_end_action: " << e.what() << "\n";
-	status = ualerror::lowlevel_err;
-	ual_print_context(ctxID);
+	status.code = ualerror::lowlevel_err;
+	UALException::registerStatus(status.message, __func__, e);
       }
       catch (const std::exception& e) {
-	std::cerr << "ual_end_action: " << e.what() << WHERE << "\n";
-	status = ualerror::unknown_err;
-	ual_print_context(ctxID);
+	status.code = ualerror::unknown_err;
+	UALException::registerStatus(status.message, __func__, e);
       }
     }
   
@@ -451,10 +436,12 @@ int ual_end_action(int ctxID)
 }
 
 
-int ual_write_data(int ctxID, const char *field, const char *timebase,  
-		   void *data, int datatype, int dim, int *size)
+ualstatus ual_write_data(int ctxID, const char *field, const char *timebase,  
+			 void *data, int datatype, int dim, int *size)
 {
-  int status=0;
+  ualstatus status;
+
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
     lle.backend->writeData(lle.context,
@@ -466,33 +453,31 @@ int ual_write_data(int ctxID, const char *field, const char *timebase,
 			   size);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_write_data: " << e.what() << "\n";
-    status = ualerror::backend_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_write_data: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_write_data: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   
   return status;
 }
 
 
-int ual_read_data(int ctxID, const char *field, const char *timebase, 
-		  void **data, int datatype, int dim, int *size)
+ualstatus ual_read_data(int ctxID, const char *field, const char *timebase, 
+			void **data, int datatype, int dim, int *size)
 {
-  int status=0;
+  ualstatus status;
   void *retData=NULL;
   int retType=datatype;
   int retDim=dim;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
 
@@ -506,13 +491,11 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
       {
 	// no data
 	Lowlevel::setDefaultValue(datatype, dim, data, size);
-	status = 0;
       }
     else
       {
 	if (retType!=datatype || retDim!=dim)
 	  {
-	    std::cerr << "ual_read_data went wrong\n";
 	    throw UALLowlevelException("Wrong Data returned by backend: expected "+
 				       std::to_string(datatype)+" ("+
 				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+") in "+
@@ -533,29 +516,27 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
       }
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_read_data: " << e.what() << "\n";
-    status = ualerror::backend_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_read_data: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_read_data: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-int ual_delete_data(int octxID, const char *field)
+ualstatus ual_delete_data(int octxID, const char *field)
 {
-  int status=0;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(octxID);
     OperationContext *octx= dynamic_cast<OperationContext *>(lle.context); 
@@ -565,31 +546,30 @@ int ual_delete_data(int octxID, const char *field)
     lle.backend->deleteData(octx, std::string(field));
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_delete_data: " << e.what() << "\n";
-    status = ualerror::backend_err;
-    ual_print_context(octxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_delete_data: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-    ual_print_context(octxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_delete_data: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
-    ual_print_context(octxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-int ual_begin_arraystruct_action(int ctxID, const char *path, 
-				 const char *timebase, int *size)
+ualstatus ual_begin_arraystruct_action(int ctxID, const char *path, 
+				       const char *timebase, int *size,
+				       int *actxID)
 {
-  int actxID = 0;
+  ualstatus status;
   ArraystructContext *actx=NULL;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
 
@@ -604,48 +584,45 @@ int ual_begin_arraystruct_action(int ctxID, const char *path,
       {
 	// no data
 	delete(actx);
-	actxID = 0; 
+	*actxID = 0; 
       }
     else
       {
-	actxID = Lowlevel::addLLenv(lle.backend, actx); 
+	*actxID = Lowlevel::addLLenv(lle.backend, actx); 
 	if (*size < 0)
 	  {
-	    std::cout << "Warning: beginArraystructAction returned size = "<< *size
-		      << " for AoS " << path << "\n";
+	    throw UALLowlevelException("Returned size for array of structure is negative! ("+
+				       std::to_string(*size)+")",LOG);
 	  }
       }
   }
   catch (const UALContextException& e) {
-    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
-    actxID = ualerror::context_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALBackendException& e) {
-    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
-    actxID = ualerror::backend_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_begin_arraystruct_action: " << e.what() << "\n";
-    actxID = ualerror::lowlevel_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_begin_arraystruct_action: " << e.what() << WHERE << "\n";
-    actxID = ualerror::unknown_err;
-    ual_print_context(ctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
-  return actxID;
+  return status;
 }
 
 
-int ual_iterate_over_arraystruct(int aosctxID, 
-				 int step)
+ualstatus ual_iterate_over_arraystruct(int aosctxID, 
+				       int step)
 {
-  int status=0;
+  ualstatus status;
 
+  status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(aosctxID);
     ArraystructContext *actx = static_cast<ArraystructContext *>(lle.context);
@@ -653,19 +630,16 @@ int ual_iterate_over_arraystruct(int aosctxID,
     actx->nextIndex(step);
   }
   catch (const UALContextException& e) {
-    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << "\n";
-    status = ualerror::context_err;
-    ual_print_context(aosctxID);
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
-    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << "\n";
-    status = ualerror::lowlevel_err;
-    ual_print_context(aosctxID);
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    std::cerr << "ual_iterate_over_arraystruct: " << e.what() << WHERE << "\n";
-    status = ualerror::unknown_err;
-    ual_print_context(aosctxID);
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
 
   return status;

@@ -3,6 +3,9 @@
 #include <exception>
 #include <stdexcept>
 #include <sstream>
+#include <cstring>
+
+#include "ual_defs.h"
 
 #define LOG __FILE__,__LINE__
 #define WHERE " ("<<__FILE__<<":"<<__LINE__<<")"
@@ -29,6 +32,7 @@ public:
   UALException(const char *m, const std::string &f, const int l);
   UALException(const std::string &m, const std::string &f, const int l);
   const char * what() const throw(); 
+  static void registerStatus(char *message, const char *func, const std::exception &e); 
 };
 
 
