@@ -1,4 +1,3 @@
-
 #include "ual_lowlevel.h"
 
 #include <assert.h>
@@ -169,9 +168,9 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
 //////////////////// IMPLEMENTATION OF C WRAPPERS ////////////////////
 
 
-ualstatus ual_context_info(int ctxID, char **info)
+al_status_t ual_context_info(int ctxID, char **info)
 {
-  ualstatus status;
+  al_status_t status;
   std::stringstream desc;
 
   status.code = 0;
@@ -205,9 +204,9 @@ ualstatus ual_context_info(int ctxID, char **info)
 }
 
 
-ualstatus ual_get_backendID(int ctxID, int *beid)
+al_status_t ual_get_backendID(int ctxID, int *beid)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -223,11 +222,11 @@ ualstatus ual_get_backendID(int ctxID, int *beid)
 }
 
 
-ualstatus ual_begin_pulse_action(const int backendID, const int shot, const int run, 
-				 const char *usr, const char *tok, const char *ver,
-				 int *pctxID)
+al_status_t ual_begin_pulse_action(const int backendID, const int shot, const int run, 
+				   const char *usr, const char *tok, const char *ver,
+				   int *pctxID)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -255,9 +254,9 @@ ualstatus ual_begin_pulse_action(const int backendID, const int shot, const int 
 }
 
 
-ualstatus ual_open_pulse(int pctxID, int mode, const char *options)
+al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -287,9 +286,9 @@ ualstatus ual_open_pulse(int pctxID, int mode, const char *options)
 }
 
 
-ualstatus ual_close_pulse(int pctxID, int mode, const char *options)
+al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -319,10 +318,10 @@ ualstatus ual_close_pulse(int pctxID, int mode, const char *options)
 }
 
 
-ualstatus ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
-				  int *octxID)
+al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
+				    int *octxID)
 {
-  ualstatus status;
+  al_status_t status;
   OperationContext *octx=NULL;
 
   status.code = 0;
@@ -359,10 +358,10 @@ ualstatus ual_begin_global_action(int pctxID, const char* dataobjectname, int rw
 }
 
 
-ualstatus ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
-				 double time, int interpmode, int *octxID)
+al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+				   double time, int interpmode, int *octxID)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -402,9 +401,9 @@ ualstatus ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwm
 }
 
 
-ualstatus ual_end_action(int ctxID)
+al_status_t ual_end_action(int ctxID)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   if (ctxID!=0)
@@ -436,10 +435,10 @@ ualstatus ual_end_action(int ctxID)
 }
 
 
-ualstatus ual_write_data(int ctxID, const char *field, const char *timebase,  
+al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,  
 			 void *data, int datatype, int dim, int *size)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -469,10 +468,10 @@ ualstatus ual_write_data(int ctxID, const char *field, const char *timebase,
 }
 
 
-ualstatus ual_read_data(int ctxID, const char *field, const char *timebase, 
-			void **data, int datatype, int dim, int *size)
+al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, 
+			  void **data, int datatype, int dim, int *size)
 {
-  ualstatus status;
+  al_status_t status;
   void *retData=NULL;
   int retType=datatype;
   int retDim=dim;
@@ -532,9 +531,9 @@ ualstatus ual_read_data(int ctxID, const char *field, const char *timebase,
 }
 
 
-ualstatus ual_delete_data(int octxID, const char *field)
+al_status_t ual_delete_data(int octxID, const char *field)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {
@@ -562,11 +561,11 @@ ualstatus ual_delete_data(int octxID, const char *field)
 }
 
 
-ualstatus ual_begin_arraystruct_action(int ctxID, const char *path, 
-				       const char *timebase, int *size,
-				       int *actxID)
+al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, 
+					 const char *timebase, int *size,
+					 int *actxID)
 {
-  ualstatus status;
+  al_status_t status;
   ArraystructContext *actx=NULL;
 
   status.code = 0;
@@ -617,10 +616,10 @@ ualstatus ual_begin_arraystruct_action(int ctxID, const char *path,
 }
 
 
-ualstatus ual_iterate_over_arraystruct(int aosctxID, 
-				       int step)
+al_status_t ual_iterate_over_arraystruct(int aosctxID, 
+					 int step)
 {
-  ualstatus status;
+  al_status_t status;
 
   status.code = 0;
   try {

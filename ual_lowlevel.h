@@ -131,25 +131,25 @@ extern "C"
   {
     int code;
     char message[MAX_ERR_MSG_LEN];
-  } ualstatus;
+  } al_status_t;
 
 
   /**
      Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
      @param[out] info context info as a string
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  ualstatus ual_context_info(int ctx, char **info);
+  al_status_t ual_context_info(int ctx, char **info);
 
 
   /**
      Get backendID from the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
      @param[out] beid backendID 
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  ualstatus ual_get_backendID(int ctx, int *beid);
+  al_status_t ual_get_backendID(int ctx, int *beid);
 
 
 
@@ -164,9 +164,9 @@ extern "C"
      @param[in] tokamak tokamak name [_optional, "" for default_]
      @param[in] version data version [_optional, "" for default_]
      @param[out] pctx pulse context id [_null context if = 0_]
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_begin_pulse_action(const int backendID, 
+  al_status_t ual_begin_pulse_action(const int backendID, 
 				   const int shot, 
 				   const int run, 
 				   const char *user, 
@@ -185,9 +185,9 @@ extern "C"
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
      @param[in] options additional options, ex: "name=treename refShot=1 refRun=2"
      (possibly backend specific)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_open_pulse(int pulseCtx, 
+  al_status_t ual_open_pulse(int pulseCtx, 
 			   int mode, 
 			   const char *options);
 
@@ -199,9 +199,9 @@ extern "C"
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
      @param[in] options additional options (possibly backend specific)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_close_pulse(int pulseCtx, 
+  al_status_t ual_close_pulse(int pulseCtx, 
 			    int mode,
 			    const char *options);
 
@@ -214,9 +214,9 @@ extern "C"
      - READ_OP = read operation
      - WRITE_OP = write operation
      @param[out] opctx operation context id [_null context if = 0_]
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_begin_global_action(int ctx,
+  al_status_t ual_begin_global_action(int ctx,
 				    const char *dataobjectname,
 				    int rwmode,
 				    int *opctx);
@@ -238,9 +238,9 @@ extern "C"
      - LINEAR_INTERP interpolate the slice between the values of the previous and next slice
      - UNDEFINED_INTERP if not relevant (for write operations)
      @param[out] opctx operation context id [_null context if = 0_]
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_begin_slice_action(int ctx,
+  al_status_t ual_begin_slice_action(int ctx,
 				   const char *dataobjectname,
 				   int rwmode,
 				   double time,
@@ -252,9 +252,9 @@ extern "C"
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
      @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_end_action(int ctx); 
+  al_status_t ual_end_action(int ctx); 
 
   /**
      Writes data.
@@ -271,9 +271,9 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_write_data(int ctx,
+  al_status_t ual_write_data(int ctx,
 			   const char *fieldpath,
 			   const char *timebasepath,
 			   void *data,
@@ -296,9 +296,9 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_read_data(int ctx,
+  al_status_t ual_read_data(int ctx,
 			  const char *fieldpath,
 			  const char *timebasepath,
 			  void **data,
@@ -312,9 +312,9 @@ extern "C"
      given the passed context.
      @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action())
      @param[in] path path of the data structure element to delete (suppress the whole subtree)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_delete_data(int ctx,
+  al_status_t ual_delete_data(int ctx,
 			    const char *path);
 
 
@@ -330,9 +330,9 @@ extern "C"
      @param[in] timebase path of timebase associated with the array of structure 
      @param[in,out] size specify the size of the struct_array (number of elements)
      @param[out] aosctx array of structure context id [_null context if = 0_]
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  ualstatus ual_begin_arraystruct_action(int ctx,
+  al_status_t ual_begin_arraystruct_action(int ctx,
 					 const char *path,
 					 const char *timebase,
 					 int *size,
@@ -345,9 +345,9 @@ extern "C"
      This function updates the index pointing at the current element of interest within an array of structure.
      @param[in] aosctx array of structure Context
      @param[in] step iteration step size (typically=1)
-     @result error status [_success if ualstatus.code = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  ualstatus ual_iterate_over_arraystruct(int aosctx, 
+  al_status_t ual_iterate_over_arraystruct(int aosctx, 
 					 int step);
 
 
