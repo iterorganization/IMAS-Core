@@ -135,12 +135,12 @@ extern "C"
 
 
   /**
-     Print all the Context information corresponding to the passed Context identifier.
+     Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
      @param[out] info context info as a string
      @result error status [_success if ualstatus.code = 0 or failure if < 0_]
    */
-  ualstatus ual_print_context(int ctx, char **info);
+  ualstatus ual_context_info(int ctx, char **info);
 
 
   /**

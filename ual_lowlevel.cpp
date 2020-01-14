@@ -169,7 +169,7 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
 //////////////////// IMPLEMENTATION OF C WRAPPERS ////////////////////
 
 
-ualstatus ual_print_context(int ctxID, char **info)
+ualstatus ual_context_info(int ctxID, char **info)
 {
   ualstatus status;
   std::stringstream desc;
