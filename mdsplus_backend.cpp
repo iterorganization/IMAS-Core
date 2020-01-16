@@ -1405,12 +1405,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //	    if(path == "") //In case readSlice is called inside AoS
 	    if(isApd) //In case readSlice is called inside AoS
 	    {
-//QUESTO RENDE IL TUTTO UNA SCHEGGIA times = new double[5]{1,2,3,4,5}; nTimes = 5; segmentIdx = 0;
 		setActiveTree(tree);
-if(numSegments == 1)
-segmentIdx = 0;
-else
-{
+
+		times = getSegmentIdxAndDim(node, dataobjectPath, timebase, time, segmentIdx, nTimes);
+/*
+
 		for(segmentIdx = 0; segmentIdx < numSegments; segmentIdx++)
 		{
 	  	    MDSplus::Data *startTimeData, *endTimeData;
@@ -1434,18 +1433,13 @@ else
 		  	break;
 		}
 		//Build times from startTimes and endTimes
- }   		MDSplus::Data *segDim = node->getSegmentDim(segmentIdx);
-if(timebase == "")
-{
-		      std::cout << "DIM " << segDim << std::endl;
-		      std::cout << "****** " << getPathInfo(segDim, node) << std::endl;
-}
+    		MDSplus::Data *segDim = node->getSegmentDim(segmentIdx);
 
 
 //times = new double[5]{1,2,3,4,5}; nTimes = 5;
 	    	times = segDim->getDoubleArray(&nTimes);
 		MDSplus::deleteData(segDim);
-	    }
+*/	    }
 	    else
 	    {
 //printf("PATH: %s TIME: %s\n", dataobjectPath.c_str(), timebase.c_str());
