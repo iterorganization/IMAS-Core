@@ -521,7 +521,8 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
 	  }
 	else if (retType!=datatype)
 	  {
-	    std::cerr << "Warning: type of Data returned by backend is " 
+	    std::cerr << "Warning: " << lle.context->fullPath() << "/" << field
+		      << " was returned with type " 
 		      << std::to_string(retType) << " (" 
 		      << ualconst::data_type_str.at(retType-DATA_TYPE_0) 
 		      << ") while we expected " 
