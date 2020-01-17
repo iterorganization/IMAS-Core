@@ -522,10 +522,10 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
 	else if (retType!=datatype)
 	  {
 	    std::cerr << "Warning: " << lle.context->fullPath() << "/" << field
-		      << " was returned with type " 
+		      << " returned with type " 
 		      << std::to_string(retType) << " (" 
 		      << ualconst::data_type_str.at(retType-DATA_TYPE_0) 
-		      << ") while we expected " 
+		      << ") while we expect type " 
 		      << std::to_string(datatype) << " (" 
 		      << ualconst::data_type_str.at(datatype-DATA_TYPE_0) 
 		      << ")\n";
