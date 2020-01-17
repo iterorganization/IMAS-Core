@@ -513,22 +513,19 @@ int ual_read_data(int ctxID, const char *field, const char *timebase,
 	if (retDim!=dim)
 	  {
 	    throw UALLowlevelException("Wrong dimension of Data returned by backend: expected "+
-				       std::to_string(datatype)+" ("+
-				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+") in "+
+				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+" in "+
 				       std::to_string(dim)+"D but got "+
-				       std::to_string(retType)+" in "+
+				       ualconst::data_type_str.at(retType-DATA_TYPE_0)+" in "+
 				       std::to_string(retDim)+"D",LOG);
 	  }
 	else if (retType!=datatype)
 	  {
 	    std::cerr << "Warning: " << lle.context->fullPath() << "/" << field
 		      << " returned with type " 
-		      << std::to_string(retType) << " (" 
 		      << ualconst::data_type_str.at(retType-DATA_TYPE_0) 
-		      << ") while we expect type " 
-		      << std::to_string(datatype) << " (" 
+		      << " while we expect type " 
 		      << ualconst::data_type_str.at(datatype-DATA_TYPE_0) 
-		      << ")\n";
+		      << "\n";
 	  }
 	else if (dim==0) 
 	  {
