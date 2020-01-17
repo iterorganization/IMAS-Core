@@ -284,6 +284,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 //printf("CHIAMO GETINFO %p\n", data);
     if(!data) return "";
     data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    delete[] dims;
     switch (clazz) {
 	case CLASS_S:
 	    if(dtype == DTYPE_NID || dtype == DTYPE_PATH)
@@ -303,6 +304,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		if(currDsc)
 		{
 		    char *retPath = getPathInfo(currDsc, refNode);
+		    MDSplus::deleteData(currDsc); //Compound::getDescAt() increments ref counter!!!!!
 		    if(*retPath) return retPath;
 		}
 	    }
@@ -404,6 +406,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
           int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
 	  if(!status) return 0;
+	  if(timebasePath) delete[]timebasePath;
 	  if (datatype != ualconst::double_data)
 	  {
 	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
@@ -1510,7 +1513,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      times = mergedTimes;
 	    }
 
-	    delete [] ddims; //not used anymore
 	    int idx;
 	    MDSplus::Data *sliceData;
 	    //Build appropriate expression based on interpolation
@@ -1684,6 +1686,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	MDSplus::deleteData(sliceData);
 	    }
 //////////////////////////////////////////////////////////////
+	    delete [] ddims;
+
 	    MDSplus::deleteData(segData);
 	  //  MDSplus::deleteData(segDim);
 	    *numDims = dimct - 1;
