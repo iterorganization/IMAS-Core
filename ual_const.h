@@ -93,6 +93,8 @@ extern "C"
 {
 #endif
 
+    const int MAX_ERR_MSG_LEN = 256;
+
   const char * type2str(int type);
   const char * err2str(int err);
 

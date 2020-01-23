@@ -42,4 +42,3 @@
 #define BACKEND_ERR                 ERR_0-2
 #define LOWLEVEL_ERR                ERR_0-3
 
-#define MAX_ERR_MSG_LEN             256
