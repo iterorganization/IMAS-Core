@@ -1,5 +1,7 @@
 #include "ual_exception.h"
 
+#include "ual_const.h"
+
 
 
 /// UALException ///
