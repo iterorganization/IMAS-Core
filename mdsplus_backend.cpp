@@ -420,11 +420,14 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	  int numTimes = dims[0];
 	  if(time <= times[0])
 	      timebaseIdx = 0;
-	  if(time >= times[numTimes - 1])
+	  else if(time >= times[numTimes - 1])
               timebaseIdx = numTimes - 1;
-	  for(timebaseIdx = 0; timebaseIdx < numTimes - 1; timebaseIdx++)
-	      if(times[timebaseIdx] <= time && times[timebaseIdx + 1] >= time)
+	  else 
+	  {
+	      for(timebaseIdx = 0; timebaseIdx < numTimes - 1; timebaseIdx++)
+	      	if(times[timebaseIdx] <= time && times[timebaseIdx + 1] > time)
 	          break;
+	  }
 	  
         int actSlices = 0, prevSlices = 0;
 	segIdx = 0;
@@ -438,14 +441,18 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    prevSlices = actSlices;
 	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
 	    if (segIdx < numSegments - 1)
-		actSlices += segDims[0];
+		actSlices += segDims[segNDims - 1];
+//		actSlices += segDims[0];
 	    else
 		actSlices += nextRow;
-	    if(actSlices >= timebaseIdx)
+//	    if(actSlices >= timebaseIdx)
+	    if(actSlices > timebaseIdx)
 		break;
 	}
-	double *retTimes = new double[segDims[0]];
-	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
+//	double *retTimes = new double[segDims[0]];
+	double *retTimes = new double[segDims[segNDims - 1]];
+//	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
+	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
 	free(times);
 	return retTimes;
@@ -1490,7 +1497,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    
 	    //Consider the special case in which the time is between two segments. 
 	    //In this case the previous segment is read and appended in front of the current one, updating segData and times
-	    if(time <= times[0] && segmentIdx > 0)
+	    //if(time <= times[0] && segmentIdx > 0)
+	    if(time < times[0] && segmentIdx > 0)
 	    {
 	      MDSplus::Array *prevSegDataRead = node->getSegment(segmentIdx - 1);
 	      MDSplus::Data *prevSegData = prevSegDataRead->data();
@@ -1599,7 +1607,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    if(idxInSegment >= 0) 
 	    {
 		int rowSize = length;
-		for(int i = 0; i < nDims - 1; i++)
+//		for(int i = 0; i < nDims - 1; i++)
+		for(int i = 1; i < nDims; i++)
 		    rowSize *= ddims[i];
 		*data = malloc(rowSize);
 		memcpy(*data, ((char *)dataPtr)+(idxInSegment * rowSize), rowSize);
