@@ -779,7 +779,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    std::string mdsPath = checkFullPath(fullPath, isAos);
 	    MDSplus::TreeNode *node = getNode(mdsPath.c_str());
 //	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
-	    if(node->getLength() > 0)
+	    if(node->getLength() > 0 || node->getNumSegments() > 0)
 	        node->deleteData();
 		
 	    int sliceSize = getSliceSize(node, data, datatype, numDims, dims, true);
@@ -1050,6 +1050,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       for(int i = 0; i < numDims; i++)
 	  dims[i] = inDims[i];
 
+
 //Gabriele July 2017: one additional dimension (=1) is added by the high level, not to be considered here
       numDims--;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1089,9 +1090,19 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	        slice = assembleStringData(data, numDims+1, currDims, sliceSize);
 	    else
 		slice = assembleData(data, datatype, numDims+1, currDims);
-	    try {
+
+//////////Gabriele Febraury 2020: avoid generating exceptions for full segments 
+	    char dtype, dimct;
+	    int nextRow;
+	    int segDims[64];
+	    node->getSegmentInfo(node->getNumSegments() - 1, &dtype, &dimct, segDims, &nextRow);
+	    if(nextRow < segDims[dimct - 1])  //Still room for another slice
 		node->putSegment((MDSplus::Array *)slice, -1);
-	    }catch (MDSplus::MdsException &exc)
+	    else	
+/*	    try {
+		node->putSegment((MDSplus::Array *)slice, -1);
+	    }catch (MDSplus::MdsException &exc)   */
+
 	    {
 //std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		char *initBytes = new char[sliceSize * slicesPerSegment];
@@ -1142,10 +1153,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 		    nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()];
 		    sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1]; else _a = data(%s)[%d]; _a;",
-			mdsPath.c_str(), numSegments, 
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx,
+			mdsPath.c_str(), numSegments + 1, 
+//			mdsPath.c_str(), numSegments, 
 			segData.c_str(), timeSlicesPerSegment, segPath.c_str(), timeEndSegmentIdx,
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 			segData.c_str(), timeEndSegmentOffset);
 		}
 
@@ -1171,10 +1181,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()];
 
 		    	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]; else _a = data(%s)[%d:%d]; _a;",
-			mdsPath.c_str(), numSegments, 
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			mdsPath.c_str(), numSegments + 1, 
+//			mdsPath.c_str(), numSegments, 
 			segData.c_str(), timeStartSegmentOffset, timeSlicesPerSegment, segPath.c_str(), timeStartSegmentIdx,
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeEndSegmentOffset);
 			segData.c_str(), timeStartSegmentOffset, timeEndSegmentOffset);
 		    }
 		    else //Times are splitted in two different segments
@@ -1184,19 +1193,15 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			std::string segPath = mdsconvertPath(timePath.c_str(), isRefAos);
 			nameBuf = new char[512+mdsPath.size()+2*segData.size()+2+segData1.size()+segPath.size()];
 
-		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
+		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments+1);
+//		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(%s)[%d:%d], data(%s)[0:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]])); else _a = data(set_range(", 
-//			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(),
 			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segData.c_str(),
-//			  timeStartSegmentOffset, timeSlicesPerSegment - 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment,
 			  timeStartSegmentOffset, timeSlicesPerSegment - 1, segData1.c_str(), timeSlicesPerSegment,
-//		 	  mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx);
 		 	  segPath.c_str(), timeEndSegmentIdx);
 
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(%s)[%d:%d], data(%s)[0:%d]])); _a;", 
-//			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(),
 			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segData.c_str(),
-//			  timeStartSegmentOffset, timeSlicesPerSegment - 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 			  timeStartSegmentOffset, timeSlicesPerSegment - 1, segData1.c_str(), timeEndSegmentOffset);
 		    }
 		}
