@@ -50,6 +50,11 @@ public:
   virtual std::string print() const; 
 
   /**
+     Returns simplified pseudo path for the context.
+  */
+  virtual std::string fullPath() const; 
+
+  /**
      Returns the ID of associated backend.
      @result backend_id
   */
@@ -127,9 +132,14 @@ public:
   friend std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
 
   /**
-     Prints content of the pulse context.
+     Returns full description of the pulse context.
   */
   virtual std::string print() const; 
+
+  /**
+     Returns simplified pseudo path for the context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
@@ -229,9 +239,14 @@ public:
   friend std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
 
   /**
-     Prints content of the operation context.
+     Returns full description of the operation context.
   */
   virtual std::string print() const; 
+
+  /**
+     Returns simplified pseudo path for this context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
@@ -344,9 +359,14 @@ class ArraystructContext : public OperationContext
   friend std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
   /**
-     Prints content of the array of structure context.
+     Returns full description of the array of structure context.
   */
   virtual std::string print() const;
+
+  /**
+     Returns simplified pseudo path for this context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
