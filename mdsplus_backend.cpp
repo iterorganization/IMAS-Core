@@ -1498,7 +1498,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    //Consider the special case in which the time is between two segments. 
 	    //In this case the previous segment is read and appended in front of the current one, updating segData and times
 	    //if(time <= times[0] && segmentIdx > 0)
-	    if(time < times[0] && segmentIdx > 0)
+	    if(time < times[0] && segmentIdx > 0) 
 	    {
 	      MDSplus::Array *prevSegDataRead = node->getSegment(segmentIdx - 1);
 	      MDSplus::Data *prevSegData = prevSegDataRead->data();
@@ -1513,6 +1513,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      MDSplus::deleteData(prevSegData);
 	      MDSplus::deleteData(segData);
 	      segData = mergedSegData;
+	      segData->getInfo(&clazz, &ddtype, &length, &nDims, &ddims, &dataPtr); //Gabriele February 2020
+
 	      int nPrevTimes;
 	      MDSplus::Data *prevSegDim = node->getSegmentDim(segmentIdx - 1);
 	      double *prevTimes = prevSegDim->getDoubleArray(&nPrevTimes);
