@@ -55,9 +55,9 @@ class LIBRARY_API MDSplusBackend:public Backend
     //In ordert to increase efficiency of MDSplus find node
     std::unordered_map<std::string, MDSplus::TreeNode *> treeNodeMap;
 
- 
-    std::vector<ArraystructContext *>arrayStructContextV;
-    std::vector<MDSplus::Apd *>arrayStructDataV;
+    std::unordered_map<ArraystructContext *, MDSplus::Apd *> arrayStructCtxDataMap;
+    //std::vector<ArraystructContext *>arrayStructContextV;
+    //std::vector<MDSplus::Apd *>arrayStructDataV;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);
@@ -78,12 +78,12 @@ class LIBRARY_API MDSplusBackend:public Backend
     void writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase,  void *data, int datatype, int numDims, 
 	int *dims, bool isAos = false, bool isRefAos = false);
     int readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
-	int *numDims, int *dims);
+	int *numDims, int *dims, char *mdsPath = NULL);
     int readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
-	int *numDims, int *dims);
+	int *numDims, int *dims, char *mdsPath = NULL);
     int readTimedData(MDSplus::TreeNode *node, void **dataPtr, int *datatype, int *numDims, int *outDims);
     void deleteData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path);
-    int readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int readSlice(MDSplus::Tree *tree, bool isApd, std::string dataobjectPath, std::string path, std::string timebase, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *dims, bool manglePath = true);
 
 //Array of structures stuff	
@@ -101,7 +101,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Apd *interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2);
     MDSplus::Apd *interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2);
     MDSplus::Data *interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2);
-    MDSplus::Apd *resolveApdSliceFields(MDSplus::Apd *apd, double time, int interplolation, std::string timebasePath);
+    MDSplus::Apd *resolveApdSliceFields(MDSplus::Apd *apd, double time, int interplolation, std::string timebasePath, std::string dataobjectPath);
     MDSplus::Apd *resolveApdTimedFields(MDSplus::Apd *apd);
     void writeStaticApd(MDSplus::Apd *apd, std::string dataobjectPath, std::string path);
     void writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath);
@@ -119,6 +119,12 @@ class LIBRARY_API MDSplusBackend:public Backend
     void resetNodePath();
     MDSplus::TreeNode *getNode(const char *, bool makeNew = false);
     void freeNodes();
+
+    int getTimebaseIdx(std::string timebase, std::string dataobjectPath, double time);
+    int getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx);
+    double *getSegmentIdxAndDim(MDSplus::TreeNode *node, std::string dataobjectPath, std::string timebase, double time, int &segIdx, int &nDim);
+
+
 /////Public section - Implementation of Backend interface		
       public:
 	
