@@ -1,5 +1,8 @@
 /*-*-c++-*-*/
 
+#ifndef UAL_EXCEPTION_H
+#define UAL_EXCEPTION_H 1
+
 #include <exception>
 #include <stdexcept>
 #include <sstream>
@@ -13,9 +16,17 @@
 #define VERBOSE false 
 #endif
  
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class UALException : public std::runtime_error
+class LIBRARY_API UALException : public std::runtime_error
 {
 protected:
   std::string mesg;
@@ -32,7 +43,7 @@ public:
 };
 
 
-class UALLowlevelException : public UALException
+class LIBRARY_API UALLowlevelException : public UALException
 {
 public:
   UALLowlevelException() {}
@@ -45,7 +56,7 @@ public:
 };
 
 
-class UALBackendException : public UALException
+class LIBRARY_API UALBackendException : public UALException
 {
 public:
   UALBackendException() {}
@@ -58,8 +69,7 @@ public:
 };
 
 
-
-class UALContextException : public UALException
+class LIBRARY_API UALContextException : public UALException
 {
 public:
   UALContextException() {}
@@ -71,3 +81,8 @@ public:
   UALContextException(const std::string &m, const std::string &f, const int l);
 };
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif // UAL_EXCEPTION_H

@@ -1,3 +1,6 @@
+#ifndef MDSPLUS_BACKEND_H
+#define MDSPLUS_BACKEND_H 1
+
 #include <mdsobjects.h>
 #include <string>
 #include <unordered_map>
@@ -15,10 +18,24 @@
 #include "ual_defs.h"
 #include "ual_const.h"
 
-class MDSplusBackend:public Backend 
-{
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+class LIBRARY_API MDSplusBackend:public Backend 
+{
   private:
+	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	MDSplusBackend(const MDSplusBackend&) = delete;
+    MDSplusBackend& operator=(const MDSplusBackend&) = delete;
+
     MDSplus::Tree *tree;
 
     int sliceIdxs[2];
@@ -211,7 +228,11 @@ class MDSplusBackend:public Backend
     //Temporary
     void fullResetNodePath();
 
-
 };
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif // MDSPLUS_BACKEND_H
 

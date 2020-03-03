@@ -1,5 +1,5 @@
 #ifndef UDA_BACKEND_H
-#define UDA_BACKEND_H
+#define UDA_BACKEND_H 1
 
 #include <iostream>
 #include <memory>
@@ -13,11 +13,22 @@
 #include "ual_const.h"
 #include "ual_context.h"
 #include "ual_defs.h"
-#include "ual_defs.h"
 
 #define NODENAME_MANGLING  //Use IMAS mangling
 
-class UDABackend : public Backend {
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+class LIBRARY_API UDABackend : public Backend
+{
 private:
     bool verbose = false;
     std::string plugin = "IMAS_MAPPING";
@@ -78,6 +89,10 @@ public:
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
 };
-        
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // UDA_BACKEND_H
 

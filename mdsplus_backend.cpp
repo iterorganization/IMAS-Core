@@ -2,6 +2,7 @@
 #include "mdsplus_backend.h"
 
 #include <cstring>
+#include <pthread.h>
 
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
@@ -451,6 +452,7 @@ static std::string getSegmentData(std::string path, int segIdx)
 
     void MDSplusBackend::freeNodes()
     {
+		
 	for ( auto it = treeNodeMap.begin(); it != treeNodeMap.end(); ++it )
 	{
 	    delete it->second;
@@ -2710,7 +2712,7 @@ printf("Warning, struct field added more than once\n");
 	}
 */
 
-        std::unordered_map<std::string, int> * nodeFreeIdxMap;
+    std::unordered_map<std::string, int> * nodeFreeIdxMap;
 	int *maxAosId;
 	std::unordered_map<std::string, std::string> * nodePathMap;
 
@@ -2724,11 +2726,11 @@ printf("Warning, struct field added more than once\n");
 	  nodePathMap = &timedNodePathMap;
 	}
 	
-        auto searchPath = nodePathMap->find(toLower(aosFullPath));
+    auto searchPath = nodePathMap->find(toLower(aosFullPath));
 	if (searchPath != nodePathMap->end())
 	    return searchPath->second;
 	int idx;
-        auto search = nodeFreeIdxMap->find(toLower(aosPath));
+    auto search = nodeFreeIdxMap->find(toLower(aosPath));
 	if (search == nodeFreeIdxMap->end())
 	{
 	    idx = (*maxAosId);

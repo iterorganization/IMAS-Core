@@ -1,3 +1,6 @@
+#ifndef UAL_DEFS_H
+#define UAL_DEFS_H 1
+
 #define MAXDIM 7
 
 #define OP_INTERP_0 0
@@ -42,4 +45,4 @@
 #define BACKEND_ERR                 ERR_0-2
 #define LOWLEVEL_ERR                ERR_0-3
 
-
+#endif // UAL_DEFS_H

@@ -8,20 +8,23 @@
 #ifndef UAL_CONTEXT_H
 #define UAL_CONTEXT_H 1
 
-#include "ual_const.h"
-
-
-
-/* c++ only part */
-#if defined(__cplusplus)
-
-
 #include <cstdlib>
 #include <iostream>
 
 #include <atomic>
 
 #include "ual_exception.h"
+#include "ual_const.h"
+
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 #define CTX_TYPE 100
@@ -34,15 +37,13 @@
    Generic Context class.
    The simple generic Context is only associated to a given Back-end.
 */
-class Context 
+class LIBRARY_API Context 
 {
 public:
   /**
      Context destructor.
    */
   virtual ~Context() {}
-
-  friend std::ostream& operator<< (std::ostream& o, Context const& ctx);
 
   /**
      Prints content of the context.
@@ -108,7 +109,7 @@ protected:
    Context class for a given pulse file.
    The PulseContext is a Context associated to a given pulse file.
 */
-class PulseContext : public Context 
+class LIBRARY_API PulseContext : public Context 
 {
 public:
   /**
@@ -128,8 +129,6 @@ public:
      Pulse context destructor.
   */
   virtual ~PulseContext() {}
-
-  friend std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
 
   /**
      Returns full description of the pulse context.
@@ -192,7 +191,7 @@ public:
    Context class for an operation on a DATAOBJECT.
    The OperationContext is a PulseContext associated to a given DATAOBJECT for a given I/O operation.
 */
-class OperationContext : public PulseContext 
+class LIBRARY_API OperationContext : public PulseContext 
 {
 public:
   /**
@@ -235,8 +234,6 @@ public:
      Operation context destructor.
   */
   virtual ~OperationContext() {}
-
-  friend std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
 
   /**
      Returns full description of the operation context.
@@ -309,7 +306,7 @@ protected:
    Context class for an array of structures.
    The ArraystructContext is an OperationContext associated to a given array of structure.
 */
-class ArraystructContext : public OperationContext 
+class LIBRARY_API ArraystructContext : public OperationContext 
 {
  public:
   /**
@@ -355,8 +352,6 @@ class ArraystructContext : public OperationContext
      Array of structure context destructor.
   */
   virtual ~ArraystructContext() {}
-
-  friend std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
   /**
      Returns full description of the array of structure context.
@@ -420,7 +415,14 @@ protected:
 
 };
 
-
+#ifdef __cplusplus
+}
 #endif
 
-#endif
+LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
+
+
+#endif // UAL_CONTEXT_H

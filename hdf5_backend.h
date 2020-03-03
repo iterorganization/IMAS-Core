@@ -7,8 +7,18 @@
 #include "ual_defs.h"
 #include "ual_const.h"
 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
-class HDF5Backend : public Backend
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+class LIBRARY_API HDF5Backend : public Backend
 {
 public:
 
@@ -162,6 +172,10 @@ public:
 		
   	virtual void beginAction(OperationContext *ctx);
 
-    };
+};
 
-#endif 
+#ifdef __cplusplus
+}
+#endif
+
+#endif // HDF5_BACKEND_H

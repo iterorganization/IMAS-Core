@@ -134,14 +134,14 @@ else
 	{
 	    switch(ualData->getMapState())
 	    {
-	    	case UalData::MAPPED:
+	    	case UalData::MAPPING::MAPPED:
 		    status= ualData->readData(data, datatype, dim, size);
 		    break;
-	    	case UalData::UNMAPPED:
+	    	case UalData::MAPPING::UNMAPPED:
 		    targetB->readData(ctx, fieldname, timebase, data, datatype, dim, size);
 		    ualData->writeData(*datatype, *dim, size, (unsigned char *)*data, timebase);
 		    break;
-		case UalData::SLICE_MAPPED:
+		case UalData::MAPPING::SLICE_MAPPED:
 		    targetB->readData(ctx, fieldname, timebase, data, datatype, dim, size);
 		    ualData->prependData(*datatype, *dim, size, (unsigned char *)*data);
 		    ualData->readData(data, datatype, dim, size);
@@ -155,12 +155,12 @@ else
 	  //First make sure the cache is aligned
 	    //Fake ctx to target backend in order to force global operation
  	    OperationContext newCtx(*ctx, ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
- 	    if(ualData->getMapState() == UalData::UNMAPPED)
+ 	    if(ualData->getMapState() == UalData::MAPPING::UNMAPPED)
 	    {
 		targetB->readData(&newCtx, fieldname, timebase, data, datatype, dim, size);
 		ualData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
 	    }
-	    else if(ualData->getMapState() == UalData::SLICE_MAPPED) 
+	    else if(ualData->getMapState() == UalData::MAPPING::SLICE_MAPPED) 
 	    {
 		targetB->readData(&newCtx, fieldname, timebase, data, datatype, dim, size);
 		ualData->prependData(*datatype, *dim, size, *(unsigned char **)data);
@@ -1011,7 +1011,7 @@ else
     UalData::UalData()
     {
 	timed = false;
-	mapState = UNMAPPED;
+	mapState = MAPPING::UNMAPPED;
     }
     std::vector<double> UalData::getDoubleVect()
     {
@@ -1045,7 +1045,7 @@ else
     void UalData::deleteData()
     {
 	timebase = "";
-	mapState = MAPPED;
+	mapState = MAPPING::MAPPED;
 	dimensionV.clear();
 	bufV.clear();
     }
@@ -1056,7 +1056,7 @@ else
 
 
 	bufV.clear();
-	mapState = MAPPED;
+	mapState = MAPPING::MAPPED;
 	this->type = type;
 	this->timebase = timebase;
 	timed = timebase != "";
@@ -1110,7 +1110,7 @@ else
     {
 	std::vector<std::shared_ptr<unsigned char>>newBufV;
 
-	mapState = MAPPED;
+	mapState = MAPPING::MAPPED;
 	this->type = type;
 	if(dimensionV.size() != (size_t)numDims)
 	{
@@ -1134,8 +1134,8 @@ else
     }
     void UalData::addSlice(int type, int numDims, int *dims, unsigned char *buf)
     {
-	if(mapState == UNMAPPED)
-	    mapState = SLICE_MAPPED;
+	if(mapState == MAPPING::UNMAPPED)
+	    mapState = MAPPING::SLICE_MAPPED;
 	timed = true;
 	if(bufV.size() == 0) //Yet an initialized data object
 	{
@@ -1158,8 +1158,8 @@ else
     }
     void UalData::addSlice(UalData &slice)
     {
-	if(mapState == UNMAPPED)
-	    mapState = SLICE_MAPPED;
+	if(mapState == MAPPING::UNMAPPED)
+	    mapState = MAPPING::SLICE_MAPPED;
 	timed = true;
 	if(bufV.size() == 0) //Yet an initialized data object
 	{
@@ -1190,7 +1190,7 @@ else
 
     int UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
-	if(mapState != MAPPED || bufV.size() == 0)
+	if(mapState != MAPPING::MAPPED || bufV.size() == 0)
 	    return 0;
 	*datatype  = type;
 	int totSize = 1;
@@ -1221,7 +1221,7 @@ else
     }
     int UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
-	if(mapState != MAPPED || bufV.size() == 0)
+	if(mapState != MAPPING::MAPPED || bufV.size() == 0)
 	    return 0;
 
 	if((size_t)sliceIdx >= bufV.size())

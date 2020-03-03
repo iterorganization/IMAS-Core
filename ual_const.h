@@ -7,37 +7,38 @@
 #ifndef UAL_CONST_H
 #define UAL_CONST_H 1
 
-
-/* c++ only part */
-#if defined(__cplusplus)
 #include <array>
 #include <string>
-#endif
-
-
-/* C defs */
-
-extern const int NO_BACKEND;
-extern const int ASCII_BACKEND;
-extern const int MDSPLUS_BACKEND;
-extern const int HDF5_BACKEND;
-extern const int MEMORY_BACKEND;
-extern const int UDA_BACKEND;
 
 #include "ual_defs.h"
 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
-/* c++ only part */
-#if defined(__cplusplus)
+const int NO_BACKEND      = BACKEND_ID_0;
+const int ASCII_BACKEND   = BACKEND_ID_0+1;
+const int MDSPLUS_BACKEND = BACKEND_ID_0+2;
+const int HDF5_BACKEND    = BACKEND_ID_0+3;
+const int MEMORY_BACKEND  = BACKEND_ID_0+4;
+const int UDA_BACKEND     = BACKEND_ID_0+5;
+
+
 namespace ualconst {
 
-  extern const int no_backend;
-  extern const int ascii_backend;
-  extern const int mdsplus_backend;
-  extern const int hdf5_backend;
-  extern const int memory_backend;
-  extern const int uda_backend;
+  const int no_backend      = NO_BACKEND;
+  const int ascii_backend   = ASCII_BACKEND;
+  const int mdsplus_backend = MDSPLUS_BACKEND;
+  const int hdf5_backend    = HDF5_BACKEND;
+  const int memory_backend  = MEMORY_BACKEND;
+  const int uda_backend     = UDA_BACKEND;
 
   const int timed = TIMED;
   const int non_timed = NON_TIMED;
@@ -85,22 +86,13 @@ namespace ualerror {
 
   extern const std::array<std::string,4> ual_err_str;
 }
-#endif
+
+LIBRARY_API const char * type2str(int type);
+LIBRARY_API const char * err2str(int err);
 
 
-#if defined(__cplusplus)
-extern "C"
-{
-#endif
-
-  const char * type2str(int type);
-  const char * err2str(int err);
-
-  /* c++ only part */
 #if defined(__cplusplus)
 }
 #endif
 
-
-
-#endif
+#endif // UAL_CONST_H
