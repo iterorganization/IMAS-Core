@@ -7,19 +7,12 @@
 #ifndef UAL_CONST_H
 #define UAL_CONST_H 1
 
-#include <array>
-#include <string>
-
 #include "ual_defs.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
 #else
 #  define LIBRARY_API
-#endif
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 
@@ -30,6 +23,10 @@ const int HDF5_BACKEND    = BACKEND_ID_0+3;
 const int MEMORY_BACKEND  = BACKEND_ID_0+4;
 const int UDA_BACKEND     = BACKEND_ID_0+5;
 
+#ifdef __cplusplus
+
+#include <array>
+#include <string>
 
 namespace ualconst {
 
@@ -87,9 +84,14 @@ namespace ualerror {
   extern const std::array<std::string,4> ual_err_str;
 }
 
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 LIBRARY_API const char * type2str(int type);
 LIBRARY_API const char * err2str(int err);
-
 
 #if defined(__cplusplus)
 }

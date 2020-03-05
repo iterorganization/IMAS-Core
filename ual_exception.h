@@ -24,8 +24,8 @@
 #include <exception>
 #include <stdexcept>
 
-extern "C" {
-#endif
+extern "C"
+{
 
 class LIBRARY_API UALException : public std::runtime_error
 {
@@ -82,7 +82,6 @@ public:
   UALContextException(const std::string &m, const std::string &f, const int l);
 };
 
-#ifdef __cplusplus
 }
 #endif
 

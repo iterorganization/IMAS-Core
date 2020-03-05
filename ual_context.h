@@ -17,15 +17,16 @@
 #  define LIBRARY_API
 #endif
 
-#ifdef __cplusplus
-
-#include <cstdlib>
 #include <iostream>
 #include <atomic>
 
+#ifdef __cplusplus
 extern "C" {
 #endif
 
+#ifdef __cplusplus
+
+#include <cstdlib>
 
 #define CTX_TYPE 100
 #define CTX_PULSE_TYPE 101
@@ -414,6 +415,9 @@ protected:
   int index;                            /**< position of the current element of interest within the array of structure */
 
 };
+
+#endif
+
 
 #ifdef __cplusplus
 }
