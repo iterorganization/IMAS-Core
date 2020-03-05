@@ -10,9 +10,6 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <vector>
-#include <mutex>
-#include <complex>
 
 /*#include "ual_const.h"*/
 #include "ual_backend.h"
@@ -24,9 +21,10 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
+#include <vector>
+#include <mutex>
+#include <complex>
 
 /**
    Lowlevel environment structure.
@@ -128,6 +126,11 @@ private:
   static int maxStoreElt;                         /**< size of allocated Store */
 };
 
+
+
+extern "C"
+{
+#endif
 
   /******************** DEFINITION OF THE C API ********************/
 
