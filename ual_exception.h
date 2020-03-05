@@ -3,8 +3,6 @@
 #ifndef UAL_EXCEPTION_H
 #define UAL_EXCEPTION_H 1
 
-#include <sstream>
-
 #define LOG __FILE__,__LINE__
 #define WHERE " ("<<__FILE__<<":"<<__LINE__<<")"
 
@@ -22,6 +20,7 @@
 
 #ifdef __cplusplus
 
+#include <sstream>
 #include <exception>
 #include <stdexcept>
 
