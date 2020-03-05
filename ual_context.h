@@ -8,11 +8,6 @@
 #ifndef UAL_CONTEXT_H
 #define UAL_CONTEXT_H 1
 
-#include <cstdlib>
-#include <iostream>
-
-#include <atomic>
-
 #include "ual_exception.h"
 #include "ual_const.h"
 
@@ -23,6 +18,11 @@
 #endif
 
 #ifdef __cplusplus
+
+#include <cstdlib>
+#include <iostream>
+#include <atomic>
+
 extern "C" {
 #endif
 
