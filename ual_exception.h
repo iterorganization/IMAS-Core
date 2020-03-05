@@ -3,8 +3,6 @@
 #ifndef UAL_EXCEPTION_H
 #define UAL_EXCEPTION_H 1
 
-#include <exception>
-#include <stdexcept>
 #include <sstream>
 
 #define LOG __FILE__,__LINE__
@@ -23,6 +21,10 @@
 #endif
 
 #ifdef __cplusplus
+
+#include <exception>
+#include <stdexcept>
+
 extern "C" {
 #endif
 
