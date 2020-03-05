@@ -2287,7 +2287,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		
 	    }
 	}
-	throw UALBackendException("Internal error in getSliceAt: invalid slice idx",LOG);
+	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
     }
 	
 
