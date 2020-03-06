@@ -15,27 +15,37 @@
 #  define LIBRARY_API
 #endif
 
-
-const int NO_BACKEND      = BACKEND_ID_0;
-const int ASCII_BACKEND   = BACKEND_ID_0+1;
-const int MDSPLUS_BACKEND = BACKEND_ID_0+2;
-const int HDF5_BACKEND    = BACKEND_ID_0+3;
-const int MEMORY_BACKEND  = BACKEND_ID_0+4;
-const int UDA_BACKEND     = BACKEND_ID_0+5;
+/* C defs */
 
 #ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum BACKEND
+{
+	NO_BACKEND      = BACKEND_ID_0,
+	ASCII_BACKEND   = BACKEND_ID_0+1,
+	MDSPLUS_BACKEND = BACKEND_ID_0+2,
+	HDF5_BACKEND    = BACKEND_ID_0+3,
+	MEMORY_BACKEND  = BACKEND_ID_0+4,
+	UDA_BACKEND     = BACKEND_ID_0+5
+};
+
+
+#ifdef __cplusplus
+}
 
 #include <array>
 #include <string>
 
 namespace ualconst {
 
-  const int no_backend      = NO_BACKEND;
-  const int ascii_backend   = ASCII_BACKEND;
-  const int mdsplus_backend = MDSPLUS_BACKEND;
-  const int hdf5_backend    = HDF5_BACKEND;
-  const int memory_backend  = MEMORY_BACKEND;
-  const int uda_backend     = UDA_BACKEND;
+  const int no_backend      = BACKEND::NO_BACKEND;
+  const int ascii_backend   = BACKEND::ASCII_BACKEND;
+  const int mdsplus_backend = BACKEND::MDSPLUS_BACKEND;
+  const int hdf5_backend    = BACKEND::HDF5_BACKEND;
+  const int memory_backend  = BACKEND::MEMORY_BACKEND;
+  const int uda_backend     = BACKEND::UDA_BACKEND;
 
   const int timed = TIMED;
   const int non_timed = NON_TIMED;
@@ -66,12 +76,12 @@ namespace ualconst {
   const int double_data = DOUBLE_DATA;
   const int complex_data = COMPLEX_DATA;
 
-  extern const std::array<std::string,6> backend_id_str;
-  extern const std::array<std::string,2> op_range_str;
-  extern const std::array<std::string,3> op_access_str;
-  extern const std::array<std::string,4> op_interp_str;
-  extern const std::array<std::string,6> access_pulse_str;
-  extern const std::array<std::string,4> data_type_str;
+  const std::array<std::string,6> backend_id_str = {{"NO_BACKEND","ASCII_BACKEND","MDSPLUS_BACKEND","HDF5_BACKEND","MEMORY_BACKEND","UDA_BACKEND"}};
+  const std::array<std::string,2> op_range_str = {{"GLOBAL_OP","SLICE_OP"}};
+  const std::array<std::string,3> op_access_str = {{"READ_OP","WRITE_OP","REPLACE_OP"}};
+  const std::array<std::string,4> op_interp_str = {{"UNDEFINED_INTERP","CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP"}};
+  const std::array<std::string,6> access_pulse_str = {{"OPEN_PULSE","FORCE_OPEN_PULSE","CREATE_PULSE","FORCE_CREATE_PULSE","CLOSE_PULSE","ERASE_PULSE"}};
+  const std::array<std::string,4> data_type_str = {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};;
 }
 
 namespace ualerror {
@@ -81,7 +91,7 @@ namespace ualerror {
   const int backend_err = BACKEND_ERR;
   const int lowlevel_err = LOWLEVEL_ERR;
 
-  extern const std::array<std::string,4> ual_err_str;
+  const std::array<std::string,4> ual_err_str = {{"UNKNOWN_ERR","CONTEXT_ERR","BACKEND_ERR","LOWLEVEL_ERR"}};
 }
 
 #endif
