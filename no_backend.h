@@ -12,8 +12,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 /**
@@ -67,8 +65,6 @@ public:
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // NO_BACKEND_H

@@ -31,8 +31,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 class LIBRARY_API MachineMapping
@@ -171,8 +169,6 @@ public:
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // UDA_BACKEND_H

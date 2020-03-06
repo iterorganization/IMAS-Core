@@ -5,23 +5,29 @@ $(error $$UAL is unset)
 endif
 
 LD=$(CXX)
-CXXFLAGS=-std=c++11 -pthread -g -O0 -fPIC
-LDFLAGS=-g -pthread
+CFLAGS=-std=c11 -pedantic -Wall -fPIC -O3 ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -O3 -fPIC -Wall ${DBGFLAGS}
+LDFLAGS=-pthread
 
 INCDIR= -I$(UAL)/lowlevel
 LIBS= -L$(UAL)/lowlevel
 LIBS+= -limas
+
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 LIBS+= -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lMdsIpShr -lXTreeShr
 endif
+
 ifneq ("no","$(strip $(IMAS_UDA))")
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= `pkg-config --libs uda-cpp`
 LIBS+= -lssl -lcrypto
 endif
+
 ifneq ("no","$(strip $(IMAS_HDF5))")
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= -lhdf5 -ldl -lz
 endif
+
 BINOUT=testlowlevel
+BINOUT_C=testlowlevel_c

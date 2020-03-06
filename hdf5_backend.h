@@ -14,8 +14,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 class LIBRARY_API HDF5Backend : public Backend
@@ -174,8 +172,6 @@ public:
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // HDF5_BACKEND_H

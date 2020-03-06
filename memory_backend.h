@@ -23,8 +23,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 //Support classes for memory mapping
@@ -492,8 +490,6 @@ public:
     UalData *getUalSlice(ArraystructContext *ctx, UalData &inData, double time, std::vector<double> timebaseV);
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // MEMORY_BACKEND_H

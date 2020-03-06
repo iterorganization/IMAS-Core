@@ -11,8 +11,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 class LIBRARY_API DummyBackend:public Backend 
@@ -141,8 +139,6 @@ public:
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // DUMMY_BACKEND_H

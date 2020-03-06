@@ -17,16 +17,12 @@
 #  define LIBRARY_API
 #endif
 
+
+#ifdef __cplusplus
+
 #include <iostream>
-#include <atomic>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-
 #include <cstdlib>
+#include <atomic>
 
 #define CTX_TYPE 100
 #define CTX_PULSE_TYPE 101
@@ -416,17 +412,11 @@ protected:
 
 };
 
-#endif
-
-
-#ifdef __cplusplus
-}
-#endif
-
 LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
 LIBRARY_API std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
 LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
 LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
+#endif
 
 #endif // UAL_CONTEXT_H

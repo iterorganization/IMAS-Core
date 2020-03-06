@@ -19,8 +19,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 class LIBRARY_API AsciiBackend : public Backend
@@ -95,8 +93,6 @@ public:
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // ASCII_BACKEND_H

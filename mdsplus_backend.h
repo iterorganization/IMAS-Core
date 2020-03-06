@@ -25,8 +25,6 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 class LIBRARY_API MDSplusBackend:public Backend 
@@ -236,8 +234,6 @@ class LIBRARY_API MDSplusBackend:public Backend
 
 };
 
-#ifdef __cplusplus
-}
 #endif
 
 #endif // MDSPLUS_BACKEND_H
