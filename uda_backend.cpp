@@ -1,6 +1,6 @@
 #include "uda_backend.h"
 
-#include <sstream>
+#include <cstdlib>
 
 namespace {
 
@@ -49,6 +49,36 @@ void UDABackend::openPulse(PulseContext* ctx,
         std::cout << "UDABackend openPulse\n";
     }
 
+    std::string mapped_plugin = machine_mapping.plugin(ctx->getTokamak());
+    if (!mapped_plugin.empty()) {
+        this->plugin = mapped_plugin;
+        std::stringstream ss;
+
+        ss << plugin << "::init(";
+
+        auto args = machine_mapping.args(ctx->getTokamak());
+        std::string delim;
+        for (const auto& arg : args) {
+            ss << delim << arg;
+            delim = ", ";
+        }
+
+        ss << ")";
+
+        std::string directive = ss.str();
+        if (verbose) {
+            std::cout << "UDA directive: " << directive << "\n";
+        }
+
+        try {
+            uda_client.get(directive, "");
+        } catch (const uda::UDAException& ex) {
+            if (verbose) {
+                std::cout << "UDA error: " << ex.what() << "\n";
+            }
+        }
+    }
+
     std::stringstream ss;
 
     ss << this->plugin
@@ -75,7 +105,7 @@ void UDABackend::openPulse(PulseContext* ctx,
         if (data->type() != typeid(int)) {
             throw UALBackendException(std::string("Unknown data type returned: ") + data->type().name(), LOG);
         }
-        uda::Scalar* scalar = dynamic_cast<uda::Scalar*>(data);
+        auto scalar = dynamic_cast<uda::Scalar*>(data);
         if (scalar == nullptr) {
             throw UALBackendException("UDA openPulse did not return scalar data");
         }
@@ -119,12 +149,12 @@ void UDABackend::closePulse(PulseContext* ctx,
 }
 
 int UDABackend::readData(Context* ctx,
-                          std::string fieldname,
-                          std::string timebasename,
-                          void** data,
-                          int* datatype,
-                          int* dim,
-                          int* size)
+                         std::string fieldname,
+                         std::string timebasename,
+                         void** data,
+                         int* datatype,
+                         int* dim,
+                         int* size)
 {
     if (verbose) {
         std::cout << "UDABackend readData\n";
@@ -186,7 +216,7 @@ int UDABackend::readData(Context* ctx,
             char n = '\0';
             memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
         } else if (uda_data->type() == typeid(void)) {
-	    return 0;
+            return 0;
         } else {
             throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
         }
@@ -197,7 +227,7 @@ int UDABackend::readData(Context* ctx,
             size[i] = static_cast<int>(shape[i]);
         }
     } catch (const uda::UDAException& ex) {
-	return 0;
+        return 0;
     }
     return 1;
 }
@@ -236,7 +266,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         uda::Data* uda_data = result.data();
         if (uda_data->type() == typeid(void)) {
             *size = 0;
-	    return;
+            return;
         } else if (uda_data->type() != typeid(int)) {
             throw UALBackendException(
                     std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
@@ -245,7 +275,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     } catch (const uda::UDAException& ex) {
         *size = 0;
-	return;
+        return;
     }
 }
 
@@ -348,7 +378,7 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
     }
 
     int dummy[] = { 0 };
-    uda::Array array{ dummy, {} };
+    uda::Array array{ dummy, {}};
 
     try {
         switch (datatype) {

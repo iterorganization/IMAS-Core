@@ -47,8 +47,8 @@ endif # IMAS_HDF5
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
 COMMON_OBJECTS+= matlab_adapter.o
-CSRC+= matlab_adapter.c
-endif
+CPPSRC+= matlab_adapter.cpp
+endif # IMAS_MATLAB
 
 #-------------- Options for Windows ------------
 CFLAGS+= -DWIN32

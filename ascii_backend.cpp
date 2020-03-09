@@ -167,13 +167,13 @@ void AsciiBackend::writeData(Context *ctx,
     this->writeData((char *)data, dim, size);
     break;
   case INTEGER_DATA:
-    this->writeData<int>((int *)data, dim, size);
+    this->writeData((int *)data, dim, size);
     break;
   case DOUBLE_DATA:
-    this->writeData<double>((double *)data, dim, size);
+    this->writeData((double *)data, dim, size);
     break;
   case COMPLEX_DATA:
-    this->writeData<std::complex<double>>((std::complex<double> *)data, dim, size);
+    this->writeData((std::complex<double> *)data, dim, size);
     break;
   default:
     throw UALBackendException("Unsupported data type for ASCII Backend!",LOG);
@@ -210,35 +210,36 @@ void AsciiBackend::writeData(const char *data,
 }
 
 template <typename T>
-void AsciiBackend::writeData(const T *data,
+void writeDataTemp(const T *data,
 			     int dim,
-			     int *size) 
+			     int *size,
+				 std::fstream& pulsefile) 
 {
   switch(dim){
   case 0:
-    this->pulsefile << std::scientific << data[0];
-    this->pulsefile << "\n";
+    pulsefile << std::scientific << data[0];
+    pulsefile << "\n";
     break;
   case 1:
     for (int i=0; i<size[0]; i++)
-      this->pulsefile << std::scientific << data[i] << " ";
-    this->pulsefile << "\n";
+      pulsefile << std::scientific << data[i] << " ";
+    pulsefile << "\n";
     break;
   case 2:
     for (int j=0; j<size[1]; j++) {
       for (int i=0; i<size[0]; i++) {
-	this->pulsefile << std::scientific << data[j*size[0]+i] << " ";
+	pulsefile << std::scientific << data[j*size[0]+i] << " ";
       }
-      this->pulsefile << "\n";
+      pulsefile << "\n";
     }
     break;
   case 3:
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) {
 	for (int i=0; i<size[0]; i++) {
-	  this->pulsefile << std::scientific << data[k*size[0]*size[1]+j*size[0]+i] << " ";
+	  pulsefile << std::scientific << data[k*size[0]*size[1]+j*size[0]+i] << " ";
 	}
-	this->pulsefile << "\n";
+	pulsefile << "\n";
       }
     break;
   case 4:
@@ -246,9 +247,9 @@ void AsciiBackend::writeData(const T *data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) {
 	  for (int i=0; i<size[0]; i++) {
-	    this->pulsefile << std::scientific << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	    pulsefile << std::scientific << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	  }
-	  this->pulsefile << "\n";
+	  pulsefile << "\n";
 	}
     break;
   case 5:
@@ -257,9 +258,9 @@ void AsciiBackend::writeData(const T *data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) {
 	    for (int i=0; i<size[0]; i++) {
-	      this->pulsefile << std::scientific << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	      pulsefile << std::scientific << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	    }
-	    this->pulsefile << "\n";
+	    pulsefile << "\n";
 	  }
     break;
   case 6:
@@ -269,9 +270,9 @@ void AsciiBackend::writeData(const T *data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) {
 	      for (int i=0; i<size[0]; i++) {
-		this->pulsefile << std::scientific << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		pulsefile << std::scientific << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	      }
-	      this->pulsefile << "\n";
+	      pulsefile << "\n";
 	    }
     break;
   case 7:
@@ -282,9 +283,9 @@ void AsciiBackend::writeData(const T *data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) {
 		for (int i=0; i<size[0]; i++) {
-		  this->pulsefile << std::scientific << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		  pulsefile << std::scientific << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 		}
-		this->pulsefile << "\n";
+		pulsefile << "\n";
 	      }
     break;
   default:
@@ -293,6 +294,9 @@ void AsciiBackend::writeData(const T *data,
   }
 }
 
+void AsciiBackend::writeData(const int* data, int dim, int* size) { writeDataTemp(data, dim, size, this->pulsefile); }
+void AsciiBackend::writeData(const double* data, int dim, int* size) { writeDataTemp(data, dim, size, this->pulsefile); }
+void AsciiBackend::writeData(const std::complex<double>* data, int dim, int* size) { writeDataTemp(data, dim, size, this->pulsefile); }
 
 
 int AsciiBackend::readData(Context *ctx,
@@ -347,13 +351,13 @@ int AsciiBackend::readData(Context *ctx,
       this->readData((char **)data, *dim, size);
       break;
     case INTEGER_DATA:
-      this->readData<int>((int **)data, *dim, size);
+      this->readData((int **)data, *dim, size);
       break;
     case DOUBLE_DATA:
-      this->readData<double>((double **)data, *dim, size);
+      this->readData((double **)data, *dim, size);
       break;
     case COMPLEX_DATA:
-      this->readData<std::complex<double>>((std::complex<double> **)data, *dim, size);
+      this->readData((std::complex<double> **)data, *dim, size);
       break;
     default:
       throw UALBackendException("Unsupported data type for ASCII Backend!",LOG);
@@ -398,32 +402,33 @@ void AsciiBackend::readData(char **data,
 
 
 template <typename T>
-void AsciiBackend::readData(T **data,
+void readDataTemp(T **data,
 			    int dim,
-			    int *size) 
+			    int *size,
+				std::stringstream& curcontent) 
 {
   switch(dim){
   case 0:
     *data = static_cast<T*>(malloc(sizeof(T)));
-    this->curcontent >> std::scientific >> (*data)[0]; 
+    curcontent >> std::scientific >> (*data)[0]; 
     break;
   case 1:
     *data = static_cast<T*>(malloc(size[0]*sizeof(T)));
     for (int i=0; i<size[0]; i++)
-      this->curcontent >> std::scientific >> (*data)[i];
+      curcontent >> std::scientific >> (*data)[i];
     break;
   case 2: 
     *data = static_cast<T*>(malloc(size[0]*size[1]*sizeof(T)));
     for (int j=0; j<size[1]; j++) 
       for (int i=0; i<size[0]; i++) 
-	this->curcontent >> std::scientific >> (*data)[j*size[0]+i];
+	curcontent >> std::scientific >> (*data)[j*size[0]+i];
     break;
   case 3:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*sizeof(T)));
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) 
 	for (int i=0; i<size[0]; i++) 
-	  this->curcontent >> std::scientific >> (*data)[k*size[0]*size[1]+j*size[0]+i];
+	  curcontent >> std::scientific >> (*data)[k*size[0]*size[1]+j*size[0]+i];
     break;
   case 4:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*sizeof(T)));
@@ -431,7 +436,7 @@ void AsciiBackend::readData(T **data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) 
 	  for (int i=0; i<size[0]; i++) 
-	    this->curcontent >> std::scientific >> (*data)[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	    curcontent >> std::scientific >> (*data)[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 5:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*sizeof(T)));
@@ -440,7 +445,7 @@ void AsciiBackend::readData(T **data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) 
 	    for (int i=0; i<size[0]; i++) 
-	      this->curcontent >> std::scientific >> (*data)[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	      curcontent >> std::scientific >> (*data)[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 6:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*sizeof(T)));
@@ -450,7 +455,7 @@ void AsciiBackend::readData(T **data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) 
 	      for (int i=0; i<size[0]; i++) 
-		this->curcontent >> std::scientific >> (*data)[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		curcontent >> std::scientific >> (*data)[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   case 7:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*size[6]*sizeof(T)));
@@ -461,13 +466,17 @@ void AsciiBackend::readData(T **data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) 
 		for (int i=0; i<size[0]; i++) 
-		  this->curcontent >> std::scientific >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		  curcontent >> std::scientific >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
     break;
   default:
     throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
     break;
   }
 }
+
+void AsciiBackend::readData(int** data, int dim, int* size) { readDataTemp(data, dim, size, this->curcontent); }
+void AsciiBackend::readData(double** data, int dim, int* size) { readDataTemp(data, dim, size, this->curcontent); }
+void AsciiBackend::readData(std::complex<double>** data, int dim, int* size) { readDataTemp(data, dim, size, this->curcontent); }
 
 
 

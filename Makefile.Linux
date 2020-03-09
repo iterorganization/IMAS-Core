@@ -1,3 +1,4 @@
+SPECIFIC_TOOLS=
 
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
@@ -6,6 +7,7 @@ LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp 
+SPECIFIC_TOOLS=printMDSplusFileVersion
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
@@ -34,10 +36,10 @@ endif # IMAS_HDF5
 #-------------- Options for Matlab -------------
 ifneq ("no","$(strip $(IMAS_MATLAB))")
 COMMON_OBJECTS+= matlab_adapter.o
-CSRC+= matlab_adapter.c
-endif
+CPPSRC+= matlab_adapter.cpp
+endif # IMAS_MATLAB
 
-TARGETS = libimas.so libimas.a printMDSplusFileVersion
+TARGETS = libimas.so libimas.a $(SPECIFIC_TOOLS)
 
 all: $(TARGETS) pkgconfig doc
 sources:

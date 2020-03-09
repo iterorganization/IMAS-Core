@@ -1,3 +1,6 @@
+#ifndef UAL_DEFS_H
+#define UAL_DEFS_H 1
+
 #define MAXDIM 7
 
 #define OP_INTERP_0 0
@@ -44,3 +47,4 @@
 
 #define MAX_ERR_MSG_LEN             256
 
+#endif // UAL_DEFS_H

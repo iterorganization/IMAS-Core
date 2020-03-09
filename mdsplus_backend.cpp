@@ -2,6 +2,7 @@
 #include "mdsplus_backend.h"
 
 #include <cstring>
+#include <pthread.h>
 
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
@@ -223,6 +224,8 @@ static void dumpStruct(MDSplus::Apd *apd, int tabs)
 	}
     }
 }
+
+
  
 //Return the dimension in bytes of the first strring stored in seggmented data. If no segments return -1
 static int getStringSizeInSegment(MDSplus::TreeNode *node)
@@ -269,8 +272,199 @@ static std::string getSegmentData(std::string path, int segIdx)
 	}
 	return retStr;	
     }
+
+
+static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
+{
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+//printf("CHIAMO GETINFO %p\n", data);
+    if(!data) return "";
+    data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    delete[] dims;
+    switch (clazz) {
+	case CLASS_S:
+	    if(dtype == DTYPE_NID || dtype == DTYPE_PATH)
+	    {
+		MDSplus::TreeNode *currNode = (MDSplus::TreeNode *)data;
+		if(currNode->getNid() != refNode->getNid())
+		    return currNode->getPath();
+	    }
+	    return "";
+	case CLASS_A:
+	    return "";
+	case CLASS_R:
+	    MDSplus::Compound *compData = (MDSplus::Compound *)data;
+	    for(int i = 0; i < compData->getNumDescs(); i++)
+	    {
+		MDSplus::Data *currDsc = compData->getDescAt(i);
+		if(currDsc)
+		{
+		    char *retPath = getPathInfo(currDsc, refNode);
+		    MDSplus::deleteData(currDsc); //Compound::getDescAt() increments ref counter!!!!!
+		    if(*retPath) return retPath;
+		}
+	    }
+    } 
+    return "";
+}
+
+
+/////////////////////METHODS
+
+    int MDSplusBackend::getTimebaseIdx(std::string dataobjectPath, std::string timebase, double time)
+    {
+
+
+
+
+	try {
+          double *times;
+	  int datatype = 0;
+          int numDims;
+          int dims[64];
+
+          int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims);
+	  if (datatype != ualconst::double_data)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
+	      return 0;
+	  }
+	  if (numDims != 1 || dims[0] <= 0)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
+	      return 0;
+	  }
+	  int numTimes = dims[0];
+	  if(time <= times[0])
+	      return 0;
+	  if(time >= times[numTimes - 1])
+              return numTimes - 1;
+	  int retIdx;
+	  for(retIdx = 0; retIdx < numTimes - 1; retIdx++)
+	      if(times[retIdx] <= time && times[retIdx + 1] >= time)
+	          break;
+          free(times);
+	  return retIdx;
+        }catch(MDSplus::MdsException exc)
+	{
+	    printf("INTERNAL ERROR in getTimebaseIdx: %s\n", exc.what());
+            return 0;
+	}
+    }
+
+    int MDSplusBackend::getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx)
+    {
+        int actSlices = 0;
+	int segIdx = 0;
+	int numSegments = node->getNumSegments();
+	char segNDims, segType;
+	int  nextRow;
+	int segDims[64];
+	//printf("GET SEG IDX numSegments: %d\n", numSegments);
+	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
+	    if (segIdx < numSegments - 1)
+		actSlices += segDims[0];
+	    else
+		actSlices += nextRow;
+	    if(actSlices > timebaseIdx)
+		break;
+	}
+	return segIdx;
+    }
+
  
- 
+    double * MDSplusBackend::getSegmentIdxAndDim(MDSplus::TreeNode *node, std::string dataobjectPath, std::string timebase, double time, int &segIdx, int &nDim)
+    {
+          double *times;
+	  int datatype = 0;
+          int numDims;
+          int dims[64];
+	  int timebaseIdx;
+	  char *timebasePath;
+
+	 //if timebase not passed (timed data of AoS, retrieve it from the dimension information of the first segment
+	 if(timebase == "")
+	 {
+	    try {
+ 	    	MDSplus::Data *segDim = node->getSegmentDim(0); 
+	    	timebasePath = getPathInfo(segDim, node);
+	    	MDSplus::deleteData(segDim);
+	    }catch(MDSplus::MdsException &exc)
+	    {
+		return NULL;
+	    }
+         }
+         else
+	    timebasePath = NULL; 
+
+
+          int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
+	  if(!status) return 0;
+	  if(timebasePath) delete[]timebasePath;
+	  if (datatype != ualconst::double_data)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
+	      return 0;
+	  }
+	  if (numDims != 1 || dims[0] <= 0)
+	  {
+	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
+	      return 0;
+	  }
+	  int numTimes = dims[0];
+	  if(time <= times[0])
+	      timebaseIdx = 0;
+	  else if(time >= times[numTimes - 1])
+              timebaseIdx = numTimes - 1;
+	  else 
+	  {
+	      for(timebaseIdx = 0; timebaseIdx < numTimes - 1; timebaseIdx++)
+	      	if(times[timebaseIdx] <= time && times[timebaseIdx + 1] > time)
+	          break;
+	  }
+	  
+        int actSlices = 0, prevSlices = 0;
+	segIdx = 0;
+	int numSegments = node->getNumSegments();
+	char segNDims, segType;
+	int  nextRow;
+	int segDims[64];
+	//printf("GET SEG IDX numSegments: %d\n", numSegments);
+	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    prevSlices = actSlices;
+	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
+	    if (segIdx < numSegments - 1)
+		actSlices += segDims[segNDims - 1];
+//		actSlices += segDims[0];
+	    else
+		actSlices += nextRow;
+//	    if(actSlices >= timebaseIdx)
+	    if(actSlices > timebaseIdx)
+		break;
+	}
+//	double *retTimes = new double[segDims[0]];
+	double *retTimes = new double[segDims[segNDims - 1]];
+//	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
+	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
+	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
+	free(times);
+	return retTimes;
+    }
+
+
+
+
+
+
+
     MDSplus::Data *MDSplusBackend::assembleStringData(void *data, int numDims, int *inDims, int expectedLen)
     {
      //OLD UAL Compatibility: Invert dimensions
@@ -370,63 +564,10 @@ static std::string getSegmentData(std::string path, int segIdx)
 	    memcpy(*retDataPtr, dataPtr, length * nItems);
 	}
     }
-/*  OLD VERSION
-    int MDSplusBackend::getMdsShot(int shot, int run, bool translate)
-    {
-	int runBunch = run/10000;
-	size_t i, j;
-	char *command;
-	
-	if(translate)
-	{
-	    char baseName[64];
-	    sprintf(baseName, "MDSPLUS_TREE_BASE_%d", runBunch);
-	    char *translatedBase =  getenv(baseName);
-	    if(translatedBase && *translatedBase)	// There is a translation for MDSPLUS_REE_BASE_XX
-	    {
-		char *prevLog = getenv("ids_path");
-		if(prevLog)							// ids_path is already set?
-		{
-		    char *currPattern;
-		    if ((currPattern = strstr(prevLog,translatedBase)) != NULL)	// ids_path already contains the correct path?
-		    {
-			//Yes, move it to the head of the list
-			int substrOfs = currPattern - prevLog; 
-			command=new char[strlen(prevLog)+4];
-			sprintf(command, "%s;", translatedBase);
-			int currLen = strlen(command);
-			memcpy(&command[currLen], prevLog, substrOfs);
-			command[currLen+substrOfs] = 0;
-			strcpy(&command[strlen(command)], &currPattern[strlen(translatedBase)]);
-		    }
-		    else									// otherwise add the new path
-		    {
-			command=new char[strlen(getenv(baseName))+strlen(prevLog)+4];
-			sprintf(command, "%s;%s", getenv(baseName), prevLog);
-		    }
-		}
-		else							// ids_path is not set yet
-		{
-		    command=new char[strlen(getenv(baseName))+4];
-		    sprintf(command, "%s", getenv(baseName));
-		}
-		//It may happen that command contains multiple semicolons: remove them
-		for(i = 0; i < strlen(command) - 1; i++)
-		{
-		    while(i < strlen(command) && command[i] == ';' && command[i+1] == ';')
-		    {
-			for(j = i; j < strlen(command); j++)
-			    command[j] = command[j+1];
-		    }
-		}	
-		setenv("ids_path",command,1);
-		delete[] command;
-	    }
-	}
-	int retShot =  (shot * 10000) + (run%10000);
-	return retShot;
-    }
- */
+
+
+
+
 
     MDSplus::TreeNode * MDSplusBackend::getNode(const char *path, bool makeNew)
     {
@@ -451,6 +592,7 @@ static std::string getSegmentData(std::string path, int segIdx)
 
     void MDSplusBackend::freeNodes()
     {
+		
 	for ( auto it = treeNodeMap.begin(); it != treeNodeMap.end(); ++it )
 	{
 	    delete it->second;
@@ -646,7 +788,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    std::string mdsPath = checkFullPath(fullPath, isAos);
 	    MDSplus::TreeNode *node = getNode(mdsPath.c_str());
 //	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
-	    if(node->getLength() > 0)
+	    if(node->getLength() > 0 || node->getNumSegments() > 0)
 	        node->deleteData();
 		
 	    int sliceSize = getSliceSize(node, data, datatype, numDims, dims, true);
@@ -790,15 +932,22 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     }
 		
     int MDSplusBackend::readTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
-	int *numDims, int *outDims)
+	int *numDims, int *outDims, char *mdsPath)
     {
       int status = 0;
       if(!tree)  
 	throw UALBackendException("Pulse file not open",LOG);
       MDSplus::TreeNode *node;
       try {
-	std::string fullPath = composePaths(dataobjectPath, path);
-	node = getNode(checkFullPath(fullPath).c_str());
+	if(mdsPath)
+	{
+	    node = getNode(mdsPath);
+	}
+	else
+	{
+	    std::string fullPath = composePaths(dataobjectPath, path);
+	    node = getNode(checkFullPath(fullPath).c_str());
+	}
       }catch(MDSplus::MdsException &exc)
       {
 	//throw UALBackendException(exc.what(),LOG);
@@ -910,6 +1059,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       for(int i = 0; i < numDims; i++)
 	  dims[i] = inDims[i];
 
+
 //Gabriele July 2017: one additional dimension (=1) is added by the high level, not to be considered here
       numDims--;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -949,9 +1099,19 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	        slice = assembleStringData(data, numDims+1, currDims, sliceSize);
 	    else
 		slice = assembleData(data, datatype, numDims+1, currDims);
-	    try {
+
+//////////Gabriele Febraury 2020: avoid generating exceptions for full segments 
+	    char dtype, dimct;
+	    int nextRow;
+	    int segDims[64];
+	    node->getSegmentInfo(node->getNumSegments() - 1, &dtype, &dimct, segDims, &nextRow);
+	    if(nextRow < segDims[dimct - 1])  //Still room for another slice
 		node->putSegment((MDSplus::Array *)slice, -1);
-	    }catch (MDSplus::MdsException &exc)
+	    else	
+/*	    try {
+		node->putSegment((MDSplus::Array *)slice, -1);
+	    }catch (MDSplus::MdsException &exc)   */
+
 	    {
 //std::cout << "GENERATED EXCEPTION FOR NEW SEGMENT" << std::endl;
 		char *initBytes = new char[sliceSize * slicesPerSegment];
@@ -1002,10 +1162,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 		    nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()];
 		    sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1]; else _a = data(%s)[%d]; _a;",
-			mdsPath.c_str(), numSegments, 
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx,
+			mdsPath.c_str(), numSegments + 1, 
+//			mdsPath.c_str(), numSegments, 
 			segData.c_str(), timeSlicesPerSegment, segPath.c_str(), timeEndSegmentIdx,
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 			segData.c_str(), timeEndSegmentOffset);
 		}
 
@@ -1031,10 +1190,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()];
 
 		    	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]; else _a = data(%s)[%d:%d]; _a;",
-			mdsPath.c_str(), numSegments, 
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+			mdsPath.c_str(), numSegments + 1, 
+//			mdsPath.c_str(), numSegments, 
 			segData.c_str(), timeStartSegmentOffset, timeSlicesPerSegment, segPath.c_str(), timeStartSegmentIdx,
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeEndSegmentOffset);
 			segData.c_str(), timeStartSegmentOffset, timeEndSegmentOffset);
 		    }
 		    else //Times are splitted in two different segments
@@ -1044,19 +1202,15 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			std::string segPath = mdsconvertPath(timePath.c_str(), isRefAos);
 			nameBuf = new char[512+mdsPath.size()+2*segData.size()+2+segData1.size()+segPath.size()];
 
-		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
+		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments+1);
+//		  	sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), numSegments);
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(%s)[%d:%d], data(%s)[0:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]])); else _a = data(set_range(", 
-//			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(),
 			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segData.c_str(),
-//			  timeStartSegmentOffset, timeSlicesPerSegment - 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment,
 			  timeStartSegmentOffset, timeSlicesPerSegment - 1, segData1.c_str(), timeSlicesPerSegment,
-//		 	  mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx);
 		 	  segPath.c_str(), timeEndSegmentIdx);
 
 		  	sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(%s)[%d:%d], data(%s)[0:%d]])); _a;", 
-//			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(),
 			  timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segData.c_str(),
-//			  timeStartSegmentOffset, timeSlicesPerSegment - 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 			  timeStartSegmentOffset, timeSlicesPerSegment - 1, segData1.c_str(), timeEndSegmentOffset);
 		    }
 		}
@@ -1086,22 +1240,26 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
     }
 
-
-
-
     int MDSplusBackend::readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
-	int *numDims, int *dims)
+	int *numDims, int *dims, char *mdsPath)
     {
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
       try {
-	std::string fullPath = composePaths(dataobjectPath, path);
-	MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
-	
+	MDSplus::TreeNode *node;
+	if(mdsPath)
+	{
+	    node = getNode(mdsPath);
+	}
+	else
+	{
+	    std::string fullPath = composePaths(dataobjectPath, path);
+	    node = getNode(checkFullPath(fullPath).c_str());
+	}
 	int numSegments = node->getNumSegments();
 	if(numSegments > 0)
 	  {
 //	    delete node;
-	    return readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims);
+	    return readTimedData(tree, dataobjectPath, path, dataPtr, datatype, numDims, dims, mdsPath);
 	  }
 	else
 	  {
@@ -1218,7 +1376,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 
 
-    int  MDSplusBackend::readSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, double time, int interpolation, void **data, int *datatype,
+    int  MDSplusBackend::readSlice(MDSplus::Tree *tree, bool isApd, std::string dataobjectPath, std::string path, std::string timebase, double time, int interpolation, void **data, int *datatype,
 	int *numDims, int *outDims, bool manglePath)
     {
 /** Steps:
@@ -1230,12 +1388,17 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 */
 	int dims[MAX_DIMS];
 	bool isComplex = false;
+        double *times;
+	int nTimes;
 
     	if(!tree)  throw UALBackendException("Pulse file not open",LOG);
 	std::string fullPath;
 	MDSplus::TreeNode *node;
     	try {
-	    fullPath = composePaths(dataobjectPath, path);
+	    if(isApd)
+		fullPath = dataobjectPath;
+	    else
+	    	fullPath = composePaths(dataobjectPath, path);
 	    if(manglePath)
 	    	node = getNode(checkFullPath(fullPath).c_str());
 	    else
@@ -1245,35 +1408,67 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    return 0;
 	    //throw UALBackendException(exc.what(),LOG);
 	}
+
+
 	try {
+// Gabriele Dec 2019 --- OPTIMIZATION: avoid evaluating expressions for segment limits for non AoS fields
 	    int numSegments = node->getNumSegments();
+            int segmentIdx;
 	    if(numSegments == 0) 
 	      return 0;	      
-	    int segmentIdx;
+
 	    //Since the expression contains node reference, it is necessary to set the active tree
 	    setActiveTree(tree);
-	    for(segmentIdx = 0; segmentIdx < numSegments; segmentIdx++)
+//	    if(path == "") //In case readSlice is called inside AoS
+	    if(isApd) //In case readSlice is called inside AoS
 	    {
-	      MDSplus::Data *startTimeData, *endTimeData;
-	      node->getSegmentLimits(segmentIdx, &startTimeData, &endTimeData);
-	      
-//	      std::cout << "START TIME: " << startTimeData << std::endl;
-//	      std::cout << "END TIME: " << endTimeData << std::endl;
-	      
-	      double startTime = startTimeData->getDouble();
-//Handle the case end time refers to a longer list that that contained in time node (homogenerous)
-	      double endTime;
-	      //try {
-		 endTime = endTimeData->getDouble();
-		//}catch(MDSplus::MdsException &exc) {endTime = startTime;}
-	      MDSplus::deleteData(startTimeData);
-	      MDSplus::deleteData(endTimeData);
-	   //   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
-	      if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || 
-		(time >= endTime && segmentIdx == numSegments - 1) || 
-		(time < startTime && segmentIdx > 0)) //consider the case in which the time is between two segments
-		break;
-	    }
+		setActiveTree(tree);
+
+		times = getSegmentIdxAndDim(node, dataobjectPath, timebase, time, segmentIdx, nTimes);
+/*
+
+		for(segmentIdx = 0; segmentIdx < numSegments; segmentIdx++)
+		{
+	  	    MDSplus::Data *startTimeData, *endTimeData;
+		    node->getSegmentLimits(segmentIdx, &startTimeData, &endTimeData);
+		
+//		      std::cout << "START TIME: " << startTimeData << std::endl;
+//		      std::cout << "END TIME: " << endTimeData << std::endl;
+		
+		    double startTime = startTimeData->getDouble();
+	//Handle the case end time refers to a longer list that that contained in time node (homogenerous)
+		    double endTime;
+		//try {
+		    endTime = endTimeData->getDouble();
+			//}catch(MDSplus::MdsException &exc) {endTime = startTime;}
+		    MDSplus::deleteData(startTimeData);
+		    MDSplus::deleteData(endTimeData);
+		//   if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || (time >= endTime && segmentIdx == numSegments - 1))
+		    if((startTime <= time && time <= endTime)||(time <= startTime && segmentIdx == 0) || 
+				(time >= endTime && segmentIdx == numSegments - 1) || 
+				(time < startTime && segmentIdx > 0)) //consider the case in which the time is between two segments
+		  	break;
+		}
+		//Build times from startTimes and endTimes
+    		MDSplus::Data *segDim = node->getSegmentDim(segmentIdx);
+
+
+//times = new double[5]{1,2,3,4,5}; nTimes = 5;
+	    	times = segDim->getDoubleArray(&nTimes);
+		MDSplus::deleteData(segDim);
+*/	    }
+	    else
+	    {
+//printf("PATH: %s TIME: %s\n", dataobjectPath.c_str(), timebase.c_str());
+		times = getSegmentIdxAndDim(node, dataobjectPath, timebase, time, segmentIdx, nTimes);
+		    //int timebaseIdx = getTimebaseIdx(dataobjectPath, timebase, time);
+		//printf("TIMEBASE IDX: %d\n", timebaseIdx);
+		    //segmentIdx = getSegmentIdx(node, timebaseIdx);
+		//printf("SEGMENT IDX: %d\n", segmentIdx);
+		    //numSegments = node->getNumSegments();
+	    }	
+///////////////////////////////////////OPTIMIZATION
+
 	    MDSplus::Array *segDataRead = node->getSegment(segmentIdx);
 //Workaround for MDSplus bug in complex management	    
 	    char clazz, ddtype, nDims;
@@ -1283,17 +1478,20 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    segDataRead->getInfo(&clazz, &ddtype, &length, &nDims, &ddims, &dataPtr);
 	    isComplex = (ddtype == DTYPE_FTC);
 /////////////////////////////	    
-	    
-	    MDSplus::Data *segData = segDataRead->data();
-	    MDSplus::deleteData(segDataRead);
-	    MDSplus::Data *segDim = node->getSegmentDim(segmentIdx);
-//std::cout << segDim->decompile() << std::endl;
+//Gabriele Jan 2020: avoid useless array copy
+
+//	    MDSplus::Data *segData = segDataRead->data();
+//	    MDSplus::deleteData(segDataRead);
+            MDSplus::Data *segData = segDataRead;
+//////////////////////////////////////////////////////////
+//	    MDSplus::Data *segDim = node->getSegmentDim(segmentIdx);
+//            std::cout << segDim->decompile() << std::endl;
 	    char dtype, dimct;
 	    int nextRow;
 	    int segDims[64];
 	    node->getSegmentInfo(segmentIdx, &dtype, &dimct, segDims, &nextRow);
-	    int nTimes;
-	    double *times = segDim->getDoubleArray(&nTimes);
+//	    int nTimes;
+//	    double *times = segDim->getDoubleArray(&nTimes);
 	    //In case the segment is not completely filled consider the right amount of times
 	    //if(nTimes > nextRow) Gabriele February 2018: consider nextRow ONLY for the last segment because getSegmentInfo() works only for the last segment
 	    if(nTimes > nextRow && segmentIdx == numSegments - 1)
@@ -1301,7 +1499,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    
 	    //Consider the special case in which the time is between two segments. 
 	    //In this case the previous segment is read and appended in front of the current one, updating segData and times
-	    if(time <= times[0] && segmentIdx > 0)
+	    //if(time <= times[0] && segmentIdx > 0)
+	    if(time < times[0] && segmentIdx > 0) 
 	    {
 	      MDSplus::Array *prevSegDataRead = node->getSegment(segmentIdx - 1);
 	      MDSplus::Data *prevSegData = prevSegDataRead->data();
@@ -1316,6 +1515,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      MDSplus::deleteData(prevSegData);
 	      MDSplus::deleteData(segData);
 	      segData = mergedSegData;
+	      segData->getInfo(&clazz, &ddtype, &length, &nDims, &ddims, &dataPtr); //Gabriele February 2020
+
 	      int nPrevTimes;
 	      MDSplus::Data *prevSegDim = node->getSegmentDim(segmentIdx - 1);
 	      double *prevTimes = prevSegDim->getDoubleArray(&nPrevTimes);
@@ -1329,18 +1530,19 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      times = mergedTimes;
 	    }
 
-	    delete [] ddims; //not used anymore
 	    int idx;
 	    MDSplus::Data *sliceData;
 	    //Build appropriate expression based on interpolation
 	    //If time outside segment limits, just return the upper or lower limit
-	    char expr[512]; //TODO: Check size -- DONE
+	    char expr[512];
+            int idxInSegment;
 	    if(time <= times[0])
 	    {
 	      sprintf(expr, "$1[");
 	      for(int i = 0; i < dimct - 1; i++)
 		sprintf(&expr[strlen(expr)], "*,");
 	      sprintf(&expr[strlen(expr)], "0]");
+              idxInSegment = 0;
 	    }
 	    else if(time >= times[nTimes - 1])
 	    {
@@ -1348,6 +1550,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      for(int i = 0; i < dimct - 1; i++)
 		sprintf(&expr[strlen(expr)], "*,");
 	      sprintf(&expr[strlen(expr)], "%d]", nTimes - 1);
+              idxInSegment = nTimes - 1;
 	    }
 	    else
 	    {
@@ -1365,12 +1568,14 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		  for(int i = 0; i < dimct - 1; i++)
 		    sprintf(&expr[strlen(expr)], "*,");
 		  sprintf(&expr[strlen(expr)], "%d]", actIdx);
+                  idxInSegment = actIdx;
 		  break;
 		case ualconst::previous_interp:
 		  sprintf(expr, "$1[");
 		  for(int i = 0; i < dimct - 1; i++)
 		    sprintf(&expr[strlen(expr)], "*,");
 		  sprintf(&expr[strlen(expr)], "%d]", idx - 1);
+                  idxInSegment = idx - 1;
 		  break;
 		case ualconst::linear_interp:
 		  if(dtype == DTYPE_L)
@@ -1389,10 +1594,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    sprintf(&expr[strlen(expr)], "%d])*cmplx(%e,0.))", idx-1, (time - times[idx-1])/(times[idx]-times[idx-1]));
 		  else
 		    sprintf(&expr[strlen(expr)], "%d])*%e)", idx-1, (time - times[idx-1])/(times[idx]-times[idx-1]));
+                  idxInSegment = -1;
 		  break;
 		default:
 		  MDSplus::deleteData(segData);
-		  MDSplus::deleteData(segDim);
+		 // MDSplus::deleteData(segDim);
 		  delete[] times;
 		  throw UALBackendException("Unsupported interpolation",LOG);
 	      }
@@ -1401,88 +1607,112 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    //Expression for slice retrieval is now ready
 	    int nSamples;
 	    char *currData;
-	    sliceData = MDSplus::executeWithArgs(expr, 1, segData);
-	    switch(dtype) {
-	      case DTYPE_B:
-	      case DTYPE_BU:  
-		currData = sliceData->getByteArray(&nSamples);
-		*data = malloc(nSamples);
-		memcpy(*data, currData, nSamples);
-		delete [] currData;
-		*datatype = ualconst::char_data;
-		break;
-	      case DTYPE_L:
-		if(dimct == 1)//Scalar slice
-		{
-		  nSamples = 1;
-		  //*data = new int[1];
-		  *data = malloc(sizeof(int));;
-		  *((int *)*data) = sliceData->getInt();
+//Gabriele Jan 2020 If not interpolation required, just copy the corresponding data chunk
+	    if(idxInSegment >= 0) 
+	    {
+		int rowSize = length;
+//		for(int i = 0; i < nDims - 1; i++)
+		for(int i = 1; i < nDims; i++)
+		    rowSize *= ddims[i];
+		*data = malloc(rowSize);
+		memcpy(*data, ((char *)dataPtr)+(idxInSegment * rowSize), rowSize);
+
+		switch(dtype)  {
+		    case DTYPE_B:
+		    case DTYPE_BU:
+			*datatype = ualconst::char_data;
+		        break;
+		    case DTYPE_L:
+		    case DTYPE_LU:
+			*datatype = ualconst::integer_data;
+			break;
+	      	    case DTYPE_DOUBLE:
+	      	    case DTYPE_D: //For compatibility with old UAL
+		    	*datatype = ualconst::double_data;
+			break;
+	      	    case DTYPE_FTC:
+		    	*datatype = ualconst::complex_data;
 		}
-		else
-		{
-		  currData = (char *)sliceData->getIntArray(&nSamples);
-		  *data = malloc(nSamples * sizeof(int));
-		  memcpy(*data, currData, nSamples * sizeof(int));
-		  delete [] currData;
-		}
-		*datatype = ualconst::integer_data;
-		break;
-	      case DTYPE_DOUBLE:
-	      case DTYPE_D: //For compatibility with old UAL
-		if(dimct == 1)//Scalar slice
-		{
-		  nSamples = 1;
-		  //*data = new double[1];
-		  *data = malloc(sizeof(double));
-		  *((double *)*data) = sliceData->getDouble();
-		}
-		else
-		{
-		  currData = (char *)sliceData->getDoubleArray(&nSamples);
-		  *data = malloc(nSamples * sizeof(double));
-		  memcpy(*data, currData, nSamples * sizeof(double));
-		  delete [] currData;
-		}
-		*datatype = ualconst::double_data;
-		break;
-	      case DTYPE_FTC:
-		if(dimct == 1)//Scalar slice
-		{
-		  nSamples = 1;
-		  std::complex<double> complexData = sliceData->getComplex();
-		  //*data = new double[2];
-		  *data = malloc(2*sizeof(double));
-		  ((double *)(*data))[0] = complexData.real();
-		  ((double *)(*data))[1] = complexData.imag();
-		}
-		else
-		{
-		  std::complex<double> *complexData = sliceData->getComplexArray(&nSamples);
-		  //*data = new double[2 * nSamples];
-		  *data = malloc(2 * nSamples*sizeof(double));
-		  for(int i = 0; i < nSamples; i++)
-		  {
-		    ((double *)(*data))[2*i] = complexData[i].real();
-		    ((double *)(*data))[2*i+1] = complexData[i].imag();
-		  }
-		  delete [] complexData;
-		}
-		*datatype = ualconst::complex_data;
+            }
+	    else  //Interpolation required
+            { 
+	    	sliceData = MDSplus::executeWithArgs(expr, 1, segData);
+	    	switch(dtype) {
+	      	    case DTYPE_B:
+	            case DTYPE_BU:  
+		    currData = sliceData->getByteArray(&nSamples);
+		    *data = malloc(nSamples);
+		    memcpy(*data, currData, nSamples);
+		    delete [] currData;
+		    *datatype = ualconst::char_data;
+		    break;
+	        case DTYPE_L:
+		    if(dimct == 1)//Scalar slice
+		    {
+		  	nSamples = 1;
+		  	*data = malloc(sizeof(int));;
+		  	*((int *)*data) = sliceData->getInt();
+		    }
+		    else
+		    {
+		        currData = (char *)sliceData->getIntArray(&nSamples);
+		  	*data = malloc(nSamples * sizeof(int));
+		  	memcpy(*data, currData, nSamples * sizeof(int));
+		  	delete [] currData;
+		    }
+		    *datatype = ualconst::integer_data;
+		    break;
+	      	case DTYPE_DOUBLE:
+	      	case DTYPE_D: //For compatibility with old UAL
+		    if(dimct == 1)//Scalar slice
+		    {
+		  	nSamples = 1;
+		  	*data = malloc(sizeof(double));
+		  	*((double *)*data) = sliceData->getDouble();
+		    }
+		    else
+		    {
+		  	currData = (char *)sliceData->getDoubleArray(&nSamples);
+		  	*data = malloc(nSamples * sizeof(double));
+		  	memcpy(*data, currData, nSamples * sizeof(double));
+		  	delete [] currData;
+		    }
+		    *datatype = ualconst::double_data;
+		    break;
+	      	case DTYPE_FTC:
+		    if(dimct == 1)//Scalar slice
+		    {
+		  	nSamples = 1;
+		  	std::complex<double> complexData = sliceData->getComplex();
+		  	*data = malloc(2*sizeof(double));
+		  	((double *)(*data))[0] = complexData.real();
+		  	((double *)(*data))[1] = complexData.imag();
+		    }
+		    else
+		    {
+		  	std::complex<double> *complexData = sliceData->getComplexArray(&nSamples);
+		  	*data = malloc(2 * nSamples*sizeof(double));
+		  	for(int i = 0; i < nSamples; i++)
+		  	{
+		    	    ((double *)(*data))[2*i] = complexData[i].real();
+		    	    ((double *)(*data))[2*i+1] = complexData[i].imag();
+		  	}
+		  	delete [] complexData;
+		    }
+		    *datatype = ualconst::complex_data;
+	    	}
+	    	MDSplus::deleteData(sliceData);
 	    }
-	    MDSplus::deleteData(sliceData);
+//////////////////////////////////////////////////////////////
+	    delete [] ddims;
+
 	    MDSplus::deleteData(segData);
-	    MDSplus::deleteData(segDim);
+	  //  MDSplus::deleteData(segDim);
 	    *numDims = dimct - 1;
 	    //*dims = new int[dimct - 1];
 	    for(int i = 0; i < dimct-1; i++)
 	      (dims)[i] = segDims[i];
 	    
-//	    delete node;
-/* Gabriele July 2017: return additional dimension
-	    for(int i = 0; i < *numDims; i++)
-	      outDims[i] = dims[i];
-*/
 	    for(int i = 0; i < *numDims; i++)
 	      outDims[i] = dims[i];
 	    outDims[*numDims] = 1;
@@ -1506,36 +1736,54 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     MDSplus::Apd *MDSplusBackend::getApdFromContext(ArraystructContext *arrStructCtx)
     {
 	pthread_mutex_lock(&mutex);
-	for(size_t i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-		pthread_mutex_unlock(&mutex);
-		return arrayStructDataV[i];
-	    }
-	}
+	MDSplus::Apd *arrStructData = NULL;
+	auto search = arrayStructCtxDataMap.find(arrStructCtx);
+	if (search!=arrayStructCtxDataMap.end())
+	  arrStructData = search->second;
+
 	pthread_mutex_unlock(&mutex);
-	return NULL;
+	return arrStructData;
+
+	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	// 	pthread_mutex_unlock(&mutex);
+	// 	return arrayStructDataV[i];
+	//     }
+	// }
+	// pthread_mutex_unlock(&mutex);
+	// return NULL;
     }
     
     void MDSplusBackend::addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
 	pthread_mutex_lock(&mutex);
-	size_t i;
-	for(i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-	       // std::cout << "INTERNAL ERROR IN addContextAndApd\n"; Gabriele March 2019: seems that context my be reused.....
-		arrayStructDataV[i] = arrStructData;
-		break;
-	    }
-	}
-	if(i == arrayStructContextV.size()) //New context
-	{
-	  arrayStructContextV.push_back(arrStructCtx);
-	  arrayStructDataV.push_back(arrStructData);
-	}
+	auto search = arrayStructCtxDataMap.find(arrStructCtx);
+	if (search!=arrayStructCtxDataMap.end())
+	  {
+	    search->second = arrStructData;
+	  }
+	else
+	  {
+	    arrayStructCtxDataMap.insert({arrStructCtx,arrStructData});
+	  }
+
+	// size_t i;
+	// for(i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	//        // std::cout << "INTERNAL ERROR IN addContextAndApd\n"; Gabriele March 2019: seems that context my be reused.....
+	// 	arrayStructDataV[i] = arrStructData;
+	// 	break;
+	//     }
+	// }
+	// if(i == arrayStructContextV.size()) //New context
+	// {
+	//   arrayStructContextV.push_back(arrStructCtx);
+	//   arrayStructDataV.push_back(arrStructData);
+	// }
 	pthread_mutex_unlock(&mutex);
     }
     
@@ -1543,14 +1791,16 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     void MDSplusBackend::removeContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
 	pthread_mutex_lock(&mutex);
-	for(size_t i = 0; i < arrayStructContextV.size(); i++)
-	{
-	    if(arrayStructContextV[i] == arrStructCtx)
-	    {
-		arrayStructContextV.erase(arrayStructContextV.begin()+i);
-		arrayStructDataV.erase(arrayStructDataV.begin()+i);
-	    }
-	}
+	arrayStructCtxDataMap.erase(arrStructCtx);
+
+	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
+	// {
+	//     if(arrayStructContextV[i] == arrStructCtx)
+	//     {
+	// 	arrayStructContextV.erase(arrayStructContextV.begin()+i);
+	// 	arrayStructDataV.erase(arrayStructDataV.begin()+i);
+	//     }
+	// }
 	pthread_mutex_unlock(&mutex);
     }
 //////////Array of structures stuff	
@@ -1887,6 +2137,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
         try {
 	    MDSplus::Apd *retApd = new MDSplus::Apd();
 	    int numSegments = node->getNumSegments();
+	    //std::cout << "numSegments = " << numSegments << "\n";
 	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
 	    {
 		MDSplus::Data *startData, *endData;
@@ -1897,9 +2148,42 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
 	    	MDSplus::deleteData(endData);
 		MDSplus::Data *serializedData = node->getSegment(segIdx);
+/*
+
 		int serializedLen;
-		char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
+		//char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
+		char *serialized;
+		char clazz, dtype, nDims;
+		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, NULL, &nDims, NULL, (void **) &serialized);
 		MDSplus::deleteData(serializedData);
+		int idx = 0;
+		//std::cout << "segIdx = " << segIdx << ", startIdx = " << startIdx << ", endIdx = " << endIdx << "\n";
+		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
+		{
+		    int sliceLen;
+		    memcpy(&sliceLen, &serialized[idx], sizeof(int));
+		    idx += sizeof(int);
+		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
+		    idx += sliceLen;
+		    retApd->appendDesc(sliceData);
+		    //std::cout << "sliceIdx = " << sliceIdx << ", idx = " << idx<< "\n";
+		}
+		delete [] serialized;
+*/
+//Gabriele Dec 2019
+		char clazz, dtype, nDims;
+		short length;
+		int *dims;
+		char *serialized;
+		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, &length, &nDims, &dims, (void **) &serialized);
+		if(dtype != DTYPE_B && dtype != DTYPE_BU)
+		{
+	  	    throw  UALBackendException("INTERNAL ERROR: unexpected dtype in serialized AoS: ", LOG); 
+		}
+		if(nDims != 1)
+		{
+	  	    throw  UALBackendException("INTERNAL ERROR: unexpected dimensions  in serialized AoS: ", LOG); 
+		}
 		int idx = 0;
 		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
 		{
@@ -1910,7 +2194,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    idx += sliceLen;
 		    retApd->appendDesc(sliceData);
 		}
-		delete [] serialized;
+		MDSplus::deleteData(serializedData);
+/////////////////////
 	    }
 	    return retApd;
 	}catch(MDSplus::MdsException &exc)	
@@ -2002,7 +2287,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		
 	    }
 	}
-	throw UALBackendException("Internal error in getSliceAt: invalid slice idx",LOG);
+	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
     }
 	
 
@@ -2710,7 +2995,7 @@ printf("Warning, struct field added more than once\n");
 	}
 */
 
-        std::unordered_map<std::string, int> * nodeFreeIdxMap;
+    std::unordered_map<std::string, int> * nodeFreeIdxMap;
 	int *maxAosId;
 	std::unordered_map<std::string, std::string> * nodePathMap;
 
@@ -2724,11 +3009,11 @@ printf("Warning, struct field added more than once\n");
 	  nodePathMap = &timedNodePathMap;
 	}
 	
-        auto searchPath = nodePathMap->find(toLower(aosFullPath));
+    auto searchPath = nodePathMap->find(toLower(aosFullPath));
 	if (searchPath != nodePathMap->end())
 	    return searchPath->second;
 	int idx;
-        auto search = nodeFreeIdxMap->find(toLower(aosPath));
+    auto search = nodeFreeIdxMap->find(toLower(aosPath));
 	if (search == nodeFreeIdxMap->end())
 	{
 	    idx = (*maxAosId);
@@ -2929,7 +3214,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	break;
       case ualconst::slice_op:
 	if(!timebase.empty())
-	  return readSlice(tree, ctx->getDataobjectName(), fieldname, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
+	  return readSlice(tree, false, ctx->getDataobjectName(), fieldname, timebase, ctx->getTime(), ctx->getInterpmode(), data, datatype, dim, size);
 	else
 	  return readData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	break;
@@ -3122,7 +3407,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    } 
 	    else
 	    {
-	        resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath());
+	        resApd = resolveApdSliceFields(currApd, ctx->getTime(), ctx->getInterpmode(), ctx->getTimebasePath(), ctx->getDataobjectName());
 	    }
 	    MDSplus::deleteData(currApd);
 	    currApd = resApd;
@@ -3205,7 +3490,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   }
 	
 		  
-  MDSplus::Apd *MDSplusBackend::resolveApdSliceFields(MDSplus::Apd *apd, double time, int interpolation, std::string timebasePath)
+  MDSplus::Apd *MDSplusBackend::resolveApdSliceFields(MDSplus::Apd *apd, double time, int interpolation, std::string timebasePath, std::string dataobjectPath)
   {
       size_t numDescs = apd->len();
       MDSplus::Apd *retApd = new MDSplus::Apd();
@@ -3216,7 +3501,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    continue;
 	  if(currDescr->clazz == CLASS_APD)
 	  {
-	      MDSplus::Data *currData = resolveApdSliceFields((MDSplus::Apd *)currDescr, time, interpolation, timebasePath);
+	      MDSplus::Data *currData = resolveApdSliceFields((MDSplus::Apd *)currDescr, time, interpolation, timebasePath, dataobjectPath);
 	      currData->incRefCount();
 	      retApd->appendDesc(currData);
 	  }
@@ -3242,7 +3527,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  delete [] path;
 		  std::string emptyStr("");
 
-		  if(!readSlice(tree, pathStr, emptyStr, time, interpolation, &data, &datatype, &numDims, dims, false))
+		  if(!readSlice(tree, true, pathStr, dataobjectPath, timebasePath, time, interpolation, &data, &datatype, &numDims, dims, false))
 		      throw UALBackendException("Internal error: expected valid slice in resolveApdSliceFields",LOG);
 
 		  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
@@ -3421,6 +3706,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  }
       }
   }
+
 
 
 

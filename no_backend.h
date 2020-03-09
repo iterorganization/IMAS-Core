@@ -5,10 +5,19 @@
 
 #include "ual_backend.h"
 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+
+
 /**
    No backend (test) implementation.
 */
-class NoBackend : public Backend
+class LIBRARY_API NoBackend : public Backend
 {
 private:
   bool verbose = false;
@@ -56,5 +65,6 @@ public:
 
 };
 
-
 #endif
+
+#endif // NO_BACKEND_H

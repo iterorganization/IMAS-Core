@@ -8,21 +8,21 @@
 #ifndef UAL_CONTEXT_H
 #define UAL_CONTEXT_H 1
 
+#include "ual_exception.h"
 #include "ual_const.h"
 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
 
-/* c++ only part */
-#if defined(__cplusplus)
+#ifdef __cplusplus
 
-
-#include <cstdlib>
 #include <iostream>
-
+#include <cstdlib>
 #include <atomic>
-
-#include "ual_exception.h"
-
 
 #define CTX_TYPE 100
 #define CTX_PULSE_TYPE 101
@@ -34,7 +34,7 @@
    Generic Context class.
    The simple generic Context is only associated to a given Back-end.
 */
-class Context 
+class LIBRARY_API Context 
 {
 public:
   /**
@@ -42,12 +42,15 @@ public:
    */
   virtual ~Context() {}
 
-  friend std::ostream& operator<< (std::ostream& o, Context const& ctx);
-
   /**
      Prints content of the context.
   */
   virtual std::string print() const; 
+
+  /**
+     Returns simplified pseudo path for the context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the ID of associated backend.
@@ -103,7 +106,7 @@ protected:
    Context class for a given pulse file.
    The PulseContext is a Context associated to a given pulse file.
 */
-class PulseContext : public Context 
+class LIBRARY_API PulseContext : public Context 
 {
 public:
   /**
@@ -124,12 +127,15 @@ public:
   */
   virtual ~PulseContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
-
   /**
-     Prints content of the pulse context.
+     Returns full description of the pulse context.
   */
   virtual std::string print() const; 
+
+  /**
+     Returns simplified pseudo path for the context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
@@ -182,7 +188,7 @@ public:
    Context class for an operation on a DATAOBJECT.
    The OperationContext is a PulseContext associated to a given DATAOBJECT for a given I/O operation.
 */
-class OperationContext : public PulseContext 
+class LIBRARY_API OperationContext : public PulseContext 
 {
 public:
   /**
@@ -226,12 +232,15 @@ public:
   */
   virtual ~OperationContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
-
   /**
-     Prints content of the operation context.
+     Returns full description of the operation context.
   */
   virtual std::string print() const; 
+
+  /**
+     Returns simplified pseudo path for this context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
@@ -294,7 +303,7 @@ protected:
    Context class for an array of structures.
    The ArraystructContext is an OperationContext associated to a given array of structure.
 */
-class ArraystructContext : public OperationContext 
+class LIBRARY_API ArraystructContext : public OperationContext 
 {
  public:
   /**
@@ -341,12 +350,15 @@ class ArraystructContext : public OperationContext
   */
   virtual ~ArraystructContext() {}
 
-  friend std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
-
   /**
-     Prints content of the array of structure context.
+     Returns full description of the array of structure context.
   */
   virtual std::string print() const;
+
+  /**
+     Returns simplified pseudo path for this context.
+  */
+  virtual std::string fullPath() const; 
 
   /**
      Returns the type of context.
@@ -400,7 +412,11 @@ protected:
 
 };
 
+LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
 #endif
 
-#endif
+#endif // UAL_CONTEXT_H

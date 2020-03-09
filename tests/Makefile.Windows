@@ -1,9 +1,21 @@
-CXXFLAGS=-std=c++11 -pthread -g -O0 -Wa,-mbig-obj -fPIC
-LDFLAGS=-g -pthread
+include ../../Makefile.common
+
+ifeq (,$(wildcard $(UAL)))
+$(error $$UAL is unset)
+endif
+
+LD=$(CXX)
+CFLAGS=-std=c11 -pedantic -Wall -fPIC -O3  -Wa,-mbig-obj ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -O3 -fPIC -Wall  -Wa,-mbig-obj ${DBGFLAGS}
+LDFLAGS=-pthread
+
+CFLAGS+= -DWIN32
+CXXFLAGS+= -DWIN32
 
 INCDIR= -I$(UAL)/lowlevel
 LIBS= -L$(UAL)/lowlevel
 LIBS+= $(UAL)/lowlevel/libimas.lib
+
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 LIBS+= -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
@@ -14,17 +26,27 @@ LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 endif
+
 ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("fat","$(strip $(IMAS_UDA))")
+LIBS+= -L$(UDA_HOME)/lib
+LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
+LIBS+= $(UDA_HOME)/lib/libportablexdr.a
+LIBS+= $(PostgresSQL_ROOT)/lib/libpq.a
+LIBS+= -lws2_32 -lssl -lcrypto -lxml2
+else
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= -lws2_32 -lssl -lcrypto
 endif
+endif
+
 ifneq ("no","$(strip $(IMAS_HDF5))")
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= $(HDF5_HOME)/lib/libhdf5.a
 LIBS+= -ldl -lz
 endif
+
 BINOUT=testlowlevel.exe
-CFLAGS+= -DWIN32
-CXXFLAGS+= -DWIN32
+BINOUT_C=testlowlevel_c.exe

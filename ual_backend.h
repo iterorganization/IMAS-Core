@@ -11,16 +11,20 @@
 
 #include "ual_context.h"
 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
-/* c++ only part */
-#if defined(__cplusplus)
+#ifdef __cplusplus
 
 
 /**
    Abstract Backend class.
    Defines the back-end API, as pure virtual member functions. 
 */
-class Backend 
+class LIBRARY_API Backend 
 {
 public:
   // virtual desctructor
@@ -152,6 +156,6 @@ public:
 
 };
 
-#endif 
-
 #endif
+
+#endif // UAL_BACKEND_H

@@ -4,7 +4,16 @@
 #include "ual_backend.h"
 
 
-class DummyBackend:public Backend 
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+
+
+class LIBRARY_API DummyBackend:public Backend 
 {
 
 public:
@@ -128,6 +137,8 @@ public:
 		
   	virtual void beginAction(OperationContext *ctx){}
 
-    };
+};
 
-#endif 
+#endif
+
+#endif // DUMMY_BACKEND_H

@@ -12,11 +12,16 @@
 #include <fstream>
 #include <complex>
 
-/* c++ only part */
-#if defined(__cplusplus)
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
 
 
-class AsciiBackend : public Backend
+class LIBRARY_API AsciiBackend : public Backend
 {
 
 private:
@@ -31,12 +36,20 @@ private:
   std::string getArraystructPath(ArraystructContext *aosctx);
 
   void writeData(const char* data, int dim, int* size);
-  template <typename T> 
-  void writeData(const T* data, int dim, int* size);
+  // extern "C" do not permit to declare template functions
+  //template <typename T> 
+  //void writeData(const T* data, int dim, int* size);
+  void writeData(const int* data, int dim, int* size);
+  void writeData(const double* data, int dim, int* size);
+  void writeData(const std::complex<double>* data, int dim, int* size);
 
   void readData(char** data, int dim, int* size);
-  template <typename T> 
-  void readData(T** data, int dim, int* size);
+  // extern "C" do not permit to declare template functions
+  //template <typename T> 
+  //void readData(T** data, int dim, int* size);
+  void readData(int** data, int dim, int* size);
+  void readData(double** data, int dim, int* size);
+  void readData(std::complex<double>** data, int dim, int* size);
 
 
 public:
@@ -80,6 +93,6 @@ public:
 
 };
 
-#endif 
-
 #endif
+
+#endif // ASCII_BACKEND_H

@@ -14,8 +14,13 @@
 /*#include "ual_const.h"*/
 #include "ual_backend.h"
 
-/* c++ only part */
-#if defined(__cplusplus)
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
 
 #include <vector>
 #include <mutex>
@@ -25,7 +30,7 @@
    Lowlevel environment structure.
    Associates a Context with the corresponding Backend.
 */
-class LLenv
+class LIBRARY_API LLenv
 { 
 public:
   Backend* backend;                               /**< pointer on Backend object */
@@ -47,7 +52,7 @@ public:
 /**
    Generic Low-level static implementation.
 */
-class Lowlevel 
+class LIBRARY_API Lowlevel 
 {
 public:
   static const char EMPTY_CHAR;     //                    = '\0';
@@ -122,9 +127,11 @@ private:
 };
 
 
-extern "C" 
+
+extern "C"
 {
 #endif
+
   /******************** DEFINITION OF THE C API ********************/
 
   typedef struct 
@@ -140,7 +147,7 @@ extern "C"
      @param[out] info context info as a string
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  al_status_t ual_context_info(int ctx, char **info);
+  LIBRARY_API al_status_t ual_context_info(int ctx, char **info);
 
 
   /**
@@ -149,7 +156,7 @@ extern "C"
      @param[out] beid backendID 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  al_status_t ual_get_backendID(int ctx, int *beid);
+  LIBRARY_API al_status_t ual_get_backendID(int ctx, int *beid);
 
 
 
@@ -166,13 +173,13 @@ extern "C"
      @param[out] pctx pulse context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_begin_pulse_action(const int backendID, 
-				   const int shot, 
-				   const int run, 
-				   const char *user, 
-				   const char *tokamak, 
-				   const char *version,
-				   int *pctx);
+  LIBRARY_API al_status_t ual_begin_pulse_action(const int backendID, 
+						 const int shot, 
+						 const int run, 
+						 const char *user, 
+						 const char *tokamak, 
+						 const char *version,
+						 int *pctx);
 
   /**
      Opens a database entry.
@@ -187,9 +194,9 @@ extern "C"
      (possibly backend specific)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_open_pulse(int pulseCtx, 
-			   int mode, 
-			   const char *options);
+  LIBRARY_API al_status_t ual_open_pulse(int pulseCtx, 
+					 int mode, 
+					 const char *options);
 
   /**
      Closes a database entry.
@@ -201,9 +208,9 @@ extern "C"
      @param[in] options additional options (possibly backend specific)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_close_pulse(int pulseCtx, 
-			    int mode,
-			    const char *options);
+  LIBRARY_API al_status_t ual_close_pulse(int pulseCtx, 
+					  int mode,
+					  const char *options);
 
   /**
      Starts an I/O action on a DATAOBJECT.
@@ -216,10 +223,10 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_begin_global_action(int ctx,
-				    const char *dataobjectname,
-				    int rwmode,
-				    int *opctx);
+  LIBRARY_API al_status_t ual_begin_global_action(int ctx,
+						  const char *dataobjectname,
+						  int rwmode,
+						  int *opctx);
 
   /**
      Starts an I/O action on a DATAOBJECT slice.
@@ -240,12 +247,12 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_begin_slice_action(int ctx,
-				   const char *dataobjectname,
-				   int rwmode,
-				   double time,
-				   int interpmode,
-				   int *opctx);
+  LIBRARY_API al_status_t ual_begin_slice_action(int ctx,
+						 const char *dataobjectname,
+						 int rwmode,
+						 double time,
+						 int interpmode,
+						 int *opctx);
 
   /**
      Stops an I/O action.
@@ -254,7 +261,7 @@ extern "C"
      @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_end_action(int ctx); 
+  LIBRARY_API al_status_t ual_end_action(int ctx); 
 
   /**
      Writes data.
@@ -273,13 +280,13 @@ extern "C"
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_write_data(int ctx,
-			   const char *fieldpath,
-			   const char *timebasepath,
-			   void *data,
-			   int datatype,
-			   int dim,
-			   int *size);
+  LIBRARY_API al_status_t ual_write_data(int ctx,
+					 const char *fieldpath,
+					 const char *timebasepath,
+					 void *data,
+					 int datatype,
+					 int dim,
+					 int *size);
 
   /**
      Reads data.
@@ -298,13 +305,13 @@ extern "C"
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_read_data(int ctx,
-			  const char *fieldpath,
-			  const char *timebasepath,
-			  void **data,
-			  int datatype,
-			  int dim,
-			  int *size);
+  LIBRARY_API al_status_t ual_read_data(int ctx,
+					const char *fieldpath,
+					const char *timebasepath,
+					void **data,
+					int datatype,
+					int dim,
+					int *size);
 
   /**
      Deletes data.
@@ -314,9 +321,8 @@ extern "C"
      @param[in] path path of the data structure element to delete (suppress the whole subtree)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_delete_data(int ctx,
-			    const char *path);
-
+  LIBRARY_API al_status_t ual_delete_data(int ctx,
+					  const char *path);
 
 
   /**
@@ -332,12 +338,11 @@ extern "C"
      @param[out] aosctx array of structure context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  al_status_t ual_begin_arraystruct_action(int ctx,
-					 const char *path,
-					 const char *timebase,
-					 int *size,
-					 int *aosctx);
-
+  LIBRARY_API al_status_t ual_begin_arraystruct_action(int ctx,
+						       const char *path,
+						       const char *timebase,
+						       int *size,
+						       int *aosctx);
 
 
   /**
@@ -347,8 +352,8 @@ extern "C"
      @param[in] step iteration step size (typically=1)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  al_status_t ual_iterate_over_arraystruct(int aosctx, 
-					 int step);
+  LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
+						       int step);
 
 
 #if defined(__cplusplus)
@@ -356,4 +361,4 @@ extern "C"
 #endif
 
 
-#endif
+#endif // UAL_LOWLEVEL_H

@@ -1,5 +1,5 @@
 /**
-   \file matlab_adpater.c
+   \file matlab_adpater.cpp
    R2 low-level API implementation with R3 low-level API.
    Implies near-direct compatibility with R2 high-level.
  */
@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <complex.h>
 
 #include "matlab_adapter.h"
 #include "ual_lowlevel.h"
@@ -97,7 +96,7 @@ int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timeb
  */
 int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status) 
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
 			INTEGER_DATA, 1, &retSize[0]);
@@ -120,7 +119,7 @@ int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath
  */
 double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
 			DOUBLE_DATA, 1, &retSize[0]);
@@ -145,7 +144,7 @@ double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timeba
 int *mtl_getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 1, &retSize[0]);
 	if (*status==0)
@@ -158,7 +157,7 @@ int *mtl_getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *t
 double *mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 1, &retSize[0]);
 	if (*status==0)
@@ -171,7 +170,7 @@ double *mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const c
 
 double *mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&array,
 			DOUBLE_DATA, 2, &retSize[0]);
@@ -186,7 +185,7 @@ double *mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timeba
 int *mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, INTEGER_DATA, 2, &retSize[0]);
 	if (*status==0)
@@ -200,7 +199,7 @@ int *mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *t
 double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	int retSize[MAXDIM];
 	*status = ual_read_data(aosCtx, fieldPath, timebasePath, (void **)&array, DOUBLE_DATA, 2, &retSize[0]);
 	if (*status==0)
@@ -503,7 +502,7 @@ int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char 
 
 double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect3DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
 	return array;
 }
@@ -511,7 +510,7 @@ double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char
 int *mtl_getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	*status =  mtl_getVect3DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
 	return array;
 }
@@ -519,7 +518,7 @@ int *mtl_getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const
 double *mtl_getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect3DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3);
 	return array;
 }
@@ -527,7 +526,7 @@ double *mtl_getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath,
 
 double *mtl_getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect4DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
 	return array;
 }
@@ -535,7 +534,7 @@ double *mtl_getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char
 int *mtl_getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	*status =  mtl_getVect4DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
 	return array;
 }
@@ -543,14 +542,14 @@ int *mtl_getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const
 double *mtl_getVect4DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int *dim4, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect4DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4);
 	return array;
 }
 
 double *mtl_getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect5DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
 	return array;
 }
@@ -558,7 +557,7 @@ double *mtl_getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char
 int *mtl_getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	*status =  mtl_getVect5DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
 	return array;
 }
@@ -566,14 +565,14 @@ int *mtl_getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const
 double *mtl_getVect5DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect5DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5);
 	return array;
 }
 
 double *mtl_getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect6DDouble(opCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
 	return array;
 }
@@ -581,7 +580,7 @@ double *mtl_getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char
 int *mtl_getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,
 		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
-	int *array=malloc(sizeof(int*));
+	int *array=(int *)malloc(sizeof(int*));
 	*status =  mtl_getVect6DIntFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
 	return array;
 }
@@ -589,7 +588,7 @@ int *mtl_getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const
 double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, 
 		int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status)
 {
-	double *array=malloc(sizeof(double*));
+	double *array=(double *)malloc(sizeof(double*));
 	*status =  mtl_getVect6DDoubleFromObject(aosCtx, fieldPath, timebasePath, &array, dim1, dim2, dim3, dim4, dim5, dim6);
 	return array;
 }
@@ -612,10 +611,10 @@ void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath,
 	*st = local;
 
 	void* ptrData = NULL;
-	int* shapes = malloc(MAXDIM*sizeof(int));
+	int* shapes = (int *)malloc(MAXDIM*sizeof(int));
 	*status = ual_read_data(ctx, fieldPath, timebasePath, &ptrData,
 			COMPLEX_DATA, ndim, shapes);
-	double _Complex *array = (double _Complex*) ptrData;
+	std::complex<double> *array = (std::complex<double>*) ptrData;
 	int i;
 	int n = 1;
 	for (i = 0; i < ndim; i++)
@@ -628,15 +627,15 @@ void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath,
 		return;
 	}
 
-	double *array_real_local = malloc(n*sizeof(double));
-	double *array_imag_local = malloc(n*sizeof(double));
+	double *array_real_local = (double *)malloc(n*sizeof(double));
+	double *array_imag_local = (double *)malloc(n*sizeof(double));
 
 	local->array_real_part = array_real_local;
 	local->array_imag_part = array_imag_local;
 
 	for (i = 0; i < n; i++) {
-		array_real_local[i] = creal(array[i]);
-		array_imag_local[i] = cimag(array[i]);
+		array_real_local[i] = std::real(array[i]);
+		array_imag_local[i] = std::imag(array[i]);
 	}
 	local->shapes = shapes;
 }
@@ -657,10 +656,10 @@ int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, doub
 {
 	int status;
 	int retSize[MAXDIM];
-	double _Complex *data = malloc(sizeof(double _Complex));
+	std::complex<double> *data = (std::complex<double> *)malloc(sizeof(std::complex<double>*));
 	status = ual_read_data(ctx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
-	*cpx_real = creal(data[0]);
-	*cpx_imag = cimag(data[0]);
+	*cpx_real = std::real(data[0]);
+	*cpx_imag = std::imag(data[0]);
 	return status;
 }
 
@@ -676,7 +675,7 @@ int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, doub
 int mtl_putCPX_0D(int ctx, const char *fieldPath, const char *timebasePath,
 		double data_real, double data_imag)
 {
-	double _Complex data = data_real + I*data_imag;
+	std::complex<double> data(data_real, data_imag);
 	return ual_write_data(ctx, fieldPath, timebasePath, (void *)(&data), COMPLEX_DATA, 0, NULL);
 }
 
@@ -700,9 +699,9 @@ int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *timebasePath,
 	for (i = 0; i < ndim; i++) {
 		n = shapes[i]*n;
 	}
-	double _Complex *data = malloc(n*sizeof(double _Complex));
+	std::complex<double> *data = (std::complex<double> *)malloc(n*sizeof(std::complex<double>*));
 	for (i = 0; i < n; i++) {
-		data[i] = data_real[i] + I*data_imag[i];
+		data[i] = std::complex<double>(data_real[i], data_imag[i]);
 	}
 	return ual_write_data(opCtx, fieldPath, timebasePath, (void *)data,
 			COMPLEX_DATA, ndim, shapes);
@@ -957,7 +956,7 @@ int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath
 	if (status==0)
 	{
 		*dim = retSize[0];
-		*data = malloc(*dim + 1);
+		*data = (char *)malloc(*dim + 1);
 		memset(*data, 0, *dim + 1);
 		strncpy(*data, szTemp, *dim);
 		free (szTemp);
@@ -989,7 +988,7 @@ int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 	if (status==0)
 	{
 		*dim = retSize[0];
-		*data = malloc(*dim + 1);
+		*data = (char *)malloc(*dim + 1);
 		memset(*data, 0, *dim + 1);
 		strncpy(*data, szTemp, *dim);
 		free (szTemp);
@@ -1022,7 +1021,7 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
 	{
 		*dim1 = retSize[0];
 		*dim2 = retSize[1];
-		*data = malloc((*dim1)*(*dim2) + 1);
+		*data = (char *)malloc((*dim1)*(*dim2) + 1);
 		memset(*data, 0, (*dim1)*(*dim2) + 1);
 		strncpy(*data, szTemp, (*dim1)*(*dim2));
 		free (szTemp);
@@ -1056,7 +1055,7 @@ int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *t
 	{
 		*dim1 = retSize[0];
 		*dim2 = retSize[1];
-		*data = malloc((*dim1)*(*dim2) + 1);
+		*data = (char *)malloc((*dim1)*(*dim2) + 1);
 		memset(*data, 0, (*dim1)*(*dim2) + 1);
 		strncpy(*data, szTemp, (*dim1)*(*dim2));
 		free (szTemp);

@@ -1,11 +1,7 @@
 /*-*-c++-*-*/
 
-#include <exception>
-#include <stdexcept>
-#include <sstream>
-#include <cstring>
-
-#include "ual_defs.h"
+#ifndef UAL_EXCEPTION_H
+#define UAL_EXCEPTION_H 1
 
 #define LOG __FILE__,__LINE__
 #define WHERE " ("<<__FILE__<<":"<<__LINE__<<")"
@@ -16,9 +12,25 @@
 #define VERBOSE false 
 #endif
  
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
 
+#ifdef __cplusplus
 
-class UALException : public std::runtime_error
+#include <sstream>
+#include <exception>
+#include <stdexcept>
+#include <cstring>
+
+#include "ual_defs.h"
+
+extern "C"
+{
+
+class LIBRARY_API UALException : public std::runtime_error
 {
 protected:
   std::string mesg;
@@ -36,7 +48,7 @@ public:
 };
 
 
-class UALLowlevelException : public UALException
+class LIBRARY_API UALLowlevelException : public UALException
 {
 public:
   UALLowlevelException() {}
@@ -49,7 +61,7 @@ public:
 };
 
 
-class UALBackendException : public UALException
+class LIBRARY_API UALBackendException : public UALException
 {
 public:
   UALBackendException() {}
@@ -62,8 +74,7 @@ public:
 };
 
 
-
-class UALContextException : public UALException
+class LIBRARY_API UALContextException : public UALException
 {
 public:
   UALContextException() {}
@@ -75,3 +86,7 @@ public:
   UALContextException(const std::string &m, const std::string &f, const int l);
 };
 
+}
+#endif
+
+#endif // UAL_EXCEPTION_H

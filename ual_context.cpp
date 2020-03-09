@@ -56,6 +56,12 @@ std::string Context::print() const
   return s;
 }
 
+std::string Context::fullPath() const
+{
+  std::string s = "";
+  return s;
+}
+
 int Context::getBackendID() const
 { 
   return backend_id; 
@@ -135,6 +141,12 @@ std::string PulseContext::print() const
     "user \t\t\t = \"" + this->user + "\"\n" +
     "tokamak \t\t = \"" + this->tokamak + "\"\n" +
     "version \t\t = \"" + this->version + "\"\n";
+  return s;
+}
+
+std::string PulseContext::fullPath() const
+{
+  std::string s = ((Context)*this).fullPath();
   return s;
 }
 
@@ -241,6 +253,12 @@ std::string OperationContext::print() const
   return s;
 }
 
+std::string OperationContext::fullPath() const
+{
+  std::string s = ((PulseContext)*this).fullPath() + this->dataobjectname;
+  return s;
+}
+
 int OperationContext::getType() const 
 {
   return CTX_OPERATION_TYPE;
@@ -310,6 +328,20 @@ std::string ArraystructContext::print() const
     "parent \t\t\t = " +
     ((this->parent==NULL)?"NULL":this->parent->path) + "\n" +
     "index \t\t\t = " + std::to_string(this->index) + "\n";
+  return s;
+}
+
+std::string ArraystructContext::fullPath() const
+{
+  std::string ppath = "";
+  ArraystructContext *tmp = this->parent;
+  while (tmp != NULL)
+    {
+      ppath = tmp->path + "/" + ppath;
+      tmp = tmp->parent;
+    }
+  std::string s = ((OperationContext)*this).fullPath() +
+    "/" + ppath + this->path;
   return s;
 }
 

@@ -1,12 +1,12 @@
 #ifndef MEMORY_BACKEND_H
 #define MEMORY_BACKEND_H 1
 
-#include <mdsobjects.h>
 #include <string.h>
 #include <unordered_map>
 #include <memory>
 #include <string>
 #include <iostream>
+#include <vector>
 
 #include "dummy_backend.h"
 #include "ual_backend.h"
@@ -14,12 +14,20 @@
 #include "ual_defs.h"
 #include "ual_const.h"
 
-
 #define NODENAME_MANGLING  //Use IMAS mangling
+
+#if defined(_WIN32)
+#  define LIBRARY_API __declspec(dllexport)
+#else
+#  define LIBRARY_API
+#endif
+
+#ifdef __cplusplus
+
 
 //Support classes for memory mapping
 
-class UalData
+class LIBRARY_API UalData
 {
     bool timed;
     int type;
@@ -33,7 +41,7 @@ class UalData
 
 
 public:
-    static const int UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3;
+    typedef enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
     UalData();
     bool isTimed() { return timed;}
     int getMapState() {return mapState;}
@@ -129,8 +137,9 @@ public:
 	return retStr;
     }
 };
+
 class UalStruct;
-class UalAoS
+class LIBRARY_API UalAoS
 {
 public:
     std::string timebase;
@@ -143,9 +152,12 @@ public:
     ~UalAoS();
 };
 
-
-class UalStruct
+class LIBRARY_API UalStruct
 {
+	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	UalStruct(const UalStruct&) = delete;
+    UalStruct& operator=(const UalStruct&) = delete;
+	
 public:
      std::unordered_map<std::string, UalData *> dataFields;
     std::unordered_map<std::string, UalAoS *>aosFields;
@@ -157,6 +169,9 @@ public:
     void addSlice(UalStruct &ualSlice, ArraystructContext *ctx);
     bool isAoSMapped(std::string path);
     UalStruct *clone();
+    UalStruct()
+	{
+	}
     ~UalStruct()
     {
   	for ( auto it = dataFields.cbegin(); it != dataFields.cend(); ++it )
@@ -188,7 +203,7 @@ public:
     }
 };
 
-class StructPath
+class LIBRARY_API StructPath
 {
 public:
     UalStruct *ualStruct;
@@ -201,7 +216,7 @@ public:
 };
 
 
-class IdsInfo
+class LIBRARY_API IdsInfo
 {
 public:
     std::string idsPath;
@@ -214,9 +229,11 @@ public:
 };
 
 
-
-class MemoryBackend:public Backend 
+class LIBRARY_API MemoryBackend:public Backend 
 {
+	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	MemoryBackend(const MemoryBackend&) = delete;
+    MemoryBackend& operator=(const MemoryBackend&) = delete;
 
     Backend *targetB;
     bool isCreated;
@@ -473,4 +490,6 @@ public:
     UalData *getUalSlice(ArraystructContext *ctx, UalData &inData, double time, std::vector<double> timebaseV);
 };
 
-#endif 
+#endif
+
+#endif // MEMORY_BACKEND_H
