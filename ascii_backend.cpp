@@ -19,14 +19,16 @@ void AsciiBackend::openPulse(PulseContext *ctx,
 
   std::stringstream ss;
   std::string add;
-  n = options.find("-suffix ");
+  n = options.find("-prefix ");
   if (n != std::string::npos) {
     ss << options.substr(n+8,options.length());
     ss >> add;
     this->dbname.insert(0,add);
   }
 
-  n = options.find("-prefix ");
+  n = options.find("-suffix ");
+  add = "";
+  ss.str("");
   if (n != std::string::npos) {
     ss << options.substr(n+8,options.length());
     ss >> add;
@@ -35,6 +37,8 @@ void AsciiBackend::openPulse(PulseContext *ctx,
   this->fname = "";
 
   n = options.find("-fullpath ");
+  add = "";
+  ss.str("");
   if (n != std::string::npos) {
     ss << options.substr(n+10,options.length());
     ss >> add;
@@ -62,8 +66,11 @@ void AsciiBackend::beginAction(OperationContext *ctx)
 
   this->idsname = ctx->getDataobjectName();
 
-  if (this->fname.empty())
-    this->fname = this->dbname + "_" + this->idsname + ".ids";
+  if (this->fname.empty()) 
+    {
+      this->fname = this->dbname + "_" + this->idsname + ".ids";
+    }
+
 
   if (this->pulsefile.is_open())
     std::cerr << "pulsefile already opened!\n";
@@ -106,10 +113,12 @@ void AsciiBackend::endAction(Context *ctx)
     this->pulsefile.close();
     if (this->pulsefile.fail())
       std::cerr << "WRONG, failbit or badbit detected!\n";
-    this->fname = "";
+    //this->fname = "";
   }
   else {
     //DBG//std::cout << "Nothing to be done is non operation context closing?\n";
+    if (ctx->getType()==CTX_PULSE_TYPE)
+    this->fname = "";
   }
 }
 
