@@ -156,11 +156,17 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 
 void AsciiBackend::beginAction(OperationContext *ctx)
 {
+  size_t n;
+
   // here we check that operation is in one of the supported modes
   if (ctx->getRangemode()==SLICE_OP)
     throw UALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
 
   this->idsname = ctx->getDataobjectName();
+  n = this->idsname.find("/");
+  if (n != std::string::npos) {
+    this->idsname = this->idsname.replace(n,1,"");
+  }
 
   if (this->fname.empty()) 
     {
