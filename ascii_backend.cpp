@@ -114,31 +114,25 @@ void AsciiBackend::openPulse(PulseContext *ctx,
     + std::to_string(ctx->getRun()); 
 
   std::stringstream ss;
-  std::string add;
   n = options.find("-prefix ");
   if (n != std::string::npos) {
+    this->prefix;
     ss << options.substr(n+8,options.length());
-    ss >> add;
-    this->dbname.insert(0,add);
+    ss >> this->prefix;
   }
 
   n = options.find("-suffix ");
-  add = "";
   ss.str("");
   if (n != std::string::npos) {
     ss << options.substr(n+8,options.length());
-    ss >> add;
-    this->dbname = this->dbname + add;
+    ss >> this->suffix;
   }
-  this->fname = "";
 
   n = options.find("-fullpath ");
-  add = "";
   ss.str("");
   if (n != std::string::npos) {
     ss << options.substr(n+10,options.length());
-    ss >> add;
-    this->fname = add;
+    ss >> this->fullpath;
   }
 }
 
@@ -149,7 +143,10 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 			 std::string options)
 {
   this->pulsefile.close();
-  //DBG//std::cout << "closePulse has currently no effect in ASCII backend!\n";
+  this->prefix = "";
+  this->suffix = "";
+  this->fullpath = "";
+  this->dbname = "";
 }
 
 
@@ -168,14 +165,23 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     this->idsname = this->idsname.replace(n,1,"");
   }
 
-  if (this->fname.empty()) 
-    {
-      this->fname = this->dbname + "_" + this->idsname + ".ids";
+  if (this->fullpath.empty()) {
+    if (this->fname.empty()) {
+      this->fname = this->prefix + this->dbname + "_" + this->idsname + 
+	this->suffix + ".ids";
     }
+    else {
+      throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
+    }
+  }
+  else
+    this->fname = this->fullpath;
 
 
-  if (this->pulsefile.is_open())
+  if (this->pulsefile.is_open()) {
     std::cerr << "pulsefile already opened!\n";
+    throw UALBackendException("pulsefile "+this->fname+" is already open",LOG);
+  }
 
   switch(ctx->getAccessmode()) {
   case READ_OP : 
@@ -210,17 +216,17 @@ void AsciiBackend::endAction(Context *ctx)
 {
   if (ctx->getType()==CTX_OPERATION_TYPE) {
     this->pulsefile.flush();
-    if (this->pulsefile.fail())
-      std::cerr << "WRONG, failbit or badbit detected!\n";
+    if (this->pulsefile.fail()) {
+      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+    }
     this->pulsefile.close();
-    if (this->pulsefile.fail())
-      std::cerr << "WRONG, failbit or badbit detected!\n";
-    //this->fname = "";
+    if (this->pulsefile.fail()) {
+      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+    }
+    this->fname = "";
   }
   else {
     //DBG//std::cout << "Nothing to be done is non operation context closing?\n";
-    if (ctx->getType()==CTX_PULSE_TYPE)
-      this->fname = "";
   }
 }
 
