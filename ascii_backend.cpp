@@ -334,18 +334,18 @@ void writeDataTemp(const T *data,
 {
   switch(dim){
   case 0:
-    pulsefile << std::scientific << data[0];
+    pulsefile << std::scientific << std::setprecision(16) << data[0];
     pulsefile << "\n";
     break;
   case 1:
     for (int i=0; i<size[0]; i++)
-      pulsefile << std::scientific << data[i] << " ";
+      pulsefile << std::scientific << std::setprecision(16) << data[i] << " ";
     pulsefile << "\n";
     break;
   case 2:
     for (int j=0; j<size[1]; j++) {
       for (int i=0; i<size[0]; i++) {
-	pulsefile << std::scientific << data[j*size[0]+i] << " ";
+	pulsefile << std::scientific << std::setprecision(16) << data[j*size[0]+i] << " ";
       }
       pulsefile << "\n";
     }
@@ -354,7 +354,7 @@ void writeDataTemp(const T *data,
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) {
 	for (int i=0; i<size[0]; i++) {
-	  pulsefile << std::scientific << data[k*size[0]*size[1]+j*size[0]+i] << " ";
+	  pulsefile << std::scientific << std::setprecision(16) << data[k*size[0]*size[1]+j*size[0]+i] << " ";
 	}
 	pulsefile << "\n";
       }
@@ -364,7 +364,7 @@ void writeDataTemp(const T *data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) {
 	  for (int i=0; i<size[0]; i++) {
-	    pulsefile << std::scientific << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	    pulsefile << std::scientific << std::setprecision(16) << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	  }
 	  pulsefile << "\n";
 	}
@@ -375,7 +375,7 @@ void writeDataTemp(const T *data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) {
 	    for (int i=0; i<size[0]; i++) {
-	      pulsefile << std::scientific << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	      pulsefile << std::scientific << std::setprecision(16) << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	    }
 	    pulsefile << "\n";
 	  }
@@ -387,7 +387,7 @@ void writeDataTemp(const T *data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) {
 	      for (int i=0; i<size[0]; i++) {
-		pulsefile << std::scientific << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		pulsefile << std::scientific << std::setprecision(16) << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	      }
 	      pulsefile << "\n";
 	    }
@@ -400,7 +400,7 @@ void writeDataTemp(const T *data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) {
 		for (int i=0; i<size[0]; i++) {
-		  pulsefile << std::scientific << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		  pulsefile << std::scientific << std::setprecision(16) << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 		}
 		pulsefile << "\n";
 	      }
