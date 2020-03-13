@@ -19,6 +19,8 @@
 
 #ifdef __cplusplus
 
+#include <vector>
+
 
 /**
    Abstract Backend class.
@@ -133,7 +135,7 @@ public:
 		       int* dim,
 		       int* size) = 0;
 
-  /*
+  /**
     Deletes data.
     This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
     given the passed context.
@@ -155,6 +157,26 @@ public:
 				      int *size) = 0;
 
 };
+
+
+extern "C" {
+
+/**
+  Function uses to extract options and store them in vector.
+  @param[in] string containing options separated by spaces (ex: "-verbose -silent -readonly")
+  @param[out] vector containing extracted options
+  @result number of options in vector
+*/
+LIBRARY_API int extractOptions(const std::string& strOptions, std::vector<std::string>& vecOptions);
+
+/**
+  Function uses to check in option is in vector.
+  @param[in] string containing option name
+  @param[in] vector containing options
+  @result true if option found in vector otherwise false
+*/
+LIBRARY_API bool isOptionExist(const std::string& strOption, const std::vector<std::string>& vecOptions);
+}
 
 #endif
 

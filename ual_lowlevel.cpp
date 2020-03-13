@@ -245,8 +245,16 @@ int ual_open_pulse(int pctxID, int mode, const char *options)
 {
   int status=0;
   bool verbose = true;
-  if (options!=NULL && strstr(options,"-silent"))
-    verbose = false;
+//  if (options!=NULL && strstr(options,"-silent"))
+//    verbose = false;
+  std::vector<std::string> vecOptions;
+  if (extractOptions(options, vecOptions) > 0)
+  {
+	  if (isOptionExist("silent", vecOptions))
+	  {
+		  verbose = false;
+	  }
+  }
 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);

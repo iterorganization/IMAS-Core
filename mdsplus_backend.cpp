@@ -681,7 +681,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
 	  }
 	}
-
+	
 	// set every MDSPLUS_TREE_BASE_n env. variable
     	for (i = 0; i < 10; i++) 
 	{
@@ -3128,11 +3128,24 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     {
  	  setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
     	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true);
+		  
+	  // Extract MDSplus options
+	  const char* szReadOnly = "READONLY";
+	  char szOption[256] = { 0 };
+	  std::vector<std::string> vecOptions;
+	  if (extractOptions(options, vecOptions) > 0)
+	  {
+		  if (isOptionExist("readonly", vecOptions))
+		  {
+			  strcpy(szOption, szReadOnly);
+		  }
+	  }
+	  
 	  switch(mode) {
 	    case ualconst::open_pulse:
 	    case ualconst::force_open_pulse:
 	          try {
-	              tree = new MDSplus::Tree("ids", shotNum); break;
+	              tree = new MDSplus::Tree("ids", shotNum, szOption); break;
 		  }catch(MDSplus::MdsException &exc)
 		  {
 		    throw  UALBackendException(exc.what(),LOG); 
@@ -3141,7 +3154,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    case ualconst::create_pulse:
 	    case ualconst::force_create_pulse:
 	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree("ids", -1);
+		      MDSplus::Tree *modelTree = new MDSplus::Tree("ids", -1, szReadOnly);
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
 		      tree = new MDSplus::Tree("ids", shotNum);	
