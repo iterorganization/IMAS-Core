@@ -316,6 +316,27 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
 /////////////////////METHODS
 
+    double *MDSplusBackend::getCachedTimebase(std::string timebasePath, int &nSamples)
+    {
+ 	try {
+	    std::vector<double> timebaseV = timebaseMap.at(timebasePath);
+	    nSamples = timebaseV.size();
+	    return timebaseV.data();
+	}
+ 	catch (const std::out_of_range& oor) {}
+	    return NULL;
+    }
+
+    void MDSplusBackend::updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples)
+    {
+	std::vector<double> timebaseV;
+	timebaseV.assign(timebase, timebase+nSamples);
+	timebaseMap[timebasePath] = timebaseV;
+    }
+
+
+	
+
     int MDSplusBackend::getTimebaseIdx(std::string dataobjectPath, std::string timebase, double time)
     {
 
@@ -388,37 +409,63 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
           int dims[64];
 	  int timebaseIdx;
 	  char *timebasePath;
+	  int numTimes;
+	  bool timebaseCached = true;
 
 	 //if timebase not passed (timed data of AoS, retrieve it from the dimension information of the first segment
 	 if(timebase == "")
 	 {
-	    try {
- 	    	MDSplus::Data *segDim = node->getSegmentDim(0); 
-	    	timebasePath = getPathInfo(segDim, node);
-	    	MDSplus::deleteData(segDim);
-	    }catch(MDSplus::MdsException &exc)
+
+ 	    try {
+	        std::string timebasePathStr = timebasePathMap.at(node->getNid());
+		timebasePath = new char[timebasePathStr.size() + 1];
+		strcpy(timebasePath, timebasePathStr.c_str());
+	    }
+ 	    catch (const std::out_of_range& oor) 
 	    {
-		return NULL;
+		try {
+			MDSplus::Data *segDim = node->getSegmentDim(0); 
+			timebasePath = getPathInfo(segDim, node);
+			MDSplus::deleteData(segDim);
+			timebasePathMap[node->getNid()] = std::string(timebasePath);
+		}catch(MDSplus::MdsException &exc)
+		{
+			return NULL;
+		}
 	    }
          }
          else
 	    timebasePath = NULL; 
 
 
-          int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
-	  if(!status) return 0;
-	  if(timebasePath) delete[]timebasePath;
-	  if (datatype != ualconst::double_data)
+	  if(timebasePath)
+	      times = getCachedTimebase(timebasePath, numTimes);
+	  else
+	      times = getCachedTimebase(dataobjectPath+timebase, numTimes);
+
+	  if(!times)
 	  {
-	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
-	      return 0;
+	      timebaseCached = false;
+	      int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
+	      if(!status) return 0;
+	      if (datatype != ualconst::double_data)
+	      {
+	      	  printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
+	          return 0;
+	       }
+	      if (numDims != 1 || dims[0] <= 0)
+	      {
+	          printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
+	          return 0;
+	      }
+	      numTimes = dims[0];
+	      if(timebasePath)
+	    	  updateCachedTimebase(timebasePath, times, numTimes);
+	      else
+	    	  updateCachedTimebase(dataobjectPath+timebase, times, numTimes);
+	      if(timebasePath) delete[]timebasePath;
 	  }
-	  if (numDims != 1 || dims[0] <= 0)
-	  {
-	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
-	      return 0;
-	  }
-	  int numTimes = dims[0];
+
 	  if(time <= times[0])
 	      timebaseIdx = 0;
 	  else if(time >= times[numTimes - 1])
@@ -455,7 +502,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 //	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
 	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
-	free(times);
+	if(!timebaseCached) free(times);
 	return retTimes;
     }
 
@@ -3591,7 +3638,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
   void MDSplusBackend::endAction(Context *inCtx)
   {
-    
+      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
+	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
+
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
 	  ArraystructContext *ctx = (ArraystructContext *)inCtx;

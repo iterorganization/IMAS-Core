@@ -229,6 +229,12 @@ class LIBRARY_API MDSplusBackend:public Backend
 	else
 	   beginWriteArraystruct(ctx, *size);
     }
+//Timebase cache
+    double *getCachedTimebase(std::string timebasePath, int &nSamples);
+
+    void updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples);
+    std::unordered_map<std::string, std::vector<double>> timebaseMap;
+    std::unordered_map<std::string, int> timebasePathMap;
     //Temporary
     void fullResetNodePath();
 
