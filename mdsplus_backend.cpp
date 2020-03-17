@@ -1,6 +1,6 @@
 #define NODENAME_MANGLING
 
-//#include <cstring>
+#include <cstring>
 #include <string.h>
 #include <pthread.h>
 

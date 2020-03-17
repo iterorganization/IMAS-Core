@@ -234,7 +234,7 @@ class LIBRARY_API MDSplusBackend:public Backend
 
     void updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples);
     std::unordered_map<std::string, std::vector<double>> timebaseMap;
-    std::unordered_map<std::string, int> timebasePathMap;
+    std::unordered_map<int, std::string> timebasePathMap;
     //Temporary
     void fullResetNodePath();
 
