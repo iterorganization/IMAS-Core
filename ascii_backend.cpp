@@ -1,6 +1,102 @@
 #include "ascii_backend.h"
 #include <typeinfo>
 #include <iomanip>
+#include <limits>
+
+
+
+// allow to read back "nans"
+// source: https://stackoverflow.com/questions/11420263/is-it-possible-to-read-infinity-or-nan-values-using-input-streams
+template <typename T>
+struct temp_istream
+{
+  std::istream &in;
+
+  temp_istream (std::istream &i) : in(i) {}
+
+  temp_istream & parse_on_fail (T &x, bool neg)
+  {
+    const char *exp[] = {"", "inf", "Inf", "NaN", "nan"};
+    const char *e = exp[0];
+    int l = 0;
+    char parsed[4];
+    char *c = parsed;
+    if (neg) *c++ = '-';
+    in.clear();
+    if (!(in >> *c).good()) return *this;
+
+    switch (*c)
+    {
+      case 'i': e = exp[l=1]; break;
+      case 'I': e = exp[l=2]; break;
+      case 'N': e = exp[l=3]; break;
+      case 'n': e = exp[l=4]; break;
+    }
+
+    while (*c == *e)
+    {
+      if ((e-exp[l]) == 2) break;
+      ++e;
+      if (!(in >> *++c).good()) break;
+    }
+
+    if (in.good() && *c == *e)
+    {
+      switch (l)
+      {
+        case 1: case 2: x = std::numeric_limits<T>::infinity(); break;
+        case 3: case 4: x = std::numeric_limits<T>::quiet_NaN(); break;
+      }
+      if (neg) x = -x;
+      return *this;
+    }
+    else if (!in.good())
+    {
+      if (!in.fail()) return *this;
+      in.clear(); --c;
+    }
+
+    do { in.putback(*c); } while (c-- != parsed);
+    in.setstate(std::ios_base::failbit);
+    return *this;
+  }
+
+  temp_istream & operator >> (T &x) {
+    bool neg = false;
+    char c;
+    if (!in.good()) return *this;
+    while (isspace(c = in.peek())) in.get();
+    if (c == '-') { neg = true; }
+    in >> x;
+    if (! in.fail()) return *this;
+    return parse_on_fail(x, neg);
+  }
+};
+
+template <typename T>
+struct temp_imanip
+{
+  mutable std::istream *in;
+
+  const temp_imanip<T> & operator >> (T &x) const
+  {
+    temp_istream<T>(*in) >> x;
+    return *this;
+  }
+
+  std::istream & operator >> (const temp_imanip &) const
+  {
+    return *in;
+  }
+};
+
+template <typename T>
+const temp_imanip<T> & operator >> (std::istream &in, const temp_imanip<T> &dm)
+{
+  dm.in = &in;
+  return dm;
+}
+
 
 
 AsciiBackend::AsciiBackend()
@@ -18,27 +114,25 @@ void AsciiBackend::openPulse(PulseContext *ctx,
     + std::to_string(ctx->getRun()); 
 
   std::stringstream ss;
-  std::string add;
-  n = options.find("-suffix ");
-  if (n != std::string::npos) {
-    ss << options.substr(n+8,options.length());
-    ss >> add;
-    this->dbname.insert(0,add);
-  }
-
   n = options.find("-prefix ");
   if (n != std::string::npos) {
+    this->prefix;
     ss << options.substr(n+8,options.length());
-    ss >> add;
-    this->dbname = this->dbname + add;
+    ss >> this->prefix;
   }
-  this->fname = "";
+
+  n = options.find("-suffix ");
+  ss.str("");
+  if (n != std::string::npos) {
+    ss << options.substr(n+8,options.length());
+    ss >> this->suffix;
+  }
 
   n = options.find("-fullpath ");
+  ss.str("");
   if (n != std::string::npos) {
     ss << options.substr(n+10,options.length());
-    ss >> add;
-    this->fname = add;
+    ss >> this->fullpath;
   }
 }
 
@@ -49,24 +143,45 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 			 std::string options)
 {
   this->pulsefile.close();
-  //DBG//std::cout << "closePulse has currently no effect in ASCII backend!\n";
+  this->prefix = "";
+  this->suffix = "";
+  this->fullpath = "";
+  this->dbname = "";
 }
 
 
 
 void AsciiBackend::beginAction(OperationContext *ctx)
 {
+  size_t n;
+
   // here we check that operation is in one of the supported modes
   if (ctx->getRangemode()==SLICE_OP)
     throw UALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
 
   this->idsname = ctx->getDataobjectName();
+  n = this->idsname.find("/");
+  if (n != std::string::npos) {
+    this->idsname = this->idsname.replace(n,1,"");
+  }
 
-  if (this->fname.empty())
-    this->fname = this->dbname + "_" + this->idsname + ".ids";
+  if (this->fullpath.empty()) {
+    if (this->fname.empty()) {
+      this->fname = this->prefix + this->dbname + "_" + this->idsname + 
+	this->suffix + ".ids";
+    }
+    else {
+      throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
+    }
+  }
+  else
+    this->fname = this->fullpath;
 
-  if (this->pulsefile.is_open())
+
+  if (this->pulsefile.is_open()) {
     std::cerr << "pulsefile already opened!\n";
+    throw UALBackendException("pulsefile "+this->fname+" is already open",LOG);
+  }
 
   switch(ctx->getAccessmode()) {
   case READ_OP : 
@@ -101,11 +216,13 @@ void AsciiBackend::endAction(Context *ctx)
 {
   if (ctx->getType()==CTX_OPERATION_TYPE) {
     this->pulsefile.flush();
-    if (this->pulsefile.fail())
-      std::cerr << "WRONG, failbit or badbit detected!\n";
+    if (this->pulsefile.fail()) {
+      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+    }
     this->pulsefile.close();
-    if (this->pulsefile.fail())
-      std::cerr << "WRONG, failbit or badbit detected!\n";
+    if (this->pulsefile.fail()) {
+      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+    }
     this->fname = "";
   }
   else {
@@ -211,24 +328,24 @@ void AsciiBackend::writeData(const char *data,
 
 template <typename T>
 void writeDataTemp(const T *data,
-			     int dim,
-			     int *size,
-				 std::fstream& pulsefile) 
+		   int dim,
+		   int *size,
+		   std::fstream& pulsefile) 
 {
   switch(dim){
   case 0:
-    pulsefile << std::scientific << data[0];
+    pulsefile << std::scientific << std::setprecision(16) << data[0];
     pulsefile << "\n";
     break;
   case 1:
     for (int i=0; i<size[0]; i++)
-      pulsefile << std::scientific << data[i] << " ";
+      pulsefile << std::scientific << std::setprecision(16) << data[i] << " ";
     pulsefile << "\n";
     break;
   case 2:
     for (int j=0; j<size[1]; j++) {
       for (int i=0; i<size[0]; i++) {
-	pulsefile << std::scientific << data[j*size[0]+i] << " ";
+	pulsefile << std::scientific << std::setprecision(16) << data[j*size[0]+i] << " ";
       }
       pulsefile << "\n";
     }
@@ -237,7 +354,7 @@ void writeDataTemp(const T *data,
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) {
 	for (int i=0; i<size[0]; i++) {
-	  pulsefile << std::scientific << data[k*size[0]*size[1]+j*size[0]+i] << " ";
+	  pulsefile << std::scientific << std::setprecision(16) << data[k*size[0]*size[1]+j*size[0]+i] << " ";
 	}
 	pulsefile << "\n";
       }
@@ -247,7 +364,7 @@ void writeDataTemp(const T *data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) {
 	  for (int i=0; i<size[0]; i++) {
-	    pulsefile << std::scientific << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	    pulsefile << std::scientific << std::setprecision(16) << data[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	  }
 	  pulsefile << "\n";
 	}
@@ -258,7 +375,7 @@ void writeDataTemp(const T *data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) {
 	    for (int i=0; i<size[0]; i++) {
-	      pulsefile << std::scientific << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+	      pulsefile << std::scientific << std::setprecision(16) << data[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	    }
 	    pulsefile << "\n";
 	  }
@@ -270,7 +387,7 @@ void writeDataTemp(const T *data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) {
 	      for (int i=0; i<size[0]; i++) {
-		pulsefile << std::scientific << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		pulsefile << std::scientific << std::setprecision(16) << data[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 	      }
 	      pulsefile << "\n";
 	    }
@@ -283,7 +400,7 @@ void writeDataTemp(const T *data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) {
 		for (int i=0; i<size[0]; i++) {
-		  pulsefile << std::scientific << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
+		  pulsefile << std::scientific << std::setprecision(16) << data[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] << " ";
 		}
 		pulsefile << "\n";
 	      }
@@ -403,32 +520,32 @@ void AsciiBackend::readData(char **data,
 
 template <typename T>
 void readDataTemp(T **data,
-			    int dim,
-			    int *size,
-				std::stringstream& curcontent) 
+		  int dim,
+		  int *size,
+		  std::stringstream& curcontent) 
 {
   switch(dim){
   case 0:
-    *data = static_cast<T*>(malloc(sizeof(T)));
-    curcontent >> std::scientific >> (*data)[0]; 
+    *data = static_cast<T*>(malloc(sizeof(T)));   
+    curcontent >> temp_imanip<T>() >> (*data)[0] >> temp_imanip<T>(); 
     break;
   case 1:
     *data = static_cast<T*>(malloc(size[0]*sizeof(T)));
     for (int i=0; i<size[0]; i++)
-      curcontent >> std::scientific >> (*data)[i];
+      curcontent >> temp_imanip<T>() >> (*data)[i] >> temp_imanip<T>();
     break;
   case 2: 
     *data = static_cast<T*>(malloc(size[0]*size[1]*sizeof(T)));
     for (int j=0; j<size[1]; j++) 
       for (int i=0; i<size[0]; i++) 
-	curcontent >> std::scientific >> (*data)[j*size[0]+i];
+	curcontent >> temp_imanip<T>() >> (*data)[j*size[0]+i] >> temp_imanip<T>();
     break;
   case 3:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*sizeof(T)));
     for (int k=0; k<size[2]; k++)
       for (int j=0; j<size[1]; j++) 
 	for (int i=0; i<size[0]; i++) 
-	  curcontent >> std::scientific >> (*data)[k*size[0]*size[1]+j*size[0]+i];
+	  curcontent >> temp_imanip<T>() >> (*data)[k*size[0]*size[1]+j*size[0]+i] >> temp_imanip<T>();
     break;
   case 4:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*sizeof(T)));
@@ -436,7 +553,7 @@ void readDataTemp(T **data,
       for (int k=0; k<size[2]; k++) 
 	for (int j=0; j<size[1]; j++) 
 	  for (int i=0; i<size[0]; i++) 
-	    curcontent >> std::scientific >> (*data)[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	    curcontent >> temp_imanip<T>() >> (*data)[l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] >> temp_imanip<T>();
     break;
   case 5:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*sizeof(T)));
@@ -445,7 +562,7 @@ void readDataTemp(T **data,
 	for (int k=0; k<size[2]; k++) 
 	  for (int j=0; j<size[1]; j++) 
 	    for (int i=0; i<size[0]; i++) 
-	      curcontent >> std::scientific >> (*data)[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+	      curcontent >> temp_imanip<T>() >> (*data)[m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] >> temp_imanip<T>();
     break;
   case 6:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*sizeof(T)));
@@ -455,7 +572,7 @@ void readDataTemp(T **data,
 	  for (int k=0; k<size[2]; k++) 
 	    for (int j=0; j<size[1]; j++) 
 	      for (int i=0; i<size[0]; i++) 
-		curcontent >> std::scientific >> (*data)[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		curcontent >> temp_imanip<T>() >> (*data)[n*size[4]*size[3]*size[2]*size[1]*size[0]+m*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] >> temp_imanip<T>();
     break;
   case 7:
     *data = static_cast<T*>(malloc(size[0]*size[1]*size[2]*size[3]*size[4]*size[5]*size[6]*sizeof(T)));
@@ -466,7 +583,7 @@ void readDataTemp(T **data,
 	    for (int k=0; k<size[2]; k++) 
 	      for (int j=0; j<size[1]; j++) 
 		for (int i=0; i<size[0]; i++) 
-		  curcontent >> std::scientific >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i];
+		  curcontent >> temp_imanip<T>() >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] >> temp_imanip<T>();
     break;
   default:
     throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
