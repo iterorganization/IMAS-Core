@@ -322,7 +322,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
  	try {
 	    std::vector<double> timebaseV = timebaseMap.at(timebasePath);
 	    nSamples = timebaseV.size();
-	    return timebaseV.data();
+	    double *retData = new double[nSamples];
+	    for(int i = 0; i < nSamples; i++)
+		retData[i] = timebaseV[i];
+	    return retData;
 	}
  	catch (const std::out_of_range& oor) {}
 	    return NULL;
@@ -444,7 +447,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	  else
 	      times = getCachedTimebase(dataobjectPath+timebase, numTimes);
 
-	  if(!times)
+	  if(!times) 
 	  {
 	      timebaseCached = false;
 	      int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
@@ -503,7 +506,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 //	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
 	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
-	if(!timebaseCached) free(times);
+	if(!timebaseCached) 
+	    free(times);
+	else
+	    delete[] times;
 	return retTimes;
     }
 
