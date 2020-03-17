@@ -3236,6 +3236,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			 int* size)
   {
     
+    timebaseMap.clear();
+
     switch(ctx->getRangemode()) {
       case ualconst::global_op:
 	if(timebase.empty())
@@ -3645,8 +3647,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
   void MDSplusBackend::endAction(Context *inCtx)
   {
-      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
-	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
+//      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
+//	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
 
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
