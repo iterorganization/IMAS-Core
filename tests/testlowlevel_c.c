@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 		
 		// Low Level
 		int iPulseCtx = -1;
-		al_status_t alStatus = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion);
+		al_status_t alStatus = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &iPulseCtx);
 		if (alStatus.code != 0)
 		{
 			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_pulse_action\n", iShot, iRun);
