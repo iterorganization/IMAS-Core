@@ -1,9 +1,10 @@
 #define NODENAME_MANGLING
-#include "mdsplus_backend.h"
 
-#include <cstring>
+//#include <cstring>
+#include <string.h>
 #include <pthread.h>
 
+#include "mdsplus_backend.h"
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
 //#define MDSPLUS_SEGMENT_SIZE 134144
@@ -283,7 +284,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
     int *dims;
     void *ptr;
 //printf("CHIAMO GETINFO %p\n", data);
-    if(!data) return "";
+    if(!data) return (char *)"";
     data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
     delete[] dims;
     switch (clazz) {
@@ -294,9 +295,9 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		if(currNode->getNid() != refNode->getNid())
 		    return currNode->getPath();
 	    }
-	    return "";
+	    return (char *)"";
 	case CLASS_A:
-	    return "";
+	    return (char *)"";
 	case CLASS_R:
 	    MDSplus::Compound *compData = (MDSplus::Compound *)data;
 	    for(int i = 0; i < compData->getNumDescs(); i++)
@@ -310,7 +311,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		}
 	    }
     } 
-    return "";
+    return (char *)"";
 }
 
 
