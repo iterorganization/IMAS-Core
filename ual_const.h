@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-typedef enum BACKEND
+enum BACKEND
 {
 	NO_BACKEND      = BACKEND_ID_0,
 	ASCII_BACKEND   = BACKEND_ID_0+1,
