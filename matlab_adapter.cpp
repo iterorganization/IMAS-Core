@@ -39,9 +39,12 @@ int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
  */
 int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size)
 {
-	int actxID;
-    ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size, &actxID);
-	return actxID;
+  int actxID;
+  al_status_t status = ual_begin_arraystruct_action(opCtx, fieldPath, timebasePath, size, &actxID);
+  if (status.code==0)
+    return actxID;
+  else
+    return status.code;
 }
 
 /**
