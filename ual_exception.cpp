@@ -52,6 +52,12 @@ const char * UALException::what() const throw() {
   return mesg.c_str();
 }
 
+void UALException::registerStatus(char *message, const char *func, const std::exception &e) { 
+  memset(message, ' ', MAX_ERR_MSG_LEN);
+  *((char *) mempcpy(message, 
+		     (std::string(func)+": "+e.what()).c_str(), 
+		     MAX_ERR_MSG_LEN)) = '\0';
+}
 
 
 

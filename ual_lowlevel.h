@@ -134,20 +134,29 @@ extern "C"
 
   /******************** DEFINITION OF THE C API ********************/
 
+  typedef struct 
+  {
+    int code;
+    char message[MAX_ERR_MSG_LEN];
+  } al_status_t;
+
+
   /**
-     Print all the Context information corresponding to the passed Context identifier.
+     Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
-     @result error status [_success if = 0 or failure if < 0_]
+     @param[out] info context info as a string
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API int ual_print_context(int ctx);
+  LIBRARY_API al_status_t ual_context_info(int ctx, char **info);
 
 
   /**
      Get backendID from the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
-     @result backendID [_or error status < 0_]
+     @param[out] beid backendID 
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API int ual_get_backendID(int ctx);
+  LIBRARY_API al_status_t ual_get_backendID(int ctx, int *beid);
 
 
 
@@ -161,14 +170,16 @@ extern "C"
      @param[in] user username [_optional, "" for default_]
      @param[in] tokamak tokamak name [_optional, "" for default_]
      @param[in] version data version [_optional, "" for default_]
-     @return pulse context id [_error status if < 0 or null context if = 0_]
+     @param[out] pctx pulse context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_begin_pulse_action(const int backendID, 
-			     const int shot, 
-			     const int run, 
-			     const char *user, 
-			     const char *tokamak, 
-			     const char *version);
+  LIBRARY_API al_status_t ual_begin_pulse_action(const int backendID, 
+						 const int shot, 
+						 const int run, 
+						 const char *user, 
+						 const char *tokamak, 
+						 const char *version,
+						 int *pctx);
 
   /**
      Opens a database entry.
@@ -181,11 +192,11 @@ extern "C"
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
      @param[in] options additional options, ex: "name=treename refShot=1 refRun=2"
      (possibly backend specific)
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_open_pulse(int pulseCtx, 
-		     int mode, 
-		     const char *options);
+  LIBRARY_API al_status_t ual_open_pulse(int pulseCtx, 
+					 int mode, 
+					 const char *options);
 
   /**
      Closes a database entry.
@@ -195,11 +206,11 @@ extern "C"
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
      @param[in] options additional options (possibly backend specific)
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_close_pulse(int pulseCtx, 
-		      int mode,
-		      const char *options);
+  LIBRARY_API al_status_t ual_close_pulse(int pulseCtx, 
+					  int mode,
+					  const char *options);
 
   /**
      Starts an I/O action on a DATAOBJECT.
@@ -209,11 +220,13 @@ extern "C"
      @param[in] rwmode mode for this operation:
      - READ_OP = read operation
      - WRITE_OP = write operation
-     @result operation context id [_error status if < 0 or null context if = 0_]
+     @param[out] opctx operation context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_begin_global_action(int ctx,
-			      const char *dataobjectname,
-			      int rwmode);
+  LIBRARY_API al_status_t ual_begin_global_action(int ctx,
+						  const char *dataobjectname,
+						  int rwmode,
+						  int *opctx);
 
   /**
      Starts an I/O action on a DATAOBJECT slice.
@@ -231,22 +244,24 @@ extern "C"
      - PREVIOUS_INTERP take the slice at the previous time
      - LINEAR_INTERP interpolate the slice between the values of the previous and next slice
      - UNDEFINED_INTERP if not relevant (for write operations)
-     @result operation context id [_error status if < 0 or null context if = 0_]
+     @param[out] opctx operation context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_begin_slice_action(int ctx,
-			     const char *dataobjectname,
-			     int rwmode,
-			     double time,
-			     int interpmode);
+  LIBRARY_API al_status_t ual_begin_slice_action(int ctx,
+						 const char *dataobjectname,
+						 int rwmode,
+						 double time,
+						 int interpmode,
+						 int *opctx);
 
   /**
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
      @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_end_action(int ctx); 
+  LIBRARY_API al_status_t ual_end_action(int ctx); 
 
   /**
      Writes data.
@@ -263,15 +278,15 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_write_data(int ctx,
-		     const char *fieldpath,
-		     const char *timebasepath,
-		     void *data,
-		     int datatype,
-		     int dim,
-		     int *size);
+  LIBRARY_API al_status_t ual_write_data(int ctx,
+					 const char *fieldpath,
+					 const char *timebasepath,
+					 void *data,
+					 int datatype,
+					 int dim,
+					 int *size);
 
   /**
      Reads data.
@@ -288,27 +303,26 @@ extern "C"
      - COMPLEX_DATA complex numbers
      @param[in] dim dimension of the data (0=scalar, 1=1D vector, etc... up to MAXDIM)
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_read_data(int ctx,
-		    const char *fieldpath,
-		    const char *timebasepath,
-		    void **data,
-		    int datatype,
-		    int dim,
-		    int *size);
+  LIBRARY_API al_status_t ual_read_data(int ctx,
+					const char *fieldpath,
+					const char *timebasepath,
+					void **data,
+					int datatype,
+					int dim,
+					int *size);
 
   /**
-    Deletes data.
-    This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
-    given the passed context.
-    @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action())
-    @param[in] path path of the data structure element to delete (suppress the whole subtree)
-    @result error status [_success if = 0 or failure if < 0_]
-  **/
-  LIBRARY_API int ual_delete_data(int ctx,
-		      const char *path);
-
+     Deletes data.
+     This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
+     given the passed context.
+     @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action())
+     @param[in] path path of the data structure element to delete (suppress the whole subtree)
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+  */
+  LIBRARY_API al_status_t ual_delete_data(int ctx,
+					  const char *path);
 
 
   /**
@@ -321,13 +335,14 @@ extern "C"
      @param[in] path path of array of structure (relative to ctx, or absolute if starts with "/")
      @param[in] timebase path of timebase associated with the array of structure 
      @param[in,out] size specify the size of the struct_array (number of elements)
-     @result array of structure context [_error status if < 0 or null context if = 0_]
+     @param[out] aosctx array of structure context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API int ual_begin_arraystruct_action(int ctx,
-				   const char *path,
-				   const char *timebase,
-				   int *size);
-
+  LIBRARY_API al_status_t ual_begin_arraystruct_action(int ctx,
+						       const char *path,
+						       const char *timebase,
+						       int *size,
+						       int *aosctx);
 
 
   /**
@@ -335,10 +350,10 @@ extern "C"
      This function updates the index pointing at the current element of interest within an array of structure.
      @param[in] aosctx array of structure Context
      @param[in] step iteration step size (typically=1)
-     @result error status [_success if = 0 or failure if < 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API int ual_iterate_over_arraystruct(int aosctx, 
-				   int step);
+  LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
+						       int step);
 
 
 #if defined(__cplusplus)
