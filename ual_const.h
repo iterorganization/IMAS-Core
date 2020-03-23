@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-typedef enum BACKEND
+enum BACKEND
 {
 	NO_BACKEND      = BACKEND_ID_0,
 	ASCII_BACKEND   = BACKEND_ID_0+1,
@@ -81,7 +81,7 @@ namespace ualconst {
   const std::array<std::string,3> op_access_str = {{"READ_OP","WRITE_OP","REPLACE_OP"}};
   const std::array<std::string,4> op_interp_str = {{"UNDEFINED_INTERP","CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP"}};
   const std::array<std::string,6> access_pulse_str = {{"OPEN_PULSE","FORCE_OPEN_PULSE","CREATE_PULSE","FORCE_CREATE_PULSE","CLOSE_PULSE","ERASE_PULSE"}};
-  const std::array<std::string,4> data_type_str = {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};;
+  const std::array<std::string,4> data_type_str = {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};
 }
 
 namespace ualerror {
