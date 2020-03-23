@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 #include <ual_lowlevel.h>
 
 #ifndef WIN32
@@ -42,7 +44,7 @@ bool ExtractOpt(char* pcOption, const char* szString)
 {
 	bool bRet = false;
 	
-	if (strlen(szString) >= 2 && (szString[0] == '/' || szString[0] == '-'))
+	if (strlen(szString) == 2 && (szString[0] == '/' || szString[0] == '-'))
 	{
 		*pcOption = szString[1];
 		bRet = true;
@@ -58,9 +60,17 @@ bool ExtractInt(char* pcOption, int* piValue, const char* szString)
 	
 	if (strlen(szString) >= 4 && (szString[0] == '/' || szString[0] == '-'))
 	{
-		*pcOption = szString[1];
-		*piValue = atoi(szString + 3);
-		bRet = true;
+		bool bDigit = true;
+		for (int i = 3; i < strlen(szString) && bDigit; i++)
+		{
+			bDigit = isdigit(szString[i]);
+		}
+		if (bDigit)
+		{
+			*pcOption = szString[1];
+			*piValue = atoi(szString + 3);
+			bRet = true;
+		}
 	}
 
 	return bRet;
@@ -229,6 +239,7 @@ int main(int argc, char *argv[])
 			if (alStatus.code == 0)
 			{
 				printf("Context info:\n%s\n", szInfo);
+				free(szInfo);
 			}
 			
 			alStatus = ual_open_pulse(iPulseCtx, iOpenAction, szParams);

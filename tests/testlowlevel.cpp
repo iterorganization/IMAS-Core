@@ -237,6 +237,7 @@ int main(int argc, char *argv[])
 			if (alStatus.code == 0)
 			{
 				printf("Context info:\n%s\n", szInfo);
+				free(szInfo);
 			}
 			
 			alStatus = ual_open_pulse(iPulseCtx, iOpenAction, szParams);

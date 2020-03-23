@@ -7,6 +7,7 @@ endif
 ## Adding DEBUG=yes to make command to print additional debug info
 DBGFLAGS= -g
 ifeq (${DEBUG},yes)
+DBGFLAGS+= -g3 -ggdb
 DBGFLAGS+= -DDEBUG
 endif
 ifeq (${STOPONEXCEPT},yes)

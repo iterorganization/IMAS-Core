@@ -15,7 +15,11 @@ SHELL=/bin/sh
 ## Adding DEBUG=yes to make command to print additional debug info
 DBGFLAGS= -g
 ifeq (${DEBUG},yes)
+DBGFLAGS+= -g3 -ggdb
 DBGFLAGS+= -DDEBUG
+OPTFLAG=-O0
+else
+OPTFLAG=-O3
 endif
 ifeq (${STOPONEXCEPT},yes)
 DBGFLAGS+= -DSOE
@@ -25,12 +29,12 @@ endif
 ifeq "$(strip $(CC))" "icc"
 ## intel compiler should be >= 13 to meet C++11 requirement
 CXX=icpc
-CFLAGS=-std=c99 -Wall -fPIC -O3 -shared-intel ${DBGFLAGS}
-CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O3 -fno-inline-functions -shared-intel ${DBGFLAGS}
+CFLAGS=-std=c99 -Wall -fPIC ${OPTFLAG} -shared-intel ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC ${OPTFLAG} -fno-inline-functions -shared-intel ${DBGFLAGS}
 LDF=ifort -lc -lstdc++
 else
-CFLAGS=-std=c11 -pedantic -Wall -fPIC -O3 ${DBGFLAGS}
-CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC -O3 -fno-inline-functions ${DBGFLAGS}
+CFLAGS=-std=c11 -pedantic -Wall -fPIC ${OPTFLAG} ${DBGFLAGS}
+CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC ${OPTFLAG} -fno-inline-functions ${DBGFLAGS}
 LDF=gfortran -lc -lstdc++
 endif
 
