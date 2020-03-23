@@ -74,7 +74,7 @@ bool ExtractString(char* pcOption, char* szValue, size_t sSize, const char* szSt
 	if (strlen(szString) >= 4 && (szString[0] == '/' || szString[0] == '-'))
 	{
 		*pcOption = szString[1];
-		strcpy_s(szValue, sSize, szValue + 3);
+		strcpy_s(szValue, sSize, szString + 3);
 		bRet = true;
 	}
 	
@@ -223,6 +223,13 @@ int main(int argc, char *argv[])
 		else
 		{
 			printf("Opening imas pulse action ctx %d OK!\n", iPulseCtx);
+			
+			char* szInfo = NULL;
+			alStatus = ual_context_info(iPulseCtx, &szInfo);
+			if (alStatus.code == 0)
+			{
+				printf("Context info:\n%s\n", szInfo);
+			}
 			
 			alStatus = ual_open_pulse(iPulseCtx, iOpenAction, szParams);
 			if (alStatus.code != 0)

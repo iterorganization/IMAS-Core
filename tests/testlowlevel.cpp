@@ -232,6 +232,13 @@ int main(int argc, char *argv[])
 		{
 			printf("Opening imas pulse action ctx %d OK!\n", iPulseCtx);
 			
+			char* szInfo = NULL;
+			alStatus = ual_context_info(iPulseCtx, &szInfo);
+			if (alStatus.code == 0)
+			{
+				printf("Context info:\n%s\n", szInfo);
+			}
+			
 			alStatus = ual_open_pulse(iPulseCtx, iOpenAction, szParams);
 			if (alStatus.code != 0)
 			{
