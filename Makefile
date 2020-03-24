@@ -7,7 +7,7 @@ include ../Makefile.common
 # ABI compatibility. This may be possible if the changes are only in the
 # implementation and do not change any function signatures or data structures.
 # N.B. this number is not tied to the AL major version number whatsoever.
-SO_NUM=4
+SO_NUM=5
 
 
 SHELL=/bin/sh

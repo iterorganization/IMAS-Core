@@ -2,7 +2,7 @@
 #define MATLAB_ADAPTER_H 1
 
 #include "ual_defs.h"
-#include <complex>
+#include "ual_lowlevel.h"
 #include <complex.h>
 
 #define LOG __FILE__,__LINE__
@@ -34,26 +34,6 @@ struct c_complex_struct {
 /* management 
 ********************************************************************************/
 
-LIBRARY_API int *mtl_getVect1DInt(int opCtx, const char *fieldPath, const char *timebasePath, int *dim, int *status);
-LIBRARY_API int *mtl_getVect1DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim, int* status);
-LIBRARY_API double *mtl_getVect1DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *status);
-LIBRARY_API double *mtl_getVect1DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim, int* status);
-LIBRARY_API double *mtl_getVect2DDouble(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *status);
-LIBRARY_API int *mtl_getVect2DIntFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int* status);
-LIBRARY_API double *mtl_getVect2DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int* status);
-LIBRARY_API double *mtl_getVect3DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *status);
-LIBRARY_API int *mtl_getVect3DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int* status);
-LIBRARY_API double *mtl_getVect3DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,  int *dim1, int *dim2, int *dim3, int* status);
-LIBRARY_API double *mtl_getVect4DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *status);
-LIBRARY_API int *mtl_getVect4DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int* status);
-LIBRARY_API double *mtl_getVect4DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int* status);
-LIBRARY_API double *mtl_getVect5DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *status);
-LIBRARY_API int *mtl_getVect5DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status);
-LIBRARY_API double *mtl_getVect5DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath,int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int* status);
-LIBRARY_API double *mtl_getVect6DDouble_wrapper(int opCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *status);
-LIBRARY_API int *mtl_getVect6DIntFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status);
-LIBRARY_API double *mtl_getVect6DDoubleFromObject_wrapper(int aosCtx, const char *fieldPath, const char *timebasePath, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int* status);
-
 LIBRARY_API int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,char *user, char *tokamak, char *version);
 LIBRARY_API int mtl_ual_create_env(const char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version);
 LIBRARY_API int mtl_ual_open_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, char *version);
@@ -75,20 +55,11 @@ LIBRARY_API int mtl_getInt(int opCtx, const char *fieldPath, const char *timebas
 LIBRARY_API int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath, double *data);
 LIBRARY_API int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim);
 LIBRARY_API int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath, char **data, int *dim1, int *dim2);
-LIBRARY_API int mtl_getVect2DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2);
-LIBRARY_API int mtl_getVect3DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3);
-LIBRARY_API int mtl_getVect3DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3);
-LIBRARY_API int mtl_getVect4DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3, int *dim4);
-LIBRARY_API int mtl_getVect4DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4);
-LIBRARY_API int mtl_getVect5DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5);
-LIBRARY_API int mtl_getVect5DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5);
-LIBRARY_API int mtl_getVect6DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6);
-LIBRARY_API int mtl_getVect6DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6);
-LIBRARY_API int mtl_getVect7DInt(int opCtx, const char *fieldPath, const char *timebasePath, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
-LIBRARY_API int mtl_getVect7DDouble(int opCtx, const char *fieldPath, const char *timebasePath, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6, int *dim7);
 LIBRARY_API int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, double *cpx_real, double *cpx_imag);
-//LIBRARY_API int* mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath, int ndim, int *status, double **array_real, double **array_imag);
 LIBRARY_API void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath, int ndim, int *status, struct c_complex_struct **st);
+LIBRARY_API double *mtl_getVectNDDouble(int ctx, const char *fieldPath, const char *timebasePath, int *shapes, int dim, int *status);
+LIBRARY_API int *mtl_getVectNDInt(int ctx, const char *fieldPath, const char *timebasePath, int *shapes, int dim, int *status);
+
 /* writers
 ********************************************************************************/
 
@@ -118,21 +89,6 @@ LIBRARY_API int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *time
 /* array of structure 
 ********************************************************************************/
 LIBRARY_API int mtl_ual_begin_arraystruct_action(int opCtx, const char *fieldPath, const char *timebasePath, int *size);
-
-/* array of structure readers 
-`********************************************************************************/
-LIBRARY_API int mtl_getIntFromObject(int aosCtx, const char *fieldPath, const char *timebase, int *data);
-LIBRARY_API int mtl_getDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebase, double *data);
-LIBRARY_API int mtl_getVect1DCharFromObject(int aosCtx, const char *fieldPath, const char *timebase, char **data, int *dim);
-LIBRARY_API int mtl_getVect2DCharFromObject(int aosCtx, const char *fieldPath, const char *timebase, char **data, int *dim1, int *dim2);
-LIBRARY_API int mtl_getVect3DIntFromObject(int aosCtx, const char *fieldPath, const char *timebase, int **data, int *dim1, int *dim2, int *dim3);
-LIBRARY_API int mtl_getVect4DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebase, double **data, int *dim1, int *dim2, int *dim3, int *dim4);
-LIBRARY_API int mtl_getVect3DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebase, double **data, int *dim1, int *dim2, int *dim3);
-LIBRARY_API int mtl_getVect4DIntFromObject(int aosCtx, const char *fieldPath, const char *timebase, int **data, int *dim1, int *dim2, int *dim3, int *dim4);
-LIBRARY_API int mtl_getVect5DIntFromObject(int aosCtx, const char *fieldPath, const char *timebase, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5);
-LIBRARY_API int mtl_getVect5DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebase, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5);
-LIBRARY_API int mtl_getVect6DIntFromObject(int aosCtx, const char *fieldPath, const char *timebase, int **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6);
-LIBRARY_API int mtl_getVect6DDoubleFromObject(int aosCtx, const char *fieldPath, const char *timebase, double **data, int *dim1, int *dim2, int *dim3, int *dim4, int *dim5, int *dim6);
 
 /* array of structure writers 
 ********************************************************************************/
