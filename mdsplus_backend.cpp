@@ -1,9 +1,10 @@
 #define NODENAME_MANGLING
-#include "mdsplus_backend.h"
 
 #include <cstring>
+#include <string.h>
 #include <pthread.h>
 
+#include "mdsplus_backend.h"
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
 //#define MDSPLUS_SEGMENT_SIZE 134144
@@ -283,7 +284,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
     int *dims;
     void *ptr;
 //printf("CHIAMO GETINFO %p\n", data);
-    if(!data) return "";
+    if(!data) return (char *)"";
     data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
     delete[] dims;
     switch (clazz) {
@@ -294,9 +295,9 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		if(currNode->getNid() != refNode->getNid())
 		    return currNode->getPath();
 	    }
-	    return "";
+	    return (char *)"";
 	case CLASS_A:
-	    return "";
+	    return (char *)"";
 	case CLASS_R:
 	    MDSplus::Compound *compData = (MDSplus::Compound *)data;
 	    for(int i = 0; i < compData->getNumDescs(); i++)
@@ -310,11 +311,35 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		}
 	    }
     } 
-    return "";
+    return (char *)"";
 }
 
 
 /////////////////////METHODS
+
+    double *MDSplusBackend::getCachedTimebase(std::string timebasePath, int &nSamples)
+    {
+ 	try {
+	    std::vector<double> timebaseV = timebaseMap.at(timebasePath);
+	    nSamples = timebaseV.size();
+	    double *retData = new double[nSamples];
+	    for(int i = 0; i < nSamples; i++)
+		retData[i] = timebaseV[i];
+	    return retData;
+	}
+ 	catch (const std::out_of_range& oor) {}
+	    return NULL;
+    }
+
+    void MDSplusBackend::updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples)
+    {
+	std::vector<double> timebaseV;
+	timebaseV.assign(timebase, timebase+nSamples);
+	timebaseMap[timebasePath] = timebaseV;
+    }
+
+
+	
 
     int MDSplusBackend::getTimebaseIdx(std::string dataobjectPath, std::string timebase, double time)
     {
@@ -388,37 +413,63 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
           int dims[64];
 	  int timebaseIdx;
 	  char *timebasePath;
+	  int numTimes;
+	  bool timebaseCached = true;
 
 	 //if timebase not passed (timed data of AoS, retrieve it from the dimension information of the first segment
 	 if(timebase == "")
 	 {
-	    try {
- 	    	MDSplus::Data *segDim = node->getSegmentDim(0); 
-	    	timebasePath = getPathInfo(segDim, node);
-	    	MDSplus::deleteData(segDim);
-	    }catch(MDSplus::MdsException &exc)
+
+ 	    try {
+	        std::string timebasePathStr = timebasePathMap.at(node->getNid());
+		timebasePath = new char[timebasePathStr.size() + 1];
+		strcpy(timebasePath, timebasePathStr.c_str());
+	    }
+ 	    catch (const std::out_of_range& oor) 
 	    {
-		return NULL;
+		try {
+			MDSplus::Data *segDim = node->getSegmentDim(0); 
+			timebasePath = getPathInfo(segDim, node);
+			MDSplus::deleteData(segDim);
+			timebasePathMap[node->getNid()] = std::string(timebasePath);
+		}catch(MDSplus::MdsException &exc)
+		{
+			return NULL;
+		}
 	    }
          }
          else
 	    timebasePath = NULL; 
 
 
-          int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
-	  if(!status) return 0;
-	  if(timebasePath) delete[]timebasePath;
-	  if (datatype != ualconst::double_data)
+	  if(timebasePath)
+	      times = getCachedTimebase(timebasePath, numTimes);
+	  else
+	      times = getCachedTimebase(dataobjectPath+timebase, numTimes);
+
+	  if(!times) 
 	  {
-	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
-	      return 0;
+	      timebaseCached = false;
+	      int status = readData(tree, dataobjectPath, timebase, (void **)&times, &datatype, &numDims, dims, timebasePath);
+	      if(!status) return 0;
+	      if (datatype != ualconst::double_data)
+	      {
+	      	  printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase %s / %s data type: %d status: %d\n", dataobjectPath.c_str(), timebase.c_str(), datatype, status);
+	          return 0;
+	       }
+	      if (numDims != 1 || dims[0] <= 0)
+	      {
+	          printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
+	          return 0;
+	      }
+	      numTimes = dims[0];
+	      if(timebasePath)
+	    	  updateCachedTimebase(timebasePath, times, numTimes);
+	      else
+	    	  updateCachedTimebase(dataobjectPath+timebase, times, numTimes);
+	      if(timebasePath) delete[]timebasePath;
 	  }
-	  if (numDims != 1 || dims[0] <= 0)
-	  {
-	      printf("INTERNAL ERROR in getTimebaseIdx: unexpected timebase dimension\n");
-	      return 0;
-	  }
-	  int numTimes = dims[0];
+
 	  if(time <= times[0])
 	      timebaseIdx = 0;
 	  else if(time >= times[numTimes - 1])
@@ -455,7 +506,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 //	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
 	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
-	free(times);
+	if(!timebaseCached) 
+	    free(times);
+	else
+	    delete[] times;
 	return retTimes;
     }
 
@@ -838,7 +892,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //		sprintf(nameBuf, "data(%s)[%d]", getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), 
 		sprintf(nameBuf, "data(%s)[%d]", segData.c_str(), timeStartSegmentOffset);
 		
-		MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *startTime = tree->tdiCompile(nameBuf);
+		//MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 
 
@@ -852,7 +907,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //		    getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 		    segData.c_str(), timeEndSegmentOffset);
 
-		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *endTime = tree->tdiCompile(nameBuf);
+//		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 
 		if(timeStartSegmentIdx == timeEndSegmentIdx) //Start and end times are in the same segment for times
@@ -890,7 +946,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 			timeStartSegmentOffset, timeSlicesPerSegment - 1, segPath.c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 		}
-		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *dimension = tree->tdiCompile(nameBuf);
+//		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
 		delete []nameBuf;
 
 		MDSplus::Data *slices;
@@ -1148,7 +1205,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    sprintf(nameBuf, "data(%s)[%d]", segData.c_str(), timeStartSegmentOffset);
 //		    sprintf(nameBuf, "data(%s)[%d]", getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset);
 		}
-	    	MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
+	    	MDSplus::Data *startTime = tree->tdiCompile(nameBuf);
+//	    	MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 		if(timePath == fullPath) //If writing time
 		{
@@ -1168,7 +1226,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			segData.c_str(), timeEndSegmentOffset);
 		}
 
-		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *endTime = tree->tdiCompile(nameBuf);
+//		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 		//Consistency check: timeStartSegmentIdx MUST be the same as timeEndSegmentIdx since the number 
 		//of elements in the time segments is ALWAYS a multiple of the number of elements in any data segment
@@ -1215,7 +1274,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    }
 		}
 
-		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *dimension = tree->tdiCompile(nameBuf);
+//		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 		node->beginSegment(startTime, endTime, dimension, (MDSplus::Array *)initData);
 		MDSplus::deleteData(initData);
@@ -1418,11 +1478,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      return 0;	      
 
 	    //Since the expression contains node reference, it is necessary to set the active tree
-	    setActiveTree(tree);
+	    //setActiveTree(tree);
 //	    if(path == "") //In case readSlice is called inside AoS
 	    if(isApd) //In case readSlice is called inside AoS
 	    {
-		setActiveTree(tree);
+		//setActiveTree(tree);
 
 		times = getSegmentIdxAndDim(node, dataobjectPath, timebase, time, segmentIdx, nTimes);
 /*
@@ -1919,13 +1979,16 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		nameBuf = new char[128 + currPath.size()];
 		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]",currPath.c_str(), baseSliceIdx);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]",mdsconvertPath(timePath.c_str()).c_str(), baseSliceIdx);
-		MDSplus::Data *start = MDSplus::compile(nameBuf, tree);
+//		MDSplus::Data *start = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *start = tree->tdiCompile(nameBuf);
 		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", currPath.c_str(), (int)sliceIdx - 1);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), (int)sliceIdx - 1);
-		MDSplus::Data *end = MDSplus::compile(nameBuf, tree);
+//		MDSplus::Data *end = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *end = tree->tdiCompile(nameBuf);
 		sprintf(nameBuf, "data(build_path(\'%s\'))[%d:%d]", currPath.c_str(), baseSliceIdx, (int)sliceIdx - 1);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d:%d]", mdsconvertPath(timePath.c_str()).c_str(), baseSliceIdx, (int)sliceIdx - 1);
-		MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
+//		MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
+		MDSplus::Data *dim = tree->tdiCompile(nameBuf);
 		delete[] nameBuf;
 		MDSplus::Data *segmentData = new MDSplus::Uint8Array(segment, segSize);
 		node->makeSegment(start, end, dim, (MDSplus::Array *)segmentData);
@@ -2022,10 +2085,12 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    char *nameBuf = new char[128+currTimePath.size()]; //TODO: Check size -- DONE
 		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", currTimePath.c_str(), endIdx+1);
 //		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), endIdx+1);
-		    endData = MDSplus::compile(nameBuf, tree);
+//		    endData = MDSplus::compile(nameBuf, tree);
+		    endData = tree->tdiCompile(nameBuf);
 //		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d : %d]", mdsconvertPath(timePath.c_str()).c_str(), startIdx, endIdx+1);
 		    sprintf(nameBuf, "data(build_path(\'%s\'))[%d : %d]", currTimePath.c_str(), startIdx, endIdx+1);
-		    MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
+//		    MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
+		    MDSplus::Data *dim = tree->tdiCompile(nameBuf);
 		    delete[] nameBuf;
 		    node->putSegment((MDSplus::Array *)segData, -1);
 		    node->updateSegment(numSegments - 1, startData, endData, dim);
@@ -2055,7 +2120,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    }
 	    char *nameBuf = new char[timePath.length() + 64];
 	    sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), sliceIdx);
-	    MDSplus::Data *startData = MDSplus::compile(nameBuf, tree);
+//	    MDSplus::Data *startData = MDSplus::compile(nameBuf, tree);
+	    MDSplus::Data *startData = tree->tdiCompile(nameBuf);
 	    delete [] nameBuf;
 	    //MDSplus::Data *startData = new MDSplus::Int32(sliceIdx);
 
@@ -3195,6 +3261,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			 int* size)
   {
     
+    timebaseMap.clear();
+
     switch(ctx->getRangemode()) {
       case ualconst::global_op:
 	if(timebase.empty())
@@ -3444,7 +3512,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
   MDSplus::Apd *MDSplusBackend::resolveApdTimedFields(MDSplus::Apd *apd)
   {
-      MDSplus::setActiveTree(tree);
+      //MDSplus::setActiveTree(tree);
       size_t numDescs = apd->len();
       MDSplus::Apd *retApd = new MDSplus::Apd();
       for(size_t i = 0; i < numDescs; i++)
@@ -3604,7 +3672,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
   void MDSplusBackend::endAction(Context *inCtx)
   {
-    
+//      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
+//	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
+
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
 	  ArraystructContext *ctx = (ArraystructContext *)inCtx;
