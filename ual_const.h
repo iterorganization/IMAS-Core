@@ -100,8 +100,29 @@ namespace ualerror {
 extern "C" {
 #endif
 
+
+/**
+   Returns the String of the passed integer type.
+   @result String of the type
+*/
 LIBRARY_API const char * type2str(int type);
+/**
+   Returns the String of the passed integer error.
+   @result String of the error
+*/
 LIBRARY_API const char * err2str(int err);
+
+/**
+   Returns the String of the UAL version.
+   @result String of the UAL version
+*/
+LIBRARY_API const char * getUALVersion();
+/**
+   Returns the String of Data Dictionary version.
+   @result String of the Data Dictionary version
+*/
+LIBRARY_API const char * getDDVersion();
+
 
 #if defined(__cplusplus)
 }

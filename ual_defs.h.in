@@ -1,15 +1,15 @@
 #ifndef UAL_DEFS_H
 #define UAL_DEFS_H 1
 
-#define MAXDIM 7
+#define MAXDIM                      7
 
-#define OP_INTERP_0 0
-#define BACKEND_ID_0 10
-#define OP_RANGE_0 20
-#define OP_ACCESS_0 30
-#define ACCESS_PULSE_0 40
-#define DATA_TYPE_0 50
-#define ERR_0 -1
+#define OP_INTERP_0                 0
+#define BACKEND_ID_0                10
+#define OP_RANGE_0                  20
+#define OP_ACCESS_0                 30
+#define ACCESS_PULSE_0              40
+#define DATA_TYPE_0                 50
+#define ERR_0                       -1
 
 #define TIMED                       1
 #define NON_TIMED                   0
@@ -46,5 +46,11 @@
 #define LOWLEVEL_ERR                ERR_0-3
 
 #define MAX_ERR_MSG_LEN             256
+
+/**
+   UAL and Data Dictionary version constants
+*/
+#define UAL_VERSION                 "@@UAL_VERSION@@"
+#define DD_VERSION                  "@@DD_VERSION@@"
 
 #endif // UAL_DEFS_H

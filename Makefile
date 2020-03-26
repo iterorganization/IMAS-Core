@@ -59,8 +59,11 @@ all sources sources_install install uninstall:
 	$(error No Makefile.$(SYSTEM) found for this system: $(UNAME_S))
 endif
 
+# ual_defs.h is mandatory to copy all targets
+all: ual_defs.h
+
 clean: pkgconfig_clean test_clean
-	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll
+	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll ual_defs.h
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
@@ -79,8 +82,14 @@ latex/files.tex html/files.html:
 clean-doc:
 	$(RM) -r latex html
 
+# Create ual_defs.h
+ual_defs.h: ual_defs.h.in
+	sed \
+		-e "s|@@UAL_VERSION@@|$(AL_SHORT_DESCRIBE)|g" \
+		-e "s|@@DD_VERSION@@|$(DD_SHORT_DESCRIBE)|g" \
+		$< > $@ 
 
-# Creates dependency files
+# Create dependency files
 %.d: %.c
 	@set -e; $(RM) $@; \
 	$(CC) -MM $(CFLAGS) $(INCLUDES) $< > $@.$$$$; \
@@ -108,5 +117,6 @@ printMDSplusFileVersion: printInfo.cpp
 
 # add pkgconfig pkgconfig_install targets
 PC_FILES = imas-lowlevel.pc
+
 #----------------------- pkgconfig ---------------------
 include ../Makefile.pkgconfig

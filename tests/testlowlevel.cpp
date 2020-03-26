@@ -108,6 +108,10 @@ int main(int argc, char *argv[])
 	char szVersion[1024] = "3";
 	char szParams[1024] = "";
 	
+	printf("UAL version:\t%s\n", getUALVersion());
+	printf("DD version:\t%s\n", getDDVersion());
+	printf("\n");
+	
 	for (int i = 1; i < argc; i++)
 	{
 		if (ExtractOpt(cOption, argv[i]))
