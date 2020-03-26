@@ -59,14 +59,11 @@ all sources sources_install install uninstall:
 	$(error No Makefile.$(SYSTEM) found for this system: $(UNAME_S))
 endif
 
-# ual_defs.h is mandatory to copy all targets
-all: ual_defs.h
-
 clean: pkgconfig_clean test_clean
-	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll ual_defs.h
+	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll
 
 clean-src: clean clean-doc
-	$(RM) *.d *~ $(INSTALL)/include/*.h
+	$(RM) *.d *~ ual_defs.h $(INSTALL)/include/*.h
 	$(RM) -r $(INSTALL)/documentation/dev
 
 test: $(TARGETS)
@@ -90,13 +87,13 @@ ual_defs.h: ual_defs.h.in
 		$< > $@ 
 
 # Create dependency files
-%.d: %.c
+%.d: %.c | ual_defs.h
 	@set -e; $(RM) $@; \
 	$(CC) -MM $(CFLAGS) $(INCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 
-%.d: %.cpp
+%.d: %.cpp | ual_defs.h
 	@set -e; $(RM) $@; \
 	$(CXX) -MM $(CXXFLAGS) $(CXXINCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -109,10 +106,10 @@ ual_defs.h: ual_defs.h.in
 printMDSplusFileVersion: printInfo.cpp
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $< $(LIBS)
 
-%.o: %.cpp
+%.o: %.cpp | ual_defs.h
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $<
 
-%.o: %.c
+%.o: %.c | ual_defs.h
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 # add pkgconfig pkgconfig_install targets

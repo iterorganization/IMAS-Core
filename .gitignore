@@ -18,3 +18,4 @@ pkgconfig_install
 *.a_install
 *.so_install
 /lowlevel
+ual_defs.h
