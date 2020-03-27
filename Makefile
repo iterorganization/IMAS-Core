@@ -79,6 +79,9 @@ latex/files.tex html/files.html:
 clean-doc:
 	$(RM) -r latex html
 
+# If only sources generation is requested
+sources: ual_defs.h
+
 # Create ual_defs.h
 ual_defs.h: ual_defs.h.in
 	sed \
@@ -87,13 +90,13 @@ ual_defs.h: ual_defs.h.in
 		$< > $@ 
 
 # Create dependency files
-%.d: %.c | ual_defs.h
+%.d: %.c | sources
 	@set -e; $(RM) $@; \
 	$(CC) -MM $(CFLAGS) $(INCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	$(RM) $@.$$$$
 
-%.d: %.cpp | ual_defs.h
+%.d: %.cpp | sources
 	@set -e; $(RM) $@; \
 	$(CXX) -MM $(CXXFLAGS) $(CXXINCLUDES) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
@@ -106,10 +109,10 @@ ual_defs.h: ual_defs.h.in
 printMDSplusFileVersion: printInfo.cpp
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $< $(LIBS)
 
-%.o: %.cpp | ual_defs.h
+%.o: %.cpp | sources
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $<
 
-%.o: %.c | ual_defs.h
+%.o: %.c | sources
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 # add pkgconfig pkgconfig_install targets

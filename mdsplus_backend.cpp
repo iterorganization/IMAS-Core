@@ -375,7 +375,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	          break;
           free(times);
 	  return retIdx;
-        }catch(MDSplus::MdsException exc)
+        }catch(MDSplus::MdsException& exc)
 	{
 	    printf("INTERNAL ERROR in getTimebaseIdx: %s\n", exc.what());
             return 0;
@@ -654,13 +654,23 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	treeNodeMap.clear();
     }
 
-    int MDSplusBackend::getMdsShot(int shot, int run, bool translate)
+    int MDSplusBackend::getMdsShot(int shot, int run, bool translate, std::string strTree)
     {
 	int runBunch = run/10000;
 
 	if(translate)
 	{
-	    char baseName[64];
+		char szPath[255] = { 0 };
+		if (strTree.length() > 0)
+		{
+			sprintf(szPath, "%s_path", strTree.c_str());
+		}
+		else
+		{
+			strcpy(szPath, "ids_path");
+		}
+		
+	    char baseName[64] = { 0 };
 	    sprintf(baseName, "MDSPLUS_TREE_BASE_%d", runBunch);
 	    char *translatedBase =  getenv(baseName);
 	    if(translatedBase && *translatedBase)	// There is a translation for MDSPLUS_TREE_BASE_XX
@@ -668,7 +678,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		std::string translatedBaseStr(translatedBase);
 		if(originalIdsPath == "")
 		{
-		    char *origPath = getenv("ids_path");
+		    char *origPath = getenv(szPath);
 		    if(origPath)
 		        originalIdsPath = origPath; 
 		}
@@ -680,10 +690,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		}
 #ifdef WIN32
 		char szEnv[256] = { 0 };
-		sprintf(szEnv, "ids_path=%s", translatedBaseStr.c_str());
+		sprintf(szEnv, "%s=%s", szPath, translatedBaseStr.c_str());
 		putenv(szEnv);
 #else // WIN32
-		setenv("ids_path",translatedBaseStr.c_str(),1);
+		setenv(szPath, translatedBaseStr.c_str(), 1);
 #endif // WIN32
 	    }
 	}
@@ -3192,26 +3202,38 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   void MDSplusBackend::openPulse(PulseContext *ctx,
 			 int mode, std::string options)
     {
- 	  setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
-    	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true);
-		  
-	  // Extract MDSplus options
+ 	  // Extract MDSplus options
 	  const char* szReadOnly = "READONLY";
 	  char szOption[256] = { 0 };
-	  std::vector<std::string> vecOptions;
-	  if (extractOptions(options, vecOptions) > 0)
+	  char szTree[256] = { 0 };
+	  
+	  // By default use "ids" tree name
+	  strcpy(szTree, "ids");
+	  
+	  std::string strValue;
+	  std::map<std::string, std::string> mapOptions;
+	  if (extractOptions(options, mapOptions) > 0)
 	  {
-		  if (isOptionExist("readonly", vecOptions))
+		  // Open tree in readonly mode requested? 
+		  if (isOptionExist("readonly", mapOptions, strValue))
 		  {
 			  strcpy(szOption, szReadOnly);
 		  }
+		  // Open a specific tree name?
+		  if (isOptionExist("ids", mapOptions, strValue) && strValue.length() > 0)
+		  {
+			  strcpy(szTree, strValue.c_str());
+		  }
 	  }
 	  
+	  setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
+    	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+		  
 	  switch(mode) {
 	    case ualconst::open_pulse:
 	    case ualconst::force_open_pulse:
 	          try {
-	              tree = new MDSplus::Tree("ids", shotNum, szOption); break;
+	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
 		  }catch(MDSplus::MdsException &exc)
 		  {
 		    throw  UALBackendException(exc.what(),LOG); 
@@ -3220,10 +3242,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    case ualconst::create_pulse:
 	    case ualconst::force_create_pulse:
 	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree("ids", -1, szReadOnly);
+		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szReadOnly);
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
-		      tree = new MDSplus::Tree("ids", shotNum);	
+		      tree = new MDSplus::Tree(szTree, shotNum);	
 		  }catch(MDSplus::MdsException &exc)
 		  {
 		    throw UALBackendException(exc.what(),LOG); 
@@ -3790,7 +3812,32 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
   }
 
+  std::string MDSplusBackend::getBackendDataVersion(PulseContext *ctx)
+  {
+	  char *version = nullptr;
+	  int datatype = CHAR_DATA;
+	  int numDims = 1;
+	  int dims[MAXDIM] = { 0 };
 
-
+	  /* Read from magnetics but the field is everywhere */
+	  int status = readData(tree, "magnetics/ids_properties/version_put/data_dictionary", "", (void **)&version, &datatype, &numDims, dims);
+	  if (!status)
+	  {
+	      throw UALBackendException("Unable to read backend data version", LOG);
+	  }
+	  else
+	  {
+	      if (datatype != ualconst::char_data)
+	      {
+	          throw UALBackendException("Unexpected Data Type", LOG);
+	      }
+	      else
+	      {
+			  std::string szVersion(version);
+			  free(version);
+	          return szVersion;
+	      }
+	  }
+  }
 
 

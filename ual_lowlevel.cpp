@@ -213,7 +213,7 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
     LLenv lle = Lowlevel::getLLenv(ctxID);
     *beid = lle.context->getBackendID();
   }
-  catch (const UALLowlevelException e) {
+  catch (const UALLowlevelException& e) {
     status.code = ualerror::lowlevel_err;
     UALException::registerStatus(status.message, __func__, e);
   }
@@ -260,10 +260,11 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
   bool verbose = true;
 //  if (options!=NULL && strstr(options,"-silent"))
 //    verbose = false;
-  std::vector<std::string> vecOptions;
-  if (extractOptions(options, vecOptions) > 0)
+  std::string strValue;
+  std::map<std::string, std::string> mapOptions;
+  if (extractOptions(options, mapOptions) > 0)
   {
-	  if (isOptionExist("silent", vecOptions))
+	  if (isOptionExist("silent", mapOptions, strValue))
 	  {
 		  verbose = false;
 	  }
@@ -657,5 +658,39 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
     UALException::registerStatus(status.message, __func__, e);
   }
 
+  return status;
+}
+
+
+al_status_t ual_read_data_dictionary_version(int pulseCtx, char **version)
+{
+  al_status_t status;
+  status.code = 0;
+  
+  try {
+    LLenv lle = Lowlevel::getLLenv(pulseCtx);
+    PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
+    
+    std::string strVersion = lle.backend->getBackendDataVersion(pctx);
+    
+    if (strVersion.length() > 0)
+    {
+        *version = (char*)malloc(sizeof(char) * strVersion.length());
+        strcpy(*version, strVersion.c_str());
+    }
+  }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  
   return status;
 }

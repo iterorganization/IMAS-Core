@@ -20,6 +20,7 @@
 #ifdef __cplusplus
 
 #include <vector>
+#include <map>
 
 
 /**
@@ -156,6 +157,18 @@ public:
   virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size) = 0;
 
+  /**
+     Get the version of Data Dictionnary used when data were stored.
+     The context has to be opened before calling this function.
+     @param[in] ctx pointer on pulse context
+     @result return DD version of data in actual context
+     @throw BackendException
+  */
+  virtual std::string getBackendDataVersion(PulseContext *ctx)
+  {
+    /* By default return currrent DD version */
+    return std::string(getDDVersion());
+  }
 };
 
 
@@ -163,19 +176,30 @@ extern "C" {
 
 /**
   Function uses to extract options and store them in vector.
-  @param[in] string containing options separated by spaces (ex: "-verbose -silent -readonly")
-  @param[out] vector containing extracted options
-  @result number of options in vector
+  @param[in] string containing options separated by spaces (ex: "-verbose -silent -readonly -ids=myids")
+  @param[out] map containing extracted options and optionnal values
+  @result number of options in map
 */
-LIBRARY_API int extractOptions(const std::string& strOptions, std::vector<std::string>& vecOptions);
+LIBRARY_API int extractOptions(const std::string& strOptions, std::map<std::string, std::string>& mapOptions);
 
 /**
   Function uses to check in option is in vector.
   @param[in] string containing option name
-  @param[in] vector containing options
-  @result true if option found in vector otherwise false
+  @param[in] map containing options and optionnal values
+  @param[out] optionnal value of the found option
+  @result true if option found in map otherwise false
 */
-LIBRARY_API bool isOptionExist(const std::string& strOption, const std::vector<std::string>& vecOptions);
+LIBRARY_API bool isOptionExist(const std::string& strOption, const std::map<std::string, std::string>& mapOptions, std::string& strValue);
+
+/**
+  Function uses to compare UAL or DD version.
+  The version format can be "x.y", "x.y.z", "x.y.z-www", "x.y.z_www", "x-y", "x-y-z" etc...
+  @param[in] string containing version V1
+  @param[in] string containing version V2
+  @result 0 if versions are equal, -1 if V1 > V2 and & if V1 < V2 
+*/
+LIBRARY_API int compareVersion(const std::string& strV1, const std::string& strV2);
+
 }
 
 #endif

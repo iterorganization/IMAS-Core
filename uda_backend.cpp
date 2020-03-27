@@ -430,3 +430,31 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
     }
 }
 
+std::string UDABackend::getBackendDataVersion(PulseContext *ctx)
+{
+	if (verbose) {
+        std::cout << "UDABackend getBackendDataVersion\n";
+    }
+
+    if (ctx_id == -1) {
+        throw UALException("invalid ctx_id", LOG);
+    }
+
+    std::stringstream ss;
+
+    ss << this->plugin
+       << "::getBackendDataVersion("
+       << "ctxId=" << ctx_id
+       << ")";
+
+    std::string directive = ss.str();
+
+    if (verbose) {
+        std::cout << "UDA directive: " << directive << "\n";
+    }
+    try {
+        uda_client.get(directive, "");
+    } catch (const uda::UDAException& ex) {
+        throw UALException(ex.what(), LOG);
+    }
+}

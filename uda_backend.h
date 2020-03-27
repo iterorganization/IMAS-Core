@@ -167,6 +167,8 @@ public:
 
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
+    virtual std::string getBackendDataVersion(PulseContext *ctx) override;
+
 };
 
 #endif

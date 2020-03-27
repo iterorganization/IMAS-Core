@@ -144,7 +144,7 @@ extern "C"
   /**
      Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
-     @param[out] info context info as a string
+     @param[out] info context info as a string -> NEED TO BE FREEED!!
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
   LIBRARY_API al_status_t ual_context_info(int ctx, char **info);
@@ -355,6 +355,16 @@ extern "C"
   LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
 						       int step);
 
+
+/**
+     Read the version of Data Dictionary used when data were stored.
+     The context has to be opened before calling this function.
+     @param[in] pulseCtx pulse context id (from ual_begin_pulse_action())
+     @param[out] version of DD -> NEED TO BE FREEED!!
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+  */
+  LIBRARY_API al_status_t ual_read_data_dictionary_version(int pulseCtx, char **version);
+  
 
 #if defined(__cplusplus)
 }

@@ -65,7 +65,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Data *assembleData(void *data, int datatype, int numDims, int *dims);
     MDSplus::Data *assembleStringData(void *data, int numDims, int *inDims, int expectedLen);
     void disassembleData(MDSplus::Data *data, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
-    int getMdsShot(int shot, int run, bool translate);
+    int getMdsShot(int shot, int run, bool translate, std::string strTree);
     void setDataEnv(const char *user, const char *tokamak, const char *version); 
     int getSliceNumItems(int numDims, int *dims);
     int getSliceSize(MDSplus::TreeNode *node, void *data, int datatype, int numDims, int *dims, bool isMultiple = true);
@@ -229,6 +229,9 @@ class LIBRARY_API MDSplusBackend:public Backend
 	else
 	   beginWriteArraystruct(ctx, *size);
     }
+
+    virtual std::string getBackendDataVersion(PulseContext *ctx);
+
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
 

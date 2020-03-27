@@ -163,12 +163,14 @@ public:
     virtual void deleteData(OperationContext *ctx,
 			  std::string path);
 			  
-    virtual void beginArraystructAction(ArraystructContext *ctx,
+	virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size);
 
   	virtual void endAction(Context *ctx);
-		
+
   	virtual void beginAction(OperationContext *ctx);
+
+	virtual std::string getBackendDataVersion(PulseContext *ctx);
 
 };
 

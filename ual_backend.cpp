@@ -16,6 +16,7 @@
 
 #include <regex>
 #include <vector>
+#include <map>
 #include <string>
 
 #if !defined(__GNUC__) && !defined(__clang__)
@@ -82,22 +83,20 @@ Backend* Backend::initBackend(int id)
   return be;
 }
 
-
-int extractOptions(const std::string& strOptions, std::vector<std::string>& vecOptions)
+int extractOptions(const std::string& strOptions, std::map<std::string, std::string>& mapOptions)
 {
 	int iRet = 0;
 	
+	mapOptions.clear();
+	
 	std::smatch rxResults;
 	std::regex rxOptions("\\s*([-/]?(\\w+))\\s*([=:]\\s*(\\w+))?\\s*");
-	
 	for (std::sregex_iterator i = std::sregex_iterator(strOptions.begin(), strOptions.end(), rxOptions); i != std::sregex_iterator(); ++i)
 	{
 		rxResults = *i;
 		if (rxResults.size() >= 4)
 		{
-			vecOptions.push_back(rxResults.str(2));
-			// For the future...
-			//vecValues.push_back(rxResults.str(4));
+			mapOptions[rxResults.str(2)] = rxResults.str(4);
 			iRet++;
 		}
 	}
@@ -105,15 +104,16 @@ int extractOptions(const std::string& strOptions, std::vector<std::string>& vecO
 	return iRet;
 }
 
-bool isOptionExist(const std::string& strOption, const std::vector<std::string>& vecOptions)
+bool isOptionExist(const std::string& strOption, const std::map<std::string, std::string>& mapOptions, std::string& strValue)
 {
 	bool bRet = false;
 	
-	std::vector<std::string>::const_iterator it = vecOptions.begin();
-	while (it != vecOptions.end() && !bRet)
+	std::map<std::string, std::string>::const_iterator it = mapOptions.begin();
+	while (it != mapOptions.end() && !bRet)
 	{
-		if (strcasecmp(strOption.c_str(), it->c_str()) == 0)
+		if (strcasecmp(strOption.c_str(), it->first.c_str()) == 0)
 		{
+			strValue = it->second;
 			bRet = true;
 		}
 		else
@@ -123,4 +123,52 @@ bool isOptionExist(const std::string& strOption, const std::vector<std::string>&
 	}
 	
 	return bRet;
+}
+
+int compareVersion(const std::string& strV1, const std::string& strV2)
+{
+	int iRet = 0;
+	
+	// Search for x.y or x.y.z with different separators
+	std::cmatch rxResults;
+	std::regex rxVersion("([_\\d]+)[.\\-_]([\\d]+)[.\\-_]?([\\d]*)");
+	
+	if (std::regex_match(strV1.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
+	{
+		int iX1 = atoi(rxResults[1].str().c_str());
+		int iY1 = atoi(rxResults[2].str().c_str());
+		int iZ1 = atoi(rxResults[3].str().c_str());
+		
+		if (std::regex_match(strV2.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
+		{
+			int iX2 = atoi(rxResults[1].str().c_str());
+			int iY2 = atoi(rxResults[2].str().c_str());
+			int iZ2 = atoi(rxResults[3].str().c_str());
+			
+			if (iX1 == iX2)
+			{
+				if (iY1 == iY2)
+				{
+					if (iZ1 == iZ2)
+					{
+						iRet = 0;
+					}
+					else
+					{
+						iRet = iZ1 > iZ2 ? -1 : 1;
+					}
+				}
+				else
+				{
+					iRet = iY1 > iY2 ? -1 : 1;
+				}
+			}
+			else
+			{
+				iRet = iX1 > iX2 ? -1 : 1;
+			}
+		}
+	}
+	
+	return iRet;
 }
