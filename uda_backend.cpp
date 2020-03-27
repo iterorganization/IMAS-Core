@@ -432,6 +432,8 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
 
 std::string UDABackend::getBackendDataVersion(PulseContext *ctx)
 {
+	std::string strRet;
+	
 	if (verbose) {
         std::cout << "UDABackend getBackendDataVersion\n";
     }
@@ -453,7 +455,21 @@ std::string UDABackend::getBackendDataVersion(PulseContext *ctx)
         std::cout << "UDA directive: " << directive << "\n";
     }
     try {
-        uda_client.get(directive, "");
+        const uda::Result& result = uda_client.get(directive, "");
+        uda::Data* uda_data = result.data();
+        if (uda_data->type() == typeid(char*)) {
+            char *version = (char*)malloc(uda_data->byte_length() + 1);
+            memcpy(version, uda_data->byte_data(), uda_data->byte_length());
+            char n = '\0';
+            memcpy(version + uda_data->byte_length(), &n, sizeof(char));
+			strRet = version;
+			free(version);
+			
+			return strRet;
+        } else {
+            throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
+        }
+
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
