@@ -146,7 +146,7 @@ if( BUILD_SHARED_LIBS )
 	  IMPORT_SUFFIX ".dll.lib"
   )
   
-  ExportBinDef( lowlevel-shared ${CMAKE_CURRENT_BINARY_DIR} Imp_ )
+  ExportBinDef( lowlevel-shared ${CMAKE_CURRENT_BINARY_DIR} lowlevel )
 endif()
 
 
@@ -170,7 +170,7 @@ install( FILES ${HEADER_FILES}
 
 if( BUILD_SHARED_LIBS )
   # Extract Release target path to get all dependent libraries for installation
-  #get_target_property( MY_BINARY_LOCATION Imp_lowlevel-shared IMPORTED_LOCATION_RELEASE )
+  #get_target_property( MY_BINARY_LOCATION lowlevel::lowlevel-shared IMPORTED_LOCATION_RELEASE )
   #ListDependencies( ${MY_BINARY_LOCATION} OFF lowlevel-shared_lists )
   
   if( IMAS_MDSPLUS )

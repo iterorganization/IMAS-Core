@@ -1,6 +1,8 @@
 #include "ual_exception.h"
 
-
+#if defined(_MSC_VER)
+#  define mempcpy memcpy
+#endif
 
 /// UALException ///
 

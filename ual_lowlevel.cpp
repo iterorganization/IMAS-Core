@@ -6,6 +6,9 @@
 
 #include <signal.h>
 
+#if defined(_MSC_VER)
+#  define mempcpy memcpy
+#endif
 
 // c++ only part
 #if defined(__cplusplus)
