@@ -175,7 +175,7 @@ public:
 extern "C" {
 
 /**
-  Function uses to extract options and store them in vector.
+  Function uses to extract options and store them in map.
   @param[in] string containing options separated by spaces (ex: "-verbose -silent -readonly -ids=myids")
   @param[out] map containing extracted options and optionnal values
   @result number of options in map
@@ -183,7 +183,7 @@ extern "C" {
 LIBRARY_API int extractOptions(const std::string& strOptions, std::map<std::string, std::string>& mapOptions);
 
 /**
-  Function uses to check in option is in vector.
+  Function uses to check in option is in map.
   @param[in] string containing option name
   @param[in] map containing options and optionnal values
   @param[out] optionnal value of the found option
@@ -196,7 +196,7 @@ LIBRARY_API bool isOptionExist(const std::string& strOption, const std::map<std:
   The version format can be "x.y", "x.y.z", "x.y.z-www", "x.y.z_www", "x-y", "x-y-z" etc...
   @param[in] string containing version V1
   @param[in] string containing version V2
-  @result 0 if versions are equal, -1 if V1 > V2 and & if V1 < V2 
+  @result 0 if versions are equal, -1 if V1 > V2 and 1 if V1 < V2
 */
 LIBRARY_API int compareVersion(const std::string& strV1, const std::string& strV2);
 
