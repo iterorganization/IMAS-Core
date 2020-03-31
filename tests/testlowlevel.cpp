@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 			
 			char* szInfo = NULL;
 			alStatus = ual_context_info(iPulseCtx, &szInfo);
-			if (alStatus.code == 0)
+			if (alStatus.code == 0 && szInfo)
 			{
 				printf("Context info:\n%s\n", szInfo);
 				free(szInfo);
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
 						}
 						else
 						{
-							printf("Reading string imas global ctx %d OK! -> %s\n", iGetOpCtx, szTemp);
+							printf("Reading string imas global ctx %d OK! -> %.*s\n", iGetOpCtx, retSize[0], szTemp);
 							free(szTemp);
 						}
 						
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
 				printf("Reading version...\n");
 				char* szDDVersion = NULL;
 				alStatus = ual_read_data_dictionary_version(iPulseCtx, &szDDVersion);
-				if (alStatus.code == 0) 
+				if (alStatus.code == 0 && szDDVersion)
 				{
 					printf("DD version:\t%s\n", szDDVersion);
 					

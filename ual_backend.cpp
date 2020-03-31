@@ -129,43 +129,46 @@ int compareVersion(const std::string& strV1, const std::string& strV2)
 {
 	int iRet = 0;
 	
-	// Search for x.y or x.y.z with different separators
-	std::cmatch rxResults;
-	std::regex rxVersion("([_\\d]+)[.\\-_]([\\d]+)[.\\-_]?([\\d]*)");
-	
-	if (std::regex_match(strV1.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
+	if (strV1.length() > 0 && strV2.length() > 0)
 	{
-		int iX1 = atoi(rxResults[1].str().c_str());
-		int iY1 = atoi(rxResults[2].str().c_str());
-		int iZ1 = atoi(rxResults[3].str().c_str());
+		// Search for x.y or x.y.z with different separators
+		std::cmatch rxResults;
+		std::regex rxVersion("([_\\d]+)[.\\-_]([\\d]+)[.\\-_]?([\\d]*)");
 		
-		if (std::regex_match(strV2.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
+		if (std::regex_match(strV1.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
 		{
-			int iX2 = atoi(rxResults[1].str().c_str());
-			int iY2 = atoi(rxResults[2].str().c_str());
-			int iZ2 = atoi(rxResults[3].str().c_str());
+			int iX1 = atoi(rxResults[1].str().c_str());
+			int iY1 = atoi(rxResults[2].str().c_str());
+			int iZ1 = atoi(rxResults[3].str().c_str());
 			
-			if (iX1 == iX2)
+			if (std::regex_match(strV2.c_str(), rxResults, rxVersion) && rxResults.size() == 4)
 			{
-				if (iY1 == iY2)
+				int iX2 = atoi(rxResults[1].str().c_str());
+				int iY2 = atoi(rxResults[2].str().c_str());
+				int iZ2 = atoi(rxResults[3].str().c_str());
+				
+				if (iX1 == iX2)
 				{
-					if (iZ1 == iZ2)
+					if (iY1 == iY2)
 					{
-						iRet = 0;
+						if (iZ1 == iZ2)
+						{
+							iRet = 0;
+						}
+						else
+						{
+							iRet = iZ1 > iZ2 ? -1 : 1;
+						}
 					}
 					else
 					{
-						iRet = iZ1 > iZ2 ? -1 : 1;
+						iRet = iY1 > iY2 ? -1 : 1;
 					}
 				}
 				else
 				{
-					iRet = iY1 > iY2 ? -1 : 1;
+					iRet = iX1 > iX2 ? -1 : 1;
 				}
-			}
-			else
-			{
-				iRet = iX1 > iX2 ? -1 : 1;
 			}
 		}
 	}

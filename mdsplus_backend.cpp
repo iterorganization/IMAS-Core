@@ -3242,7 +3242,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    case ualconst::create_pulse:
 	    case ualconst::force_create_pulse:
 	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szReadOnly);
+		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szOption);
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
 		      tree = new MDSplus::Tree(szTree, shotNum);	
@@ -3827,16 +3827,23 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  }
 	  else
 	  {
-	      if (datatype != ualconst::char_data)
-	      {
-	          throw UALBackendException("Unexpected Data Type", LOG);
-	      }
-	      else
-	      {
-			  std::string szVersion(version);
-			  free(version);
-	          return szVersion;
-	      }
+		  if (datatype != ualconst::char_data)
+		  {
+			  throw UALBackendException("Unexpected Data Type", LOG);
+		  }
+		  else
+		  {
+			  if (dims[0] == 0)
+			  {
+				  throw UALBackendException("Unexpected Data Length", LOG);
+			  }
+			  else
+			  {
+				  std::string strVersion(version);
+				  free(version);
+				  return strVersion;
+			  }
+		  }
 	  }
   }
 
