@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <complex.h>
+#include <algorithm>
 
 #include <signal.h>
 
@@ -77,25 +78,31 @@ LLenv Lowlevel::delLLenv(int idx)
   return lle;
 }
 
-void Lowlevel::setScalarValue(void *data, int type, void **var)
+void Lowlevel::setValue(void *data, int type, int dim, void **var)
 {
-  switch(type)
+  if (dim==0) 
     {
-    case ualconst::char_data:
-      **(char **)var = *(char*)data;
-      break;
-    case ualconst::integer_data:
-      **(int**)var = *(int*)data;
-      break;
-    case ualconst::double_data:
-      **(double**)var = *(double*)data;
-      break;
-    case ualconst::complex_data:
-      **(std::complex<double>**)var = *(std::complex<double>*)data;
-      break;
-    default:
-      throw UALLowlevelException("Unknown data type="+std::to_string(type),LOG);
+      switch(type)
+	{
+	case ualconst::char_data:
+	  **(char **)var = *(char*)data;
+	  break;
+	case ualconst::integer_data:
+	  **(int**)var = *(int*)data;
+	  break;
+	case ualconst::double_data:
+	  **(double**)var = *(double*)data;
+	  break;
+	case ualconst::complex_data:
+	  **(std::complex<double>**)var = *(std::complex<double>*)data;
+	  break;
+	default:
+	  throw UALLowlevelException("Unknown data type="+std::to_string(type),LOG);
+	}
+      free(data);
     }
+  else
+    *var = data;
 }
 
 void Lowlevel::setDefaultValue(int type, int dim, void **var, int *size)
@@ -128,6 +135,77 @@ void Lowlevel::setDefaultValue(int type, int dim, void **var, int *size)
 	size[i] = 0;
     }
 }
+
+template <typename From>
+void* Lowlevel::convertData(From* data, size_t size, int desttype)
+{
+  switch (desttype)
+    {
+    case ualconst::char_data:
+      {
+	char* convdata = (char*)malloc(size*sizeof(char));
+	std::copy_n(data, size, convdata);
+	return (void*)convdata;
+      }
+    case ualconst::integer_data:
+      {
+	int* convdata = (int*)malloc(size*sizeof(int));
+	std::copy_n(data, size, convdata);
+	return (void*)convdata;
+      }
+    case ualconst::double_data:
+      {
+	double* convdata = (double*)malloc(size*sizeof(double));
+	std::copy_n(data, size, convdata);
+	return (void*)convdata;
+      }
+    case ualconst::complex_data:
+      {
+	std::complex<double>* convdata = (std::complex<double>*)malloc(size*sizeof(std::complex<double>));
+	std::copy_n(data, size, convdata);
+	return (void*)convdata;
+      }
+    default:
+      throw UALLowlevelException("Unknown data type="+std::to_string(desttype),LOG);
+    }
+}
+
+void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, int desttype, void** var)
+{
+  void* convdata;
+  size_t totsize = 0;
+
+  for (int i=0; i<dim; i++)
+    totsize+=size[i];
+  
+  switch (srctype) {
+  case ualconst::char_data:
+    convdata = Lowlevel::convertData((char*)data,totsize,desttype);
+    Lowlevel::setValue(convdata,desttype,dim,var);
+    break;
+      
+  case ualconst::integer_data:
+    convdata = Lowlevel::convertData((int*)data,totsize,desttype);
+    Lowlevel::setValue(convdata,desttype,dim,var);
+    break;
+
+  case ualconst::double_data:
+    convdata = Lowlevel::convertData((double*)data,totsize,desttype);
+    Lowlevel::setValue(convdata,desttype,dim,var);
+    break;
+    
+  case ualconst::complex_data:
+    // can't convert, set default
+    Lowlevel::setDefaultValue(desttype, dim, var, size);
+    break;
+  }
+
+  free(data);
+}
+
+
+
+
 
 int Lowlevel::beginPulseAction(int backendID, int shot, int run, 
 			       std::string usr, std::string tok, std::string ver)
@@ -503,20 +581,16 @@ al_status_t ual_read_data(int ctxID, const char *field, const char *timebase,
 	  }
 	else if (retType!=datatype)
 	  {
-	    std::cerr << "Warning: " << lle.context->fullPath() << "/" << field
-		      << " returned with type " 
-		      << ualconst::data_type_str.at(retType-DATA_TYPE_0) 
-		      << " while we expect type " 
-		      << ualconst::data_type_str.at(datatype-DATA_TYPE_0) 
-		      << "\n";
+	    Lowlevel::setConvertedValue(retData, retType, retDim, size, datatype, data);
+	    UALException::registerStatus(status.message, __func__,
+					 UALLowlevelException("Warning: "+lle.context->fullPath()+
+							      "/"+field+" returned with type "+
+							      ualconst::data_type_str.at(retType-DATA_TYPE_0)+
+							      " while we expect type "+
+							      ualconst::data_type_str.at(datatype-DATA_TYPE_0)+"\n"));
 	  }
-	else if (dim==0) 
-	  {
-	    Lowlevel::setScalarValue(retData, datatype, data);
-	    free(retData);
-	  }
-	else
-	  *data = retData;
+	else 
+	  Lowlevel::setValue(retData, datatype, dim, data);
       }
   }
   catch (const UALBackendException& e) {
