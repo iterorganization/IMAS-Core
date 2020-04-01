@@ -3203,9 +3203,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			 int mode, std::string options)
     {
  	  // Extract MDSplus options
+	  const char* szNormal = "NORMAL";
 	  const char* szReadOnly = "READONLY";
 	  char szOption[256] = { 0 };
 	  char szTree[256] = { 0 };
+	  
+	  // By default use "NORMAL" mode
+	  strcpy(szOption, szNormal);
 	  
 	  // By default use "ids" tree name
 	  strcpy(szTree, "ids");
@@ -3242,10 +3246,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    case ualconst::create_pulse:
 	    case ualconst::force_create_pulse:
 	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szOption);
+		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szReadOnly);
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
-		      tree = new MDSplus::Tree(szTree, shotNum);	
+		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
 		  }catch(MDSplus::MdsException &exc)
 		  {
 		    throw UALBackendException(exc.what(),LOG); 
