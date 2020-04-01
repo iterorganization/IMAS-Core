@@ -265,12 +265,12 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
 //    verbose = false;
   std::string strValue;
   std::map<std::string, std::string> mapOptions;
-  if (extractOptions(options, mapOptions) > 0)
+  if (options && extractOptions(options, mapOptions) > 0)
   {
-	  if (isOptionExist("silent", mapOptions, strValue))
-	  {
-		  verbose = false;
-	  }
+    if (isOptionExist("silent", mapOptions, strValue))
+    {
+      verbose = false;
+    }
   }
 
   status.code = 0;
@@ -280,9 +280,14 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
+    std::string strOptions;
+    if (options)
+    {
+      strOptions = options;
+    }
     lle.backend->openPulse(pctx,
 			   mode,
-			   options);
+			   strOptions);
   }
   catch (const UALBackendException& e) {
     status.code = ualerror::backend_err;
@@ -665,7 +670,7 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
 }
 
 
-al_status_t ual_read_data_dictionary_version(int pulseCtx, char **version)
+al_status_t ual_read_data_dictionary_version(int pulseCtx, const char *ids, char **version)
 {
   al_status_t status;
   status.code = 0;
@@ -674,12 +679,17 @@ al_status_t ual_read_data_dictionary_version(int pulseCtx, char **version)
     LLenv lle = Lowlevel::getLLenv(pulseCtx);
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
     
-    std::string strVersion = lle.backend->getBackendDataVersion(pctx);
+    std::string strIds;
+    if (ids)
+    {
+      strIds = ids;
+    }
+    std::string strVersion = lle.backend->getBackendDataVersion(pctx, strIds);
     
     if (strVersion.length() > 0)
     {
-        *version = (char*)malloc(sizeof(char) * (strVersion.length() + 1));
-        *((char*)mempcpy(*version, strVersion.c_str(), strVersion.length())) = '\0';
+      *version = (char*)malloc(sizeof(char) * (strVersion.length() + 1));
+      *((char*)mempcpy(*version, strVersion.c_str(), strVersion.length())) = '\0';
     }
   }
   catch (const UALContextException& e) {

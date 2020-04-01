@@ -3816,15 +3816,25 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
   }
 
-  std::string MDSplusBackend::getBackendDataVersion(PulseContext *ctx)
+  std::string MDSplusBackend::getBackendDataVersion(PulseContext *ctx, const std::string& ids)
   {
 	  char *version = nullptr;
 	  int datatype = CHAR_DATA;
 	  int numDims = 1;
 	  int dims[MAXDIM] = { 0 };
-
-	  /* Read from magnetics but the field is everywhere */
-	  int status = readData(tree, "magnetics/ids_properties/version_put/data_dictionary", "", (void **)&version, &datatype, &numDims, dims);
+	  
+	  // Get version of IDS if specified, otherwise get root version
+	  std::string strPath;
+	  if (ids.length() > 0)
+	  {
+		  strPath = ids + "/ids_properties/version_put/data_dictionary";
+	  }
+	  else
+	  {
+		  strPath = "version/data_dict";
+	  }
+	  
+	  int status = readData(tree, strPath, "", (void **)&version, &datatype, &numDims, dims);
 	  if (!status)
 	  {
 	      throw UALBackendException("Unable to read backend data version", LOG);
@@ -3837,7 +3847,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 		  else
 		  {
-			  if (dims[0] == 0)
+			  if (dims[0] == 0 || dims[0] > 10)
 			  {
 				  throw UALBackendException("Unexpected Data Length", LOG);
 			  }

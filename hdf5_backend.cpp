@@ -62,7 +62,7 @@ void HDF5Backend::beginAction(OperationContext *ctx)
 	throw UALBackendException("beginAction method has to be completed for HDF5 Backend",LOG);
 }
 
-std::string HDF5Backend::getBackendDataVersion(PulseContext *ctx)
+std::string HDF5Backend::getBackendDataVersion(PulseContext *ctx, const std::string& ids)
 {
 	throw UALBackendException("getBackendDataVersion method has to be completed for HDF5 Backend",LOG);
 }

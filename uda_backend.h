@@ -167,7 +167,7 @@ public:
 
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
-    virtual std::string getBackendDataVersion(PulseContext *ctx) override;
+    virtual std::string getBackendDataVersion(PulseContext *ctx, const std::string& ids) override;
 
 };
 

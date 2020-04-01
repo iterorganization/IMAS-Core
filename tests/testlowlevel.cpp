@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
 				printf("\n============================\n");
 				printf("Reading version...\n");
 				char* szDDVersion = NULL;
-				alStatus = ual_read_data_dictionary_version(iPulseCtx, &szDDVersion);
+				alStatus = ual_read_data_dictionary_version(iPulseCtx, NULL, &szDDVersion);
 				if (alStatus.code == 0 && szDDVersion)
 				{
 					printf("DD version:\t%s\n", szDDVersion);
@@ -383,6 +383,14 @@ int main(int argc, char *argv[])
 					}
 					
 					free(szDDVersion);
+					szDDVersion = NULL;
+					
+					alStatus = ual_read_data_dictionary_version(iPulseCtx, "magnetics", &szDDVersion);
+					if (alStatus.code == 0 && szDDVersion)
+					{
+						printf("Magnetics version:\t%s\n", szDDVersion);
+						free(szDDVersion);
+					}
 				}
 				else
 				{

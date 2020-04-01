@@ -430,7 +430,7 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
     }
 }
 
-std::string UDABackend::getBackendDataVersion(PulseContext *ctx)
+std::string UDABackend::getBackendDataVersion(PulseContext *ctx, const std::string& ids)
 {
 	std::string strRet;
 	
@@ -447,6 +447,7 @@ std::string UDABackend::getBackendDataVersion(PulseContext *ctx)
     ss << this->plugin
        << "::getBackendDataVersion("
        << "ctxId=" << ctx_id
+       << ", ids=" << ids
        << ")";
 
     std::string directive = ss.str();
