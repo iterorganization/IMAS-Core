@@ -24,6 +24,7 @@ endif()
 
 if( IMAS_HDF5 )
   find_package( HDF5 COMPONENTS C HL REQUIRED )
+  find_package( SZIP REQUIRED )
 endif()
 
 
@@ -176,18 +177,30 @@ if( BUILD_SHARED_LIBS )
   if( IMAS_MDSPLUS )
     # Install MDSplus runtime libraries
     foreach( MDSPLUS_DLL ${MDSPLUS_RUNTIME_LIB} )
-      ResolveDependencyPath( "${MDSPLUS_DLL}" MDSPLUS_PATH )
+      ResolveDependencyPath( "${MDSPLUS_DLL}" MDSPLUS_PATH "" )
       
       install( FILES ${MDSPLUS_PATH}
         DESTINATION bin
       )
     endforeach()
+    
+    # Required by MDSplus DLL, provided by MinGW
+    ResolveDependencyPath( "libdl.dll" LIBDL_PATH "$ENV{MSYS64_DIR}/mingw64/bin" )
+    ResolveDependencyPath( "libiconv-2.DLL" LIBICONV-2_PATH "$ENV{MSYS64_DIR}/mingw64/bin" )
+    ResolveDependencyPath( "libwinpthread-1.DLL" LIBWINPTHREAD-1_PATH "$ENV{MSYS64_DIR}/mingw64/bin" )
+    
+    install( FILES 
+      ${LIBDL_PATH}
+      ${LIBICONV-2_PATH}
+      ${LIBWINPTHREAD-1_PATH}
+      DESTINATION bin
+    )
   endif()
   
   if( IMAS_UDA OR IMAS_FATUDA )
     # Install UDA runtime libraries
     foreach( UDA_DLL ${UDA_RUNTIME_LIB} )
-      ResolveDependencyPath( "${UDA_DLL}" UDA_PATH )
+      ResolveDependencyPath( "${UDA_DLL}" UDA_PATH "" )
       
       install( FILES ${UDA_PATH}
         DESTINATION bin
@@ -198,9 +211,18 @@ if( BUILD_SHARED_LIBS )
   if( IMAS_HDF5 )
     # Install HDF5 runtime libraries
     foreach( HDF5_DLL ${HDF5_RUNTIME_LIB} )
-      ResolveDependencyPath( "${HDF5_DLL}" HDF5_PATH )
+      ResolveDependencyPath( "${HDF5_DLL}" HDF5_PATH "" )
       
       install( FILES ${HDF5_PATH}
+        DESTINATION bin
+      )
+    endforeach()
+    
+    # SZIP is required by HDF5 DLL
+    foreach( SZIP_DLL ${SZIP_RUNTIME_LIB} )
+      ResolveDependencyPath( "${SZIP_DLL}" SZIP_PATH "" )
+      
+      install( FILES ${SZIP_PATH}
         DESTINATION bin
       )
     endforeach()
