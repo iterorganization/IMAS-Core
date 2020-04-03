@@ -182,7 +182,8 @@ al_status_t ual_context_info(int ctxID, char **info)
       const char *nullctx = "NULL context";
       int nullctxsize = strlen(nullctx)+1;
       *info = (char *)malloc(nullctxsize);
-      *((char *) mempcpy(*info, nullctx, strlen(nullctx))) = '\0';
+      mempcpy(*info, nullctx, strlen(nullctx));
+      (*info)[strlen(nullctx) - 1] = '\0';
     }
   else
     {
@@ -195,7 +196,8 @@ al_status_t ual_context_info(int ctxID, char **info)
 	const std::string& tmp = desc.str();
 	int size = tmp.length()+1;
 	*info = (char *)malloc(size);
-	*((char *) mempcpy(*info, tmp.c_str(), tmp.length())) = '\0';
+	mempcpy(*info, tmp.c_str(), tmp.length());
+    (*info)[tmp.length() - 1] = '\0';
       }
       catch (const UALLowlevelException& e) {
 	status.code = ualerror::lowlevel_err;
@@ -689,7 +691,8 @@ al_status_t ual_read_data_dictionary_version(int pulseCtx, const char *ids, char
     if (strVersion.length() > 0)
     {
       *version = (char*)malloc(sizeof(char) * (strVersion.length() + 1));
-      *((char*)mempcpy(*version, strVersion.c_str(), strVersion.length())) = '\0';
+      mempcpy(*version, strVersion.c_str(), strVersion.length());
+      (*version)[strVersion.length() - 1] = '\0';
     }
   }
   catch (const UALContextException& e) {
