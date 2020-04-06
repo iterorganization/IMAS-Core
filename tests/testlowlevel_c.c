@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
 		al_status_t alStatus = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &iPulseCtx);
 		if (alStatus.code != 0)
 		{
-			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_pulse_action\n", iShot, iRun);
+			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_pulse_action = %s\n", iShot, iRun, alStatus.message);
 			iRet = alStatus.code;
 		}
 		else
@@ -254,13 +254,13 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				printf("Error reading context info!\n");
+				printf("Error reading context info = %s\n", alStatus.message);
 			}
 			
 			alStatus = ual_open_pulse(iPulseCtx, iOpenAction, szParams);
 			if (alStatus.code != 0)
 			{
-				printf("Error opening imas pulse ctx %d: ual_open_pulse\n", iPulseCtx);
+				printf("Error opening imas pulse ctx %d: ual_open_pulse = %s\n", iPulseCtx, alStatus.message);
 				iRet = alStatus.code;
 			}
 			else
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 					alStatus = ual_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP, &iGetOpCtx);
 					if (alStatus.code != 0) 
 					{
-						printf("Error opening imas %s for writing: ual_begin_global_action\n", szIdsFullName);
+						printf("Error opening imas %s for writing: ual_begin_global_action = %s\n", szIdsFullName, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 						alStatus = ual_write_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void*)(&iValue), INTEGER_DATA, 0, NULL);
 						if (alStatus.code != 0)
 						{
-							printf("Error writing integer imas global ctx %d: ual_write_data\n", iGetOpCtx);
+							printf("Error writing integer imas global ctx %d: ual_write_data = %s\n", iGetOpCtx, alStatus.message);
 							iRet = alStatus.code;
 						}
 						else
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
 						alStatus = ual_write_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void*)(szValue), CHAR_DATA, 1, arrayOfSizes);
 						if (alStatus.code != 0)
 						{
-							printf("Error writing string imas global ctx %d: ual_write_data\n", iGetOpCtx);
+							printf("Error writing string imas global ctx %d: ual_write_data = %s\n", iGetOpCtx, alStatus.message);
 							iRet = alStatus.code;
 						}
 						else
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 					alStatus = ual_begin_global_action(iPulseCtx, szIdsFullName, READ_OP, &iGetOpCtx);
 					if (alStatus.code != 0) 
 					{
-						printf("Error opening imas %s for reading: ual_begin_global_action\n", szIdsFullName);
+						printf("Error opening imas %s for reading: ual_begin_global_action = %s\n", szIdsFullName, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
 						alStatus = ual_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
 						if (alStatus.code != 0)
 						{
-							printf("Error reading integer imas global ctx %d: ual_read_data\n", iGetOpCtx);
+							printf("Error reading integer imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
 							iRet = alStatus.code;
 						}
 						else
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 						alStatus = ual_read_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void**)&szTemp, CHAR_DATA, 1, &retSize[0]);
 						if (alStatus.code != 0)
 						{
-							printf("Error reading string imas global ctx %d: ual_read_data\n", iGetOpCtx);
+							printf("Error reading string imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
 							iRet = alStatus.code;
 						}
 						else
@@ -374,16 +374,6 @@ int main(int argc, char *argv[])
 				{
 					printf("DD version:\t%s\n", szDDVersion);
 					
-					int iComp = compareVersion(szDDVersion, getDDVersion());
-					if (iComp > 0)
-					{
-						printf("Pulse DD version is greater than the UAL DD version => ERROR\n");
-					}
-					else
-					{
-						printf("Pulse DD version is lower or equal than the UAL DD version => OK\n");
-					}
-					
 					free(szDDVersion);
 					szDDVersion = NULL;
 					
@@ -396,7 +386,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					printf("Error reading DD version!\n");
+					printf("Error reading DD version = %s\n", alStatus.message);
 				}
 				
 				alStatus = ual_close_pulse(iPulseCtx, iCloseAction, "");

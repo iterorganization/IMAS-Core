@@ -261,7 +261,7 @@ al_status_t ual_context_info(int ctxID, char **info)
       int nullctxsize = strlen(nullctx)+1;
       *info = (char *)malloc(nullctxsize);
       mempcpy(*info, nullctx, strlen(nullctx));
-      (*info)[strlen(nullctx) - 1] = '\0';
+      (*info)[strlen(nullctx)] = '\0';
     }
   else
     {
@@ -275,7 +275,7 @@ al_status_t ual_context_info(int ctxID, char **info)
 	int size = tmp.length()+1;
 	*info = (char *)malloc(size);
 	mempcpy(*info, tmp.c_str(), tmp.length());
-    (*info)[tmp.length() - 1] = '\0';
+    (*info)[tmp.length()] = '\0';
       }
       catch (const UALLowlevelException& e) {
 	status.code = ualerror::lowlevel_err;
@@ -758,7 +758,7 @@ al_status_t ual_read_data_dictionary_version(int pulseCtx, const char *ids, char
     std::string strIds;
     if (ids)
     {
-      strIds = ids;
+      strIds.assign(ids);
     }
     std::string strVersion = lle.backend->getBackendDataVersion(pctx, strIds);
     
@@ -766,11 +766,15 @@ al_status_t ual_read_data_dictionary_version(int pulseCtx, const char *ids, char
     {
       *version = (char*)malloc(sizeof(char) * (strVersion.length() + 1));
       mempcpy(*version, strVersion.c_str(), strVersion.length());
-      (*version)[strVersion.length() - 1] = '\0';
+      (*version)[strVersion.length()] = '\0';
     }
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALBackendException& e) {
+    status.code = ualerror::backend_err;
     UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {

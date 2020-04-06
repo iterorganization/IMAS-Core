@@ -608,6 +608,8 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    *retDataPtr = malloc(length);
 	    memcpy(*retDataPtr, dataPtr, length);
 	    retDims[0] = 1;
+		// For string, stored the length
+	    retDims[1] = length;
 	}
 	else
 	{
@@ -3827,15 +3829,15 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  std::string strPath;
 	  if (ids.length() > 0)
 	  {
-		  strPath = ids + "/ids_properties/version_put/data_dictionary";
+		  strPath.assign(ids + "/ids_properties/version_put/data_dictionary");
 	  }
 	  else
 	  {
-		  strPath = "version/data_dict";
+		  strPath.assign("version/data_dict");
 	  }
 	  
 	  int status = readData(tree, strPath, "", (void **)&version, &datatype, &numDims, dims);
-	  if (!status)
+	  if (!status || version == nullptr)
 	  {
 	      throw UALBackendException("Unable to read backend data version", LOG);
 	  }
@@ -3847,13 +3849,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 		  else
 		  {
-			  if (dims[0] == 0 || dims[0] > 10)
+			  if (dims[0] <= 0)
 			  {
 				  throw UALBackendException("Unexpected Data Length", LOG);
 			  }
 			  else
 			  {
-				  std::string strVersion(version);
+				  int iSize = (dims[0] > 1 ? dims[0] : dims[1] > 0 ? dims[1] : 1);
+				  std::string strVersion(version, iSize);
 				  free(version);
 				  return strVersion;
 			  }
