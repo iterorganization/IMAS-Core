@@ -84,12 +84,13 @@ public:
   static LLenv delLLenv(int idx);
   
   /**
-     Sets a scalar data to the allocated variable.
+     Sets a variable to its value.
      @param[in] data data value passed as an opaque void*
      @param[in] type data type
+     @param[in] dim data dimension
      @param[in,out] var variable which should store the data, passed as void**
   */
-  static void setScalarValue(void *data, int type, void **var);
+  static void setValue(void *data, int type, int dim, void **var);
 
   /**
      Sets a variable to its default value.
@@ -99,6 +100,28 @@ public:
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
   */
   static void setDefaultValue(int type, int dim, void **var, int *size);
+
+  /**
+     Converts data to the specified new type.
+     @tparam From type of the data
+     @param[in] data source data value
+     @param[in] size total size of the data
+     @param[in] destination type ID for the converted data
+     @result converted data (returned as void*)
+   */
+  template <typename From>
+    static void* convertData(From* data, size_t size, int desttype);
+
+  /**
+     Sets a variable to a converted value.
+     @param[in] data source data passed as an opaque void*
+     @param[in] srctype type ID of the source data
+     @param[in] dim dimension of the source/converted data
+     @param[in,out] size array storing size of each dimension (size[i] undefined if i>=dim, modified when conversion is not possible) 
+     @param[in] desttype desired type ID for the converted data
+     @param[in,out] var variable which will store the converted value, passed as void**
+   */
+  static void setConvertedValue(void *data, int srctype, int dim, int *size, int desttype, void** var);
 
   /**
      Starts an action on a pulse in the database.
