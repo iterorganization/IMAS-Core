@@ -292,8 +292,11 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    if(dtype == DTYPE_NID || dtype == DTYPE_PATH)
 	    {
 		MDSplus::TreeNode *currNode = (MDSplus::TreeNode *)data;
+		static char *path = (char *)"";
 		if(currNode->getNid() != refNode->getNid())
-		    return currNode->getPath();
+		    path = currNode->getPath();
+		MDSplus::deleteData(currNode);
+		return path;
 	    }
 	    return (char *)"";
 	case CLASS_A:
@@ -467,8 +470,8 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    	  updateCachedTimebase(timebasePath, times, numTimes);
 	      else
 	    	  updateCachedTimebase(dataobjectPath+timebase, times, numTimes);
-	      if(timebasePath) delete[]timebasePath;
 	  }
+	  if(timebasePath) delete[]timebasePath;
 
 	  if(time <= times[0])
 	      timebaseIdx = 0;
@@ -3536,6 +3539,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      int dims[64];
     		      readTimedData((MDSplus::TreeNode *)currDescr, &dataPtr, &datatype, &numDims, (int *)dims);
     		      MDSplus::Data *currData = assembleData(dataPtr, datatype, numDims, dims);
+		      free(dataPtr);
 
 		      retApd->appendDesc(currData);
 		  }catch(MDSplus::MdsException &exc){std::cout << exc.what() << std::endl;}
