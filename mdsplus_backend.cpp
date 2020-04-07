@@ -608,7 +608,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    *retDataPtr = malloc(length);
 	    memcpy(*retDataPtr, dataPtr, length);
 	    retDims[0] = 1;
-		// For string, stored the length
+	    // For string, store the length
 	    retDims[1] = length;
 	}
 	else

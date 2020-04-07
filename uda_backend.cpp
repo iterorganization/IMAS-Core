@@ -463,7 +463,7 @@ std::string UDABackend::getBackendDataVersion(PulseContext *ctx, const std::stri
             memcpy(version, uda_data->byte_data(), uda_data->byte_length());
             char n = '\0';
             memcpy(version + uda_data->byte_length(), &n, sizeof(char));
-			strRet = version;
+			strRet.assign(version);
 			free(version);
 			
 			return strRet;

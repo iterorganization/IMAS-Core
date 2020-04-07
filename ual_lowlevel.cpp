@@ -363,7 +363,7 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     std::string strOptions;
     if (options)
     {
-      strOptions = options;
+      strOptions.assign(options);
     }
     lle.backend->openPulse(pctx,
 			   mode,
