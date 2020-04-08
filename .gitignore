@@ -11,7 +11,7 @@
 /uda_backend.d*
 /mdsplus_backend.d
 doxygen_sqlite3.db
-/printMDSplusFileVersion*
+/printMDSplusFileVersion
 sources_install
 pkgconfig_install
 *.d.*
