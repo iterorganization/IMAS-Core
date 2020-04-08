@@ -55,8 +55,8 @@ all sources sources_install install uninstall:
 	$(error No Makefile.$(SYSTEM) found for this system: $(UNAME_S))
 endif
 
-clean: pkgconfig_clean test_clean
-	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll
+clean: pkgconfig_clean test_clean 
+	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll $(SPECIFIC_TOOLS)
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ $(INSTALL)/include/*.h
@@ -93,8 +93,8 @@ clean-doc:
 -include $(CSRC:.c=.d)
 -include $(CPPSRC:.cpp=.d)
 
-printMDSplusFileVersion: printInfo.cpp
-	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $< $(LIBS)
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ -c $<
