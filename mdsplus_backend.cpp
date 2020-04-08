@@ -3803,7 +3803,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
     catch(MDSplus::MdsException &exc)
       {
-	std::cout << "Cannot get Access Layer and Data Dictionary versions. Pulse file maybe too old." << std::endl;
+	std::cout << "Cannot get Access Layer and Data Dictionary versions. Pulse file may be too old." << std::endl;
 	exit(0);
       }
     std::cout << "This MDS+ file has been created with the following versions of IMAS:" << std::endl;
