@@ -696,66 +696,66 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
  
  #define PATH_MAX  2048
 void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
-    {
-    	int i;
+{
+  int i;
 
-	std::string mdsplusBaseStr;
-	//Check for public user 
-	if(!strcmp(user, "public")) 
-	{
-	    char *home = getenv("IMAS_HOME");
-	    mdsplusBaseStr += home;
-	    mdsplusBaseStr += "/shared/imasdb/";
-	    mdsplusBaseStr += tokamak;
-	    mdsplusBaseStr += "/";
-	    mdsplusBaseStr += version;
-	}
-    else if (user[0] == '/')
+  std::string mdsplusBaseStr;
+  //Check for public user 
+  if(!strcmp(user, "public")) 
     {
-        mdsplusBaseStr += user;
-        mdsplusBaseStr += "/";
-        mdsplusBaseStr += tokamak;
-        mdsplusBaseStr += "/";
-        mdsplusBaseStr += version;
+      char *home = getenv("IMAS_HOME");
+      mdsplusBaseStr += home;
+      mdsplusBaseStr += "/shared/imasdb/";
+      mdsplusBaseStr += tokamak;
+      mdsplusBaseStr += "/";
+      mdsplusBaseStr += version;
     }
-	else
-	{
+  else if (user[0] == '/')
+    {
+      mdsplusBaseStr += user;
+      mdsplusBaseStr += "/";
+      mdsplusBaseStr += tokamak;
+      mdsplusBaseStr += "/";
+      mdsplusBaseStr += version;
+    }
+  else
+    {
 #ifdef WIN32
-	  char szHomeDir[MAX_PATH];
-	  if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-	    mdsplusBaseStr += szHomeDir;
+      char szHomeDir[MAX_PATH];
+      if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+	mdsplusBaseStr += szHomeDir;
 #else // WIN32
-	  struct passwd *pw = getpwnam( user );
-	  if( pw != NULL ) {
-	    mdsplusBaseStr += pw->pw_dir;
+	struct passwd *pw = getpwnam( user );
+	if( pw != NULL ) {
+	  mdsplusBaseStr += pw->pw_dir;
 #endif // WIN32
-	    mdsplusBaseStr += "/public/imasdb/";
-	    mdsplusBaseStr += tokamak;
-	    mdsplusBaseStr += "/";
-	    mdsplusBaseStr += version;
-	  }
-	  else {
-	    throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
-	  }
+	  mdsplusBaseStr += "/public/imasdb/";
+	  mdsplusBaseStr += tokamak;
+	  mdsplusBaseStr += "/";
+	  mdsplusBaseStr += version;
 	}
-
-	// set every MDSPLUS_TREE_BASE_n env. variable
-    	for (i = 0; i < 10; i++) 
+	else {
+	  throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+	}
+      }
+      
+      // set every MDSPLUS_TREE_BASE_n env. variable
+      for (i = 0; i < 10; i++) 
 	{
-	    std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
-	    currMdsplusBaseDir += '0'+(char)i;
-            char env_name[32];
-	    sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
+	  std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
+	  currMdsplusBaseDir += '0'+(char)i;
+	  char env_name[32];
+	  sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
 #ifdef WIN32
-		char szEnv[256] = { 0 };
-		sprintf(szEnv, "%s=%s", env_name, currMdsplusBaseDir.c_str());
-		putenv(szEnv);
+	  char szEnv[256] = { 0 };
+	  sprintf(szEnv, "%s=%s", env_name, currMdsplusBaseDir.c_str());
+	  putenv(szEnv);
 #else // WIN32
-	    setenv(env_name, currMdsplusBaseDir.c_str(), 1);
+	  setenv(env_name, currMdsplusBaseDir.c_str(), 1);
 #endif // WIN32
     	}
     }  
-
+  
 
     int MDSplusBackend::getSliceNumItems(int numDims, int *dims)
     {
@@ -3781,6 +3781,44 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
   }
 
+
+  void MDSplusBackend::printFileVersionInfo(int shot, int run, std::string usr, std::string tok, std::string ver)
+  {
+    MDSplusBackend *be = new MDSplusBackend();
+    be->setDataEnv(usr.c_str(), tok.c_str(), ver.c_str()); 
+    int shotNum = be->getMdsShot(shot, run, true);
+    try {
+      be->tree = new MDSplus::Tree("ids", shotNum); 
+    }
+    catch(MDSplus::MdsException &exc)
+      {
+	throw UALBackendException(exc.what(),LOG); 
+      }
+    
+    MDSplus::TreeNode *n1, *n2;
+    char *d1, *d2;
+    
+    try
+      {
+	n1 = be->tree->getNode("VERSION:ACC_LAYER");
+	d1 = n1->data()->getString();
+	n2 = be->tree->getNode("VERSION:DATA_DICT");
+	d2 = n2->data()->getString();
+      }
+    catch(MDSplus::MdsException &exc)
+      {
+	std::cout << "Cannot get Access Layer and Data Dictionary versions. Pulse file may be too old." << std::endl;
+	exit(0);
+      }
+    std::cout << "This MDS+ file has been created with the following versions of IMAS:" << std::endl;
+    std::cout << "Access Layer: " << d1 << std::endl;
+    std::cout << "Data Dictionary: " << d2 << std::endl;
+
+    delete(n1);
+    delete(n2);
+    delete(be->tree);
+    delete(be);
+  }
 
 
 
