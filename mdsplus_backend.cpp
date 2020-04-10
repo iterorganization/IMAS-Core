@@ -3302,6 +3302,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	writeSlice(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size);
 	break;
     }
+	
+	writeVersion(ctx, ctx->getDataobjectName());
   }
 	    
     
@@ -3864,4 +3866,39 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  }
   }
 
-
+  void MDSplusBackend::writeVersion(Context *ctx, const std::string& strPath)
+  {
+	  // Write version (if required)
+	  std::string strVersion;
+	  try
+	  {
+		  strVersion = getBackendDataVersion((PulseContext*)ctx, strPath);
+	  }
+	  catch (...)
+	  {
+	  }
+	  
+	  try
+	  {
+		  if (strVersion.length() == 0)
+		  {
+			  // Data Dictionary
+			  int size =(int)strlen(getDDVersion());
+			  writeData(tree, strPath, "ids_properties/version_put/data_dictionary", (void*)getDDVersion(), ualconst::char_data, 1, &size);
+			  
+			  // Access Layer
+			  size = (int)strlen(getUALVersion());
+			  writeData(tree, strPath, "ids_properties/version_put/access_layer", (void*)getUALVersion(), ualconst::char_data, 1, &size);
+			  
+			  if (ctx->getHLI().length() > 0)
+			  {
+				  // HLI currently used
+				  size = (int)ctx->getHLI().length();
+				  writeData(tree, strPath, "ids_properties/version_put/access_layer_language", (void*)ctx->getHLI().c_str(), ualconst::char_data, 1, &size);
+			  }
+		  }
+	  }
+	  catch (...)
+	  {
+	  }
+  }
