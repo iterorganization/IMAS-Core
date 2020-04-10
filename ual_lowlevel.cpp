@@ -340,9 +340,10 @@ al_status_t ual_begin_pulse_action(const int backendID, const int shot, const in
 al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
 {
   al_status_t status = { 0 };
+  // verbose is active by default
   bool verbose = true;
-//  if (options!=NULL && strstr(options,"-silent"))
-//    verbose = false;
+  std::string strHLI;
+
   std::string strValue;
   std::map<std::string, std::string> mapOptions;
   if (options && extractOptions(options, mapOptions) > 0)
@@ -350,6 +351,10 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     if (isOptionExist("silent", mapOptions, strValue))
     {
       verbose = false;
+    }
+	if (isOptionExist("hli", mapOptions, strValue) && strValue.length() > 0)
+    {
+      strHLI = strValue;
     }
   }
 
@@ -359,6 +364,10 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
+
+    // Save extracted options
+    pctx->setVerbose(verbose);
+    pctx->setHLI(strHLI);
 
     std::string strOptions;
     if (options)

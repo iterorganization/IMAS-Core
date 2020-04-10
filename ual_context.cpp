@@ -30,20 +30,24 @@ std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx)
 
 Context::Context(int id)
 { 
-  try 
-    {
-      ualconst::backend_id_str.at(id-BACKEND_ID_0);
-    }
+  try
+  {
+    ualconst::backend_id_str.at(id-BACKEND_ID_0);
+  }
   catch (const std::out_of_range& e) 
-    {
-      throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
-    }
-  backend_id = id; 
+  {
+    throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
+  }
+  backend_id = id;
+  verbose = true;
+  strHLI.empty();
 }
 
 Context::Context(const Context& ctx) 
 {
-  backend_id = ctx.backend_id; 
+  backend_id = ctx.backend_id;
+  verbose = ctx.verbose;
+  strHLI = ctx.strHLI;
 }
 
 std::string Context::print() const 
@@ -52,7 +56,11 @@ std::string Context::print() const
     std::to_string(this->uid) + "\n" + 
     "backend_id \t\t = " + 
     std::to_string(this->backend_id) + " (" + 
-    this->getBackendName() + ")\n";
+    this->getBackendName() + ")\n" +
+	"verbose \t\t = " +
+	std::to_string(this->verbose) + "\n" +
+	"HLI \t\t\t = " +
+	strHLI + "\n";
   return s;
 }
 
@@ -82,7 +90,25 @@ int Context::getType() const
   return CTX_TYPE;
 }
 
+bool Context::getVerbose() const
+{
+  return verbose;
+}
 
+void Context::setVerbose(const bool& bVerbose)
+{
+  verbose = bVerbose;
+}
+
+std::string Context::getHLI() const
+{
+  return strHLI;
+}
+
+void Context::setHLI(const std::string& HLI)
+{
+  strHLI = HLI;
+}
 
 
 /// PulseContext ///
