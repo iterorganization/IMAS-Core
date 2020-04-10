@@ -134,6 +134,10 @@ endif # IMAS_HDF5
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
+# Additional executable
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.lib
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
+
 # Windows dynamic library
 libimas.dll: $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -shared -Wl,$(SONAME_OPT),$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)

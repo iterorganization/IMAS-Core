@@ -242,6 +242,8 @@ class LIBRARY_API MDSplusBackend:public Backend
     //Temporary
     void fullResetNodePath();
 
+    static void printFileVersionInfo(int shot, int run, std::string usr, std::string tok, std::string ver);
+
 };
 
 #endif
