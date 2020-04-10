@@ -18,6 +18,10 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 // Then sum the ASCII codes of the other characters and store them in the name
 // SliceApd
 
+#define DEF_TREENAME		"ids"
+#define DEF_NORMALMODE		"NORMAL"
+#define DEF_READONLYMODE	"READONLY"
+
 //Original ids_path
 static std::string originalIdsPath = "";
 
@@ -672,7 +676,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		}
 		else
 		{
-			strcpy(szPath, "ids_path");
+			sprintf(szPath, "%s_path", DEF_TREENAME);
 		}
 		
 	    char baseName[64] = { 0 };
@@ -3208,16 +3212,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			 int mode, std::string options)
     {
  	  // Extract MDSplus options
-	  const char* szNormal = "NORMAL";
-	  const char* szReadOnly = "READONLY";
 	  char szOption[256] = { 0 };
 	  char szTree[256] = { 0 };
 	  
 	  // By default use "NORMAL" mode
-	  strcpy(szOption, szNormal);
+	  strcpy(szOption, DEF_NORMALMODE);
 	  
 	  // By default use "ids" tree name
-	  strcpy(szTree, "ids");
+	  strcpy(szTree, DEF_TREENAME);
 	  
 	  std::string strValue;
 	  std::map<std::string, std::string> mapOptions;
@@ -3226,10 +3228,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  // Open tree in readonly mode requested? 
 		  if (isOptionExist("readonly", mapOptions, strValue))
 		  {
-			  strcpy(szOption, szReadOnly);
+			  strcpy(szOption, DEF_READONLYMODE);
 		  }
 		  // Open a specific tree name?
-		  if (isOptionExist("ids", mapOptions, strValue) && strValue.length() > 0)
+		  if (isOptionExist(DEF_TREENAME, mapOptions, strValue) && strValue.length() > 0)
 		  {
 			  strcpy(szTree, strValue.c_str());
 		  }
@@ -3251,7 +3253,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    case ualconst::create_pulse:
 	    case ualconst::force_create_pulse:
 	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, szReadOnly);
+		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
 		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
@@ -3835,10 +3837,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  std::string strPath;
 	  if (ids.length() > 0)
 	  {
+		  // TODO: Manage this path in relation with DD (XSL transformation)
 		  strPath.assign(ids + "/ids_properties/version_put/data_dictionary");
 	  }
 	  else
 	  {
+		  // TODO: Manage this path in relation with DD (XSL transformation)
 		  strPath.assign("version/data_dict");
 	  }
 	  
@@ -3888,16 +3892,19 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  {
 			  // Data Dictionary
 			  int size =(int)strlen(getDDVersion());
+			  // TODO: Manage this path in relation with DD (XSL transformation)
 			  writeData(tree, strPath, "ids_properties/version_put/data_dictionary", (void*)getDDVersion(), ualconst::char_data, 1, &size);
 			  
 			  // Access Layer
 			  size = (int)strlen(getUALVersion());
+			  // TODO: Manage this path in relation with DD (XSL transformation)
 			  writeData(tree, strPath, "ids_properties/version_put/access_layer", (void*)getUALVersion(), ualconst::char_data, 1, &size);
 			  
 			  if (ctx->getHLI().length() > 0)
 			  {
 				  // HLI currently used
 				  size = (int)ctx->getHLI().length();
+				  // TODO: Manage this path in relation with DD (XSL transformation)
 				  writeData(tree, strPath, "ids_properties/version_put/access_layer_language", (void*)ctx->getHLI().c_str(), ualconst::char_data, 1, &size);
 			  }
 		  }
@@ -3911,9 +3918,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   {
     MDSplusBackend *be = new MDSplusBackend();
     be->setDataEnv(usr.c_str(), tok.c_str(), ver.c_str()); 
-    int shotNum = be->getMdsShot(shot, run, true);
+    int shotNum = be->getMdsShot(shot, run, true, DEF_TREENAME);
     try {
-      be->tree = new MDSplus::Tree("ids", shotNum); 
+      be->tree = new MDSplus::Tree(DEF_TREENAME, shotNum); 
     }
     catch(MDSplus::MdsException &exc)
       {
