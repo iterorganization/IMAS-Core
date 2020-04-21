@@ -298,28 +298,22 @@ void UDABackend::beginAction(OperationContext* ctx)
        << ", access=" << ctx->getAccessmode()
        << ", range=" << ctx->getRangemode()
        << ", time=" << ctx->getTime()
-       << ", interp=" << ctx->getInterpmode()
-       << ")";
+       << ", interp=" << ctx->getInterpmode();
 
     char* ppf_user = getenv("UDA_PPF_USER");
-    if (ppf_user != nullptr){
-        ss.seekp(-1,ss.cur);
-        ss << ", ppfUser='" << ppf_user << "'"
-           << ")";
+    if (ppf_user != nullptr) {
+        ss << ", ppfUser='" << ppf_user << "'";
     }
     char* ppf_sequence = getenv("UDA_PPF_SEQUENCE");
-    if (ppf_sequence != nullptr){
-        ss.seekp(-1,ss.cur);
-        ss << ", ppfSequence=" << ppf_sequence
-           << ")";
+    if (ppf_sequence != nullptr) {
+        ss << ", ppfSequence=" << ppf_sequence;
     }
-    char* new_dda = getenv("UDA_PPF_DDA");
-    if (new_dda != nullptr){
-        ss.seekp(-1,ss.cur);
-        ss << ", newDDA=" << new_dda
-           << ")";
+    char* ppf_dda = getenv("UDA_PPF_DDA");
+    if (ppf_dda != nullptr) {
+        ss << ", ppfDDA='" << ppf_dda << "'";
     }
-
+    
+    ss << ")";
     std::string directive = ss.str();
 
     if (verbose) {
