@@ -2599,10 +2599,14 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	if(len1 != len2)
 	    return false;
 	if(len1 < 1) return false;
-	if(apd1->getDescAt(0)->clazz != CLASS_APD) //If is part od the APD tree and not a recursive AoS
+	if(apd1->getDescAt(0) &&  (apd1->getDescAt(0)->clazz != CLASS_APD)) //If is part of the APD tree and not a recursive AoS
 	    return checkStructRec(apd1, apd2);
 	for(int idx = 0; idx < len1; idx++)
 	{
+            if(apd1->getDescAt(idx) == 0 && apd2->getDescAt(idx) == 0)
+		continue;
+	    else if (apd1->getDescAt(idx) == 0 || apd2->getDescAt(idx) == 0)
+		return false;
 	    if(!checkStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd1->getDescAt(idx)))
 		return false;
 	}
@@ -2649,7 +2653,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
           int len = apd1->len();
-	  if(apd1->getDescAt(0)->clazz != CLASS_APD)
+
+	  if(apd1->getDescAt(0) != NULL && apd1->getDescAt(0)->clazz != CLASS_APD)
 	      return interpolateStructRec(apd1, apd2, t, t1, t2);
 	  for(int idx = 0; idx < len; idx++)
 	  {
@@ -2660,6 +2665,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     
     MDSplus::Apd *MDSplusBackend::interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2)
     {
+        if(!apd1)  //CheckStruct ensures that in this case both are null
+	  return NULL;
         MDSplus::Apd *interpApd = new MDSplus::Apd();
 	int len1 = apd1->len(); //already checked
 	MDSplus::Data *name = apd1->getDescAt(0);
