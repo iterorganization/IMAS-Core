@@ -162,6 +162,7 @@ if( BUILD_SHARED_LIBS )
   install( TARGETS lowlevel-shared
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
   )
 endif()
 
@@ -233,4 +234,6 @@ endif()
 ########################################################################################################################
 # Tests
 
-add_subdirectory( tests )
+if( IMAS_TESTS )
+  add_subdirectory( tests )
+endif()

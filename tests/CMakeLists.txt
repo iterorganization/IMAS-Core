@@ -44,3 +44,14 @@ set_target_properties( testlowlevel_c
     OUTPUT_NAME testlowlevel_c${EXE_EXT}
     COMPILE_FLAGS -DNOIMPLIB
 )
+
+
+########################################################################################################################
+# Install
+
+install( FILES
+  testlowlevel${EXE_EXT}
+  testlowlevel_c${EXE_EXT}
+  DESTINATION bin
+)
+
