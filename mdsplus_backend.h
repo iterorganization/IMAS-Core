@@ -72,7 +72,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     void writeData(MDSplus::Tree *tree, std::string dataobjectPath, std::string timePath, void *dataPtr, int datatype, int numDims,
 	int *dims);
     void writeTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims,
-	int *dims, bool isAos = false, bool isRefAos = false);
+	int *dims, bool isAos = false, bool isRefAos = false, bool append = false);
     void writeSlice(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase,  void *data, int datatype, int numDims, 
 	int *dims, bool isAos = false, bool isRefAos = false);
     int readData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, void **dataPtr, int *datatype,
@@ -102,7 +102,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Apd *resolveApdSliceFields(MDSplus::Apd *apd, double time, int interplolation, std::string timebasePath, std::string dataobjectPath);
     MDSplus::Apd *resolveApdTimedFields(MDSplus::Apd *apd);
     void writeStaticApd(MDSplus::Apd *apd, std::string dataobjectPath, std::string path);
-    void writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath);
+    void writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath, bool append = false);
     MDSplus::Apd *readDynamicApd(MDSplus::TreeNode *node);
     void insertNewInApd(ArraystructContext *ctx,std::string rootName, MDSplus::Apd *apd, int idx, std::string path, std::string timebasePath, bool isSlice, MDSplus::Data * mdsData, void* data = NULL, int datatype = 0, int dim = 0, int* size = NULL);
     void insertInApd(ArraystructContext *ctx,MDSplus::Apd *apd, int idx, std::string path, std::string timebasePath, bool isSlice, MDSplus::Data *mdsData, void* data = NULL, int datatype = 0, int dim = 0, int* size = NULL);
