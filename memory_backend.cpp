@@ -102,7 +102,7 @@ else
 	    //ualData->addSlice(datatype, dim, size, (unsigned char *)data); Gabriele May 2020: more than one slice can be written
 	    int *currDims = new int[dim];
 	    int sliceSize = 1;
-	    for(int i = 1; i < dim; i++)
+	    for(int i = 0; i < dim - 1; i++)
 	    {
 		currDims[i] = size[i];
 		sliceSize *= size[i];
@@ -113,8 +113,8 @@ else
 		case DOUBLE_DATA: sliceSize *= 8; break;
 		case COMPLEX_DATA: sliceSize *= 16; break;
 	    }
-	    currDims[0] = 1;
-	    for(int i = 0; i < size[0]; i++)
+	    currDims[dim-1] = 1;
+	    for(int i = 0; i < size[dim - 1]; i++)
 	    	ualData->addSlice(datatype, dim, currDims, ((unsigned char *)data)+(i * sliceSize));
 	    delete[] currDims;
 	}
