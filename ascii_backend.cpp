@@ -116,7 +116,6 @@ void AsciiBackend::openPulse(PulseContext *ctx,
   std::stringstream ss;
   n = options.find("-prefix ");
   if (n != std::string::npos) {
-    this->prefix;
     ss << options.substr(n+8,options.length());
     ss >> this->prefix;
   }
@@ -431,16 +430,34 @@ int AsciiBackend::readData(Context *ctx,
 
   std::string pathname;
 
-  if (this->curline == "") {
-    std::getline(this->curcontent, this->curline);
-  }
-
   if (ctx->getType()==CTX_OPERATION_TYPE) {
     pathname = this->idsname + "/" + fieldname;
   }
   else { // CTX_ARRAYSTRUCT_TYPE
     ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
     pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname;
+  }
+
+  if (this->curline == "") {
+    std::getline(this->curcontent, this->curline);
+  }
+
+  std::streampos backup_pos = -1;
+  if (this->curline != pathname) { // not found, try to find it further in file
+    backup_pos = this->curcontent.tellg();
+    bool found = false;
+    while (std::getline(this->curcontent, this->curline)) {
+      if (this->curline == pathname) {
+	found = true;
+	break;
+      }
+    }
+    if (!found) {
+      this->curcontent.clear();
+      this->curcontent.seekg(backup_pos, std::ios::beg);
+      this->curline = "";
+      return 0;
+    }
   }
 
   if (this->curline == pathname) { // found, process the content
@@ -483,9 +500,6 @@ int AsciiBackend::readData(Context *ctx,
     
     std::getline(this->curcontent,this->curline); // consume rest of line
     this->curline = "";
-  }
-  else { // not found, no data returned
-    return 0;
   }
 
   return 1;

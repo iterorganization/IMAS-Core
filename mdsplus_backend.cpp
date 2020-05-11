@@ -835,7 +835,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    
 	    
     void MDSplusBackend::writeTimedData(MDSplus::Tree *tree, std::string dataobjectPath, std::string path, std::string timebase, void *data, int datatype, int numDims,
-	int *inDims, bool isAos, bool isRefAos)
+	int *inDims, bool isAos, bool isRefAos, bool append)
     {
 /** Steps:
 1) Compute slice dimension
@@ -850,10 +850,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //	dims[numDims-i-1] = inDims[i];
 	dims[i] = inDims[i];
 
-//The last dimension represent the time dimension, that is the number of slices	
-	
-	
- //std::cout << "writeTimedData slices: "<< dims[0] << std::endl;      
+//The last dimension represents the time dimension, that is the number of slices	
+//std::cout << "writeTimedData slices: "<< dims[0] << std::endl;      
       
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
     	try {
@@ -861,7 +859,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    std::string mdsPath = checkFullPath(fullPath, isAos);
 	    MDSplus::TreeNode *node = getNode(mdsPath.c_str());
 //	    MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
-	    if(node->getLength() > 0 || node->getNumSegments() > 0)
+	    
+	    if(!append && (node->getLength() > 0 || node->getNumSegments() > 0))
 	        node->deleteData();
 		
 	    int sliceSize = getSliceSize(node, data, datatype, numDims, dims, true);
@@ -875,44 +874,81 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      slicesPerSegment = MDSPLUS_SEGMENT_SIZE / sliceSize;
 	    if(slicesPerSegment < 1) slicesPerSegment = 1;
 	    int segmentSize = slicesPerSegment * sliceSize;
-//	    int numSegments = dims[0]/slicesPerSegment;
-	    int numSegments = dims[numDims - 1]/slicesPerSegment;
+
+	    int prevSegments, prevSlices, freeSlices;
+	    int leftSlices = dims[numDims -1];
+	    if(append)
+	    {
+		prevSegments = node->getNumSegments();
+		if(prevSegments == 0)  //if no slices present
+		{
+		    freeSlices = 0;
+		    prevSlices = 0;
+		}
+		else
+		{   
+		    int segDims[64];
+		    int  nextRow;
+		    char segNDims, segType;
+		    node->getSegmentInfo(prevSegments - 1, &segType, &segNDims, segDims, &nextRow);
+		    freeSlices = slicesPerSegment - nextRow;
+		    prevSlices = prevSegments * slicesPerSegment - freeSlices;
+		}
+	    }
+	    else
+	    {
+		prevSegments = 0;
+		freeSlices = 0;
+		prevSlices = 0;
+	    }
+//First fill last nonfull segment   
+	    if(freeSlices > leftSlices)
+		freeSlices = leftSlices;
+	    if(freeSlices > 0)
+	    {
+		
+		int currDims[MAX_DIMS];
+		for(int i = 0; i < numDims; i++)
+		    currDims[i] = dims[i];
+		currDims[numDims - 1] = freeSlices;
+		MDSplus::Data *slices =  assembleData(((char *)data), datatype, numDims, currDims);
+		node->putSegment((MDSplus::Array *)slices, -1);
+		MDSplus::deleteData(slices);
+		
+	    }
+	    leftSlices -= freeSlices;
+	    if(leftSlices == 0) //All required slices fit in the left space of the last segment
+		return; //All done
+
+//	    int numSegments = (dims[numDims - 1] - freeSlices)/slicesPerSegment;
+	    int numSegments = leftSlices / slicesPerSegment;
 	    bool lastSegmentFilled = true;
-//	    int lastSegmentSlices = dims[0] % slicesPerSegment;
-	    int lastSegmentSlices = dims[numDims -1] % slicesPerSegment;
-	    
-	    //std::cout<< "DIMS[0]: " << dims[0] << std::endl;
-	    //std::cout<< "DIMS[1]: " << dims[1] << std::endl;
-	    //std::cout<< "NUMDIMS " << numDims << std::endl;
-	    
-	    
+//	    int lastSegmentSlices = (dims[numDims -1] - freeSlices) % slicesPerSegment;
+	    int lastSegmentSlices = leftSlices % slicesPerSegment;
+
 	    if(lastSegmentSlices != 0)
 	    {
 	        numSegments++;
 		lastSegmentFilled = false;
 	    }
-//	    std::string timeStr("time");
+
 	    std::string timePath = composePaths(dataobjectPath, timebase);
+
 	    int *currDims = new int[numDims];
 	    memcpy(currDims, dims, numDims * sizeof(int));
 	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
 	    {	
 		size_t sliceIdx = segIdx * slicesPerSegment;
 		int timeSlicesPerSegment = MDSPLUS_SEGMENT_SIZE/sizeof(double);
-		int timeStartSegmentIdx = sliceIdx / timeSlicesPerSegment;
-		int timeStartSegmentOffset = sliceIdx - timeStartSegmentIdx * timeSlicesPerSegment;
-		int timeEndSegmentIdx = (sliceIdx + slicesPerSegment - 1) / timeSlicesPerSegment;
-		int timeEndSegmentOffset;
-//		if(lastSegmentSlices && segIdx == numSegments - 1)
-//Gabriele February 2018		  timeEndSegmentOffset = lastSegmentSlices - 1;
-		  timeEndSegmentOffset = (sliceIdx + slicesPerSegment - 1) - timeEndSegmentIdx * timeSlicesPerSegment;
+		int timeStartSegmentIdx = (prevSlices + freeSlices + sliceIdx) / timeSlicesPerSegment;
+		int timeStartSegmentOffset = (prevSlices + freeSlices + sliceIdx) - timeStartSegmentIdx * timeSlicesPerSegment;
+		int timeEndSegmentIdx = (prevSlices + freeSlices + sliceIdx + slicesPerSegment - 1) / timeSlicesPerSegment;
+		int timeEndSegmentOffset = (prevSlices + freeSlices + sliceIdx + slicesPerSegment - 1) - timeEndSegmentIdx * timeSlicesPerSegment;
 		std::string segData = getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx);
-		char *nameBuf = new char[64+segData.size()]; //TODO: Check size -- DONE
-//		sprintf(nameBuf, "data(%s)[%d]", getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), 
+		char *nameBuf = new char[64+segData.size()]; 
 		sprintf(nameBuf, "data(%s)[%d]", segData.c_str(), timeStartSegmentOffset);
 		
 		MDSplus::Data *startTime = tree->tdiCompile(nameBuf);
-		//MDSplus::Data *startTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 
 
@@ -920,14 +956,12 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		std::string segPath = mdsconvertPath(timePath.c_str(), isRefAos);
 		nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()];
 		sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d - GetSegmentInfo(build_path(\'%s\'), %d) - 1]; else _a = data(%s)[%d]; _a;",
-		    mdsPath.c_str(), segIdx + 1, 
-//		    getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx,
+//		    mdsPath.c_str(), segIdx + 1, 
+		    mdsPath.c_str(), prevSegments + segIdx + 1, 
 		    segData.c_str(), timeSlicesPerSegment, segPath.c_str(), timeEndSegmentIdx,
-//		    getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeEndSegmentOffset);
 		    segData.c_str(), timeEndSegmentOffset);
 
 		MDSplus::Data *endTime = tree->tdiCompile(nameBuf);
-//		MDSplus::Data *endTime = MDSplus::compile(nameBuf, tree);
 		delete [] nameBuf;
 
 		if(timeStartSegmentIdx == timeEndSegmentIdx) //Start and end times are in the same segment for times
@@ -937,10 +971,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    nameBuf = new char[512+mdsPath.size()+2*segData.size()+segPath.size()]; 
 
 		    sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(%s)[%d:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]; else _a = data(%s)[%d:%d]; _a;",
-			mdsPath.c_str(), segIdx + 1, 
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeSlicesPerSegment, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
+//			mdsPath.c_str(), segIdx + 1, 
+			mdsPath.c_str(), prevSegments + segIdx + 1, 
 			segData.c_str(), timeStartSegmentOffset, timeSlicesPerSegment, segPath.c_str(), timeStartSegmentIdx,
-//			getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(), timeStartSegmentOffset, timeEndSegmentOffset); 
 			segData.c_str(), timeStartSegmentOffset, timeEndSegmentOffset); 
 		} 
 		else //Times are splitted in two different segments
@@ -950,38 +983,31 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		  segPath = mdsconvertPath(timePath.c_str(), isRefAos);
 		  nameBuf = new char[512 + mdsPath.size()+segData.size()+segData1.size()+3*segPath.size()];
 
-		  sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), segIdx + 1);
+//		  sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), segIdx + 1);
+		  sprintf(nameBuf, "if(GetNumSegments(\'%s\') == %d) _a = data(set_range(",mdsPath.c_str(), prevSegments + segIdx + 1);
 		  sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(%s)[%d:%d], data(%s)[0:(%d - GetSegmentInfo(build_path(\'%s\'), %d)-1)]])); else _a = data(set_range(", 
-//			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx).c_str(),
 			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segData.c_str(),
-//			timeStartSegmentOffset, timeSlicesPerSegment - 1, getSegmentData(mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx).c_str(), timeSlicesPerSegment,
 			timeStartSegmentOffset, timeSlicesPerSegment - 1, segData1.c_str(), timeSlicesPerSegment,
-//		 	mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx);
 		 	segPath.c_str(), timeEndSegmentIdx);
 
 		  sprintf(&nameBuf[strlen(nameBuf)], "%d, [data(getSegmentData(build_path('%s'), %d))[%d:%d], data(getSegmentData(build_path('%s'), %d))[0:%d]])); _a;", 
-//			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeStartSegmentIdx,
 			timeSlicesPerSegment - timeStartSegmentOffset + timeEndSegmentOffset + 1, segPath.c_str(), timeStartSegmentIdx,
-//			timeStartSegmentOffset, timeSlicesPerSegment - 1, mdsconvertPath(timePath.c_str(), isRefAos).c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 			timeStartSegmentOffset, timeSlicesPerSegment - 1, segPath.c_str(), timeEndSegmentIdx, timeEndSegmentOffset);
 		}
 		MDSplus::Data *dimension = tree->tdiCompile(nameBuf);
-//		MDSplus::Data *dimension = MDSplus::compile(nameBuf, tree);
 		delete []nameBuf;
 
 		MDSplus::Data *slices;
 		if(segIdx < numSegments - 1 || lastSegmentFilled)
 		{
-//		  std::cout << "MAKE SEGMENT "<< segIdx << std::endl;
-//		    currDims[0] = slicesPerSegment;
 		    currDims[numDims - 1] = slicesPerSegment;
-		    slices =  assembleData(((char *)data)+segIdx * segmentSize, datatype, numDims, currDims);
+		    slices =  assembleData(((char *)data)+freeSlices * sliceSize + segIdx * segmentSize, datatype, numDims, currDims);
 		    node->makeSegment(startTime, endTime, dimension, (MDSplus::Array *)slices);
 		}
 		else
 		{
 		    currDims[numDims - 1] = lastSegmentSlices;
-		    slices =  assembleData(((char *)data)+segIdx * segmentSize, datatype, numDims, currDims);
+		    slices =  assembleData(((char *)data)+freeSlices * sliceSize + segIdx * segmentSize, datatype, numDims, currDims);
 		    char *initBytes = new char[sliceSize * slicesPerSegment];
 		    memset(initBytes, 0, sliceSize * slicesPerSegment);
 
@@ -1906,7 +1932,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 
 //GAB February 2017. Write a dynamic AoS
-    void MDSplusBackend::writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath)
+    void MDSplusBackend::writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath, bool append)
 //aosPath refers to the path in the tree of the target AoS root (with children "TIME" and "AOS")
 //if timedPath is empty, timebase will be derived by AoS "time" field. Otherwise it represet the full path in the tree of the timebase.
 
@@ -1935,7 +1961,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	      }
 	      std::string newTimebasePath = composePaths(aosPath, "time");
 	      int dims[] = {numElements};
-	      writeTimedData(tree, aosPath, time, time, times, ualconst::double_data, 1, dims, true, true);
+	      writeTimedData(tree, aosPath, time, time, times, ualconst::double_data, 1, dims, true, true, append);
 	      timePath = newTimebasePath;
 	      delete[] times;
 	  }
@@ -1945,6 +1971,43 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	std::string aos = composePaths(aosPath, "aos");
 	MDSplus::TreeNode *node = getNode(checkFullPath(aos, true).c_str());
+
+//GABRIELE DA QUA ******************************************
+//devo trovare quante slices sono state salvate fino ad ora come pure lo spazio rimasto nel segmento
+	int numSegments, startSlice = 0;
+	numSegments = node->getNumSegments();
+	for(int segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    MDSplus::Data *serializedData = node->getSegment(segIdx);
+	    char clazz, dtype, nDims;
+	    short length;
+	    int *dims;
+	    char *serialized;
+		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, &length, &nDims, &dims, (void **) &serialized);
+	    if(dtype != DTYPE_B && dtype != DTYPE_BU)
+	    {
+	  	throw  UALBackendException("INTERNAL ERROR: unexpected dtype in serialized AoS: ", LOG); 
+	    }
+	    if(nDims != 1)
+	    {
+	  	throw  UALBackendException("INTERNAL ERROR: unexpected dimensions  in serialized AoS: ", LOG); 
+	    }
+	    int idx = 0;
+	    while(idx < dims[0])
+	    {		
+		if(idx > dims[0])    
+	  	    throw  UALBackendException("INTERNAL ERROR: unexpected length in serialized AoS: ", LOG); 
+		int sliceLen;
+		memcpy(&sliceLen, &serialized[idx], sizeof(int));
+		idx += sizeof(int);
+		idx += sliceLen;
+		startSlice++;
+	    }
+	    MDSplus::deleteData(serializedData);
+	}
+
+//Regardless free space in the last segment (if put slice called before) a new segment is initiaied
+
 	char *nameBuf; //TODO: Check size
 	size_t sliceIdx = 0;
 	while(sliceIdx < apd->len())
@@ -1996,15 +2059,15 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //Gabriele Dec 2017: turaround MDSplus problem of numbers in path
 		std::string currPath = mdsconvertPath(timePath.c_str());
 		nameBuf = new char[128 + currPath.size()];
-		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]",currPath.c_str(), baseSliceIdx);
+		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]",currPath.c_str(), startSlice + baseSliceIdx);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]",mdsconvertPath(timePath.c_str()).c_str(), baseSliceIdx);
 //		MDSplus::Data *start = MDSplus::compile(nameBuf, tree);
 		MDSplus::Data *start = tree->tdiCompile(nameBuf);
-		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", currPath.c_str(), (int)sliceIdx - 1);
+		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", currPath.c_str(), startSlice + (int)sliceIdx - 1);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d]", mdsconvertPath(timePath.c_str()).c_str(), (int)sliceIdx - 1);
 //		MDSplus::Data *end = MDSplus::compile(nameBuf, tree);
 		MDSplus::Data *end = tree->tdiCompile(nameBuf);
-		sprintf(nameBuf, "data(build_path(\'%s\'))[%d:%d]", currPath.c_str(), baseSliceIdx, (int)sliceIdx - 1);
+		sprintf(nameBuf, "data(build_path(\'%s\'))[%d:%d]", currPath.c_str(), startSlice + baseSliceIdx,  startSlice + (int)sliceIdx - 1);
 //		sprintf(nameBuf, "data(build_path(\'%s\'))[%d:%d]", mdsconvertPath(timePath.c_str()).c_str(), baseSliceIdx, (int)sliceIdx - 1);
 //		MDSplus::Data *dim = MDSplus::compile(nameBuf, tree);
 		MDSplus::Data *dim = tree->tdiCompile(nameBuf);
@@ -2233,28 +2296,6 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
 	    	MDSplus::deleteData(endData);
 		MDSplus::Data *serializedData = node->getSegment(segIdx);
-/*
-
-		int serializedLen;
-		//char *serialized = (char *)serializedData->getByteUnsignedArray(&serializedLen);
-		char *serialized;
-		char clazz, dtype, nDims;
-		((MDSplus::Array *) serializedData)->getInfo(&clazz, &dtype, NULL, &nDims, NULL, (void **) &serialized);
-		MDSplus::deleteData(serializedData);
-		int idx = 0;
-		//std::cout << "segIdx = " << segIdx << ", startIdx = " << startIdx << ", endIdx = " << endIdx << "\n";
-		for(int sliceIdx = 0; sliceIdx < endIdx - startIdx + 1; sliceIdx++)
-		{
-		    int sliceLen;
-		    memcpy(&sliceLen, &serialized[idx], sizeof(int));
-		    idx += sizeof(int);
-		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
-		    idx += sliceLen;
-		    retApd->appendDesc(sliceData);
-		    //std::cout << "sliceIdx = " << sliceIdx << ", idx = " << idx<< "\n";
-		}
-		delete [] serialized;
-*/
 //Gabriele Dec 2019
 		char clazz, dtype, nDims;
 		short length;
@@ -3308,10 +3349,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	if(timebase.empty())
 	  writeData(tree, ctx->getDataobjectName(), fieldname, data, datatype, dim, size);
 	else
-	  writeTimedData(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size);
+	  writeTimedData(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size, false, false, false);
 	break;
       case ualconst::slice_op:
-	writeSlice(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size);
+        if(size[0] > 1)
+	    writeTimedData(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size, false, false, true);
+	else
+	    writeSlice(tree, ctx->getDataobjectName(), fieldname, timebase, data, datatype, dim, size);
 	break;
     }
 	
@@ -3748,9 +3792,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			  //Handle the case in which timebase is defined within AoS itself
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, "");
+			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, "", false);
 			  else
-			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath));
+			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), false);
 		      }
 		      else //SLICE_OP
 		      {
@@ -3759,10 +3803,20 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			  //Handle the case in which timebase is defined within AoS itself
 			  //if(timebasePath.empty())
 //			      if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
-			      if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-		     	  	writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, "", ctx->getTime());
-			  else
-		     	  	writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), ctx->getTime());
+			    if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
+			    {
+				if(currApd->len() > 1)
+			            writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, "", true);
+				else				
+		     	     	    writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, "", ctx->getTime());
+			    }
+			    else
+			    {
+				if(currApd->len() > 1)
+			            writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), true);
+				else
+				    writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), ctx->getTime());
+			    }
 		      }
 		  }
 	  	  MDSplus::deleteData(currApd);
@@ -3810,9 +3864,19 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	          	  std::string aosPath = ctx->getDataobjectName() + "/" +ctx->getPath();
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-		     	      writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", "", ctx->getTime());
+			  {
+			      if(currApd->len() > 1)
+			          writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", "", true);
+			      else
+		     	      	  writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", "", ctx->getTime());
+			  }
 			  else
-		     	      writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getTime());
+			  {
+			      if(currApd->len() > 1)
+				  writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), true);
+			      else
+		     	          writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getTime());
+			  }
 		      }
 		      else //static AoS: needs to be written only once
 		      {
