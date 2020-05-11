@@ -366,29 +366,6 @@ int main(int argc, char *argv[])
 					}
 				}
 				
-				printf("\n============================\n");
-				printf("Reading version...\n");
-				char* szDDVersion = NULL;
-				alStatus = ual_read_data_dictionary_version(iPulseCtx, NULL, &szDDVersion);
-				if (alStatus.code == 0 && szDDVersion)
-				{
-					printf("DD version:\t%s\n", szDDVersion);
-					
-					free(szDDVersion);
-					szDDVersion = NULL;
-					
-					alStatus = ual_read_data_dictionary_version(iPulseCtx, "magnetics", &szDDVersion);
-					if (alStatus.code == 0 && szDDVersion)
-					{
-						printf("Magnetics version:\t%s\n", szDDVersion);
-						free(szDDVersion);
-					}
-				}
-				else
-				{
-					printf("Error reading DD version = %s\n", alStatus.message);
-				}
-				
 				alStatus = ual_close_pulse(iPulseCtx, iCloseAction, "");
 			}
 		}

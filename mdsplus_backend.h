@@ -230,9 +230,6 @@ class LIBRARY_API MDSplusBackend:public Backend
 	   beginWriteArraystruct(ctx, *size);
     }
 
-    virtual std::string getBackendDataVersion(PulseContext *ctx, const std::string& ids);
-    void writeVersion(Context *ctx, const std::string& strPath);
-
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
 

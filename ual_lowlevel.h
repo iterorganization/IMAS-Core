@@ -377,18 +377,6 @@ extern "C"
    */
   LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
 						       int step);
-
-
-/**
-     Read the version of Data Dictionary used when data were stored.
-     The context has to be opened before calling this function.
-     If the IDS name is empty, return the root version.
-     @param[in] pulseCtx pulse context id (from ual_begin_pulse_action())
-     @param[in] ids name of requested IDS, optional
-     @param[out] version of DD -> NEED TO BE FREEED!!
-     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
-  */
-  LIBRARY_API al_status_t ual_read_data_dictionary_version(int pulseCtx, const char *ids, char **version);
   
 
 #if defined(__cplusplus)

@@ -157,20 +157,6 @@ public:
   virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size) = 0;
 
-  /**
-     Get the version of Data Dictionary used when data were stored.
-     The context has to be opened before calling this function.
-     If the IDS name is empty, return the root version.
-     @param[in] ctx pointer on pulse context
-     @param[in] ids name of requested IDS, optional
-     @result return DD version of data in actual context
-     @throw BackendException
-  */
-  virtual std::string getBackendDataVersion(PulseContext *ctx, const std::string& ids)
-  {
-    /* By default return current DD version */
-    return std::string(getDDVersion());
-  }
 };
 
 

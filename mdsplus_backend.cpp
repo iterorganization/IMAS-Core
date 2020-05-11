@@ -3359,7 +3359,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	break;
     }
 	
-	writeVersion(ctx, ctx->getDataobjectName());
   }
 	    
     
@@ -3895,94 +3894,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      MDSplus::deleteData(currApd);
 	  }
       }
-  }
-
-  std::string MDSplusBackend::getBackendDataVersion(PulseContext *ctx, const std::string& ids)
-  {
-	  char *version = nullptr;
-	  int datatype = CHAR_DATA;
-	  int numDims = 1;
-	  int dims[MAXDIM] = { 0 };
-	  
-	  // Get version of IDS if specified, otherwise get root version
-	  std::string strPath;
-	  if (ids.length() > 0)
-	  {
-		  // TODO: Manage this path in relation with DD (XSL transformation)
-		  strPath.assign(ids + "/ids_properties/version_put/data_dictionary");
-	  }
-	  else
-	  {
-		  // TODO: Manage this path in relation with DD (XSL transformation)
-		  strPath.assign("version/data_dict");
-	  }
-	  
-	  int status = readData(tree, strPath, "", (void **)&version, &datatype, &numDims, dims);
-	  if (!status || version == nullptr)
-	  {
-	      throw UALBackendException("Unable to read backend data version", LOG);
-	  }
-	  else
-	  {
-		  if (datatype != ualconst::char_data)
-		  {
-			  throw UALBackendException("Unexpected Data Type", LOG);
-		  }
-		  else
-		  {
-			  if (dims[0] <= 0)
-			  {
-				  throw UALBackendException("Unexpected Data Length", LOG);
-			  }
-			  else
-			  {
-				  int iSize = (dims[0] > 1 ? dims[0] : dims[1] > 0 ? dims[1] : 1);
-				  std::string strVersion(version, iSize);
-				  free(version);
-				  return strVersion;
-			  }
-		  }
-	  }
-  }
-
-  void MDSplusBackend::writeVersion(Context *ctx, const std::string& strPath)
-  {
-	  // Write version (if required)
-	  std::string strVersion;
-	  try
-	  {
-		  strVersion = getBackendDataVersion((PulseContext*)ctx, strPath);
-	  }
-	  catch (...)
-	  {
-	  }
-	  
-	  try
-	  {
-		  if (strVersion.length() == 0)
-		  {
-			  // Data Dictionary
-			  int size =(int)strlen(getDDVersion());
-			  // TODO: Manage this path in relation with DD (XSL transformation)
-			  writeData(tree, strPath, "ids_properties/version_put/data_dictionary", (void*)getDDVersion(), ualconst::char_data, 1, &size);
-			  
-			  // Access Layer
-			  size = (int)strlen(getUALVersion());
-			  // TODO: Manage this path in relation with DD (XSL transformation)
-			  writeData(tree, strPath, "ids_properties/version_put/access_layer", (void*)getUALVersion(), ualconst::char_data, 1, &size);
-			  
-			  if (ctx->getHLI().length() > 0)
-			  {
-				  // HLI currently used
-				  size = (int)ctx->getHLI().length();
-				  // TODO: Manage this path in relation with DD (XSL transformation)
-				  writeData(tree, strPath, "ids_properties/version_put/access_layer_language", (void*)ctx->getHLI().c_str(), ualconst::char_data, 1, &size);
-			  }
-		  }
-	  }
-	  catch (...)
-	  {
-	  }
   }
   
   void MDSplusBackend::printFileVersionInfo(int shot, int run, std::string usr, std::string tok, std::string ver)

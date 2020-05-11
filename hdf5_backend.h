@@ -170,8 +170,6 @@ public:
 
   	virtual void beginAction(OperationContext *ctx);
 
-	virtual std::string getBackendDataVersion(PulseContext *ctx, const std::string& ids);
-
 };
 
 #endif
