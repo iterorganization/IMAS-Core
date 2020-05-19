@@ -40,14 +40,12 @@ Context::Context(int id)
   }
   backend_id = id;
   verbose = true;
-  strHLI.empty();
 }
 
 Context::Context(const Context& ctx) 
 {
   backend_id = ctx.backend_id;
   verbose = ctx.verbose;
-  strHLI = ctx.strHLI;
 }
 
 std::string Context::print() const 
@@ -58,10 +56,8 @@ std::string Context::print() const
     std::to_string(this->backend_id) + " (" + 
     this->getBackendName() + ")\n" +
 	"verbose \t\t = " +
-	std::to_string(this->verbose) + "\n" +
-	"HLI \t\t\t = " +
-	strHLI + "\n";
-  return s;
+	std::to_string(this->verbose) + "\n";
+	return s;
 }
 
 std::string Context::fullPath() const
@@ -98,16 +94,6 @@ bool Context::getVerbose() const
 void Context::setVerbose(const bool& bVerbose)
 {
   verbose = bVerbose;
-}
-
-std::string Context::getHLI() const
-{
-  return strHLI;
-}
-
-void Context::setHLI(const std::string& HLI)
-{
-  strHLI = HLI;
 }
 
 

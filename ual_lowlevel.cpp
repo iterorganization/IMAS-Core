@@ -342,7 +342,6 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
   al_status_t status = { 0 };
   // verbose is active by default
   bool verbose = true;
-  std::string strHLI;
 
   std::string strValue;
   std::map<std::string, std::string> mapOptions;
@@ -351,10 +350,6 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     if (isOptionExist("silent", mapOptions, strValue))
     {
       verbose = false;
-    }
-	if (isOptionExist("hli", mapOptions, strValue) && strValue.length() > 0)
-    {
-      strHLI = strValue;
     }
   }
 
@@ -367,7 +362,6 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
 
     // Save extracted options
     pctx->setVerbose(verbose);
-    pctx->setHLI(strHLI);
 
     std::string strOptions;
     if (options)
