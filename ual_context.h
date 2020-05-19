@@ -77,19 +77,6 @@ public:
   virtual int getType() const;
   
   /**
-     Returns the verbose mode of context.
-     @result boolean
-  */
-  bool getVerbose() const;
-
-  /**
-     Set the verbose mode of context.
-     @param verbose verbose mode
-  */
-  void setVerbose(const bool& verbose);
-
-
-  /**
      Context copy constructor.
      Explicit definition to handle uid update.
   */
@@ -111,7 +98,6 @@ protected:
   int backend_id;                            /**< a backend identifier */
   static std::atomic<unsigned long int> SID; /**< a global UID */
   unsigned long int uid;                     /**< a local ID to identify instances */
-  bool verbose;                              /**< a flag indicate if verbose mode is ON */
 };
 
 

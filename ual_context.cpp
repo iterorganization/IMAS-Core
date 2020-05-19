@@ -39,13 +39,11 @@ Context::Context(int id)
     throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
   }
   backend_id = id;
-  verbose = true;
 }
 
 Context::Context(const Context& ctx) 
 {
   backend_id = ctx.backend_id;
-  verbose = ctx.verbose;
 }
 
 std::string Context::print() const 
@@ -54,10 +52,8 @@ std::string Context::print() const
     std::to_string(this->uid) + "\n" + 
     "backend_id \t\t = " + 
     std::to_string(this->backend_id) + " (" + 
-    this->getBackendName() + ")\n" +
-	"verbose \t\t = " +
-	std::to_string(this->verbose) + "\n";
-	return s;
+    this->getBackendName() + ")\n";
+  return s;
 }
 
 std::string Context::fullPath() const
@@ -84,16 +80,6 @@ unsigned long int Context::getUid() const
 int Context::getType() const 
 {
   return CTX_TYPE;
-}
-
-bool Context::getVerbose() const
-{
-  return verbose;
-}
-
-void Context::setVerbose(const bool& bVerbose)
-{
-  verbose = bVerbose;
 }
 
 
