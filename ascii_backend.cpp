@@ -522,7 +522,9 @@ void AsciiBackend::readData(char **data,
   case 2:
     *data = static_cast<char *>(malloc(size[0]*size[1]*sizeof(char)));
     for (int i=0; i<size[0]; i++) {
-      this->curcontent.read(&(*data[i*size[1]]),size[1]);
+      if (i!=0)
+	std::getline(this->curcontent,this->curline); // consume rest of previous line
+      this->curcontent.read((data[i*size[1]]),size[1]);
     }
     break;
   default:
