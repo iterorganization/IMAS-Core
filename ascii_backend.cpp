@@ -524,7 +524,7 @@ void AsciiBackend::readData(char **data,
     for (int i=0; i<size[0]; i++) {
       if (i!=0)
 	std::getline(this->curcontent,this->curline); // consume rest of previous line
-      this->curcontent.read((data[i*size[1]]),size[1]);
+      this->curcontent.read((data[0]+i*size[1]),size[1]);
     }
     break;
   default:
