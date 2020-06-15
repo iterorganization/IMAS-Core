@@ -29,6 +29,701 @@ static std::string originalIdsPath = "";
 
 
 #ifdef NODENAME_MANGLING
+
+static size_t getMaxApdArrayDim(MDSplus::Apd *inApd)
+{
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+    size_t maxDim = 0;
+    inApd->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_APD)
+    {
+	std::cout << "INTERNAL ERROR in getMaxApdArrayDim: not an APD" << std::endl;
+	return 0;
+    }
+    bool isArray = true;
+    if(inApd->getDescAt(0))
+    {
+    	inApd->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	if(clazz == CLASS_S && dtype == DTYPE_T)
+	    isArray = false;
+    }
+
+    size_t notNull = 0;
+    for(size_t i = 0; i < inApd->len(); i++)
+    {
+	if(inApd->getDescAt(i))
+	{
+	    notNull++;
+   	    inApd->getDescAt(i)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    if(clazz == CLASS_APD)
+    	    {
+		size_t currDim = getMaxApdArrayDim((MDSplus::Apd *)inApd->getDescAt(i));
+		if(currDim > maxDim)
+		    maxDim = currDim;
+	    }
+	}
+    }
+    if(isArray && notNull > maxDim)
+	maxDim = notNull;
+    return maxDim;
+}
+
+
+static bool sameApdStructure(MDSplus::Apd *apd1, MDSplus::Apd *apd2)
+{
+    unsigned char clazz1, clazz2;
+    unsigned char dtype1, dtype2;
+    short length1, length2;
+    char nDims1, nDims2;
+    int *dims1, *dims2;
+    void *ptr1, *ptr2;
+    if(!apd1 && !apd2) 
+        return true;
+    if(!apd1 || ! apd2)
+	return false;
+    if(apd1->len() != apd2->len())
+	return false;
+    if(apd1->len() == 0)
+	return true;
+    apd1->getInfo((char *)&clazz1, (char *)&dtype1, &length1, &nDims1, &dims1, &ptr1);
+    apd2->getInfo((char *)&clazz2, (char *)&dtype2, &length2, &nDims2, &dims2, &ptr2);
+    if(clazz1 != clazz2 || dtype1 != dtype2)
+	return false;
+    if(clazz1 != CLASS_APD) 
+    {
+	std::cout << "INTERNAL ERROR in sameApdStructure: not an Apd" << std::endl;
+	return false;
+    }
+    MDSplus::Data *data1 = apd1->getDescAt(0);
+    MDSplus::Data *data2 = apd2->getDescAt(0);
+    if(data1)
+    {
+	if(!data2) return false;
+        data1->getInfo((char *)&clazz1, (char *)&dtype1, &length1, &nDims1, &dims1, &ptr1);
+        data2->getInfo((char *)&clazz2, (char *)&dtype2, &length2, &nDims2, &dims2, &ptr2);
+        if(clazz1 != clazz2 || dtype1 != dtype2)
+	    return false;
+        if(clazz1 == CLASS_S && dtype1 == DTYPE_T) //It is a Struct
+        {
+   	    char *field1 = data1->getString();
+    	    char *field2 = data2->getString();
+    	    int notSame = strcmp(field1, field2);
+    	    delete[] field1;
+    	    delete[] field2;
+    	    if(notSame != 0)
+		return false;
+    	    for(size_t i = 1; i < apd1->len(); i++)
+    	    {
+		data1 = apd1->getDescAt(i);
+		data2 = apd2->getDescAt(i);
+		if(!data1 && !data2)
+	    	    continue;
+		if(!data1 || !data2)
+	    	    return false;
+    		data1->getInfo((char *)&clazz1, (char *)&dtype1, &length1, &nDims1, &dims1, &ptr1);
+    		data2->getInfo((char *)&clazz2, (char *)&dtype2, &length2, &nDims2, &dims2, &ptr2);
+		if(clazz1 != clazz2 || dtype1 != dtype2)
+	            return false;
+		if(clazz1 == CLASS_APD)
+		{
+	    	    if(!sameApdStructure((MDSplus::Apd *)data1, (MDSplus::Apd *)data2))
+		    return false;
+		}
+		if(clazz1 == CLASS_A) //Arrays, must have the same shape
+		{
+	    	    int *shape1, *shape2;
+	    	    int numDims1, numDims2;
+	    	    shape1 = data1->getShape(&numDims1);
+	    	    shape2 = data2->getShape(&numDims2);
+	    	    if(numDims1 != numDims2)
+	    	    {
+			delete[] shape1;
+			delete[] shape2;
+			return false;
+	    	    }
+	    	    for(int j = 0; j < numDims1; j++)
+	    	    {
+			if(shape1[j] != shape2[j])
+		 	{
+	    	    	    delete[] shape1;
+	    	    	    delete[] shape2;
+  		    	    return false;
+			}
+	    	    }
+	    	    delete[] shape1;
+	    	    delete[] shape2;
+		}
+	    }
+	    return true; //Struct case finished
+	}
+    }
+//If we arrive here it is an Apd Array
+    for(size_t i = 0; i < apd1->len(); i++)
+    {
+	if(!apd1->getDescAt(i) && !apd2->getDescAt(i))
+	    continue;
+	if(!apd1->getDescAt(i) || !apd2->getDescAt(i))
+	    return false;
+        apd1->getDescAt(i)->getInfo((char *)&clazz1, (char *)&dtype1, &length1, &nDims1, &dims1, &ptr1);
+        apd2->getDescAt(i)->getInfo((char *)&clazz2, (char *)&dtype2, &length2, &nDims2, &dims2, &ptr2);
+	if(clazz1 != CLASS_APD || clazz2 != CLASS_APD)
+    	{
+	    std::cout << "INTERNAL ERROR in sameApdStructyre: not an Apd" << std::endl;
+	    return false; 
+	}
+	if(!sameApdStructure((MDSplus::Apd *)apd1->getDescAt(i), (MDSplus::Apd *)apd2->getDescAt(i)))
+	    return false;
+    }
+    return true;
+}
+
+static bool sameApdStructure(MDSplus::Apd *apd)
+{
+    if(apd->len() < 2) return false;
+
+    for(size_t i = 1; i < apd->len(); i++)
+    {
+	if(!apd->getDescAt(i)) return false;
+	if(!sameApdStructure((MDSplus::Apd *)apd->getDescAt(0), (MDSplus::Apd *)apd->getDescAt(i)))
+	    return false;
+    }
+    return true;
+}
+
+
+static MDSplus::Data *mergeApdFields(std::vector<MDSplus::Data *>dataVect)
+{
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+
+    MDSplus::Data *retArr;
+    dataVect[0]->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_S && clazz != CLASS_A)
+    {
+	std::cout << "INTERNAL ERROR in mergeApdFields: inconsistent field types" << std::endl;
+	return NULL; //Force core dump
+    }
+    if(clazz == CLASS_S)
+    {
+	char *buf = new char[length * dataVect.size()];
+	int dataLen = length;
+	for(size_t i = 0; i < dataVect.size(); i++)
+	{
+       	    dataVect[i]->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    memcpy(&buf[i * dataLen], ptr, dataLen);
+	}
+	switch(dtype) {
+	    case DTYPE_L: 
+		retArr = new MDSplus::Int32Array((int *)buf, dataVect.size());
+		break;
+	    case DTYPE_DOUBLE: 
+		retArr = new MDSplus::Float64Array((double *)buf, dataVect.size());
+		break;
+	    case DTYPE_FTC: 
+		retArr = new MDSplus::Complex64Array((double *)buf, dataVect.size());
+		break;
+	    default:
+		std::cout << "INTERNAL ERROR in mergeApdFields: inconsistent field type" << std::endl;
+		return NULL; //Force core dump
+	}
+    }
+    else //CLASS_A 
+    {
+	int dataLen = length;
+	int numElements = 1;
+	for(int i = 0; i < nDims; i++)
+	    numElements *= dims[i];
+	//if(dtype != DTYPE_B && dtype != DTYPE_BU)
+	{
+	    char *buf = new char[dataLen * numElements * dataVect.size()];
+	    for(size_t i = 0; i < dataVect.size(); i++)
+	    {
+    	    	dataVect[i]->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    	memcpy(&buf[i * dataLen * numElements], ptr, dataLen * numElements);
+	    }
+	    int *newDims = new int[nDims +1];
+	    newDims[0] = dataVect.size();
+	    for(int i = 0; i < nDims; i++)
+	    	newDims[i+1]= dims[i];
+	
+            switch(dtype) {
+	    	case DTYPE_B: 
+	    	case DTYPE_BU: 
+		    retArr = new MDSplus::Int8Array((char *)buf, nDims+1, newDims);
+		    break;
+	    	case DTYPE_L: 
+		    retArr = new MDSplus::Int32Array((int *)buf, nDims+1, newDims);
+		    break;
+	    	case DTYPE_DOUBLE: 
+		    retArr = new MDSplus::Float64Array((double *)buf, nDims+1, newDims);
+		    break;
+	    	case DTYPE_FTC: 
+		    retArr = new MDSplus::Complex64Array((double *)buf, nDims+1, newDims);
+		    break;
+		default:
+		    std::cout << " INTERNAL ERROR in mergeApdFields: unexpected type" << std::endl;
+		    return NULL;
+	    }
+	    delete[] newDims;
+	    delete [] buf;
+	}
+	/*else
+    	{
+	    if(nDims > 1)
+	    {
+		std::cout << "INTERNAL ERROR in mergeApdFields: STRING ARRAYS NOT SUPPORTED IN APD" << std::endl;
+		return NULL;
+	    }
+	    int numElements = 1;
+	    for(int i = 0; i < nDims; i++)
+	    	numElements *= dims[i];
+
+
+
+	    char **bufStr = new char *[dataVect.size()];
+	    for(size_t i = 0; i < dataVect.size(); i++)
+	    {
+		int len;
+    	    	char *currBuf = dataVect[i]->getByteArray(&len);
+		bufStr[i] = new char[len+1];
+		memcpy(bufStr[i], currBuf, len);
+		bufStr[i][len] = 0;
+		delete[]currBuf;
+	    }
+	    retArr = new MDSplus::StringArray(bufStr, dataVect.size());
+	    for(size_t i = 0; i < dataVect.size(); i++)
+	    {
+    	    	delete [] bufStr[i];
+	    }
+	    delete [] bufStr;
+	}
+*/
+    }
+    return retArr;
+}
+
+static MDSplus::Apd *mergeApdArrays(std::vector<MDSplus::Data *>apdVect)
+{
+//It is assumed that the two input structures are already consistent, i.e. checked by SameApdStructure()
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+
+    apdVect[0]->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_APD) 
+    {
+	std::cout << "INTERNAL ERROR in mergeApdArrays: Not an Apd" << std::endl;
+	return  NULL; //Force core dump
+    }
+    MDSplus::Apd *retApd = new MDSplus::Apd();
+    if(((MDSplus::Apd *)apdVect[0])->getDescAt(0)) //If not empty
+    	((MDSplus::Apd *)apdVect[0])->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    else
+	clazz = CLASS_APD; //Struct fields always begin with a non APD, so if it is empty we assume it is an Apd array
+    if(clazz == CLASS_APD)  //Juts Apd array
+    {    
+	for(size_t i = 0; i < ((MDSplus::Apd *)apdVect[0])->len(); i++)
+	{
+	    if(!((MDSplus::Apd *)apdVect[0])->getDescAt(i)) //Empty element
+		retApd->setDescAt(i, NULL);
+	    else
+	    {
+	    	std::vector<MDSplus::Data *> currVect;
+	    	for(size_t j = 0; j < apdVect.size(); j++)
+	    	{
+		    currVect.push_back(((MDSplus::Apd *)apdVect[j])->getDescAt(i));
+	    	}
+	    	retApd->setDescAt(i, mergeApdArrays(currVect));
+	    }
+	}
+	return retApd;
+    }
+    if(clazz != CLASS_S || dtype != DTYPE_T)
+    {
+	std::cout << "INTERNAL ERROR in mergeApdArrays: inconsistent struct types" << std::endl;
+	return NULL;
+    }
+    char *fieldName = ((MDSplus::Apd *)apdVect[0])->getDescAt(0)->getString();
+    retApd->setDescAt(0, new MDSplus::String(fieldName));
+//    delete [] fieldName;
+    for(size_t i = 1; i < ((MDSplus::Apd *)apdVect[0])->len(); i++)
+    {
+ 	MDSplus::Data *data = ((MDSplus::Apd *)apdVect[0])->getDescAt(i);
+	if(!data)
+	    retApd->setDescAt(i, NULL);
+	else
+	{	
+   	    std::vector<MDSplus::Data *> currVect;
+	    for(size_t j = 0; j < apdVect.size(); j++)
+	    {
+	        currVect.push_back(((MDSplus::Apd *)apdVect[j])->getDescAt(i));
+	    }
+	    data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    if(clazz == CLASS_APD)
+	    {
+		retApd->setDescAt(i, (MDSplus::Data *)mergeApdArrays(currVect));
+	    }
+	    else //Just field
+	    {
+//std::cout << "MERGE APD FIELDS " << fieldName << "   " << currVect.size() << std::endl;
+		retApd->setDescAt(i, mergeApdFields(currVect));
+	    }
+	}
+    }
+    delete [] fieldName;
+    return retApd;
+}
+
+   
+	
+static void deflateApd(MDSplus::Apd *inApd)
+{
+    if(!inApd || inApd->len() == 0) return;
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+    MDSplus::Data *currData = inApd->getDescAt(0);
+    if(currData)
+    	currData->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    else
+	clazz = CLASS_APD; //It is in any case an array of Apd
+    if(clazz == CLASS_APD) //Array 
+    {
+	size_t maxInnerDim = getMaxApdArrayDim(inApd);
+	if(sameApdStructure(inApd) && inApd->len() >= maxInnerDim) //If all elements of this array have the same structure
+	{
+//std::cout << "COMPRESSING " << inApd->len() << "  elements" << std::endl;
+//Coded into a single Structure qith one dimension more for leaves. The first descriptor is the number of elements (added dimension)
+	    std::vector<MDSplus::Data *> apdVect;
+	    for(size_t i = 0; i < inApd->len(); i++)
+		apdVect.push_back(inApd->getDescAt(i));
+	    MDSplus::Apd * mergedApd = mergeApdArrays(apdVect);
+	    for(size_t i = 0; i < inApd->len(); i++)
+	    {
+	    	MDSplus::deleteData(inApd->getDescAt(i));
+		inApd->getDscs()[i] = NULL;
+	    }
+	    inApd->getDscs()[0] = new MDSplus::Uint32(inApd->len());
+	    inApd->getDscs()[1] = mergedApd;
+	    return; //All done
+	}
+	for(size_t i = 0; i < inApd->len(); i++)
+	{
+	    deflateApd((MDSplus::Apd *)inApd->getDescAt(i));	
+	}
+    }
+    else  //Must be a string for field name
+    {
+	if(clazz != CLASS_S || dtype != DTYPE_T)
+	{
+	    std::cout << "INTERNAL ERROR in deflateApd: not an String descriptor" << std::endl;
+	    return;
+	}
+	for(size_t i = 1; i < inApd->len(); i++)
+	{
+    	    MDSplus::Data *data = inApd->getDescAt(i);
+	    if(!data) continue;
+    	    data->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    if(clazz == CLASS_APD)
+	    {
+		deflateApd((MDSplus::Apd *)data);
+	    }
+	}
+    }
+}
+
+
+static std::vector<MDSplus::Data *> splitApdFields(MDSplus::Data *inData, int numInstances)
+{
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+
+    inData->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_A)
+    {
+	std::cout << "INTERNAL ERROR in splitApdFields: not an Array" << std::endl;
+
+    }
+    std::vector<MDSplus::Data *> retVect;
+    if(nDims == 1)
+    {
+ 	if(dims[0] != numInstances)
+	{
+	    std::cout << "INTERNAL ERROR in splitApdFields: invalid dimesion" << std::endl;
+
+	}
+     	switch(dtype)  {
+	    case DTYPE_L:
+	    { 
+	    	int *buf = (int *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Int32(buf[i]));
+	    	}
+	        break;
+	    }
+	    case DTYPE_DOUBLE:
+	    { 
+	    	double *buf = (double *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Float64(buf[i]));
+	    	}
+	        break;
+	    }
+	    case DTYPE_FTC:
+	    { 
+	    	double *buf = (double *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Complex64(buf[2*i], buf[2*i+1]));
+	    	}
+	        break;
+	    }
+	    default:
+		std::cout << "INTERNAL ERROR in mergeApdFields: inconsistent array field type" << std::endl;
+
+	}
+    }
+    else //nDims > 1
+    {
+	int origSize = 1;
+	for(int j = 1; j < nDims; j++)
+	    origSize *= dims[j];
+    	switch(dtype)  {
+	    case DTYPE_B:
+	    case DTYPE_BU:
+	    { 
+	    	char *buf = (char *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Int8Array(&buf[i*origSize], nDims - 1, &dims[1]));
+	    	}
+	        break;
+	    }
+	    case DTYPE_L:
+	    { 
+	    	int *buf = (int *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Int32Array(&buf[i*origSize], nDims - 1, &dims[1]));
+	    	}
+	        break;
+	    }
+	    case DTYPE_DOUBLE:
+	    { 
+	    	double *buf = (double *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Float64Array(&buf[i*origSize], nDims - 1, &dims[1]));
+	    	}
+	        break;
+	    }
+	    case DTYPE_FTC:
+	    { 
+	    	double *buf = (double *)ptr; 
+	    	for(int i = 0; i < numInstances; i++)
+	    	{	
+		    retVect.push_back(new MDSplus::Complex64Array(&buf[2*i*origSize], nDims - 1, &dims[1]));
+	    	}
+	        break;
+	    }
+	    default:
+		std::cout << "INTERNAL ERROR in mergeApdFields: inconsistent array field type" << std::endl;
+	}
+    }
+    return retVect;
+}
+
+static std::vector<MDSplus::Apd *> splitApdArrays(MDSplus::Apd *inApd, int numInstances)
+{
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+
+    std::vector<MDSplus::Apd *> retVect;
+    inApd->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_APD)
+    {
+	std::cout << "INTERNAL ERROR in splitApdArrays: not an Apd" << std::endl;
+	return retVect;
+    }
+//Prepare retVect
+    for(int i = 0; i < numInstances; i++)
+	retVect.push_back(new MDSplus::Apd());
+
+    //An Array may have empty components, in any case a struct starts with the name
+    if(inApd->getDescAt(0))
+    {
+	inApd->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    	if(clazz == CLASS_S && dtype == DTYPE_T) //It is a Struct
+    	{
+	    char *fieldName = inApd->getDescAt(0)->getString();
+	    for(int i = 0; i < numInstances; i++)
+	    {
+	    	retVect[i]->setDescAt(0, new MDSplus::String(fieldName));
+	    }
+	   //delete [] fieldName;
+            for (size_t i = 1; i < inApd->len(); i++)
+	    {
+	    	MDSplus::Data *currField = inApd->getDescAt(i);
+	    	if(!currField)
+	    	{
+		    for(int j = 0; j < numInstances; j++)
+		    	retVect[j]->setDescAt(i, NULL);
+	        }
+	        else
+	        {
+    		    currField->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+		    if(clazz == CLASS_APD) 
+		    {
+		    	std::vector<MDSplus::Apd *>currVect = splitApdArrays((MDSplus::Apd *)currField, numInstances);
+	    		if(currVect.size() != (size_t)numInstances)
+   	    		{
+			    std::cout << "INTERNAL ERROR in splitApdArrays: incorrect vector sizes" << std::endl;
+			    return retVect;
+    	    		}
+//std::cout << "START SETDESC " << numInstances << std::endl;
+		    	for(int j = 0; j < numInstances; j++)
+		 	    retVect[j]->setDescAt(i, currVect[j]);
+//std::cout << "END SETDESC " << numInstances <<  std::endl;
+		    }
+		    else //Field
+		    {
+		    	std::vector<MDSplus::Data *>currVect = splitApdFields(currField, numInstances);
+//std::cout << "SPLIT APD FIELDS " << fieldName << "    " << currVect.size() << std::endl;
+	    		if(currVect.size() != (size_t)numInstances)
+   	    		{
+			    std::cout << "INTERNAL ERROR in splitApdArrays: incorrect vector sizes" << std::endl;
+			    return retVect;
+    	    		}
+//std::cout << "START SETDESC " << numInstances << std::endl;
+		    	for(int j = 0; j < numInstances; j++)
+		 	    retVect[j]->setDescAt(i, currVect[j]);
+//std::cout << "END SETDESC " << numInstances <<  std::endl;
+		    }
+		}
+	    }
+	    delete [] fieldName;
+	    return retVect;
+	}
+    }
+   //If we arrive here, it is an Array of Apds
+    for(size_t i = 0; i < inApd->len(); i++)
+    {
+	MDSplus::Apd *currApd = (MDSplus::Apd *)inApd->getDescAt(i);
+	if(currApd)
+	{
+	    std::vector<MDSplus::Apd *>currVect = splitApdArrays(currApd, numInstances);
+	    if(currVect.size() != (size_t)numInstances)
+   	    {
+		std::cout << "INTERNAL ERROR in splitApdArrays: incorrect vector sizes" << std::endl;
+		return retVect;
+    	    }
+
+	    for(int j = 0; j < numInstances; j++)
+		retVect[j]->setDescAt(i, currVect[j]);
+	}
+	else
+	{
+	    for(int j = 0; j < numInstances; j++)
+		retVect[j]->setDescAt(i, NULL);
+	}
+    }
+    return retVect;
+}
+
+
+static void inflateApd(MDSplus::Apd *inApd)
+{
+    if(!inApd) return;
+ 
+    unsigned char clazz;
+    unsigned char dtype;
+    short length;
+    char nDims;
+    int *dims;
+    void *ptr;
+
+    inApd->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+    if(clazz != CLASS_APD) //Array 
+    {
+	std::cout << "INTERNAL ERROR in inflateApd: not an ADP descriptor" << std::endl;
+	return;
+    }
+    if(inApd->len() == 0)
+	return;
+    if(inApd->len() > 0 && inApd->getDescAt(0))
+    {
+    	inApd->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	if(clazz == CLASS_S && dtype == DTYPE_LU) //Coded deflated
+	{
+	    int numInstances = inApd->getDescAt(0)->getInt();
+	    if(inApd->len() < 2 || !inApd->getDescAt(1))
+    	    {
+		std::cout << "INTERNAL ERROR in inflateApd: missing compressed info" << std::endl;
+		return;
+    	    }
+	    inApd->getDescAt(1)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    if(clazz != CLASS_APD)
+   	    {
+		std::cout << "INTERNAL ERROR in inflateApd: incorrect comressed info " << std::endl;
+		return;
+    	    }
+	    std::vector<MDSplus::Apd *>apdVect = splitApdArrays((MDSplus::Apd *)inApd->getDescAt(1), numInstances);
+	    MDSplus::deleteData(inApd->getDescAt(0));
+	    MDSplus::deleteData(inApd->getDescAt(1));
+	    inApd->getDscs()[0] = NULL;
+	    inApd->getDscs()[1] = NULL;
+//std::cout << "PARTE INFLATE SET DESC"  << numInstances << std::endl;
+	    for(int i = 0; i < numInstances; i++)
+	    {
+		if(inApd->len() > (size_t)i)
+		    inApd->getDscs()[i] = apdVect[i];
+		else
+		    inApd->setDescAt(i, apdVect[i]);
+	    }
+//std::cout << "FINISCE INFLATE SET DESC" << std::endl;
+	    return; //All done
+	}
+    }
+//Recursive propagation
+    for(size_t i = 0; i < inApd->len(); i++)
+    {
+	if(inApd->getDescAt(i))
+	{
+	    inApd->getDescAt(i)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
+	    if(clazz == CLASS_APD)
+		inflateApd((MDSplus::Apd *)inApd->getDescAt(i));
+	}
+    }
+}
+
+ 
+
+
 /*static char *path2MDS(char *path)
 {
     static char MDSpath[13];
@@ -500,18 +1195,19 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    prevSlices = actSlices;
 	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
 	    if (segIdx < numSegments - 1)
-		actSlices += segDims[segNDims - 1];
-//		actSlices += segDims[0];
+		actSlices += nextRow;
+//Gabriele June 2020		actSlices += segDims[segNDims - 1];
 	    else
 		actSlices += nextRow;
-//	    if(actSlices >= timebaseIdx)
 	    if(actSlices > timebaseIdx)
 		break;
 	}
-//	double *retTimes = new double[segDims[0]];
-	double *retTimes = new double[segDims[segNDims - 1]];
-//	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
-	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
+
+
+//Gabriele June 2020	double *retTimes = new double[segDims[segNDims - 1]];
+	double *retTimes = new double[nextRow];
+	nDim = nextRow;
+//	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
 	if(!timebaseCached) 
 	    free(times);
@@ -1937,6 +2633,22 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //if timedPath is empty, timebase will be derived by AoS "time" field. Otherwise it represet the full path in the tree of the timebase.
 
     {
+
+
+/*/Gabriele June 2020: Test 
+//dumpArrayStruct(apd, 0);
+std::cout<<"PARTE DEFLATE" << std::endl;
+    deflateApd(apd);
+std::cout<<"FINISCE DEFLATE" << std::endl;
+//dumpArrayStruct(apd, 0);
+std::cout<<"PARTE INFLATE" << std::endl;
+    inflateApd(apd);
+std::cout<<"FINSCE INFLATE" << std::endl;
+//dumpArrayStruct(apd, 0);
+/////////////////////////*/
+
+
+
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
       try {
 	  std::string timePath;
@@ -2023,7 +2735,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		unsigned char *currSerialized;
 		if(currStruct)
 		{
+		//Gabriele June 2020
+//((MDSplus::Apd *)currStruct, 0);
+		    deflateApd((MDSplus::Apd *)currStruct);
 		    currSerialized = (unsigned char *)currStruct->serialize(&currLen);
+		    //currSerialized = (unsigned char *)currStruct->serialize(&currLen);
 		}
 		else //hole
 		{
@@ -2093,6 +2809,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 //Gabriele 2017
     void MDSplusBackend::writeApdSlice(MDSplus::Apd *inApd, std::string aosPath, std::string timebasePath, double time)
     {
+
+
 //oasPath refers to the path in the tree of the AoS root
 //if timedPath is empty, timebase will be derived by AoS "time" field. Otherwise it represet the full path in the tree of the timebase.
  	MDSplus::Apd *apd;
@@ -2103,8 +2821,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	//Gabriele November 2017. If the slice is empty it is being called from put_non_times and do nothing. Slices will be added afterwards via putSlice 
 	if(inApd->len() == 0)
 	    return;
-
-
+/////////////
 		
 	if(inApd->len() != 1 || inApd->getDescAt(0)->clazz !=  CLASS_APD)
 	{
@@ -2139,7 +2856,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    int apdLen;
 //	    unsigned char *apdSerialized = (unsigned char *)inApd->serialize(&apdLen);
+//Gabriele June 2020
+//dumpStruct((MDSplus::Apd *)apd, 0);
+	    deflateApd(apd);
 	    unsigned char *apdSerialized = (unsigned char *)apd->serialize(&apdLen);
+//	    unsigned char *apdSerialized = (unsigned char *)apd->serialize(&apdLen);
 	    int numSegments = node->getNumSegments();
 	    if(numSegments > 0)
 	    {
@@ -2316,7 +3037,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    int sliceLen;
 		    memcpy(&sliceLen, &serialized[idx], sizeof(int));
 		    idx += sizeof(int);
+//Gabriele June 2020
 		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
+		    inflateApd((MDSplus::Apd *)sliceData);
+//		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[idx]);
+//dumpStruct((MDSplus::Apd *)sliceData, 0);
 		    idx += sliceLen;
 		    retApd->appendDesc(sliceData);
 		}
@@ -2395,7 +3120,11 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		}
 		memcpy(&sliceLen, &serialized[bufIdx], sizeof(int));
 		bufIdx += sizeof(int);
+//Gabriele June 2020
 		MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[bufIdx]);
+		inflateApd((MDSplus::Apd *)sliceData);
+
+//dumpStruct((MDSplus::Apd *)sliceData, 0);
 		delete[]serialized;
 		if(sliceData->clazz != CLASS_APD)
 		  throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
