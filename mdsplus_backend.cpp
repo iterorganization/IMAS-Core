@@ -500,18 +500,20 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	    prevSlices = actSlices;
 	    node->getSegmentInfo(segIdx, &segType, &segNDims, segDims, &nextRow);
 	    if (segIdx < numSegments - 1)
-		actSlices += segDims[segNDims - 1];
-//		actSlices += segDims[0];
+		actSlices += nextRow;
+//Gabriele June 2020		actSlices += segDims[segNDims - 1];
 	    else
 		actSlices += nextRow;
 //	    if(actSlices >= timebaseIdx)
 	    if(actSlices > timebaseIdx)
 		break;
 	}
-//	double *retTimes = new double[segDims[0]];
-	double *retTimes = new double[segDims[segNDims - 1]];
-//	nDim = (segIdx < numSegments - 1)?segDims[0]:nextRow;
-	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
+
+
+//Gabriele June 2020	double *retTimes = new double[segDims[segNDims - 1]];
+	double *retTimes = new double[nextRow];
+	nDim = nextRow;
+//	nDim = (segIdx < numSegments - 1)?segDims[segNDims - 1]:nextRow;
 	memcpy(retTimes, &times[prevSlices], sizeof(double)* nDim);
 	if(!timebaseCached) 
 	    free(times);
