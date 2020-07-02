@@ -2483,7 +2483,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    	    {
 			for(sliceIdx = 0; sliceIdx < timebaseLen-1; sliceIdx++)
 			{
-		    	    if(timebase[sliceIdx] < time && timebase[sliceIdx+1] >= time)
+		    	    if(timebase[sliceIdx] <= time && timebase[sliceIdx+1] > time)
 				break;
 			}
 	    	    }
