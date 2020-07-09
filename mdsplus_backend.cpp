@@ -3454,9 +3454,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     {
 	MDSplus::Apd *parentApd = getApdFromContext(ctx->getParent());
 	
-	if ((int)parentApd->len()==0)
+	if (parentApd == NULL ||  (int)parentApd->len()==0)
 	{
-	  delete parentApd;
+          if (parentApd != NULL)
+	     delete parentApd;
 	  *size = 0;
 	  return;
 	}
