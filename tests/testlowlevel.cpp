@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <regex>
 #include <ual_lowlevel.h>
 
 #ifndef WIN32
@@ -43,6 +42,8 @@ void usage()
 bool ExtractOpt(char& cOption, const char* szString)
 {
 	bool bRet = false;
+	
+#if HAVE_WORKING_REGEX
 	std::cmatch rxResults;
 	std::regex rxInt("([\\s\\r\\n]*)([-/][a-zA-Z])([\\s\\r\\n]*)");
 	
@@ -51,7 +52,14 @@ bool ExtractOpt(char& cOption, const char* szString)
 		cOption = rxResults[2].str().c_str()[1];
 		bRet = true;
 	}
-
+#else // HAVE_WORKING_REGEX
+	if (strlen(szString) == 2)
+	{
+		cOption = szString[1];
+		bRet = true;
+	}
+#endif // HAVE_WORKING_REGEX
+	
 	return bRet;
 }
 
@@ -59,6 +67,8 @@ bool ExtractOpt(char& cOption, const char* szString)
 bool ExtractInt(char& cOption, int& iValue, const char* szString)
 {
 	bool bRet = false;
+	
+#if HAVE_WORKING_REGEX
 	std::cmatch rxResults;
 	std::regex rxInt("([\\s\\r\\n]*)([-/][a-zA-Z][=:])([+-]?[\\d]+)([\\s\\r\\n]*)");
 	
@@ -68,7 +78,23 @@ bool ExtractInt(char& cOption, int& iValue, const char* szString)
 		iValue = atoi(rxResults[3].str().c_str());
 		bRet = true;
 	}
-
+#else // HAVE_WORKING_REGEX
+	if (strlen(szString) >= 4)
+	{
+		bool bContinue = true;
+		for (size_t i = 3; i < strlen(szString) && bContinue; i++)
+		{
+			bContinue = isdigit(szString[i]);
+		}
+		if (bContinue)
+		{
+			cOption = szString[1];
+			iValue = atoi(szString + 3);
+			bRet = true;
+		}
+	}
+#endif // HAVE_WORKING_REGEX
+	
 	return bRet;
 }
 
@@ -76,6 +102,8 @@ bool ExtractInt(char& cOption, int& iValue, const char* szString)
 bool ExtractString(char& cOption, char* szValue, size_t sSize, const char* szString)
 {
 	bool bRet = false;
+	
+#if HAVE_WORKING_REGEX
 	std::cmatch rxResults;
 	std::regex rxStr("([\\s\\r\\n]*)([-/][a-zA-Z][=:])(.+)([\\s\\r\\n]*)");
 
@@ -85,6 +113,14 @@ bool ExtractString(char& cOption, char* szValue, size_t sSize, const char* szStr
 		strcpy_s(szValue, sSize, rxResults[3].str().c_str());
 		bRet = true;
 	}
+#else // HAVE_WORKING_REGEX
+	if (strlen(szString) >= 4)
+	{
+		cOption = szString[1];
+		strcpy_s(szValue, sSize, szString + 3);
+		bRet = true;
+	}
+#endif // HAVE_WORKING_REGEX
 	
 	return bRet;
 }
@@ -229,6 +265,15 @@ int main(int argc, char *argv[])
 		printf("Open action:\t%s\n", ualconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
 		printf("Close action:\t%s\n", ualconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
 		printf("Parameters:\t%s\n", szParams);
+		
+		const std::string strOptions(szParams);
+		std::map<std::string, std::string> mapOptions;
+		int iParam = extractOptions(strOptions, mapOptions);
+		printf("Nb parameters:\t%d\n", iParam);
+		for (std::map<std::string, std::string>::iterator it = mapOptions.begin(); it != mapOptions.end(); it++)
+		{
+			printf(" -> %s = %s\n", it->first.c_str(), it->second.c_str());
+		}
 		printf("\n");
 		
 		// Low Level
