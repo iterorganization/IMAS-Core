@@ -3,6 +3,8 @@
 #define MAX_DIM 64
 
 
+
+
     void UalAoS::addSlice(UalAoS &sliceAos, ArraystructContext *ctx)
     {
 //	if(ctx->getTimebasePath().length() > 0)
@@ -469,10 +471,8 @@ else
         }
         if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
 	{
-	  idsInfoMap.erase(inCtx->getUid());
-	  /*OperationContext *ctx = (OperationContext *)inCtx; 
-	  IdsInfo *info = (IdsInfo *)ctx->getUserData();
-	  if(info) delete info;*/
+//	  idsInfoMap.erase(inCtx->getUid());
+	  internalCtx->idsInfoMap.erase(inCtx->getUid());
 	}
 
 //Everything outside AoS is expected to be mapped, so no action is required in write
@@ -870,8 +870,10 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-      auto search = idsInfoMap.find(ctx->getUid()); 
-      if (search!=idsInfoMap.end()) 
+//      auto search = idsInfoMap.find(ctx->getUid()); 
+      auto search = internalCtx->idsInfoMap.find(ctx->getUid()); 
+//      if (search!=idsInfoMap.end()) 
+      if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
       int shot = ctx->getShot();
@@ -890,25 +892,31 @@ else
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
-      auto search = idsInfoMap.find(ctx->getUid());
-      if (search!=idsInfoMap.end())
+//      auto search = /*idsInfoMap*/.find(ctx->getUid());
+      auto search = internalCtx->idsInfoMap.find(ctx->getUid());
+//      if (search!=idsInfoMap.end())
+      if (search!=internalCtx->idsInfoMap.end())
 	return search->second->ids;
 
 //std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
 	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
-	auto searchids = idsMap.find(idsPath);
-	if(searchids != idsMap.end())
+//	auto searchids = idsMap.find(idsPath);
+	auto searchids = internalCtx->idsMap.find(idsPath);
+//	if(searchids != idsMap.end())
+	if(searchids != internalCtx->idsMap.end())
 	{
 	  retIds = searchids->second; 
 	} 
 	else
 	{
 	  retIds = new UalStruct;
-	  idsMap[idsPath] = retIds;
+//	  idsMap[idsPath] = retIds;
+	  internalCtx->idsMap[idsPath] = retIds;
 	}
-	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
+//	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
+	internalCtx->idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
 	return retIds;
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());

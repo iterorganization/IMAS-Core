@@ -25,6 +25,7 @@
 #ifdef __cplusplus
 
 
+
 //Support classes for memory mapping
 
 class LIBRARY_API UalData
@@ -229,6 +230,20 @@ public:
 };
 
 
+struct InternalCtx  
+{
+    std::unordered_map<std::string, UalStruct *> idsMap;
+    std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
+};
+
+
+
+//Hash Context, addressed by exp name+shot+run. Same behavior as pulse files: new: creates a new one, open: open an existing memory content, if any report error otherwise. 
+    static std::unordered_map<std::string, InternalCtx * > ctxMap;
+
+
+
+
 class LIBRARY_API MemoryBackend:public Backend 
 {
 	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
@@ -237,8 +252,9 @@ class LIBRARY_API MemoryBackend:public Backend
 
     Backend *targetB;
     bool isCreated;
-    std::unordered_map<std::string, UalStruct *> idsMap;
-    std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
+    InternalCtx *internalCtx;
+    //std::unordered_map<std::string, UalStruct *> idsMap;
+    //std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
 
 //currentAoS will containg the fields being written when assembing a new AoS (or AoS slice)
     UalAoS currentAos;
@@ -271,6 +287,8 @@ public:
     {
 	this->targetB = new DummyBackend();
 	lastIdsPathShot = lastIdsPathRun = 0;
+//	internalCtx = new InternalCtx;
+	internalCtx = NULL;
     }
    MemoryBackend(Backend *targetB) 
     {
@@ -278,14 +296,18 @@ public:
     }
     ~MemoryBackend()
     {
-  	for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
+/* Gabriele Sept 2020
+  	//for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
+  	for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
 	{
 	    delete it->second;
 	}
+*/
     } 
     void dump(std::string ids)
     {
-	idsMap[ids]->dump();
+//	idsMap[ids]->dump();
+	internalCtx->idsMap[ids]->dump();
     }
 
 
@@ -309,6 +331,30 @@ public:
     {
 	targetB->openPulse(ctx, mode, options);
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
+
+	std::string  fullName = ctx->getUser()+" " + ctx->getTokamak()+ " " + ctx->getVersion() + " " + std::to_string(ctx->getShot())+ " " + std::to_string(ctx->getRun());
+	
+	try {
+	    internalCtx = ctxMap.at(fullName);
+	} catch (const std::out_of_range& oor) 
+	{
+	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse)
+	    {
+		internalCtx = new InternalCtx;
+		ctxMap[fullName] = internalCtx;
+	    }
+            else
+	    {
+		throw  UALBackendException("Missing pulse",LOG);
+	    }
+	}
+	if (mode == ualconst::force_create_pulse)  //Empty previous content, if any
+	{
+	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
+	    {
+		delete it->second;
+	    }
+	}
     }
 
   /**
