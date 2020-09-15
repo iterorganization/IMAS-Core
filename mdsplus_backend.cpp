@@ -667,9 +667,9 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
     int MDSplusBackend::getMdsShot(int shot, int run, bool translate, std::string strTree)
     {
-	if(run >= 10000)
-	    throw  UALBackendException("Maximum Run Number is 9999",LOG);
-        if(shot > 21474)
+	if(run > 99999)
+	    throw  UALBackendException("Maximum Run Number is 99999",LOG);
+        if(shot > 214748)
 	    throw  UALBackendException("Maximum Shot Number is 214748",LOG);
 
 	int runBunch = run/10000;
