@@ -16,6 +16,7 @@
 
 #if !defined(__GNUC__) && !defined(__clang__)
 #define strcasecmp _stricmp
+#define strtok_r strtok_s
 #endif
 
 
