@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <pthread.h>
 
 #include "dummy_backend.h"
 #include "ual_backend.h"
@@ -24,6 +25,10 @@
 
 #ifdef __cplusplus
 
+//Global lock management (used only when opening databases)
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static void lock() {pthread_mutex_lock(&mutex);}
+static void unlock() {pthread_mutex_unlock(&mutex);}
 
 
 //Support classes for memory mapping
@@ -230,10 +235,36 @@ public:
 };
 
 
-struct InternalCtx  
+class InternalCtx  
 {
+public:
     std::unordered_map<std::string, UalStruct *> idsMap;
     std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
+    pthread_mutex_t mutex;
+    int refCount;
+    std::string fullName;
+    InternalCtx()
+    {
+	refCount = 1;
+//Mutex must be recursive as readData can be called recursively
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&mutex, &attr);
+    }
+    ~InternalCtx()
+    {
+	pthread_mutex_destroy(&mutex);
+    }
+    void lock()
+    {
+	pthread_mutex_lock(&mutex);
+    }
+    void unlock()
+    {
+	pthread_mutex_lock(&mutex);
+    }
+   
 };
 
 
@@ -296,18 +327,27 @@ public:
     }
     ~MemoryBackend()
     {
-/* Gabriele Sept 2020
-  	//for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
-  	for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
+// Gabriele Sept 2020 Deallocate and remove from ctxMap the InternalCtx instance if refCount reaches 0;
+	lock();
+	internalCtx->refCount--;
+	if(internalCtx->refCount <= 0)
 	{
-	    delete it->second;
+  	//for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
+  	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
+	    {
+	    	delete it->second;
+	    }
 	}
-*/
+	ctxMap.erase(internalCtx->fullName);
+	delete internalCtx;
+	unlock();
     } 
     void dump(std::string ids)
     {
 //	idsMap[ids]->dump();
+        internalCtx->lock();
 	internalCtx->idsMap[ids]->dump();
+	internalCtx->unlock();
     }
 
 
@@ -334,27 +374,34 @@ public:
 
 	std::string  fullName = ctx->getUser()+" " + ctx->getTokamak()+ " " + ctx->getVersion() + " " + std::to_string(ctx->getShot())+ " " + std::to_string(ctx->getRun());
 	
+	lock();  //Global Lock
 	try {
 	    internalCtx = ctxMap.at(fullName);
+	    internalCtx->refCount++;
 	} catch (const std::out_of_range& oor) 
 	{
 	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse)
 	    {
 		internalCtx = new InternalCtx;
+		internalCtx->fullName = fullName;
 		ctxMap[fullName] = internalCtx;
 	    }
             else
 	    {
+		unlock();
 		throw  UALBackendException("Missing pulse",LOG);
 	    }
 	}
 	if (mode == ualconst::force_create_pulse)  //Empty previous content, if any
 	{
+   	    internalCtx->lock();
 	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
 	    {
 		delete it->second;
 	    }
+	    internalCtx->unlock();
 	}
+	unlock();
     }
 
   /**
