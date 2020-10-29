@@ -41,7 +41,7 @@ class LIBRARY_API UalData
 
 
 public:
-    typedef enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
+    enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
     UalData();
     bool isTimed() { return timed;}
     int getMapState() {return mapState;}
@@ -463,6 +463,9 @@ public:
     virtual void endAction(Context *ctx); 
 		
     virtual void beginAction(OperationContext *ctx);
+
+    std::pair<int,int> getVersion(PulseContext *ctx) override;
+
 
     void flush(PulseContext *ctx, std::string dataobjectName);
     void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);

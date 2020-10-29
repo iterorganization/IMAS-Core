@@ -60,6 +60,13 @@
     }
 
 
+   // Always return dummy version until there are use cases where version checks are required for memory BE
+   std::pair<int,int> getVersion(PulseContext *ctx)
+   {
+     return {0,0};
+   }
+
+
 
   /**
      Writes data.
