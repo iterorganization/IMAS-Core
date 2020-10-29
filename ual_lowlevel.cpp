@@ -356,6 +356,20 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     lle.backend->openPulse(pctx,
 			   mode,
 			   strOptions);
+
+    switch (mode) {
+    case ualconst::open_pulse:
+    case ualconst::force_open_pulse:
+      std::pair<int,int> ver = lle.backend->getVersion(NULL);
+      std::pair<int,int> sver = lle.backend->getVersion(pctx);
+      if ((ver.first!=sver.first)||(ver.second<sver.second))
+	throw UALLowlevelException("Compatibility between opened file version "+
+				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
+				   " and backend "+pctx->getBackendName()+
+				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
+				   " can't be ensured. ABORT.\n",LOG);
+      break;
+    }
   }
   catch (const UALBackendException& e) {
     status.code = ualerror::backend_err;
@@ -423,6 +437,20 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
 				std::string(dataobjectname),
 				rwmode);
     lle.backend->beginAction(octx);
+
+    switch (rwmode) {
+    case ualconst::write_op:
+    case ualconst::replace_op:
+      std::pair<int,int> ver = lle.backend->getVersion(NULL);
+      std::pair<int,int> sver = lle.backend->getVersion(pctx);
+      if (ver.second!=sver.second)
+	throw UALLowlevelException("Compatibility between opened file version "+
+				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
+				   " and backend "+pctx->getBackendName()+
+				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
+				   " can't be ensured (minor versions should match when writing). ABORT.\n",LOG);
+      break;
+    }
     *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
@@ -466,6 +494,19 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
 						 interpmode);
     lle.backend->beginAction(octx);
 
+    switch (rwmode) {
+    case ualconst::write_op:
+    case ualconst::replace_op:
+      std::pair<int,int> ver = lle.backend->getVersion(NULL);
+      std::pair<int,int> sver = lle.backend->getVersion(pctx);
+      if (ver.second!=sver.second)
+	throw UALLowlevelException("Compatibility between opened file version "+
+				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
+				   " and backend "+pctx->getBackendName()+
+				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
+				   " can't be ensured (minor versions should match when writing). ABORT.\n",LOG);
+      break;
+    }
     *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
   catch (const UALContextException& e) {
