@@ -62,6 +62,7 @@ public:
   void beginArraystructAction(ArraystructContext *ctx,
 			      int *size);
 
+  std::pair<int,int> getVersion(PulseContext *ctx);
 
 };
 
