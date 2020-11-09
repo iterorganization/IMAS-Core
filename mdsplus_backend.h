@@ -229,6 +229,16 @@ class LIBRARY_API MDSplusBackend:public Backend
 	else
 	   beginWriteArraystruct(ctx, *size);
     }
+ /**
+     Returns version of the backend (pair <major,minor>), to be used for compatibility checks.
+     Version number needs to be bumped when:
+     - non-backward compatible changes are being introduced --> major
+     - non-forward compatible changes are being introduced --> minor
+     @param[in] ctx pointer on pulse context, if NULL then returns the version of the backend,
+     otherwise returns the version stored in associated pulse file
+     @result std::pair<int,int> for <major,minor> version numbers
+  */
+    virtual std::pair<int,int> getVersion(PulseContext *ctx);
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
