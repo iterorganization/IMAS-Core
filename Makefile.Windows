@@ -54,7 +54,7 @@ endif # IMAS_MATLAB
 CFLAGS+= -DWIN32
 CXXFLAGS+= -DWIN32
 INCDIR+= -Iwin -I$(MINGW_HOME)/mingw64/include
-TARGETS = libimas.dll libimas.lib printMDSplusFileVersion
+TARGETS = libal.dll libal.lib printMDSplusFileVersion
 
 
 all: $(TARGETS) pkgconfig doc
@@ -135,14 +135,14 @@ endif # IMAS_HDF5
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
 
 # Additional executable
-printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.lib
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.lib
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
 
 # Windows dynamic library
-libimas.dll: $(COMMON_OBJECTS)
+libal.dll: $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -shared -Wl,$(SONAME_OPT),$@.$(SO_NUM) -Wl,--out-implib,$@.lib $^ $(LIBS)
 
 # Windows static library
-libimas.lib: $(COMMON_OBJECTS)
+libal.lib: $(COMMON_OBJECTS)
 	$(AR) rcvsu $@ $^
 	ranlib $@

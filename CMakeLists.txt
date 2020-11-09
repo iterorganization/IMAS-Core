@@ -136,13 +136,13 @@ endif()
 
 set_target_properties( lowlevel-static
   PROPERTIES
-    OUTPUT_NAME libimas
+    OUTPUT_NAME libal
 )
 
 if( BUILD_SHARED_LIBS )
   set_target_properties( lowlevel-shared
     PROPERTIES
-      OUTPUT_NAME libimas
+      OUTPUT_NAME libal
       VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
 	  IMPORT_SUFFIX ".dll.lib"
   )

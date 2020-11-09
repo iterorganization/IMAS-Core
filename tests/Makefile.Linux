@@ -17,7 +17,7 @@ LDFLAGS=-pthread ${DBGFLAGS}
 
 INCDIR= -I$(UAL)/lowlevel
 LIBS= -L$(UAL)/lowlevel
-LIBS+= -limas
+LIBS+= -lal
 
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 LIBS+= -L$(MDSPLUS_DIR)/lib

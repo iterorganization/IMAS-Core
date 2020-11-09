@@ -20,7 +20,7 @@ CXXFLAGS+= -DWIN32
 
 INCDIR= -I$(UAL)/lowlevel
 LIBS= -L$(UAL)/lowlevel
-LIBS+= $(UAL)/lowlevel/libimas.lib
+LIBS+= $(UAL)/lowlevel/libal.lib
 
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 LIBS+= -L$(MDSPLUS_DIR)/lib

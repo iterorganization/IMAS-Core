@@ -114,7 +114,7 @@ ual_defs.h: ual_defs.h.in
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 # add pkgconfig pkgconfig_install targets
-PC_FILES = imas-lowlevel.pc
+PC_FILES = al-lowlevel.pc
 
 #----------------------- pkgconfig ---------------------
 include ../Makefile.pkgconfig
