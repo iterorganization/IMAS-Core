@@ -137,6 +137,21 @@ public:
 		
   	virtual void beginAction(OperationContext *ctx){}
 
+  /**
+     Returns version of the backend (pair <major,minor>), to be used for compatibility checks.
+     Version number needs to be bumped when:
+     - non-backward compatible changes are being introduced --> major
+     - non-forward compatible changes are being introduced --> minor
+     @param[in] ctx pointer on pulse context, if NULL then returns the version of the backend,
+     otherwise returns the version stored in associated pulse file
+     @result std::pair<int,int> for <major,minor> version numbers
+  */
+  virtual std::pair<int,int> getVersion(PulseContext *ctx)
+  {
+	std::pair<int,int> versions(0,0);
+	return {0,0};
+  }
+
 };
 
 #endif
