@@ -395,10 +395,12 @@ public:
 	if (mode == ualconst::force_create_pulse)  //Empty previous content, if any
 	{
    	    internalCtx->lock();
+
 	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
 	    {
 		delete it->second;
-	    }
+	    }  
+	    internalCtx->idsMap.clear();
 	    internalCtx->unlock();
 	}
 	unlock();
