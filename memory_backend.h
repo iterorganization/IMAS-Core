@@ -377,6 +377,11 @@ public:
 	lock();  //Global Lock
 	try {
 	    internalCtx = ctxMap.at(fullName);
+	    if(mode == ualconst::create_pulse)
+	    {
+		unlock();
+		throw  UALBackendException("CreatePulse: a pulse file already exists",LOG);
+	    }
 	    internalCtx->refCount++;
 	} catch (const std::out_of_range& oor) 
 	{
