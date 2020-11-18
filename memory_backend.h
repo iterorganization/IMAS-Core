@@ -380,7 +380,7 @@ public:
 	    internalCtx->refCount++;
 	} catch (const std::out_of_range& oor) 
 	{
-	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse)
+	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse || mode == ualconst::force_open_pulse)
 	    {
 		internalCtx = new InternalCtx;
 		internalCtx->fullName = fullName;
