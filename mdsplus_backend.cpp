@@ -2562,7 +2562,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 			else  //AoS are not compatible (should ever happen)
 			{
 			    MDSplus::deleteData(apd1);
-			    return apd1;
+			    return apd;
 			}
 		    }
 		}
