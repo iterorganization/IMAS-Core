@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <boost/cstdlib.hpp>
 
-#include "dummy_backend.h"
 #include "ual_backend.h"
 #include "ual_const.h"
 #include "ual_context.h"
