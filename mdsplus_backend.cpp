@@ -2616,7 +2616,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    if(isLast)
 		    {
 		        MDSplus::Data *retData = newApd->getDescAt(1);
-			if(ctx && (currDescr->clazz == CLASS_S && currDescr->dtype == DTYPE_NID))
+			if(ctx && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
 			{
 			    resolveApdField(newApd, ctx);
 			    retData = newApd->getDescAt(1);
@@ -2643,10 +2643,10 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		  if(isLast)
 		    {
 		        MDSplus::Data *retData = currApd->getDescAt(1);
-			if(ctx && (currDescr->clazz == CLASS_S && currDescr->dtype == DTYPE_NID))
+			if(ctx && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
 			{
-			    resolveApdField(newApd, ctx);
-			    retData = newApd->getDescAt(1);
+			    resolveApdField(currApd, ctx);
+			    retData = currApd->getDescAt(1);
 			}
 		        delete [] currNameChar;
 		        return retData;
@@ -3730,11 +3730,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       return retApd;
   }
 	
-  void resolveApdField(MDSplus::Apd *apd, ArraystructContext *ctx)
+  void MDSplusBackend::resolveApdField(MDSplus::Apd *apd, ArraystructContext *ctx)
   {
       if(apd->len() != 2)
       {
-	  std::cout << "INTERNAL ERROR in resolveApdField: wrong number (" << %apd->len() >> " !=2) of apd fields"<< std::endl;
+	  std::cout << "INTERNAL ERROR in resolveApdField: wrong number (" << apd->len() << " !=2) of apd fields"<< std::endl;
           throw UALBackendException("Internal error:  wrong number (%d !=2) of apd fields in resolveApdField",LOG);
       }
       MDSplus::Data *currDescr = apd->getDescAt(1);
@@ -3759,7 +3759,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     	      readTimedData((MDSplus::TreeNode *)currDescr, &dataPtr, &datatype, &numDims, (int *)dims);
     	      MDSplus::Data *currData = assembleData(dataPtr, datatype, numDims, dims);
 	      free(dataPtr);
-	      apd->assignDescAt(currData, 1);
+	      MDSplus::Data **dscs = apd->getDscArray();
+	      MDSplus::deleteData(dscs[1]);
+	      dscs[1] = currData;	
  	  }catch(MDSplus::MdsException &exc){std::cout << exc.what() << std::endl;}
       }
       else //get slice
@@ -3771,13 +3773,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
           std::string pathStr(path);
 	  delete [] path;
 	  std::string emptyStr("");
-
-	  if(!readSlice(tree, true, pathStr, dataobjectPath, timebasePath, time, interpolation, &data, &datatype, &numDims, dims, false))
+	  if(!readSlice(tree, true, pathStr, ctx->getDataobjectName(), ctx->getTimebasePath(), ctx->getTime(), ctx->getInterpmode(), &data, &datatype, &numDims, dims, false))
 		      throw UALBackendException("Internal error: expected valid slice in resolveApdField",LOG);
 
 	  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
 	  free((char *)data);
-	  apd->assignDescAt(currData, 1);
+	  MDSplus::Data **dscs = apd->getDscArray();
+	  MDSplus::deleteData(dscs[1]);
+	  dscs[1] = currData;	
       }
  }
 
