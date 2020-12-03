@@ -91,7 +91,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Apd *readDynamicApd(std::string dataobjectPath, std::string path);
     MDSplus::Apd *readSliceApd(MDSplus::TreeNode *inNode, std::string timebase, double time, int interpolation);
     MDSplus::Apd *getApdSliceAt(MDSplus::TreeNode *node, int idx);
-    MDSplus::Data *getFromApd(MDSplus::Apd *apd, int idx, std::string path);
+    MDSplus::Data *getFromApd(MDSplus::Apd *apd, int idx, std::string path, ArraystructContext *ctx = NULL);
     void getIndexesInTimebaseExpr(MDSplus::Data *timebase, int &idx1, int &idx2);
     bool checkStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2);
     bool checkStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2);
@@ -101,6 +101,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Data *interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2);
     MDSplus::Apd *resolveApdSliceFields(MDSplus::Apd *apd, double time, int interplolation, std::string timebasePath, std::string dataobjectPath);
     MDSplus::Apd *resolveApdTimedFields(MDSplus::Apd *apd);
+    void resolveApdField(MDSplus::Apd *apd, ArraystructContext *ctx);
     void writeStaticApd(MDSplus::Apd *apd, std::string dataobjectPath, std::string path);
     void writeDynamicApd(MDSplus::Apd *apd, std::string aosPath, std::string timebasePath, bool append = false);
     MDSplus::Apd *readDynamicApd(MDSplus::TreeNode *node);
