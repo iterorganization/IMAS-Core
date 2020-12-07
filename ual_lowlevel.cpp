@@ -11,6 +11,10 @@
 #  define mempcpy memcpy
 #endif
 
+#if defined(__APPLE__)
+  #define mempcpy memcpy
+#endif
+
 // c++ only part
 #if defined(__cplusplus)
 
