@@ -8,4 +8,4 @@ Version: __UAL_GIT_DESCRIBE__
 Description: IMAS Access Layer Low Level libraries for C.
 URL: https://portal.iter.org/departments/POP/Pages/IM-Users-and-Developers.aspx
 Cflags: -I${includedir}
-Libs: -L${libdir} -lal -Wl,--defsym,AL_VER___AL_SAFE_DESCRIBE__=0
+Libs: -L${libdir} -lal -Wl,--defsym,AL_VER___AL_SAFE_DESCRIBE__=0 -Wl,-rpath,${libdir}
