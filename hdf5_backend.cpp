@@ -1,63 +1,108 @@
 #include "hdf5_backend.h"
 
+#include <string.h>
+#include <algorithm>
+#include "hdf5_utils.h"
+#include "hdf5_backend_factory.h"
+
 HDF5Backend::HDF5Backend()
+:  opened_IDS_files()
 {
+    //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
-HDF5Backend::HDF5Backend(Backend *targetB) 
+HDF5Backend::HDF5Backend(Backend * targetB)
 {
+    //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
 HDF5Backend::~HDF5Backend()
 {
 }
 
-void HDF5Backend::openPulse(PulseContext *ctx, int mode, std::string options)
+std::string HDF5Backend::files_directory;
+std::string HDF5Backend::relative_file_path;
+
+void
+ HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
 {
-	throw UALBackendException("openPulse method has to be completed for HDF5 Backend",LOG);
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_alignment(fapl, 0, 16);
+    std::string backend_version;
+
+    files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
+    switch (mode) {
+    case OPEN_PULSE:
+    case FORCE_OPEN_PULSE:
+        access_mode = 1;
+        HDF5Reader::openPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        break;
+    case CREATE_PULSE:
+    case FORCE_CREATE_PULSE:
+        access_mode = 2;
+        backend_version = HDF5_BACKEND_VERSION;
+        HDF5Writer::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        break;
+    default:
+        throw UALBackendException("Mode not yet supported", LOG);
+    }
+    H5Pclose(fapl);
+    HDF5BackendFactory backendFactory(backend_version);
+    hdf5Writer = backendFactory.createWriter();
+    hdf5Reader = backendFactory.createReader();
+    eventsHandler = backendFactory.createEventsHandler();
 }
 
-void HDF5Backend::closePulse(PulseContext *ctx, int mode, std::string options)
+void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
 {
-	throw UALBackendException("closePulse method has to be completed for HDF5 Backend",LOG);
+    if (access_mode == 1) {
+        hdf5Writer->close_datasets();
+        hdf5Reader->closePulse(ctx, mode, options, file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+    } else if (access_mode == 2) {
+        hdf5Reader->close_datasets();
+        hdf5Writer->closePulse(ctx, mode, options, file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+    }
+    opened_IDS_files.clear();
+
 }
 
-void HDF5Backend::writeData(Context *ctx, std::string fieldname, std::string timebasename, void* data, int datatype, int dim, int* size)
+void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size)
 {
-	throw UALBackendException("writeData method has to be completed for HDF5 Backend",LOG);
+    hdf5Writer->write_ND_Data(ctx, fieldname, timebasename, datatype, dim, size, data);
 }
 
-void HDF5Backend::writeData(OperationContext *ctx, std::string fieldname, std::string timebasename, void* data, int datatype, int dim, int* size)
+int HDF5Backend::readData(Context * ctx, std::string fieldname, std::string timebasename, void **data, int *datatype, int *dim, int *size)
 {
-	throw UALBackendException("writeData method has to be completed for HDF5 Backend",LOG);
+    int dataAvailable = 0;      //not available by default
+    dataAvailable = hdf5Reader->read_ND_Data(ctx, fieldname, timebasename, *datatype, data, dim, size);
+    return dataAvailable;
 }
 
-int HDF5Backend::readData(Context *ctx, std::string fieldname, std::string timebase, void** data, int* datatype, int* dim, int* size)
+
+void HDF5Backend::deleteData(OperationContext * ctx, std::string path)
 {
-	throw UALBackendException("readData method has to be completed for HDF5 Backend",LOG);
+    hdf5Writer->deleteData(ctx, this->file_id, opened_IDS_files, files_directory, relative_file_path);
 }
 
-int HDF5Backend::readData(OperationContext *ctx, std::string fieldname, std::string timebase, void** data, int* datatype, int* dim, int* size)
+void HDF5Backend::beginWriteArraystructAction(ArraystructContext * ctx, int *size)
 {
-	throw UALBackendException("readData method has to be completed for HDF5 Backend",LOG);
+    if (*size == 0)
+        return;
+
+    hdf5Writer->beginWriteArraystructAction(ctx, size);
 }
 
-void HDF5Backend::deleteData(OperationContext *ctx, std::string path)
+void HDF5Backend::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 {
-	throw UALBackendException("deleteData method has to be completed for HDF5 Backend",LOG);
+    hdf5Reader->beginReadArraystructAction(ctx, size);
 }
 
-void HDF5Backend::beginArraystructAction(ArraystructContext *ctx, int *size)
+void HDF5Backend::beginAction(OperationContext * ctx)
 {
-	throw UALBackendException("beginArraystructAction method has to be completed for HDF5 Backend",LOG);
+    eventsHandler->beginAction(ctx, file_id, opened_IDS_files, *hdf5Writer, *hdf5Reader, files_directory, relative_file_path);
 }
 
-void HDF5Backend::endAction(Context *ctx)
+void HDF5Backend::endAction(Context * ctx)
 {
-	throw UALBackendException("endAction method has to be completed for HDF5 Backend",LOG);
-}
-
-void HDF5Backend::beginAction(OperationContext *ctx)
-{
-	throw UALBackendException("beginAction method has to be completed for HDF5 Backend",LOG);
+    eventsHandler->endAction(ctx, file_id, *hdf5Writer, *hdf5Reader, opened_IDS_files);
 }
