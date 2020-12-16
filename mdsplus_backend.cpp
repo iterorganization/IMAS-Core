@@ -717,6 +717,35 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	return retShot;
     }
  
+
+
+// Reset the IDS path to what it was before the call to getMdsShot
+void MDSplusBackend::resetIdsPath(std::string strTree) {
+    if (originalIdsPath != "") {
+        char szPath[255] = { 0 };
+        if (strTree.length() > 0)
+        {
+            sprintf(szPath, "%s_path", strTree.c_str());
+        }
+        else
+        {
+            sprintf(szPath, "%s_path", DEF_TREENAME);
+        }
+
+#ifdef WIN32
+        char szEnv[256] = { 0 };
+        sprintf(szEnv, "%s=%s", szPath, originalIdsPath.c_str());
+        putenv(szEnv);
+#else // WIN32
+        setenv(szPath, originalIdsPath.c_str(), 1);
+#endif // WIN32
+
+        // Reset the global variable originalIdsPath to an empty string so
+        // the environment gets set correctly on the next call to getMdsShot
+        originalIdsPath = "";
+    }
+}
+
  #define PATH_MAX  2048
 void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
 {
@@ -3302,6 +3331,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw  UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
@@ -3314,14 +3344,17 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
 	    default:
+              resetIdsPath(szTree);
 	      throw  UALBackendException("Mode not yet supported",LOG);
 	  
 	  }
 	  treeNodeMap.clear();
+          resetIdsPath(szTree);
       }
 
       
@@ -3936,12 +3969,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     std::cout << "Access Layer: " << d1 << std::endl;
     std::cout << "Data Dictionary: " << d2 << std::endl;
 
+    be->resetIdsPath(DEF_TREENAME);
+
     delete(n1);
     delete(n2);
     delete(be->tree);
     delete(be);
   }
-
-
-
-
