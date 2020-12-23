@@ -55,7 +55,7 @@ install: all libal.so_install libal.a_install pkgconfig_install sources_install 
 	$(INSTALL_DATA) matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
 		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
-	$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.
+	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.)
 
 uninstall: libal.so_uninstall libal.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
