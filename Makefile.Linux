@@ -1,10 +1,13 @@
 SPECIFIC_TOOLS=
 
+# Needed by memory_backend
+LIBS+= -lpthread
+
 #-------------- Options for MDSplus ------------
 ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lpthread
+LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp 
 SPECIFIC_TOOLS=printMDSplusFileVersion
