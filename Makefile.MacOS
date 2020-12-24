@@ -3,7 +3,7 @@
 LIBS+= -lpthread
 
 #-------------- Options for MDSplus ------------
-ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
@@ -12,7 +12,7 @@ CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
-ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDA))")
 ifeq ("fat","$(strip $(IMAS_UDA))")
 CXXINCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
 LIBS+= `pkg-config --libs uda-fat-cpp`
@@ -26,7 +26,7 @@ CPPSRC+=uda_backend.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
-ifneq ("no","$(strip $(IMAS_HDF5))")
+ifeq ("yes","$(strip $(IMAS_HDF5))")
 CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= -lhdf5 -ldl -lz
@@ -35,7 +35,7 @@ CPPSRC+=hdf5_backend.cpp
 endif # IMAS_HDF5
 
 #-------------- Options for Matlab -------------
-ifneq ("no","$(strip $(IMAS_MATLAB))")
+ifeq ("yes","$(strip $(IMAS_MATLAB))")
 COMMON_OBJECTS+= matlab_adapter.o
 CPPSRC+= matlab_adapter.cpp
 endif # IMAS_MATLAB

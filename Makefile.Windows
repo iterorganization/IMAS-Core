@@ -1,6 +1,6 @@
 
 #-------------- Options for MDSplus ------------
-ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
@@ -15,7 +15,7 @@ CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
-ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDA))")
 ifeq ("fat","$(strip $(IMAS_UDA))")
 CXXINCLUDES+= -DUDA -DFATCLIENT -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
@@ -35,7 +35,7 @@ CPPSRC+=uda_backend.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
-ifneq ("no","$(strip $(IMAS_HDF5))")
+ifeq ("yes","$(strip $(IMAS_HDF5))")
 CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
@@ -45,7 +45,7 @@ endif # IMAS_HDF5
 
 
 #-------------- Options for Matlab -------------
-ifneq ("no","$(strip $(IMAS_MATLAB))")
+ifeq ("yes","$(strip $(IMAS_MATLAB))")
 COMMON_OBJECTS+= matlab_adapter.o
 CPPSRC+= matlab_adapter.cpp
 endif # IMAS_MATLAB
@@ -72,7 +72,7 @@ install: all pkgconfig_install sources_install
 	for OBJECT in `find . -type f \( -name "*.lib" -or -name "*.dll" \)`; do \
 		$(CP) $$OBJECT $(packagedir)/lowlevel/lib; \
 	done
-ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 	# Copy MDSplus libraries
 	$(mkdir_p) $(packagedir)/mdsplus/lib
 	$(CP) $(MDSPLUS_DIR)/lib/XTreeShr.a $(packagedir)/mdsplus/lib
@@ -83,7 +83,7 @@ ifneq ("no","$(strip $(IMAS_MDSPLUS))")
 	$(CP) $(MDSPLUS_DIR)/lib/TreeShr.a $(packagedir)/mdsplus/lib
 	$(CP) $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
 endif # IMAS_MDSPLUS
-ifneq ("no","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDA))")
 ifeq ("fat","$(strip $(IMAS_UDA))")
 	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
@@ -99,11 +99,11 @@ else
 	$(CP) $(UDA_HOME)/lib/libportablexdr.a $(packagedir)/uda/lib
 endif
 endif # IMAS_UDA
-ifneq ("no","$(strip $(IMAS_HDF5))")
+ifeq ("yes","$(strip $(IMAS_HDF5))")
 	# Copy HDF5 libraries
 	$(mkdir_p) $(packagedir)/hdf5/lib
 	$(CP) $(HDF5_HOME)/lib/libhdf5.a $(packagedir)/hdf5/lib
-ifneq ("no","$(strip $(IMAS_MPI))")
+ifeq ("yes","$(strip $(IMAS_MPI))")
 	# Copy Open MPI libraries
 	$(mkdir_p) $(packagedir)/openmpi/lib
 	$(CP) $(MPI_HOME)/lib/mpi.a $(packagedir)/openmpi/lib
