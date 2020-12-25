@@ -13,7 +13,7 @@ endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
 ifeq ("yes","$(strip $(IMAS_UDA))")
-ifeq ("fat","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDAFAT))")
 CXXINCLUDES+= -DUDA `pkg-config --cflags uda-fat-cpp`
 LIBS+= `pkg-config --libs uda-fat-cpp`
 else

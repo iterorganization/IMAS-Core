@@ -34,7 +34,7 @@ LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 endif
 
 ifeq ("yes","$(strip $(IMAS_UDA))")
-ifeq ("fat","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDAFAT))")
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a

@@ -16,7 +16,7 @@ endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
 ifeq ("yes","$(strip $(IMAS_UDA))")
-ifeq ("fat","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDAFAT))")
 CXXINCLUDES+= -DUDA -DFATCLIENT -I$(UDA_HOME)/include/uda
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
@@ -84,7 +84,7 @@ ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 	$(CP) $(MDSPLUS_DIR)/lib/MdsShr.a $(packagedir)/mdsplus/lib
 endif # IMAS_MDSPLUS
 ifeq ("yes","$(strip $(IMAS_UDA))")
-ifeq ("fat","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDAFAT))")
 	# Copy UDA libraries
 	$(mkdir_p) $(packagedir)/uda/lib
 	$(CP) $(UDA_HOME)/lib/libfatuda_cpp.a $(packagedir)/uda/lib
