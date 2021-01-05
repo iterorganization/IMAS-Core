@@ -37,9 +37,7 @@ class HDF5Reader {
 
     void close_dataset(hid_t dataset_id, std::string & tensorized_path, hid_t dataset_id_shapes);
 
-    int readAOSPersistentShapes (Context * ctx,
-				  const std::string & tensorized_path,
-				  void **shapes);
+    int readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, void **shapes);
 
   public:
 

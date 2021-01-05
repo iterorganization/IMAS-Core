@@ -186,23 +186,23 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int strategy, std::s
     files_directory = filePath;
     files_directory += getShotNumber(ctx);
     try {
-       create_directories(files_directory.c_str());
+        create_directories(files_directory.c_str());
     }
-    catch(std::exception &e) {
-       std::string message("Unable to create pulse files shot directory: ");
+    catch(std::exception & e) {
+        std::string message("Unable to create pulse files shot directory: ");
         message += files_directory;
         throw UALBackendException(message, LOG);
-      }
+    }
 
     files_directory += "/" + getRunNumber(ctx);
     try {
-       create_directories(files_directory.c_str());
+        create_directories(files_directory.c_str());
     }
-    catch(std::exception &e) {
-       std::string message("Unable to create pulse files run directory: ");
+    catch(std::exception & e) {
+        std::string message("Unable to create pulse files run directory: ");
         message += files_directory;
         throw UALBackendException(message, LOG);
-      }
+    }
 
     relative_file_path = "master.h5";
     return files_directory + "/" + relative_file_path;

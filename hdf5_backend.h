@@ -121,7 +121,8 @@ class HDF5Backend:public Backend {
             beginReadArraystructAction(ctx, size);
         else
             beginWriteArraystructAction(ctx, size);
-    } virtual void endAction(Context * ctx);
+    }
+    virtual void endAction(Context * ctx);
 
     virtual void beginAction(OperationContext * ctx);
 

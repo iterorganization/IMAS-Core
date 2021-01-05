@@ -13,8 +13,8 @@
 
 class HDF5DataSetHandler {
   private:
-    std::string tensorized_path;   //full tensorized path
-    
+    std::string tensorized_path;        //full tensorized path
+
     hid_t dataset_id;
     int dataset_rank;
     int AOSRank;
@@ -45,7 +45,7 @@ class HDF5DataSetHandler {
 
     hid_t IDS_group_id;
     hid_t IDS_core_file_id;
-    std::string IDS_link_name;
+     std::string IDS_link_name;
 
 
     void setSliceIndex();
@@ -77,12 +77,9 @@ class HDF5DataSetHandler {
     int getTimedShape(int *timed_AOS_index_);
 
     void setExtent();
-  
+
     void setTensorizedPath(std::string p) {
-         tensorized_path = p;
-   }
-
-
-};
+        tensorized_path = p;
+}};
 
 #endif

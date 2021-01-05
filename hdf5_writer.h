@@ -37,15 +37,15 @@ class HDF5Writer {
     int put_slice_count;
     bool use_core_driver;
 
-    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index, std::string &IDS_link_name);
+    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index, std::string & IDS_link_name);
 
-    void createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std::string &IDS_link_name);
+    void createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std::string & IDS_link_name);
 
     void readTimedAOSShape(hid_t loc_id);
 
     void close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler, hid_t dataset_id, hid_t dataset_shape_id, std::string & tensorized_path);
     //void copy(Context * ctx, hid_t dataset_id, std::string &tensorized_path);
-    static void create_file_in_memory(std::string idsName, const std::string &coreFileName, std::unordered_map < std::string, hid_t > &opened_IDS_files, hbool_t flush);
+    static void create_file_in_memory(std::string idsName, const std::string & coreFileName, std::unordered_map < std::string, hid_t > &opened_IDS_files, hbool_t flush);
 
 
   public:
@@ -60,7 +60,7 @@ class HDF5Writer {
     virtual void closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual void deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     virtual void write_ND_Data(Context * ctx, hid_t loc_id, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data);
-    virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size, hid_t loc_id, std::string &IDS_link_name);
+    virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size, hid_t loc_id, std::string & IDS_link_name);
 
     void close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files);
 
