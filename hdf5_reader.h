@@ -28,7 +28,6 @@ class HDF5Reader {
      std::vector < int >current_arrctx_indices;
      std::vector < int >current_arrctx_shapes;
     hid_t IDS_group_id;
-     std::string IDS_name;
 
     int getSliceIndex(OperationContext * opCtx, std::string & att_name, std::string & timebasename, int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index);
 
@@ -37,6 +36,10 @@ class HDF5Reader {
     int readPersistentShapes(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes);
 
     void close_dataset(hid_t dataset_id, std::string & tensorized_path, hid_t dataset_id_shapes);
+
+    int readAOSPersistentShapes (Context * ctx,
+				  const std::string & tensorized_path,
+				  void **shapes);
 
   public:
 

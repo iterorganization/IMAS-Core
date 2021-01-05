@@ -30,7 +30,6 @@ class HDF5HsSelectionWriter {
      HDF5HsSelectionWriter();
     ~HDF5HsSelectionWriter();
 
-    hid_t dataspace;
     hid_t memspace;
 
 

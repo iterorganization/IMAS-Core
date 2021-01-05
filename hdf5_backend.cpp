@@ -68,7 +68,11 @@ void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
 
 void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size)
 {
-    hdf5Writer->write_ND_Data(ctx, fieldname, timebasename, datatype, dim, size, data);
+    OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+    std::string IDS_link_name = opCtx->getDataobjectName ();
+    std::replace (IDS_link_name.begin (), IDS_link_name.end (), '/', '_');
+    //hid_t loc_id = opened_IDS_files[IDS_link_name + "_core"];
+    hdf5Writer->write_ND_Data(ctx, -1, fieldname, timebasename, datatype, dim, size, data);
 }
 
 int HDF5Backend::readData(Context * ctx, std::string fieldname, std::string timebasename, void **data, int *datatype, int *dim, int *size)
@@ -88,8 +92,10 @@ void HDF5Backend::beginWriteArraystructAction(ArraystructContext * ctx, int *siz
 {
     if (*size == 0)
         return;
-
-    hdf5Writer->beginWriteArraystructAction(ctx, size);
+    std::string IDS_link_name = ctx->getDataobjectName ();
+    std::replace (IDS_link_name.begin (), IDS_link_name.end (), '/', '_');
+    //hid_t loc_id = opened_IDS_files[IDS_link_name + "_core"];
+    hdf5Writer->beginWriteArraystructAction(ctx, size, -1, IDS_link_name);
 }
 
 void HDF5Backend::beginReadArraystructAction(ArraystructContext * ctx, int *size)
