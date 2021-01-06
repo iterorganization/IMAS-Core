@@ -32,8 +32,6 @@ class HDF5Backend:public Backend {
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
     void beginReadArraystructAction(ArraystructContext * ctx, int *size);
 
-    //void showStatus(hid_t file_id) ;
-
   public:
 
      HDF5Backend();

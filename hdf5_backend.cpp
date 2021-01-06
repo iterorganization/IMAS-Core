@@ -1,5 +1,6 @@
 #include "hdf5_backend.h"
 
+#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -27,6 +28,7 @@ void
  HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
 {
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    assert(fapl>= 0);
     H5Pset_alignment(fapl, 0, 16);
     std::string backend_version;
 
@@ -46,7 +48,7 @@ void
     default:
         throw UALBackendException("Mode not yet supported", LOG);
     }
-    H5Pclose(fapl);
+    assert(H5Pclose(fapl)>=0);
     HDF5BackendFactory backendFactory(backend_version);
     hdf5Writer = backendFactory.createWriter();
     hdf5Reader = backendFactory.createReader();
@@ -71,7 +73,6 @@ void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string ti
     OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
     std::string IDS_link_name = opCtx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-    //hid_t loc_id = opened_IDS_files[IDS_link_name + "_core"];
     hdf5Writer->write_ND_Data(ctx, -1, fieldname, timebasename, datatype, dim, size, data);
 }
 
@@ -94,7 +95,6 @@ void HDF5Backend::beginWriteArraystructAction(ArraystructContext * ctx, int *siz
         return;
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-    //hid_t loc_id = opened_IDS_files[IDS_link_name + "_core"];
     hdf5Writer->beginWriteArraystructAction(ctx, size, -1, IDS_link_name);
 }
 

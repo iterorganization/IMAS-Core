@@ -32,7 +32,6 @@ class HDF5DataSetHandler {
     hsize_t largest_dims[H5S_MAX_RANK];
     hsize_t chunk_dims[H5S_MAX_RANK];
 
-    int max(int num1, int num2);
     void copy_to_disk();
 
   public:
@@ -45,8 +44,6 @@ class HDF5DataSetHandler {
 
     hid_t IDS_group_id;
     hid_t IDS_core_file_id;
-     std::string IDS_link_name;
-
 
     void setSliceIndex();
 

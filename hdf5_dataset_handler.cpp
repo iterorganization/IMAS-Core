@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), immutable(true), slice_mode(false), slice_index(-1), timed_AOS_index(-1), isTimed(false), dataset_already_extended_by_slicing(false), use_core_driver(true), dtype_id(-1), dataspace_id(-1)
+HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), immutable(true), slice_mode(false), slice_index(-1), timed_AOS_index(-1), isTimed(false), dataset_already_extended_by_slicing(false), use_core_driver(false), dtype_id(-1), dataspace_id(-1)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -114,9 +114,9 @@ void HDF5DataSetHandler::copy_to_disk()
 //    
 //    
 //    char* buf;
-
-    //std::cout << "copying dataset : " << tensorized_path.c_str() << std::endl;
-
+// 
+//     //std::cout << "copying dataset : " << tensorized_path.c_str() << std::endl;
+// 
 //    if (dataset_size < 65000) /* ~64K */
 //     {
 //      //std::cout << "copying dataset1 : " << tensorized_path.c_str() << std::endl;
@@ -432,7 +432,9 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
                 while (vp > vmax / vn) {
                     size_t v = 1;
                     for (int i = 0; i < AOSRank; i++) {
-                        chunk_dims[i] /= max(1, round(max(1, pow(2.0, AOSRank))));
+                        float cs = (float) chunk_dims[i];
+                        cs /= pow(2.0, AOSRank);
+                        chunk_dims[i] = (int) cs;
                         if (chunk_dims[i] < chunk_dims_min[i]) {
                             chunk_dims[i] = chunk_dims_min[i];
                             break;
@@ -450,7 +452,10 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
                     while (vn > vmax) {
                         size_t v = 1;
                         for (int i = AOSRank; i < dataset_rank; i++) {
-                            chunk_dims[i] /= max(1, round(max(1, pow(2.0, (dataset_rank - AOSRank)))));
+                            float cs = (float) chunk_dims[i];
+                            cs /= pow(2.0, dataset_rank - AOSRank);
+                            chunk_dims[i] = (int) cs;
+                            //chunk_dims[i] /= std::max(1, round(std::max(1, (int) pow(2.0, (dataset_rank - AOSRank)))));
                             if (chunk_dims[i] < chunk_dims_min[i]) {
                                 chunk_dims[i] = chunk_dims_min[i];
                                 break;
@@ -594,7 +599,7 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
         }
 
         hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
-        H5Pset_chunk_cache(dapl, 100000, 5000 * (size_t) M, H5D_CHUNK_CACHE_W0_DEFAULT);
+        H5Pset_chunk_cache(dapl, 10000, 500 * (size_t) M, H5D_CHUNK_CACHE_W0_DEFAULT);
 
         *dataset_id = H5Dcreate2(loc_id, dataset_name, dtype_id, dataspace_id, H5P_DEFAULT, dcpl_id, dapl);
         H5Pclose(dapl);
@@ -678,13 +683,4 @@ void HDF5DataSetHandler::setExtent()
         H5Sclose(dataspace_id);
     }
     dataspace_id = H5Dget_space(dataset_id);
-}
-
-
-/**
-* Find maximum between two numbers.
-*/
-int HDF5DataSetHandler::max(int num1, int num2)
-{
-    return (num1 > num2) ? num1 : num2;
 }
