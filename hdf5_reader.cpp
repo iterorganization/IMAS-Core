@@ -140,7 +140,6 @@ void HDF5Reader::close_datasets()
     opened_data_sets.clear();
     non_existing_data_sets.clear();
     selection_readers.clear();
-
     shapes_selection_readers.clear();
     shapes_data.clear();
     opened_shapes_data_sets.clear();
@@ -170,7 +169,6 @@ void HDF5Reader::close_dataset(hid_t dataset_id, std::string & tensorized_path, 
         H5Dclose(dataset_id);
         opened_data_sets.erase(tensorized_path);
         selection_readers.erase(tensorized_path);
-
     }
 }
 
@@ -213,39 +211,6 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     int timed_AOS_index = -1;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
 
-    /*hid_t dataset_id = -1;
-       if (opened_data_sets.find (tensorized_path) != opened_data_sets.end ())
-       {
-       dataset_id = opened_data_sets[tensorized_path];
-       }
-       else
-       {
-       dataset_id =
-       H5Dopen2 (IDS_group_id, tensorized_path.c_str (), H5P_DEFAULT);
-       opened_data_sets[tensorized_path] = dataset_id;
-       }
-
-       int *buffer;
-       int dim = -1;
-       HDF5HsSelectionReader hsSelectionReader (dataset_id, ualconst::integer_data,
-       current_arrctx_indices.size (),
-       &dim);
-
-       hsSelectionReader.allocateGlobalOpBuffer ((void **) &buffer);
-
-       hsSelectionReader.setHyperSlabsGlobalOp (current_arrctx_indices);
-
-       herr_t status = H5Dread (dataset_id, hsSelectionReader.dtype_id,
-       hsSelectionReader.memspace,
-       hsSelectionReader.dataspace, H5P_DEFAULT, buffer);
-       if (status < 0)
-       {
-       char error_message[200];
-       sprintf (error_message,
-       "Unable to read AOS_SHAPE: %s\n", tensorized_path.c_str ());
-       throw UALBackendException (error_message, LOG);
-       }
-       *size = buffer[0]; */
     int *shapes = nullptr;
     readAOSPersistentShapes(ctx, tensorized_path, (void **) &shapes);
     *size = shapes[0];
@@ -335,11 +300,8 @@ int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, 
         int dim = -1;
 
         HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::double_data, current_arrctx_indices.size(), &dim);
-
         hsSelectionReader.allocateGlobalOpBuffer((void **) &slices_times);
-
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices);
-
         herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id,
                                 hsSelectionReader.memspace,
                                 hsSelectionReader.dataspace, H5P_DEFAULT,
@@ -351,6 +313,8 @@ int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, 
         }
     }
 
+    //std::cout << "--> time = " << time << std::endl;
+
     *slice_sup = dataspace_dims[dataset_rank - 1] - 1;
     int slice_inf = 0;
     if (*slice_sup > 0)
@@ -358,14 +322,18 @@ int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, 
     int closest;
     int n = (int) dataspace_dims[dataset_rank - 1];
     for (int i = 0; i < n; i++) {
+        //std::cout << "--> slices_times[" << i << "]=" << slices_times[i] << std::endl;
         if (slices_times[i] >= time) {
             *slice_sup = i;
+            if (*slice_sup == 0 && n > 1)
+                *slice_sup = 1;
             if (*slice_sup > 0)
                 slice_inf = *slice_sup - 1;
             break;
         }
     }
-
+    //std::cout << "--> slice_inf = " << slice_inf << std::endl;
+    //std::cout << "--> slice_sup = " << *slice_sup << std::endl;
     switch (interp) {
 
     case CLOSEST_INTERP:
@@ -391,6 +359,7 @@ int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, 
             ignore_linear_interpolation = false;
         }
         *linear_interpolation_factor = (time - slices_times[slice_inf]) / (slices_times[*slice_sup] - slices_times[slice_inf]);
+        //std::cout << "linear_interpolation_factor: " << *linear_interpolation_factor << std::endl;
         free(slices_times);
         return slice_inf;
         break;
@@ -398,7 +367,7 @@ int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, 
     default:
         throw UALBackendException("Interpolation mode not yet supported", LOG);
     }
-    free(slices_times);
+    //free(slices_times);
 
 }
 
@@ -428,7 +397,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         non_existing_data_sets[tensorized_path] = 1;
         return 0;
     }
-
+    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
     HDF5Utils hdf5_utils;
     int timed_AOS_index = -1;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
@@ -503,9 +472,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
 
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
-
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
-
         hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
 
         if (datatype != ualconst::char_data) {
@@ -542,7 +509,6 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
 
         hsSelectionReader->setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
-
         hsSelectionReader->getSize(size, slice_mode, is_dynamic);
         hsSelectionReader->allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
 
@@ -606,26 +572,14 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
     if (!ignore_linear_interpolation) {
 
         //Taking the next slide for linear interpolation
-        if (current_arrctx_indices.size() > 0)
-            current_arrctx_indices.back() = slice_sup;  //updating index if data is located in a dynamic AOS
         void *next_slice_data = nullptr;
-
-
         HDF5HsSelectionReader & hsSelectionReader = *selection_readers[tensorized_path];
-
-        hsSelectionReader.updateDims(current_arrctx_shapes);
-
+        //hsSelectionReader.updateDims(current_arrctx_shapes);
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
-
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
-
-        hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
-
-
+        int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
-
-
-        size_t N = hsSelectionReader.buffer_size / hsSelectionReader.dtype_size;
+        size_t N =  buffer / hsSelectionReader.dtype_size;
 
         //Making linear interpolation
         switch (datatype) {
@@ -643,7 +597,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             {
                 double *data_double = (double *) *data;
                 double *next_slice_data_double = (double *) next_slice_data;
-                for (size_t i = 0; i < N; i++)
+                for (size_t i = 0; i < N; i++) 
                     data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * linear_interpolation_factor;
                 break;
             }

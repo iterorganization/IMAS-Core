@@ -14,7 +14,7 @@ HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, hid_t datatype_,
     herr_t status = H5Sget_simple_extent_dims(dataspace, dataspace_dims, NULL);
     if (status < 0) {
         char error_message[200];
-        sprintf(error_message, "Unable to call H5Sget_simple_extent_dims to space id: %d\n", (int) dataspace);
+        sprintf(error_message, "Unable to call H5Sget_simple_extent_dims for space id: %d\n", (int) dataspace);
         throw UALBackendException(error_message, LOG);
     }
     init(dataset_id, datatype_, AOSRank_, dim);
@@ -44,7 +44,6 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, hid_t datatype_, int AOSRank_
             break;
         }
     }
-
 
     dtype_size = H5Tget_size(dtype_id);
 
@@ -83,7 +82,6 @@ HDF5HsSelectionReader::~HDF5HsSelectionReader()
 void
  HDF5HsSelectionReader::setSize(int *size_, int dim)
 {
-    //memcpy (size, size_, dim * sizeof (int));
     for (int i = 0; i < dim; i++) {
         size[i] = size_[i];
     }
@@ -149,7 +147,7 @@ void HDF5HsSelectionReader::allocateGlobalOpBuffer(void **data)
     allocateBuffer(data, GLOBAL_OP, false, false, -1);
 }
 
-void HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index)
+int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index)
 {
     int buffer = buffer_size;
 
@@ -163,6 +161,7 @@ void HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_
     } else {
         data = (void **) malloc(sizeof(char *) * this->size[0]);
     }
+    return buffer;
 }
 
 void HDF5HsSelectionReader::allocateFullBuffer(void **data)
@@ -192,6 +191,10 @@ void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool 
 {
     //Create hyperslabs
     //creating selection in the dataspace
+    /*for (int i = 0; i < current_arrctx_indices.size(); i++) {
+        std::cout << "current_arrctx_indices[" << i << "] = " << current_arrctx_indices[i] << std::endl;
+    }*/
+
     if (slice_mode == SLICE_OP && isTimed) {
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
@@ -230,7 +233,7 @@ void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool 
    std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
    std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
  }
- std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;*/
+ std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl; */
 
     herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count,
                                         NULL);

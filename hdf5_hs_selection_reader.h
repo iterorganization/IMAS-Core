@@ -53,7 +53,7 @@ class HDF5HsSelectionReader {
     bool isRequestInExtent(std::vector < int >&current_arrctx_indices);
     void updateDims(std::vector < int >&current_arrctx_shapes);
     void allocateGlobalOpBuffer(void **data);
-    void allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index);
+    int allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index);
     void allocateFullBuffer(void **data);
     void setHyperSlabsGlobalOp(std::vector < int >&current_arrctx_indices);
     void setHyperSlabs(int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, std::vector < int >&current_arrctx_indices);
