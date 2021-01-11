@@ -17,6 +17,8 @@ class HDF5Reader {
     std::unordered_map < std::string, hid_t > opened_data_sets;
     std::unordered_map < std::string, hid_t > opened_shapes_data_sets;
     std::unordered_map < hid_t, int *>shapes_data;
+    std::unordered_map < hid_t, void *>datasets_data;
+
      std::unordered_map < hid_t, std::unique_ptr < HDF5HsSelectionReader >> shapes_selection_readers;
 
      std::unordered_map < std::string, hid_t > non_existing_data_sets;
@@ -38,6 +40,7 @@ class HDF5Reader {
     void close_dataset(hid_t dataset_id, std::string & tensorized_path, hid_t dataset_id_shapes);
 
     int readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, void **shapes);
+    herr_t readDataSet(Context * ctx, const std::string & field_tensorized_path, void **data, int datatype, hid_t dataset_id, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, HDF5HsSelectionReader &hsSelectionReader);
 
   public:
 

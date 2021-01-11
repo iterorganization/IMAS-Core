@@ -178,15 +178,6 @@ void HDF5HsSelectionReader::setHyperSlabsGlobalOp(std::vector < int >&current_ar
     setHyperSlabs(GLOBAL_OP, false, false, -1, -1, current_arrctx_indices);
 }
 
-void HDF5HsSelectionReader::updateDims(std::vector < int >&current_arrctx_shapes)
-{
-    if (current_arrctx_shapes.size() > 0) {
-        for (int i = 0; i < AOSRank; i++) {
-            dataspace_dims[i] = current_arrctx_shapes[i];
-        }
-    }
-}
-
 void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, std::vector < int >&current_arrctx_indices)
 {
     //Create hyperslabs

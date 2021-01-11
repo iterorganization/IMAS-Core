@@ -51,7 +51,6 @@ class HDF5HsSelectionReader {
     void getDataIndex(std::vector < int >current_arrctx_indices, std::vector < int >&index);
     int getShape(int axis_index) const;
     bool isRequestInExtent(std::vector < int >&current_arrctx_indices);
-    void updateDims(std::vector < int >&current_arrctx_shapes);
     void allocateGlobalOpBuffer(void **data);
     int allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index);
     void allocateFullBuffer(void **data);
