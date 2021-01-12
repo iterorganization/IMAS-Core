@@ -18,8 +18,8 @@ void
         writer.slice_mode = GLOBAL_OP;
     } else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP) {
         writer.clear_stacks();
-        writer.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
         writer.slice_mode = SLICE_OP;
+        writer.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
     } else if (ctx->getAccessmode() == READ_OP) {
         reader.clear_stacks();
         reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);

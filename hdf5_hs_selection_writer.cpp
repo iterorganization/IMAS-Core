@@ -4,22 +4,20 @@
 #include <algorithm>
 #include "hdf5_utils.h"
 
-HDF5HsSelectionWriter::HDF5HsSelectionWriter():dataset_rank(-1), dataspace(-1), memspace(-1)
+HDF5HsSelectionWriter::HDF5HsSelectionWriter():dataset_rank(-1), memspace(-1)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
 HDF5HsSelectionWriter::~HDF5HsSelectionWriter()
 {
-    H5Sclose(dataspace);
+    //H5Sclose(dataspace);
     H5Sclose(memspace);
 }
 
 void
  HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler)
 {
-
-
     bool isTimed;
     int slice_index;
     int timed_AOS_index;
@@ -31,9 +29,10 @@ void
     if (AOSRank == 0)
         AOSRank = 1;            //no AOS, so we store the data in a dim + 1 rank data set
 
-    if (dataspace != -1)
-        H5Sclose(dataspace);
-    dataspace = H5Dget_space(dataset_id);
+    //if (dataspace != -1)
+    //    H5Sclose(dataspace);
+    //dataspace = H5Dget_space(dataset_id);
+    hid_t dataspace = dataSetHandler.getDataSpace();
     dataset_rank = dataSetHandler.getRank();
     dataSetHandler.getDims(dataspace_dims);
 

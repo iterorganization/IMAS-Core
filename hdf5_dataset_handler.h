@@ -13,7 +13,8 @@
 
 class HDF5DataSetHandler {
   private:
-    std::string dataset_name;   //full tensorized path
+    std::string tensorized_path;        //full tensorized path
+
     hid_t dataset_id;
     int dataset_rank;
     int AOSRank;
@@ -24,26 +25,25 @@ class HDF5DataSetHandler {
     int timed_AOS_index;
     bool isTimed;
     bool dataset_already_extended_by_slicing;
+    bool use_core_driver;
 
     hsize_t dims[H5S_MAX_RANK];
     hsize_t maxdims[H5S_MAX_RANK];
     hsize_t largest_dims[H5S_MAX_RANK];
     hsize_t chunk_dims[H5S_MAX_RANK];
 
-    int max(int num1, int num2);
-
+    void copy_to_disk();
 
   public:
 
      HDF5DataSetHandler();
     ~HDF5DataSetHandler();
 
-    bool hasBeenExtended;
-    bool dataSetExtended;
-
     hid_t dtype_id;
     hid_t dataspace_id;
 
+    hid_t IDS_group_id;
+    hid_t IDS_core_file_id;
 
     void setSliceIndex();
 
@@ -55,7 +55,6 @@ class HDF5DataSetHandler {
 
     void extendTensorizedDataSet(int datatype, int dim, int *size, hid_t loc_id, hid_t dataset_id, int AOSRank, int *AOSSize);
 
-    void resetExtensionState();
     void getAttributes(bool * isTimed, int *slice_index, int *timed_AOS_index) const;
 
     int getSliceIndex() const;
@@ -66,15 +65,18 @@ class HDF5DataSetHandler {
 
     void getDims(hsize_t * dataspace_dims) const;
 
+    hid_t getDataSpace();
+
     void setNonSliceMode();
 
-    void setSliceMode(Context * ctx, hid_t loc_id, int homogeneous_time);
+    void setSliceMode(Context * ctx, int homogeneous_time);
 
     int getTimedShape(int *timed_AOS_index_);
 
     void setExtent();
 
-
-};
+    void setTensorizedPath(std::string p) {
+        tensorized_path = p;
+}};
 
 #endif

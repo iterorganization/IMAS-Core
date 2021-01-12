@@ -1,5 +1,6 @@
 #include "hdf5_writer.h"
 
+#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -8,7 +9,7 @@
 
 
 HDF5Writer::HDF5Writer(std::string backend_version_)
-:  backend_version(backend_version_), tensorized_paths(), opened_data_sets(), dataset_handlers(), selection_writers(), homogeneous_time(-1), current_arrctx_indices(), current_arrctx_shapes(), IDS_group_id(-1), IDS_name(), init_slice_index(false), dynamic_aos_already_extended_by_slicing(), slice_mode(GLOBAL_OP)
+:  backend_version(backend_version_), tensorized_paths(), opened_data_sets(), dataset_handlers(), selection_writers(), homogeneous_time(-1), current_arrctx_indices(), current_arrctx_shapes(), IDS_group_id(-1), init_slice_index(false), dynamic_aos_already_extended_by_slicing(), use_core_driver(false), slice_mode(GLOBAL_OP)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -17,6 +18,8 @@ HDF5Writer::~HDF5Writer()
 {
 }
 
+hid_t HDF5Writer::IDS_core_file_id = -1;
+hid_t HDF5Writer::core_tmp_group_id = -1;
 
 void
  HDF5Writer::createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path)
@@ -34,6 +37,7 @@ void
     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
     /* Probe. Likely to fail, but that's okay */
+    //Opening master file
     *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     /* Restore previous error handler */
     H5Eset_auto(current_stack_id, old_func, old_client_data);
@@ -61,6 +65,7 @@ void
         if (status < 0) {
             throw UALBackendException("createPulse:unable to set a user block.", LOG);
         }
+        //Creating master file
         *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
 
         H5Pclose(create_plist);
@@ -74,6 +79,11 @@ void
 
         hdf5_utils.writeHeader(ctx, *file_id, filePath, backend_version);
     }
+    if (IDS_core_file_id == -1) {
+        const std::string IDScorePulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, "core_file");
+        create_file_in_memory("core_file", IDScorePulseFile, opened_IDS_files, false);
+    }
+
 }
 
 void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
@@ -81,30 +91,20 @@ void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options,
     HDF5Utils hdf5_utils;
     close_datasets();
 
+    //Closing first master file
     std::string filePath = hdf5_utils.pulseFilePathFactory(ctx, files_path_strategy, files_directory, relative_file_path);
     herr_t status = H5Fclose(file_id);
 
     if (status < 0) {
         char error_message[100];
-        sprintf(error_message, "Unable to close HDF5 file with handler: %d\n", (int) file_id);
+        sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) file_id);
         throw UALBackendException(error_message);
     }
 
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
         const std::string & external_link_name = it->first;
-        hid_t pulse_file_id = opened_IDS_files[external_link_name];
-
-        if (pulse_file_id != -1) {
-            status = H5Fclose(pulse_file_id);
-
-
-            if (status < 0) {
-                char error_message[100];
-                sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
-                throw UALBackendException(error_message);
-            }
-        }
+        close_file_handler(external_link_name, opened_IDS_files);
         it++;
     }
 }
@@ -114,9 +114,7 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
     hid_t pulse_file_id = opened_IDS_files[external_link_name];
     if (pulse_file_id != -1) {
-        //std::cout << "closing file handler for pulse file :" << external_link_name << std::endl;
         herr_t status = H5Fclose(pulse_file_id);
-
         if (status < 0) {
             char error_message[100];
             sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
@@ -126,20 +124,37 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
     }
 }
 
+void HDF5Writer::create_file_in_memory(std::string idsName, const std::string & coreFileName, std::unordered_map < std::string, hid_t > &opened_IDS_files, hbool_t flush)
+{
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    assert(H5Pset_fapl_core(fapl, 100000000, flush) >= 0);
+    IDS_core_file_id = H5Fcreate(coreFileName.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, fapl);
+    assert(H5Pclose(fapl) >= 0);
+    if (IDS_core_file_id < 0) {
+        char error_message[200];
+        sprintf(error_message, "unable to create (core) file: %s\n", coreFileName.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+    core_tmp_group_id = H5Gcreate(IDS_core_file_id, "tmp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    assert(core_tmp_group_id >= 0);
+}
+
 
 void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
-
     if (IDS_group_id == -1)
         return;
+
+    close_datasets();
 
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
 
-    close_datasets();
-
+    //Deleting data from pulse file
+    //bool removed = false; 
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0) {
         if (H5Ldelete(file_id, IDS_link_name.c_str(), H5P_DEFAULT) >= 0) {
+            //removed = true;
             H5Fflush(file_id, H5F_SCOPE_LOCAL);
             HDF5Utils hdf5_utils;
             std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
@@ -153,7 +168,15 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
 
     H5Gclose(IDS_group_id);
     IDS_group_id = -1;
-    IDS_name = "";
+
+    assert(IDS_core_file_id >= 0);
+
+    if (use_core_driver && core_tmp_group_id >= 0) {
+        assert(H5Gclose(core_tmp_group_id) >= 0);
+        assert(H5Ldelete(IDS_core_file_id, "tmp", H5P_DEFAULT) >= 0);
+        core_tmp_group_id = H5Gcreate(IDS_core_file_id, "tmp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        assert(core_tmp_group_id >= 0);
+    }
 }
 
 void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
@@ -164,26 +187,28 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
 
     HDF5Utils hdf5_utils;
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-
     hid_t IDS_file_id = -1;
+
     if (opened_IDS_files.find(IDS_link_name) == opened_IDS_files.end()) {
         hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
         herr_t status = H5Pset_userblock(create_plist, 1024);
         if (status < 0) {
-            throw UALBackendException("create_IDS_group:unable to set a user block.", LOG);
+            char error_message[200];
+            sprintf(error_message, "Unable to set a user block on pulse file for IDS: %s.\n", ctx->getDataobjectName().c_str());
+            throw UALBackendException(error_message, LOG);
         }
         //std::cout << "creating external file: " << IDSpulseFile.c_str() << std::endl;
         IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_EXCL, create_plist, H5P_DEFAULT);
-
-        H5Pclose(create_plist);
+        assert(H5Pclose(create_plist) >= 0);
 
         if (IDS_file_id < 0) {
             char error_message[200];
-            sprintf(error_message, "unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
+            sprintf(error_message, "Unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
             throw UALBackendException(error_message, LOG);
         }
-        hdf5_utils.writeHeader(ctx, IDS_file_id, IDSpulseFile, backend_version);
         opened_IDS_files[IDS_link_name] = IDS_file_id;
+
+        hdf5_utils.writeHeader(ctx, IDS_file_id, IDSpulseFile, backend_version);
 
     } else {
         IDS_file_id = opened_IDS_files[IDS_link_name];
@@ -196,16 +221,22 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
             }
             opened_IDS_files[IDS_link_name] = IDS_file_id;
         }
-
     }
-
+    if (use_core_driver) {
+        assert(IDS_core_file_id >= 0);
+        if (core_tmp_group_id >= 0) {
+            assert(H5Gclose(core_tmp_group_id) >= 0);
+            H5Ldelete(IDS_core_file_id, "tmp", H5P_DEFAULT);
+            core_tmp_group_id = H5Gcreate2(IDS_core_file_id, "tmp", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+            assert(core_tmp_group_id >= 0);
+        }
+    }
 
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) == 0) {
         std::string relative_IDSpulseFile = hdf5_utils.getIDSPulseFilePath(".", relative_file_path, IDS_link_name);
         herr_t status = H5Lcreate_external(relative_IDSpulseFile.c_str(), IDS_link_name.c_str(),
                                            file_id, IDS_link_name.c_str(), H5P_DEFAULT,
                                            H5P_DEFAULT);
-
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "unable to create external link for IDS: %s.\n", ctx->getDataobjectName().c_str());
@@ -218,19 +249,24 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
     }
 
     IDS_group_id = hdf5_utils.createOrOpenHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
-
-    IDS_name = IDS_link_name;
+    assert(IDS_group_id >= 0);
 }
 
 void HDF5Writer::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
-    if (IDS_group_id != -1)
+    //std::cout << "calling open_IDS_group..." << std::endl;
+    if (IDS_group_id != -1) {
         H5Gclose(IDS_group_id);
+        IDS_group_id = -1;
+    }
 
     HDF5Utils hdf5_utils;
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
+
     hid_t IDS_file_id = opened_IDS_files[IDS_link_name];
+    bool makeCopy = false;
+    //std::cout << "test1::calling open_IDS_group..." << std::endl;
     if (IDS_file_id == -1) {
         std::string IDS_pulse_file = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
         IDS_file_id = H5Fopen(IDS_pulse_file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
@@ -240,17 +276,31 @@ void HDF5Writer::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unor
             throw UALBackendException(error_message, LOG);
         }
         opened_IDS_files[IDS_link_name] = IDS_file_id;
+        if (use_core_driver) {
+            assert(IDS_core_file_id >= 0);
+            if (core_tmp_group_id >= 0) {
+                assert(H5Gclose(core_tmp_group_id) >= 0);
+                H5Ldelete(IDS_core_file_id, "tmp", H5P_DEFAULT);
+            }
+            makeCopy = true;
+        }
     }
 
     hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
-
+    //hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
     if (loc_id >= 0) {
         IDS_group_id = loc_id;
-        IDS_name = IDS_link_name;
+
+        if (use_core_driver && makeCopy && slice_mode == SLICE_OP) {
+            //std::cout << "making a copy..." << std::endl;
+            assert(H5Ocopy(IDS_file_id, IDS_link_name.c_str(), IDS_core_file_id, "/tmp", H5P_DEFAULT, H5P_DEFAULT) >= 0);
+            core_tmp_group_id = H5Gopen2(IDS_core_file_id, "tmp", H5P_DEFAULT);
+            assert(core_tmp_group_id >= 0);
+        }
     } else {
         IDS_group_id = -1;
-        IDS_name = "";
     }
+
 }
 
 void HDF5Writer::start_put_slice_operation()
@@ -282,20 +332,27 @@ void HDF5Writer::close_group()
     }
 }
 
-void HDF5Writer::close_dataset(hid_t dataset_id, std::string & tensorized_path)
+void HDF5Writer::close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler, hid_t dataset_id, hid_t dataset_shape_id, std::string & tensorized_path)
 {
     bool do_close = false;
+    fieldHandler.IDS_core_file_id = IDS_core_file_id;
+    fieldHandler.IDS_group_id = IDS_group_id;
 
     if (slice_mode == SLICE_OP) {
         return;
     } else {
-        for (size_t i = 0; i < current_arrctx_indices.size(); i++) {
-            if (current_arrctx_indices[i] == current_arrctx_shapes[i] - 1) {
+        if (current_arrctx_indices.size() == 0) {
+            if (tensorized_path.find("ids_properties&version_put") == std::string::npos)
                 do_close = true;
-                continue;
-            } else {
-                do_close = false;
-                break;
+        } else {
+            for (size_t i = 0; i < current_arrctx_indices.size(); i++) {
+                if (current_arrctx_indices[i] == current_arrctx_shapes[i] - 1) {
+                    do_close = true;
+                    continue;
+                } else {
+                    do_close = false;
+                    break;
+                }
             }
         }
     }
@@ -303,18 +360,25 @@ void HDF5Writer::close_dataset(hid_t dataset_id, std::string & tensorized_path)
         dataset_handlers.erase(dataset_id);
         opened_data_sets.erase(tensorized_path);
         selection_writers.erase(tensorized_path);
+        if (dataset_shape_id != -1) {
+            std::string shape_tensorized_path = tensorized_path + "_SHAPE";
+            dataset_handlers.erase(dataset_shape_id);
+            opened_data_sets.erase(shape_tensorized_path);
+            selection_writers.erase(shape_tensorized_path);
+        }
     }
 }
 
-void HDF5Writer::readTimedAOSShape()
+
+
+void HDF5Writer::readTimedAOSShape(hid_t loc_id)
 {
 
     std::string tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
 
-    if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {
+    if (H5Lexists(loc_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {
         hid_t dataset_id = -1;
-        dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT);
-
+        dataset_id = H5Dopen2(loc_id, tensorized_path.c_str(), H5P_DEFAULT);
 
         int dim = -1;
 
@@ -345,37 +409,46 @@ void HDF5Writer::readTimedAOSShape()
     current_arrctx_indices.push_back(current_arrctx_shapes.size() - 1);
 }
 
-void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size)
+void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size, hid_t loc_id, std::string & IDS_link_name)
 {
+    if (use_core_driver)
+        loc_id = core_tmp_group_id;
+    else
+        loc_id = IDS_group_id;
+    assert(loc_id >= 0);
     HDF5Utils hdf5_utils;
     hdf5_utils.setTensorizedPaths(ctx, tensorized_paths);
 
     if (slice_mode == SLICE_OP && ctx->getTimed()) {
-        readTimedAOSShape();
+        readTimedAOSShape(loc_id);
     } else {
         current_arrctx_indices.push_back(ctx->getIndex());
         current_arrctx_shapes.push_back(*size);
     }
     int timed_AOS_index = -1;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
-    createOrUpdateAOSShapesDataSet(ctx);
+    createOrUpdateAOSShapesDataSet(ctx, loc_id, IDS_link_name);
 }
 
 
-void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data)
+void HDF5Writer::write_ND_Data(Context * ctx, hid_t loc_id, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data)
 {
-
     std::string & dataset_name = att_name;
     std::replace(dataset_name.begin(), dataset_name.end(), '/', '&');   // character '/' is not supported in datasets names
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');
-    hid_t loc_id = IDS_group_id;
 
+    if (use_core_driver)
+        loc_id = core_tmp_group_id;
+    else
+        loc_id = IDS_group_id;
 
+    assert(loc_id >= 0);
 
     if (dataset_name == "ids_properties&homogeneous_time") {
         int *v = (int *) data;
         homogeneous_time = v[0];
     }
+
 
     HDF5Utils hdf5_utils;
     int timed_AOS_index = -1;
@@ -410,7 +483,6 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     struct dataSetState ds_state;
     ds_state.mode = slice_mode;
 
-
     if (slice_mode != SLICE_OP) {
         //std::cout << "WRITER NOT IN SLICE MODE!!! " << std::endl;
 
@@ -418,10 +490,10 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
         {
             ds_state.state = 0;
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
+
             dataSetHandler->setNonSliceMode();
             dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), 1, false, timed_AOS_index);
-            ds_state.extended = dataSetHandler->hasBeenExtended;
-            ds_state.data_set_extended = dataSetHandler->dataSetExtended;
+
             dataset_handlers[dataset_id] = std::move(dataSetHandler);
             opened_data_sets[tensorized_path] = dataset_id;
 
@@ -430,8 +502,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             HDF5DataSetHandler & dataSetHandler = *dataset_handlers[dataset_id];
             dataSetHandler.setNonSliceMode();
             dataSetHandler.extendTensorizedDataSet(datatype, dim, size, loc_id, dataset_id, AOSRank, AOSShapes.data());
-            ds_state.extended = dataSetHandler.hasBeenExtended;
-            ds_state.data_set_extended = dataSetHandler.dataSetExtended;
+
 
         }
     } else {
@@ -449,16 +520,13 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
 
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
 
-            dataSetHandler->setSliceMode(ctx, loc_id, homogeneous_time);
-
+            dataSetHandler->setSliceMode(ctx, homogeneous_time);
             dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), create_data_set, false, timed_AOS_index);
+
             dataSetHandler->setSliceIndex();
 
             dataSetHandler->updateTensorizedDataSet(ctx, tensorized_path, datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), current_arrctx_indices, dynamic_aos_already_extended_by_slicing);        //updating dataset_extended
 
-
-            ds_state.extended = dataSetHandler->hasBeenExtended;
-            ds_state.data_set_extended = dataSetHandler->dataSetExtended;
             dataset_handlers[dataset_id] = std::move(dataSetHandler);
             opened_data_sets[tensorized_path] = dataset_id;
         } else {
@@ -497,14 +565,11 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     if (selection_writers.find(tensorized_path) != selection_writers.end()) {
         HDF5HsSelectionWriter & hsSelectionWriter = *selection_writers[tensorized_path];
         hsSelectionWriter.setHyperSlabs(dataset_id, current_arrctx_indices, slice_mode, dataSetHandler);
-
-
-        status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter.memspace, hsSelectionWriter.dataspace, H5P_DEFAULT, data);
+        status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter.memspace, dataSetHandler.getDataSpace(), H5P_DEFAULT, data);
     } else {
         std::unique_ptr < HDF5HsSelectionWriter > hsSelectionWriter(new HDF5HsSelectionWriter());
         hsSelectionWriter->setHyperSlabs(dataset_id, current_arrctx_indices, slice_mode, dataSetHandler);
-
-        status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter->memspace, hsSelectionWriter->dataspace, H5P_DEFAULT, data);
+        status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter->memspace, dataSetHandler.getDataSpace(), H5P_DEFAULT, data);
         selection_writers[tensorized_path] = std::move(hsSelectionWriter);
     }
 
@@ -514,43 +579,36 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
         sprintf(error_message, "Unable to write HDF5 dataset: %s\n", tensorized_path.c_str());
         throw UALBackendException(error_message, LOG);
     }
-
+    hid_t dataset_shape_id = -1;
     if ((datatype != ualconst::char_data && dim > 0)
         || (datatype == ualconst::char_data && dim == 2))
-        createOrUpdateShapesDataSet(ctx, loc_id, tensorized_path, dataSetHandler, timebasename, ds_state, timed_AOS_index);
+        dataset_shape_id = createOrUpdateShapesDataSet(ctx, loc_id, tensorized_path, dataSetHandler, timebasename, ds_state, timed_AOS_index);
 
-    dataSetHandler.resetExtensionState();
-
-    close_dataset(dataset_id, tensorized_path);
+    close_dataset(ctx, dataSetHandler, dataset_id, dataset_shape_id, tensorized_path);
 }
 
 
-void HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index)
+hid_t HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index)
 {
+    hid_t dataset_id = -1;
     int AOSRank = current_arrctx_indices.size();
 
     if (AOSRank == 0)
-        return;
+        return dataset_id;
 
     int rank = fieldHandler.getRank();
-    if (rank == AOSRank)        //0D data in AOSs can not be extended, so they have no corresponding shapes dataset
-        return;
+    if (rank == AOSRank)
+        return dataset_id;
 
     const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
-
 
     int dim = 1;                //SHAPE is a 1D dataset
     int size[1] = { rank - AOSRank };   //length of the shapes vector
 
     int *shapes = (int *) malloc(sizeof(int) * size[0]);
 
-    std::vector < int >aos_indices;
-    std::vector < int >aos_shapes;
-
-    for (int j = 0; j < AOSRank; j++) {
-        aos_indices.push_back(current_arrctx_indices[j]);
-        aos_shapes.push_back(current_arrctx_shapes[j]);
-    }
+    std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end());
+    std::vector < int >aos_shapes(current_arrctx_shapes.begin(), current_arrctx_shapes.end());
 
     if (slice_mode == SLICE_OP) {
         int timed_AOS_index_ = -1;
@@ -563,89 +621,23 @@ void HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const 
 
     herr_t status = -1;
     HDF5Utils hdf5_utils;
-    hid_t dataset_id = -1;
 
-    if (H5Lexists(loc_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {
-        dataset_id = hdf5_utils.searchDataSetId(tensorized_path, opened_data_sets);
-        if (dataset_id < 0)     //dataset not yet visited by previous LL requests
-        {
-            std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
-            if (ds_state.mode == SLICE_OP) {
-                dataSetHandler->setSliceMode(ctx, loc_id, homogeneous_time);
-            } else {
-                dataSetHandler->setNonSliceMode();
-            }
+    bool create_data_set = false;
 
-            hsize_t dataspace_dims_before_extension[H5S_MAX_RANK];
-            fieldHandler.getDims(dataspace_dims_before_extension);
-            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
-            if (ds_state.mode == SLICE_OP)
-                dataSetHandler->setSliceIndex();
-
-            dataSetHandler->updateTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), aos_indices, dynamic_aos_already_extended_by_slicing);
-
-            dataSetHandler->setExtent();
-
-            for (int i = 0; i < rank - AOSRank; i++) {
-                shapes[i] = dataspace_dims_before_extension[i + AOSRank];       //previous size before extension
-            }
-
-            std::unique_ptr < HDF5HsSelectionWriter > hsSelectionWriter(new HDF5HsSelectionWriter());
-
-            hsSelectionWriter->setHyperSlabs(dataset_id, aos_indices, ds_state.mode, *dataSetHandler);
-            status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter->memspace, hsSelectionWriter->dataspace, H5P_DEFAULT, shapes);
-            dataSetHandler->resetExtensionState();
-            if (status < 0) {
-                char error_message[200];
-                sprintf(error_message, "Unable to write HDF5 dataset for SHAPE: %s\n", tensorized_path.c_str());
-                throw UALBackendException(error_message, LOG);
-            }
-
-
-            dataset_handlers[dataset_id] = std::move(dataSetHandler);
-            opened_data_sets[tensorized_path] = dataset_id;
-            //}
-
-        } else                  //dataset already used in previous LL request
-        {
-            HDF5DataSetHandler & dataSetHandler = *dataset_handlers[dataset_id];
-            if (ds_state.mode == SLICE_OP) {
-                dataSetHandler.setSliceMode(ctx, loc_id, homogeneous_time);
-            } else {
-                dataSetHandler.setNonSliceMode();
-            }
-
-            hsize_t dataspace_dims_before_extension[H5S_MAX_RANK];
-            fieldHandler.getDims(dataspace_dims_before_extension);
-
-            for (int i = 0; i < rank - AOSRank; i++) {
-                shapes[i] = dataspace_dims_before_extension[i + AOSRank];       //previous size before extension
-            }
-
-            if (ds_state.mode == SLICE_OP)
-                dataSetHandler.setSliceIndex();
-
-            dataSetHandler.updateTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), aos_indices, dynamic_aos_already_extended_by_slicing);     //updating AOS_SHAPE dataset
-
-            dataSetHandler.setExtent();
-
-            std::unique_ptr < HDF5HsSelectionWriter > hsSelectionWriter(new HDF5HsSelectionWriter());
-            hsSelectionWriter->setHyperSlabs(dataset_id, aos_indices, ds_state.mode, dataSetHandler);
-            status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter->memspace, hsSelectionWriter->dataspace, H5P_DEFAULT, shapes);
-            if (status < 0) {
-                char error_message[200];
-                sprintf(error_message, "Unable to write HDF5 dataset for SHAPE: %s\n", tensorized_path.c_str());
-                throw UALBackendException(error_message, LOG);
-            }
-
-            dataSetHandler.resetExtensionState();
-        }
-
-    } else                      //AOS_SHAPE doesn't exist yet, we create it
+    dataset_id = hdf5_utils.searchDataSetId(tensorized_path, opened_data_sets);
+    if (dataset_id < 0)         //dataset not yet visited by previous LL requests
     {
+        if (slice_mode == SLICE_OP)
+            create_data_set = false;
+        else
+            create_data_set = true;
+
         std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
+        dataSetHandler->IDS_core_file_id = IDS_core_file_id;
+        dataSetHandler->IDS_group_id = IDS_group_id;
+
         if (ds_state.mode == SLICE_OP) {
-            dataSetHandler->setSliceMode(ctx, loc_id, homogeneous_time);
+            dataSetHandler->setSliceMode(ctx, homogeneous_time);
         } else {
             dataSetHandler->setNonSliceMode();
         }
@@ -657,28 +649,64 @@ void HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const 
         for (int i = 0; i < rank - AOSRank; i++) {
             shapes[i] = dataspace_dims[i + AOSRank];
         }
+        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), create_data_set, true, timed_AOS_index);
 
-        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 1, true, timed_AOS_index);
         if (ds_state.mode == SLICE_OP)
             dataSetHandler->setSliceIndex();
 
         std::unique_ptr < HDF5HsSelectionWriter > hsSelectionWriter(new HDF5HsSelectionWriter());
 
         hsSelectionWriter->setHyperSlabs(dataset_id, aos_indices, ds_state.mode, *dataSetHandler);
+        status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter->memspace, dataSetHandler->getDataSpace(), H5P_DEFAULT, shapes);
 
-        status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter->memspace, hsSelectionWriter->dataspace, H5P_DEFAULT, shapes);
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to write HDF5 dataset for SHAPE: %s\n", tensorized_path.c_str());
             throw UALBackendException(error_message, LOG);
         }
 
-        dataSetHandler->resetExtensionState();
+        selection_writers[tensorized_path] = std::move(hsSelectionWriter);
         dataset_handlers[dataset_id] = std::move(dataSetHandler);
         opened_data_sets[tensorized_path] = dataset_id;
-    }
-    free(shapes);
 
+    } else                      //dataset already used in previous LL request
+    {
+        HDF5DataSetHandler & dataSetHandler = *dataset_handlers[dataset_id];
+        if (ds_state.mode == SLICE_OP) {
+            dataSetHandler.setSliceMode(ctx, homogeneous_time);
+        } else {
+            dataSetHandler.setNonSliceMode();
+        }
+
+        hsize_t dataspace_dims_before_extension[H5S_MAX_RANK];
+        fieldHandler.getDims(dataspace_dims_before_extension);
+
+        for (int i = 0; i < rank - AOSRank; i++) {
+            shapes[i] = dataspace_dims_before_extension[i + AOSRank];   //previous size before extension
+        }
+
+        if (ds_state.mode == SLICE_OP)
+            dataSetHandler.setSliceIndex();
+
+        dataSetHandler.updateTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), aos_indices, dynamic_aos_already_extended_by_slicing); //updating AOS_SHAPE dataset
+
+        dataSetHandler.setExtent();
+
+
+        HDF5HsSelectionWriter & hsSelectionWriter = *selection_writers[tensorized_path];
+        hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, ds_state.mode, dataSetHandler);
+
+        status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter.memspace, dataSetHandler.getDataSpace(), H5P_DEFAULT, shapes);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to write HDF5 dataset for SHAPE: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+
+    }
+
+    free(shapes);
+    return dataset_id;
 }
 
 void HDF5Writer::pop_back_stacks()
@@ -700,14 +728,13 @@ void HDF5Writer::clear_stacks()
     tensorized_paths.clear();
 }
 
-void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx)
+void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std::string & IDS_link_name)
 {
-
     HDF5Utils hdf5_utils;
     int AOSRank = current_arrctx_indices.size() - 1;
 
-    std::vector < int >aos_indices;
-    std::vector < int >aos_shapes;
+    std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end() - 1);
+    std::vector < int >aos_shapes(current_arrctx_shapes.begin(), current_arrctx_shapes.end() - 1);
 
     int dim = 1;                //AOS_SHAPE is a 1D dataset 
     int size[1] = { 1 };
@@ -716,14 +743,6 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx)
     std::string tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
     int timed_AOS_index = -1;
     hdf5_utils.isTimed(ctx, &timed_AOS_index);
-
-
-    for (size_t i = 0; i < current_arrctx_indices.size() - 1; i++) {
-        aos_indices.push_back(current_arrctx_indices[i]);
-    }
-    for (size_t i = 0; i < current_arrctx_shapes.size() - 1; i++) {
-        aos_shapes.push_back(current_arrctx_shapes[i]);
-    }
 
     if (slice_mode == SLICE_OP && timed_AOS_index != -1 && timed_AOS_index < AOSRank) { //slicing is inside a dynamic AOS
         aos_shapes[timed_AOS_index] = put_slice_count + 1;
@@ -747,59 +766,99 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx)
     herr_t status = -1;
     hid_t dataset_id = -1;
 
-    if (dataset_id < 0 && H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {  //not yet used by a previous LL request
+    if (H5Lexists(loc_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {  //not yet used by a previous LL request
 
-        std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
-        if (slice_mode) {
-            dataSetHandler->setSliceMode(ctx, IDS_group_id, 1);
-        } else {
-            dataSetHandler->setNonSliceMode();
+        dataset_id = hdf5_utils.searchDataSetId(tensorized_path, opened_data_sets);
+
+        if (dataset_id < 0) {
+            std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
+            dataSetHandler->IDS_core_file_id = IDS_core_file_id;
+            dataSetHandler->IDS_group_id = IDS_group_id;
+
+            if (slice_mode) {
+                dataSetHandler->setSliceMode(ctx, 1);
+            } else {
+                dataSetHandler->setNonSliceMode();
+            }
+
+            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
+
+            dataSetHandler->updateAOSShapesTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count);        //updating AOS_SHAPE dataset
+
+
+            HDF5HsSelectionWriter hsSelectionWriter;
+            hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, *dataSetHandler);
+
+            status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter.memspace, dataSetHandler->getDataSpace(), H5P_DEFAULT, shapes);
+
+            if (status < 0) {
+                char error_message[200];
+                sprintf(error_message, "Unable to write HDF5 dataset for AOS_SHAPE: %s\n", tensorized_path.c_str());
+                throw UALBackendException(error_message, LOG);
+            }
+
+            dataset_handlers[dataset_id] = std::move(dataSetHandler);
+            opened_data_sets[tensorized_path] = dataset_id;
         }
 
-        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, IDS_group_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
+        else {
+            HDF5DataSetHandler & dataSetHandler = *dataset_handlers[dataset_id];
+            dataSetHandler.IDS_core_file_id = IDS_core_file_id;
+            dataSetHandler.IDS_group_id = IDS_group_id;
 
-        dataSetHandler->updateAOSShapesTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, IDS_group_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count);      //updating AOS_SHAPE dataset
+            if (slice_mode) {
+                dataSetHandler.setSliceMode(ctx, 1);
+            } else {
+                dataSetHandler.setNonSliceMode();
+            }
 
+            dataSetHandler.createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
 
-        HDF5HsSelectionWriter hsSelectionWriter;
-        hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, *dataSetHandler);
+            dataSetHandler.updateAOSShapesTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count); //updating AOS_SHAPE dataset
 
-        status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter.memspace, hsSelectionWriter.dataspace, H5P_DEFAULT, shapes);
+            HDF5HsSelectionWriter hsSelectionWriter;
+            hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, dataSetHandler);
 
-        if (status < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to write HDF5 dataset for AOS_SHAPE: %s\n", tensorized_path.c_str());
-            throw UALBackendException(error_message, LOG);
+            status = H5Dwrite(dataset_id, dataSetHandler.dtype_id, hsSelectionWriter.memspace, dataSetHandler.getDataSpace(), H5P_DEFAULT, shapes);
+
+            if (status < 0) {
+                char error_message[200];
+                sprintf(error_message, "Unable to write HDF5 dataset for AOS_SHAPE: %s\n", tensorized_path.c_str());
+                throw UALBackendException(error_message, LOG);
+            }
+
         }
-
-        dataSetHandler->resetExtensionState();
 
     }
 
     else {                      //AOS_SHAPE doesn't exist yet, we create it
 
         std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
+        dataSetHandler->IDS_core_file_id = IDS_core_file_id;
+        dataSetHandler->IDS_group_id = IDS_group_id;
 
         if (slice_mode) {
-            dataSetHandler->setSliceMode(ctx, IDS_group_id, 1);
+            dataSetHandler->setSliceMode(ctx, 1);
         } else {
             dataSetHandler->setNonSliceMode();
         }
 
         hid_t dataset_id = -1;
 
-        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, IDS_group_id, &dataset_id, AOSRank, aos_shapes.data(), 1, true, timed_AOS_index);
+        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 1, true, timed_AOS_index);
 
         HDF5HsSelectionWriter hsSelectionWriter;
         hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, *dataSetHandler);
 
-        status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter.memspace, hsSelectionWriter.dataspace, H5P_DEFAULT, shapes);
+        status = H5Dwrite(dataset_id, dataSetHandler->dtype_id, hsSelectionWriter.memspace, dataSetHandler->getDataSpace(), H5P_DEFAULT, shapes);
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to write HDF5 dataset for AOS_SHAPE: %s\n", tensorized_path.c_str());
             throw UALBackendException(error_message, LOG);
         }
-        dataSetHandler->resetExtensionState();
+
+        dataset_handlers[dataset_id] = std::move(dataSetHandler);
+        opened_data_sets[tensorized_path] = dataset_id;
     }
 
 }

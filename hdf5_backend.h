@@ -14,8 +14,8 @@ class HDF5Backend:public Backend {
   private:
     std::string HDF5_BACKEND_VERSION = "1.0";
 
-    static std::string files_directory;
-    static std::string relative_file_path;
+    static std::string files_directory; //directory containing the pulse files
+    static std::string relative_file_path; 
 
     hid_t file_id;
      std::unordered_map < std::string, hid_t > opened_IDS_files;
@@ -31,8 +31,6 @@ class HDF5Backend:public Backend {
 
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
     void beginReadArraystructAction(ArraystructContext * ctx, int *size);
-
-    //void showStatus(hid_t file_id) ;
 
   public:
 
@@ -121,7 +119,8 @@ class HDF5Backend:public Backend {
             beginReadArraystructAction(ctx, size);
         else
             beginWriteArraystructAction(ctx, size);
-    } virtual void endAction(Context * ctx);
+    }
+    virtual void endAction(Context * ctx);
 
     virtual void beginAction(OperationContext * ctx);
 

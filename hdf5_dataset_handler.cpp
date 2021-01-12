@@ -1,14 +1,14 @@
 #include "hdf5_dataset_handler.h"
 
+#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
 #include <math.h>
 
 
-HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), immutable(true), slice_mode(false), slice_index(-1), timed_AOS_index(-1), isTimed(false), dataset_already_extended_by_slicing(false), hasBeenExtended(false), dataSetExtended(false), dtype_id(-1), dataspace_id(-1)
+HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), immutable(true), slice_mode(false), slice_index(-1), timed_AOS_index(-1), isTimed(false), dataset_already_extended_by_slicing(false), use_core_driver(false), dtype_id(-1), dataspace_id(-1)
 {
-    resetExtensionState();
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
 
@@ -16,15 +16,18 @@ HDF5DataSetHandler::~HDF5DataSetHandler()
 {
     if (!immutable)
         H5Tclose(dtype_id);
-    if (dataset_id != -1)
+    if (dataset_id != -1) {
+        if (use_core_driver)
+            copy_to_disk();
         H5Dclose(dataset_id);
+    }
     if (dataspace_id != -1) {
         H5Sclose(dataspace_id);
     }
 }
 
 void
- HDF5DataSetHandler::setSliceMode(Context * ctx, hid_t loc_id, int homogeneous_time)
+ HDF5DataSetHandler::setSliceMode(Context * ctx, int homogeneous_time)
 {
     HDF5Utils hdf5_utils;
     isTimed = hdf5_utils.isTimed(ctx, &timed_AOS_index);
@@ -55,7 +58,7 @@ int HDF5DataSetHandler::getSliceIndex() const
 
 std::string HDF5DataSetHandler::getName() const
 {
-    return this->dataset_name;
+    return this->tensorized_path;
 }
 
 void HDF5DataSetHandler::setSliceIndex()
@@ -80,6 +83,11 @@ void HDF5DataSetHandler::getDims(hsize_t * dataspace_dims) const
     memcpy(dataspace_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
 }
 
+hid_t HDF5DataSetHandler::getDataSpace()
+{
+    return dataspace_id;
+}
+
 
 int HDF5DataSetHandler::getTimedShape(int *timed_AOS_index_)
 {
@@ -90,6 +98,95 @@ int HDF5DataSetHandler::getTimedShape(int *timed_AOS_index_)
     }
 
     return timed_current_shape;
+}
+
+void HDF5DataSetHandler::copy_to_disk()
+{
+
+//    hid_t dspace, dcpl, ftype, dst;
+// 
+//    assert((ftype = H5Dget_type(dataset_id)) >= 0);
+// 
+//    size_t dataset_size = H5Tget_size(ftype);
+//    for (int i = 0; i < dataset_rank; ++i)
+//     dataset_size *= largest_dims[i];
+//    assert (dataset_size > 0);
+//    
+//    
+//    char* buf;
+// 
+//     //std::cout << "copying dataset : " << tensorized_path.c_str() << std::endl;
+// 
+//    if (dataset_size < 65000) /* ~64K */
+//     {
+//      //std::cout << "copying dataset1 : " << tensorized_path.c_str() << std::endl;
+//      if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {
+//         H5Ldelete(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT); 
+//      }
+//      
+//       //std::cout << "creation of a compact dataset: " << tensorized_path.c_str() << std::endl;
+//      /* create a compact destination and xfer the data */
+//      assert((dcpl = H5Pcreate(H5P_DATASET_CREATE)) >= 0);
+//      assert(H5Pset_layout(dcpl, H5D_COMPACT) >= 0);
+//         assert(IDS_group_id >=0);
+//      
+//      /* we need to re-create the dataspace to get rid of potential
+//              unlimited dimensions. */
+//      assert((dspace = H5Screate_simple(dataset_rank, largest_dims, NULL)) >= 0);
+//      assert((dst = H5Dcreate(IDS_group_id, tensorized_path.c_str(), ftype, dspace,
+//                              H5P_DEFAULT, dcpl, H5P_DEFAULT)) >= 0);
+//      assert(H5Sclose(dspace) >= 0);
+//      assert(H5Pclose(dcpl) >= 0);
+// 
+//       try {
+//         /* create a read/write buffer */
+//          assert((buf = (char*) malloc(dataset_size)) != NULL);
+//       } catch (const std::bad_alloc& e) {
+//         std::cout << "Allocation failed: " << e.what() << '\n';
+//       }
+//       
+//       //assert((mtype = H5Tget_native_type(ftype, H5T_DIR_ASCEND)) >= 0);
+//       /* read the data from the source */
+//       assert(H5Dread(dataset_id, ftype, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf) >= 0);
+//       /* write the data to the destination */
+//       assert(H5Dwrite(dst, ftype, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf) >= 0);
+// 
+//       free(buf);
+//       assert(H5Dclose(dst) >= 0);
+//     }
+//   else
+//     {
+//      
+//       /* nothing we can 4 now do other than copy */
+//       assert(dataset_id >=0);
+//       assert(IDS_group_id >=0);
+//       if (slice_mode) {
+//        
+//         if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) { 
+//            //std::cout << "deleting link:  " << tensorized_path.c_str() << std::endl;
+//         H5Ldelete(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT);
+//         }
+//       }
+//         std::string src_name = "/tmp/" + tensorized_path;
+//              assert(H5Ocopy(IDS_core_file_id, src_name.c_str() , IDS_group_id, tensorized_path.c_str() ,
+//                      H5P_DEFAULT, H5P_DEFAULT) >= 0);
+//       
+//     }
+// assert(H5Tclose(ftype) >= 0);
+//std::cout << "end of copying dataset " << tensorized_path.c_str() << std::endl;
+
+    assert(dataset_id >= 0);
+    assert(IDS_group_id >= 0);
+    if (slice_mode) {
+
+        if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) > 0) {
+            //std::cout << "deleting link:  " << tensorized_path.c_str() << std::endl;
+            H5Ldelete(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT);
+        }
+    }
+    std::string src_name = "/tmp/" + tensorized_path;
+    assert(H5Ocopy(IDS_core_file_id, src_name.c_str(), IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT, H5P_DEFAULT) >= 0);
+
 }
 
 void HDF5DataSetHandler::updateAOSShapesTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes, int shapes_slice_index)
@@ -199,7 +296,7 @@ void HDF5DataSetHandler::updateTensorizedDataSet(Context * ctx, const std::strin
 
 void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index)
 {
-    this->dataset_name = std::string(dataset_name);
+    this->tensorized_path = std::string(dataset_name);
     dataset_rank = dim + AOSRank;
     this->AOSRank = AOSRank;
     this->timed_AOS_index = timed_AOS_index;
@@ -309,14 +406,11 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
     if (create) {
 
 
-        size_t M = (size_t) 2 * 1024 * 1024;
+        float M = 2 * 1024 * 1024;
         size_t vmax = (size_t) floor(M / type_size);
-
-        //std::cout << "vmax = "  << vmax << std::endl;
-
         size_t vp = 1;
         size_t vn = 1;
-        float chunk_dims_fraction_factor = 0.01;
+        float chunk_dims_fraction_factor = 0.1;
         hsize_t chunk_dims_min[H5S_MAX_RANK];
 
         for (int i = 0; i < AOSRank; i++) {
@@ -338,8 +432,10 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
                 while (vp > vmax / vn) {
                     size_t v = 1;
                     for (int i = 0; i < AOSRank; i++) {
-                        chunk_dims[i] /= max(1, round(max(1, pow(2.0, AOSRank))));
-                        if (chunk_dims[i] <= 0 || chunk_dims[i] <= chunk_dims_min[i]) {
+                        float cs = (float) chunk_dims[i];
+                        cs /= pow(2.0, AOSRank);
+                        chunk_dims[i] = (int) cs;
+                        if (chunk_dims[i] < chunk_dims_min[i]) {
                             chunk_dims[i] = chunk_dims_min[i];
                             break;
                         }
@@ -356,8 +452,11 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
                     while (vn > vmax) {
                         size_t v = 1;
                         for (int i = AOSRank; i < dataset_rank; i++) {
-                            chunk_dims[i] /= max(1, round(max(1, pow(2.0, (dataset_rank - AOSRank)))));
-                            if (chunk_dims[i] <= 0 || chunk_dims[i] <= chunk_dims_min[i]) {
+                            float cs = (float) chunk_dims[i];
+                            cs /= pow(2.0, dataset_rank - AOSRank);
+                            chunk_dims[i] = (int) cs;
+                            //chunk_dims[i] /= std::max(1, round(std::max(1, (int) pow(2.0, (dataset_rank - AOSRank)))));
+                            if (chunk_dims[i] < chunk_dims_min[i]) {
                                 chunk_dims[i] = chunk_dims_min[i];
                                 break;
                             }
@@ -370,9 +469,108 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
             }
         }
 
-        /*std::cout << ">>>------------------<<<" << std::endl;
+        /*float vmax = M / (float) type_size;
+           size_t dimp = 1;
+           size_t dimn = 1;
 
-           std::cout << "cs = " << vp*vn << std::endl;
+           float alpha_p[H5S_MAX_RANK];
+           float alpha_p_product = 1;
+           float alpha_n[H5S_MAX_RANK];
+           float alpha_n_product = 1;
+           float alpha[H5S_MAX_RANK];
+           float vol = 1;
+
+           for (int i = 0; i < AOSRank; i++) {
+           dimp *= dims[i];
+           alpha_p[i] = dims[i]/dims[0];
+           alpha_p_product*=alpha_p[i];
+           }
+
+           for (int i = AOSRank; i < dataset_rank; i++) {
+           dimn *= dims[i];
+           alpha_n[i] = dims[i]/dims[AOSRank];
+           alpha_n_product*=alpha_n[i];
+           }
+
+           for (int i = 0; i < dataset_rank; i++) {
+           chunk_dims[i] = 1;
+
+           vol *= dims[i];
+           alpha[i] = dims[i]/dims[0];
+           }
+
+
+           float N = vol/vmax;
+           float vmin  = 1;
+
+           if (N >= 1) {
+           if (dimp >= vmax) {
+           std::cout << ">>>--case1--<<<" << std::endl;
+           std::cout << "vmax:" << vmax << std::endl;
+           std::cout << "dimp:" << dimp << std::endl;
+           //float Np = dimp/vmax;
+           //chunk_dims[0] = std::max(1, (int) round(dims[0]/pow(N, 1./AOSRank)));
+           chunk_dims[0] = std::max(1, (int) floor(pow(vmax/dimn/alpha_p_product, 1./AOSRank)));
+           chunk_dims[0] = std::min(chunk_dims[0], dims[0]);
+           for (int i = 0; i < AOSRank; i++) {
+           chunk_dims[i] = std::max(1, (int) floor(alpha_p[i]*chunk_dims[0]));
+           chunk_dims[i] = std::min(chunk_dims[i], dims[i]);
+           }
+           }
+           else {
+           std::cout << ">>>--case2--<<<" << std::endl;
+           chunk_dims[0] = dims[0];
+           for (int i = 0; i < AOSRank; i++) {
+           chunk_dims[i] = std::max(1, (int) floor(alpha_p[i]*chunk_dims[0]));
+           }
+           if (dataset_rank > AOSRank) {
+           std::cout << ">>>--case3--<<<" << std::endl;
+           //float Nd = dimn/vmax*dimp;
+           //chunk_dims[AOSRank] = std::max(1, (int) round(dims[AOSRank]/pow(N, 1/dataset_rank - AOSRank)));
+           std::cout << "dimp:" <<  dimp << std::endl;
+           std::cout << "alpha_n_product:" <<  alpha_n_product << std::endl;
+           std::cout << "vmax:" <<  vmax << std::endl;
+           std::cout << "vmax/dimp/alpha_n_product:" <<  vmax/dimp/alpha_n_product << std::endl;
+           std::cout << "1/(dataset_rank - AOSRank):" <<  1./(dataset_rank - AOSRank) << std::endl;
+           std::cout << "dataset_rank:" <<  dataset_rank  << std::endl;
+           std::cout << "AOSRank:" <<  AOSRank  << std::endl;
+           std::cout << "pow(vmax/dimp/alpha_n_product, 1/(dataset_rank - AOSRank):" <<  pow(vmax/dimp/alpha_n_product, 1./(dataset_rank - AOSRank)) << std::endl;
+           chunk_dims[AOSRank] = std::max(1, (int) floor(pow(vmax/dimp/alpha_n_product, 1./(dataset_rank - AOSRank))));
+           chunk_dims[AOSRank] = std::min(chunk_dims[AOSRank], dims[AOSRank]);
+           std::cout << "chunk_dims[AOSRank]:" <<  chunk_dims[AOSRank] << std::endl;
+           for (int i = AOSRank; i < dataset_rank; i++) {
+           chunk_dims[i] = std::max(1, (int) floor(alpha_n[i]*chunk_dims[AOSRank]));
+           chunk_dims[i] = std::min(chunk_dims[i], dims[i]);
+           }
+           }
+
+           }
+           }
+           else {
+           std::cout << ">>>--case4--<<<" << std::endl;
+           for (int i = 0; i < dataset_rank; i++) {
+           chunk_dims[i] = dims[i];
+           }
+           if (vol < vmin) {
+           std::cout << ">>>--case5--<<<" << std::endl;
+           chunk_dims[0] = std::max(1, (int) floor(dims[0]*pow(vmin/vol, 1./dataset_rank)));
+           //chunk_dims[0] = std::min(chunk_dims[0], dims[0]);
+           for (int i = 0; i < dataset_rank; i++) {
+           chunk_dims[i] = std::max(1, (int) floor(alpha[i]*chunk_dims[0]));
+           //chunk_dims[i] = std::min(chunk_dims[i], dims[i]);
+           }
+           }
+
+           } */
+
+        /*std::cout << ">>>--" << tensorized_path << "--<<<" << std::endl;
+
+           //std::cout << "cs = " << vp*vn << std::endl;
+           for (int i = 0; i < dataset_rank; i++)
+           {
+           std::cout << "dims[" << i << "]=" << dims[i] << std::endl;
+
+           }
 
            for (int i = 0; i < AOSRank; i++)
            {
@@ -383,8 +581,8 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
            {
            std::cout << "chunk_dims[" << i << "]=" << chunk_dims[i] << std::endl;
 
-           } */
-
+           }
+           std::cout << ">>>---------------------------------<<<" << std::endl; */
 
         hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
         H5Pset_chunk(dcpl_id, dataset_rank, chunk_dims);
@@ -401,7 +599,7 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
         }
 
         hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
-        H5Pset_chunk_cache(dapl, H5D_CHUNK_CACHE_NSLOTS_DEFAULT, 3 * M, H5D_CHUNK_CACHE_W0_DEFAULT);
+        H5Pset_chunk_cache(dapl, 10000, 500 * (size_t) M, H5D_CHUNK_CACHE_W0_DEFAULT);
 
         *dataset_id = H5Dcreate2(loc_id, dataset_name, dtype_id, dataspace_id, H5P_DEFAULT, dcpl_id, dapl);
         H5Pclose(dapl);
@@ -433,8 +631,6 @@ void HDF5DataSetHandler::extendTensorizedDataSet(int datatype, int dim, int *siz
                 setExtentRequest = true;
                 largest_dims[i] = dims[i];
             }
-
-            hasBeenExtended = true;
         }
     }
 
@@ -449,8 +645,6 @@ void HDF5DataSetHandler::extendTensorizedDataSet(int datatype, int dim, int *siz
                     largest_dims[i + AOSRank] = dims[i + AOSRank];
                 }
 
-                hasBeenExtended = true;
-                dataSetExtended = true;
             }
         }
 
@@ -466,8 +660,6 @@ void HDF5DataSetHandler::extendTensorizedDataSet(int datatype, int dim, int *siz
                     largest_dims[AOSRank] = dims[AOSRank];
                 }
 
-                hasBeenExtended = true;
-                dataSetExtended = true;
             }
         }
     }
@@ -491,19 +683,4 @@ void HDF5DataSetHandler::setExtent()
         H5Sclose(dataspace_id);
     }
     dataspace_id = H5Dget_space(dataset_id);
-}
-
-void HDF5DataSetHandler::resetExtensionState()
-{
-    hasBeenExtended = false;
-    dataSetExtended = false;
-}
-
-
-/**
-* Find maximum between two numbers.
-*/
-int HDF5DataSetHandler::max(int num1, int num2)
-{
-    return (num1 > num2) ? num1 : num2;
 }
