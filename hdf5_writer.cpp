@@ -60,15 +60,23 @@ void
     }
 
     else {
-        hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
-        herr_t status = H5Pset_userblock(create_plist, 1024);
+        hid_t fcpl, fapl;
+        assert((fcpl = H5Pcreate(H5P_FILE_CREATE)) >= 0);
+        herr_t status = H5Pset_userblock(fcpl, 4096);
         if (status < 0) {
             throw UALBackendException("createPulse:unable to set a user block.", LOG);
         }
-        //Creating master file
-        *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
+        /* Track 1MB (and larger) pieces. */
+        assert(H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 1, 1048576) >= 0);
+        assert((fapl = H5Pcreate(H5P_FILE_ACCESS)) >= 0);
+        /* We need at least HDF5 1.10 for this to work. */
+        assert(H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_LATEST) >=0);
 
-        H5Pclose(create_plist);
+        //Creating master file
+        *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, fcpl, fapl);
+
+        assert(H5Pclose(fcpl) >=0);
+        assert(H5Pclose(fapl) >=0);
 
         //write backend version in the file
         if (*file_id < 0) {
@@ -190,16 +198,23 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
     hid_t IDS_file_id = -1;
 
     if (opened_IDS_files.find(IDS_link_name) == opened_IDS_files.end()) {
-        hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
-        herr_t status = H5Pset_userblock(create_plist, 1024);
+        hid_t fcpl, fapl;
+        assert((fcpl = H5Pcreate(H5P_FILE_CREATE)) >= 0);
+        herr_t status = H5Pset_userblock(fcpl, 4096);
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to set a user block on pulse file for IDS: %s.\n", ctx->getDataobjectName().c_str());
             throw UALBackendException(error_message, LOG);
         }
+        /* Track 1MB (and larger) pieces. */
+        assert(H5Pset_file_space_strategy(fcpl, H5F_FSPACE_STRATEGY_PAGE, 1, 1048576) >= 0);
+        assert((fapl = H5Pcreate(H5P_FILE_ACCESS)) >= 0);
+        /* We need at least HDF5 1.10 for this to work. */
+        assert(H5Pset_libver_bounds(fapl, H5F_LIBVER_V110, H5F_LIBVER_LATEST) >=0);
         //std::cout << "creating external file: " << IDSpulseFile.c_str() << std::endl;
-        IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_EXCL, create_plist, H5P_DEFAULT);
-        assert(H5Pclose(create_plist) >= 0);
+        IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_EXCL, fcpl, fapl);
+        assert(H5Pclose(fcpl) >= 0);
+        assert(H5Pclose(fapl) >=0);
 
         if (IDS_file_id < 0) {
             char error_message[200];
