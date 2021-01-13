@@ -368,6 +368,13 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
 
     switch (datatype) {
 
+    case hdf5const::unsigned_integer_data:
+        {
+            dtype_id = H5T_NATIVE_UINT;
+            type_size = H5Tget_size(dtype_id);
+            break;
+        }
+
     case ualconst::integer_data:
         {
             dtype_id = H5T_NATIVE_INT;

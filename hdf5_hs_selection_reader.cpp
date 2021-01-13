@@ -5,7 +5,7 @@
 #include "hdf5_utils.h"
 #include "hdf5_dataset_handler.h"
 
-HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, hid_t datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(-1), AOSRank(AOSRank_), dtype_id(-1), dataspace(-1), memspace(-1), buffer_size(0)
+HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(-1), AOSRank(AOSRank_), dtype_id(-1), dataspace(-1), memspace(-1), buffer_size(0)
 {
     if (dataspace != -1)
         H5Sclose(dataspace);
@@ -20,12 +20,18 @@ HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, hid_t datatype_,
     init(dataset_id, datatype_, AOSRank_, dim);
 }
 
-void HDF5HsSelectionReader::init(hid_t dataset_id, hid_t datatype_, int AOSRank_, int *dim)
+void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim)
 {
     if (AOSRank == 0)
         AOSRank = 1;            //no AOS, so we store the data in a dim + 1 rank data set
 
     switch (datatype) {
+
+    case hdf5const::unsigned_integer_data:
+        {
+            dtype_id = H5T_NATIVE_UINT;
+            break;
+        }
 
     case ualconst::integer_data:
         {

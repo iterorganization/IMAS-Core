@@ -11,6 +11,10 @@
 
 #define UINT_DATA   61
 
+namespace hdf5const {
+    const int unsigned_integer_data = UINT_DATA;
+}
+
 class HDF5DataSetHandler {
   private:
     std::string tensorized_path;        //full tensorized path

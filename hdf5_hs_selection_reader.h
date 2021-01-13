@@ -13,7 +13,7 @@ class HDF5HsSelectionReader {
   private:
     hid_t dataset_id;
     bool immutable;
-    hid_t datatype;
+    int datatype;
     int dataset_rank;
 
     int AOSRank;
@@ -30,11 +30,11 @@ class HDF5HsSelectionReader {
     hsize_t count_out[H5S_MAX_RANK];
 
     void setBufferSize();
-    void init(hid_t dataset_id, hid_t datatype_, int AOSRank_, int *dim);
+    void init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim);
     bool memSpaceHasChanged(hsize_t * dims);
 
   public:
-     HDF5HsSelectionReader(hid_t dataset_id, hid_t datatype, int AOSRank_, int *dim);
+     HDF5HsSelectionReader(hid_t dataset_id, int datatype, int AOSRank_, int *dim);
     ~HDF5HsSelectionReader();
 
     hid_t dtype_id;

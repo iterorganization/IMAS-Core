@@ -719,7 +719,7 @@ int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_te
 
         int *shapes_buffer;
         int dim = -1;
-        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim));
+        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, hdf5const::unsigned_integer_data, current_arrctx_indices.size(), &dim));
 
         hsSelectionReader->allocateFullBuffer((void **) &shapes_buffer);
         herr_t status = H5Dread(dataset_id, hsSelectionReader->dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, shapes_buffer);
@@ -782,7 +782,7 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tenso
 
         int *shapes_buffer;
         int dim = -1;
-        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim));
+        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, hdf5const::unsigned_integer_data, current_arrctx_indices.size(), &dim));
 
         hsSelectionReader->allocateFullBuffer((void **) &shapes_buffer);
         herr_t status = H5Dread(dataset_id, hsSelectionReader->dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, shapes_buffer);
