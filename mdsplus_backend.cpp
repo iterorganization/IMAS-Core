@@ -717,6 +717,35 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	return retShot;
     }
  
+
+
+// Reset the IDS path to what it was before the call to getMdsShot
+void MDSplusBackend::resetIdsPath(std::string strTree) {
+    if (originalIdsPath != "") {
+        char szPath[255] = { 0 };
+        if (strTree.length() > 0)
+        {
+            sprintf(szPath, "%s_path", strTree.c_str());
+        }
+        else
+        {
+            sprintf(szPath, "%s_path", DEF_TREENAME);
+        }
+
+#ifdef WIN32
+        char szEnv[256] = { 0 };
+        sprintf(szEnv, "%s=%s", szPath, originalIdsPath.c_str());
+        putenv(szEnv);
+#else // WIN32
+        setenv(szPath, originalIdsPath.c_str(), 1);
+#endif // WIN32
+
+        // Reset the global variable originalIdsPath to an empty string so
+        // the environment gets set correctly on the next call to getMdsShot
+        originalIdsPath = "";
+    }
+}
+
  #define PATH_MAX  2048
 void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
 {
@@ -2672,7 +2701,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	int len2 = apd2->len();
 	if(len1 != len2)
 	    return false;
-	if(len1 < 1) return false;
+	if(len1 < 1) return true;
 	if(apd1->getDescAt(0) &&  (apd1->getDescAt(0)->clazz != CLASS_APD)) //If is part of the APD tree and not a recursive AoS
 	    return checkStructRec(apd1, apd2);
 	for(int idx = 0; idx < len1; idx++)
@@ -2727,6 +2756,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
           int len = apd1->len();
+	  if(len == 0) 
+	      return interpApd;
 
 	  if(apd1->getDescAt(0) != NULL && apd1->getDescAt(0)->clazz != CLASS_APD)
 	      return interpolateStructRec(apd1, apd2, t, t1, t2);
@@ -3312,6 +3343,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw  UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
@@ -3324,14 +3356,17 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
 	    default:
+              resetIdsPath(szTree);
 	      throw  UALBackendException("Mode not yet supported",LOG);
 	  
 	  }
 	  treeNodeMap.clear();
+          resetIdsPath(szTree);
       }
 
       
@@ -4006,12 +4041,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     std::cout << "Access Layer: " << d1 << std::endl;
     std::cout << "Data Dictionary: " << d2 << std::endl;
 
+    be->resetIdsPath(DEF_TREENAME);
+
     delete(n1);
     delete(n2);
     delete(be->tree);
     delete(be);
   }
-
-
-
-
