@@ -606,7 +606,7 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet(const char *dataset_name,
         }
 
         hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
-        H5Pset_chunk_cache(dapl, 10000, 500 * (size_t) M, H5D_CHUNK_CACHE_W0_DEFAULT);
+        H5Pset_chunk_cache(dapl, 1000, 50 * (size_t) M, H5D_CHUNK_CACHE_W0_DEFAULT);
 
         *dataset_id = H5Dcreate2(loc_id, dataset_name, dtype_id, dataspace_id, H5P_DEFAULT, dcpl_id, dapl);
         H5Pclose(dapl);

@@ -439,7 +439,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
         /*H5Pset_chunk_cache (dapl, H5D_CHUNK_CACHE_NSLOTS_DEFAULT, M,
            H5D_CHUNK_CACHE_W0_DEFAULT); */
-        H5Pset_chunk_cache(dapl, 10000, M * 200, H5D_CHUNK_CACHE_W0_DEFAULT);
+        H5Pset_chunk_cache(dapl, 1000, M * 50, H5D_CHUNK_CACHE_W0_DEFAULT);
         dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
         H5Pclose(dapl);
         if (dataset_id < 0) {
