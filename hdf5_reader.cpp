@@ -132,6 +132,13 @@ void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options,
 
 void HDF5Reader::close_datasets()
 {
+    auto it_ds = opened_data_sets.begin ();
+    while (it_ds != opened_data_sets.end ())
+    {
+      hid_t dset_id = it_ds->second;
+      assert(H5Dclose (dset_id) >=0);
+      it_ds++;
+    }
     opened_data_sets.clear();
     auto it = datasets_data.begin();
     while (it != datasets_data.end()) {
@@ -603,7 +610,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                 int *next_slice_data_int = (int *) next_slice_data;
                 for (size_t i = 0; i < N; i++)
                     data_int[i] = (int) round(data_int[i] + (next_slice_data_int[i] - data_int[i]) * linear_interpolation_factor);
-
+                free(next_slice_data);
                 break;
             }
         case ualconst::double_data:
@@ -612,6 +619,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                 double *next_slice_data_double = (double *) next_slice_data;
                 for (size_t i = 0; i < N; i++) 
                     data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * linear_interpolation_factor;
+                free(next_slice_data);
                 break;
             }
         case ualconst::char_data:

@@ -399,8 +399,7 @@ void HDF5Writer::readTimedAOSShape(hid_t loc_id)
             sprintf(error_message, "Unable to read timed AOS_SHAPE: %s\n", tensorized_path.c_str());
             throw UALBackendException(error_message, LOG);
         }
-        H5Dclose(dataset_id);
-
+        assert(H5Dclose(dataset_id) >=0);
         current_arrctx_shapes.push_back(AOS_shapes[0]);
         free(AOS_shapes);
     } else {

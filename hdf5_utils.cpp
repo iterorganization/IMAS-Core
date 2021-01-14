@@ -377,3 +377,14 @@ hid_t HDF5Utils::searchDataSetId(const std::string & tensorized_path, std::unord
 
     return dataset_id;
 }
+
+void HDF5Utils::showStatus(hid_t file_id) {
+  size_t n = H5Fget_obj_count (file_id, H5F_OBJ_GROUP);
+ std::cout << "number of groups opened: " << n << std::endl;
+  n = H5Fget_obj_count (file_id, H5F_OBJ_DATASET);
+  std::cout << "number of datasets opened: " << n << std::endl;
+  n = H5Fget_obj_count (file_id, H5F_OBJ_FILE);
+  std::cout << "number of files opened: " << n << std::endl;
+   n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
+  std::cout << "number of objects opened: " << n << std::endl;
+}

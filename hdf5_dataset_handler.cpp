@@ -19,7 +19,7 @@ HDF5DataSetHandler::~HDF5DataSetHandler()
     if (dataset_id != -1) {
         if (use_core_driver)
             copy_to_disk();
-        H5Dclose(dataset_id);
+        assert(H5Dclose(dataset_id) >=0);
     }
     if (dataspace_id != -1) {
         H5Sclose(dataspace_id);

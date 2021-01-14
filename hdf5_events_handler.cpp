@@ -44,12 +44,14 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
             writer.close_group();
             writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
             writer.start_put_slice_operation();
+            reader.close_datasets();
         } else if (opCtx->getRangemode() == SLICE_OP && opCtx->getAccessmode() == WRITE_OP) {
             H5Fflush(file_id, H5F_SCOPE_LOCAL);
             writer.end_put_slice_operation();
             writer.close_datasets();
             writer.close_group();
             writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
+            reader.close_datasets();
         } else if (opCtx->getAccessmode() == READ_OP) {
             reader.close_datasets();
             reader.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);

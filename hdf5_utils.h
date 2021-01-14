@@ -53,7 +53,7 @@ class HDF5Utils {
     void getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index);
     int getAOSIndicesSize(Context * ctx);
     void setTensorizedPaths(ArraystructContext * ctx, std::vector < std::string > &tensorized_paths);
-
+    void showStatus(hid_t file_id);
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3
     };
 
