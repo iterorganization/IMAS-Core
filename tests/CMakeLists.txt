@@ -1,3 +1,6 @@
+project( lowlevel-tests )
+
+
 ########################################################################################################################
 # Dependencies
 
@@ -28,6 +31,12 @@ target_link_libraries( testlowlevel PRIVATE
   ${LOWLEVEL_LINK}
 )
 
+if( BUILD_SHARED_LIBS )
+  add_dependencies( testlowlevel lowlevel-shared )
+else()
+  add_dependencies( testlowlevel lowlevel-static )
+endif()
+
 set_target_properties( testlowlevel
   PROPERTIES
     OUTPUT_NAME testlowlevel${EXE_EXT}
@@ -49,9 +58,12 @@ set_target_properties( testlowlevel_c
 ########################################################################################################################
 # Install
 
-install( FILES
-  testlowlevel${EXE_EXT}
-  testlowlevel_c${EXE_EXT}
+install( TARGETS
+  testlowlevel
   DESTINATION bin
 )
 
+install( TARGETS
+  testlowlevel_c
+  DESTINATION bin
+)

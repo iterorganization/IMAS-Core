@@ -25,6 +25,8 @@ endif()
 if( IMAS_HDF5 )
   find_package( HDF5 COMPONENTS C HL REQUIRED )
   find_package( SZIP REQUIRED )
+  find_package( Boost REQUIRED COMPONENTS system filesystem )
+  set( Boost_USE_STATIC_LIBS ON )
 endif()
 
 
@@ -56,6 +58,7 @@ set( HEADER_FILES
 )
 
 include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${OPENSSL_INCLUDE_DIR}
   ${LIBXML2_INCLUDE_DIR}
   ${PThreads4W_INCLUDE_DIR}
@@ -83,7 +86,7 @@ endif()
 if( IMAS_HDF5 )
   set( SRC_FILES ${SRC_FILES} hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp )
   set( HEADER_FILES ${HEADER_FILES} hdf5_backend.h hdf5_writer.h hdf5_reader.h hdf5_utils.h hdf5_hs_selection_reader.h hdf5_hs_selection_writer.h hdf5_dataset_handler.h hdf5_events_handler.h hdf5_backend_factory.h)
-  include_directories( ${HDF5_INCLUDE_DIRS} )
+  include_directories( ${HDF5_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} )
   add_definitions( -DHDF5 )
 endif()
 
@@ -122,7 +125,7 @@ if( IMAS_FATUDA )
 endif()
 
 if( IMAS_HDF5 )
-  set( LOWLEVEL_LINK ${LOWLEVEL_LINK} ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} )
+  set( LOWLEVEL_LINK ${LOWLEVEL_LINK} ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${Boost_LIBRARIES} )
 endif()
 
 target_link_libraries( lowlevel-static PRIVATE ${LOWLEVEL_LINK} )
