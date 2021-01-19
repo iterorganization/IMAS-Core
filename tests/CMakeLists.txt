@@ -17,7 +17,7 @@ include_directories(
 ########################################################################################################################
 # Targets
 
-set( EXE_FLAG WIN32 )
+set( EXE_FLAG  )
 set( EXE_EXT  )
 
 if( BUILD_SHARED_LIBS )

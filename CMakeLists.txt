@@ -24,9 +24,11 @@ endif()
 
 if( IMAS_HDF5 )
   find_package( HDF5 COMPONENTS C HL REQUIRED )
+  find_package( HDF5ex REQUIRED )
   find_package( SZIP REQUIRED )
-  find_package( Boost REQUIRED COMPONENTS system filesystem )
-  set( Boost_USE_STATIC_LIBS ON )
+  find_package( SZIPex REQUIRED )
+  find_package( Boost COMPONENTS system filesystem REQUIRED )
+  find_package( Boostex REQUIRED )
 endif()
 
 
@@ -227,6 +229,15 @@ if( BUILD_SHARED_LIBS )
       ResolveDependencyPath( "${SZIP_DLL}" SZIP_PATH "" )
       
       install( FILES ${SZIP_PATH}
+        DESTINATION bin
+      )
+    endforeach()
+    
+    # Boost is required by HDF5 DLL
+    foreach( Boost_DLL ${Boost_RUNTIME_LIB} )
+      ResolveDependencyPath( "${Boost_DLL}" Boost_PATH "" )
+      
+      install( FILES ${Boost_PATH}
         DESTINATION bin
       )
     endforeach()
