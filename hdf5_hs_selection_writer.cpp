@@ -29,9 +29,6 @@ void
     if (AOSRank == 0)
         AOSRank = 1;            //no AOS, so we store the data in a dim + 1 rank data set
 
-    //if (dataspace != -1)
-    //    H5Sclose(dataspace);
-    //dataspace = H5Dget_space(dataset_id);
     hid_t dataspace = dataSetHandler.getDataSpace();
     dataset_rank = dataSetHandler.getRank();
     dataSetHandler.getDims(dataspace_dims);

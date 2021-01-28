@@ -435,11 +435,16 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
     }
 
     if (dataset_id < 0) {
-        size_t M = 6 * 1024 * 1024;
+        size_t M = 200 * 1024 * 1024;
         hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
         /*H5Pset_chunk_cache (dapl, H5D_CHUNK_CACHE_NSLOTS_DEFAULT, M,
            H5D_CHUNK_CACHE_W0_DEFAULT); */
-        H5Pset_chunk_cache(dapl, 1000, M * 10, H5D_CHUNK_CACHE_W0_DEFAULT);
+		size_t rdcc_nbytes = 500*1024*1024; //0.5GB
+		size_t chunk_size = M;
+        size_t rdcc_nslots = (size_t) 100*(float) rdcc_nbytes/ (float) chunk_size;
+		if (rdcc_nslots > 300)
+			rdcc_nslots = 300;
+        H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
         dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
         H5Pclose(dapl);
         if (dataset_id < 0) {
@@ -472,6 +477,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                                                       slice_index,
                                                       hsSelectionReader.getDim(),
                                                       size,
+													  timed_AOS_index,
                                                       &zero_shape,
                                                       &dataset_id_shapes);
 
@@ -515,6 +521,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                                                       slice_index,
                                                       *dim,
                                                       size,
+													  timed_AOS_index,
                                                       &zero_shape,
                                                       &dataset_id_shapes);
 
@@ -643,7 +650,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
 }
 
-int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, bool * zero_shape, hid_t * dataset_id_shapes)
+int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes)
 {
 
     int AOSRank = current_arrctx_indices.size();
@@ -655,7 +662,7 @@ int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorize
     if ((datatype != ualconst::char_data && dim > 0)
         || (datatype == ualconst::char_data && dim == 2)) {
         int *shapes = nullptr;
-        shapesDataSetExists = readPersistentShapes(ctx, tensorized_path, (void **) &shapes, slice_mode, is_dynamic, isTimed, slice_index, zero_shape, dataset_id_shapes);
+        shapesDataSetExists = readPersistentShapes(ctx, tensorized_path, (void **) &shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes);
 
         if (*zero_shape)
             return shapesDataSetExists;
@@ -706,8 +713,23 @@ herr_t HDF5Reader::readDataSet(Context * ctx, const std::string & tensorized_pat
     return status;
 }
 
+int
+HDF5Reader::readPersistentShapes(Context * ctx,
+				  const std::string & field_tensorized_path,
+				  void **shapes, int slice_mode,
+				  bool is_dynamic, bool isTimed,
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes)
+{
+    if (slice_mode == SLICE_OP) {
+		return readPersistentShapes_GetSlice(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes);
+    }
+    else {
+		return readPersistentShapes_Get(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, slice_index, zero_shape, dataset_id_shapes);
+    }
+}
 
-int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes)
+
+int HDF5Reader::readPersistentShapes_Get(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes)
 {
     const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
 
@@ -716,7 +738,6 @@ int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_te
         dataset_id = opened_shapes_data_sets[tensorized_path];
     } else {
         dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT);
-
         opened_shapes_data_sets[tensorized_path] = dataset_id;
 
         if (dataset_id < 0) {
@@ -727,7 +748,7 @@ int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_te
 
         int *shapes_buffer;
         int dim = -1;
-        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, hdf5const::unsigned_integer_data, current_arrctx_indices.size(), &dim));
+        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim));
 
         hsSelectionReader->allocateFullBuffer((void **) &shapes_buffer);
         herr_t status = H5Dread(dataset_id, hsSelectionReader->dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, shapes_buffer);
@@ -740,7 +761,7 @@ int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_te
 
         shapes_selection_readers[dataset_id] = std::move(hsSelectionReader);
         shapes_data[dataset_id] = shapes_buffer;
-        H5Dclose(dataset_id);   //buffer is read only one, so we close the shapes dataset. Its handler (used by shapes_data) is still available from the opened_shapes_data_sets. 
+        H5Dclose(dataset_id);   //buffer is read only once, so we close the shapes dataset. Its handler (used by shapes_data) is still available from the opened_shapes_data_sets. 
     }
 
     *dataset_id_shapes = dataset_id;
@@ -772,6 +793,81 @@ int HDF5Reader::readPersistentShapes(Context * ctx, const std::string & field_te
     return 1;
 }
 
+int
+HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
+				  const std::string & field_tensorized_path,
+				  void **shapes, int slice_mode,
+				  bool is_dynamic, bool isTimed,
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes)
+{
+  const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
+
+  std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end());
+  hid_t dataset_id = -1;
+  if (opened_data_sets.find (tensorized_path) != opened_data_sets.end ())
+    {
+      dataset_id = opened_data_sets[tensorized_path];
+    }
+  else
+    {
+      dataset_id = H5Dopen2 (IDS_group_id, tensorized_path.c_str (), H5P_DEFAULT);
+      opened_data_sets[tensorized_path] = dataset_id;
+      if (dataset_id < 0)
+	{
+	  char error_message[200];
+	  sprintf (error_message,
+		   "Unable to open dataset SHAPE: %s\n",
+		   tensorized_path.c_str ());
+	  throw UALBackendException (error_message, LOG);
+	}
+	
+    }
+	hsize_t dataspace_dims[H5S_MAX_RANK];
+	hid_t dataspace_id = H5Dget_space(dataset_id);
+    assert(H5Sget_simple_extent_dims(dataspace_id, dataspace_dims, NULL) >=0);
+	assert(H5Sclose(dataspace_id)>=0);
+	int timedShape = -1;
+    if (timed_AOS_index != -1) {
+	    timedShape = dataspace_dims[timed_AOS_index];
+    }
+
+    if (timedShape != -1) {
+        aos_indices[timed_AOS_index] = timedShape - 1;
+    }
+
+	*dataset_id_shapes = dataset_id;
+    int dim = -1;
+	HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::integer_data, aos_indices.size(), &dim);
+    hsSelectionReader.setHyperSlabs(GLOBAL_OP, false, isTimed, -1, timed_AOS_index, aos_indices);
+    hsSelectionReader.allocateBuffer(shapes, GLOBAL_OP, false, isTimed, -1);
+	herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+   
+	if (status < 0)
+    {
+      char error_message[200];
+      sprintf (error_message,
+	       "Unable to read SHAPE: %s\n", tensorized_path.c_str ());
+      throw UALBackendException (error_message, LOG);
+    }
+
+	
+  int n = hsSelectionReader.getShape(hsSelectionReader.getRank() - 1);        //n is the length of the vector of shapes
+   int *shapes_int = (int *) *shapes;
+  if (shapes_int[0] == 0)
+    {				//if this condition is satisfied, it means that the dataset has 0-shapes for the current AOSs indices
+      *zero_shape = true;
+      return 1;
+    }
+
+  if (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1)
+    {
+	  
+      shapes_int[n - 1] = 1;	//we set the latest element of the shapes vector to 1 when slicing
+    }
+
+  return 1;
+}
+
 int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, void **shapes)
 {
     hid_t dataset_id = -1;
@@ -790,7 +886,7 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tenso
 
         int *shapes_buffer;
         int dim = -1;
-        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, hdf5const::unsigned_integer_data, current_arrctx_indices.size(), &dim));
+        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim));
 
         hsSelectionReader->allocateFullBuffer((void **) &shapes_buffer);
         herr_t status = H5Dread(dataset_id, hsSelectionReader->dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, shapes_buffer);
@@ -803,7 +899,7 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tenso
 
         shapes_selection_readers[dataset_id] = std::move(hsSelectionReader);
         shapes_data[dataset_id] = shapes_buffer;
-        H5Dclose(dataset_id);   //buffer is read only one, so we close the shapes dataset. Its handler (used by shapes_data) is still available from the opened_shapes_data_sets. 
+        H5Dclose(dataset_id);   //buffer is read only once, so we close the shapes dataset. Its handler (used by shapes_data) is still available from the opened_shapes_data_sets. 
     }
 
     int *buffer = shapes_data[dataset_id];
@@ -855,6 +951,9 @@ void HDF5Reader::close_file_handler(std::string external_link_name, std::unorder
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
     hid_t pulse_file_id = opened_IDS_files[external_link_name];
     if (pulse_file_id != -1) {
+		/*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
+			HDF5Utils hdf5_utils;
+	        hdf5_utils.showStatus(pulse_file_id);*/
         H5Fclose(pulse_file_id);
         opened_IDS_files[external_link_name] = -1;
     }

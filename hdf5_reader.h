@@ -33,9 +33,13 @@ class HDF5Reader {
 
     int getSliceIndex(OperationContext * opCtx, std::string & att_name, std::string & timebasename, int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index);
 
-    int getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, bool * zero_shape, hid_t * dataset_id_shapes);
+    int getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes);
 
-    int readPersistentShapes(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes);
+	int readPersistentShapes(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed,int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes);
+
+	int readPersistentShapes_Get(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed,int slice_index, bool *zero_shape, hid_t *dataset_id_shapes);
+
+    int readPersistentShapes_GetSlice(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes);
 
     void close_dataset(hid_t dataset_id, std::string & tensorized_path, hid_t dataset_id_shapes);
 

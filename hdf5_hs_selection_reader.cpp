@@ -27,12 +27,6 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
 
     switch (datatype) {
 
-    case hdf5const::unsigned_integer_data:
-        {
-            dtype_id = H5T_NATIVE_UINT;
-            break;
-        }
-
     case ualconst::integer_data:
         {
             dtype_id = H5T_NATIVE_INT;

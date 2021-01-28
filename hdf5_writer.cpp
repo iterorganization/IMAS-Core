@@ -114,6 +114,9 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
     hid_t pulse_file_id = opened_IDS_files[external_link_name];
     if (pulse_file_id != -1) {
+		/*std::cout << "WRITER:close_file_handler :showing status for pulse file..." << std::endl;
+			HDF5Utils hdf5_utils;
+	        hdf5_utils.showStatus(pulse_file_id);*/
         herr_t status = H5Fclose(pulse_file_id);
         if (status < 0) {
             char error_message[100];
@@ -181,7 +184,6 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
 
 void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
-
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
 
@@ -345,7 +347,7 @@ void HDF5Writer::close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler,
             if (tensorized_path.find("ids_properties&version_put") == std::string::npos)
                 do_close = true;
         } else {
-            for (size_t i = 0; i < current_arrctx_indices.size(); i++) {
+            /*for (size_t i = 0; i < current_arrctx_indices.size(); i++) {
                 if (current_arrctx_indices[i] == current_arrctx_shapes[i] - 1) {
                     do_close = true;
                     continue;
@@ -353,7 +355,7 @@ void HDF5Writer::close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler,
                     do_close = false;
                     break;
                 }
-            }
+            }*/
         }
     }
     if (do_close) {
@@ -384,7 +386,7 @@ void HDF5Writer::readTimedAOSShape(hid_t loc_id)
 
         int *AOS_shapes = nullptr;
 
-        HDF5HsSelectionReader hsSelectionReader(dataset_id, hdf5const::unsigned_integer_data, current_arrctx_indices.size(), &dim);
+        HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim);
 
         hsSelectionReader.allocateGlobalOpBuffer((void **) &AOS_shapes);
 
@@ -491,7 +493,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, hid_t loc_id, std::string & att_na
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
 
             dataSetHandler->setNonSliceMode();
-            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), 1, false, timed_AOS_index);
+            dataSetHandler->createOrOpenTensorizedDataSet2(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), 1, false, timed_AOS_index);
 
             dataset_handlers[dataset_id] = std::move(dataSetHandler);
             opened_data_sets[tensorized_path] = dataset_id;
@@ -520,11 +522,11 @@ void HDF5Writer::write_ND_Data(Context * ctx, hid_t loc_id, std::string & att_na
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler());
 
             dataSetHandler->setSliceMode(ctx, homogeneous_time);
-            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), create_data_set, false, timed_AOS_index);
+            dataSetHandler->createOrOpenTensorizedDataSet2(tensorized_path.c_str(), datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), create_data_set, false, timed_AOS_index);
 
             dataSetHandler->setSliceIndex();
 
-            dataSetHandler->updateTensorizedDataSet(ctx, tensorized_path, datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), current_arrctx_indices, dynamic_aos_already_extended_by_slicing);        //updating dataset_extended
+            dataSetHandler->updateTensorizedDataSet(ctx, tensorized_path, datatype, dim, size, loc_id, &dataset_id, AOSRank, AOSShapes.data(), current_arrctx_indices, dynamic_aos_already_extended_by_slicing, false);        //updating dataset_extended
 
             dataset_handlers[dataset_id] = std::move(dataSetHandler);
             opened_data_sets[tensorized_path] = dataset_id;
@@ -648,7 +650,7 @@ hid_t HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const
         for (int i = 0; i < rank - AOSRank; i++) {
             shapes[i] = dataspace_dims[i + AOSRank];
         }
-        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), create_data_set, true, timed_AOS_index);
+        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), create_data_set, true, timed_AOS_index);
 
         if (ds_state.mode == SLICE_OP)
             dataSetHandler->setSliceIndex();
@@ -687,7 +689,7 @@ hid_t HDF5Writer::createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const
         if (ds_state.mode == SLICE_OP)
             dataSetHandler.setSliceIndex();
 
-        dataSetHandler.updateTensorizedDataSet(ctx, tensorized_path, hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), aos_indices, dynamic_aos_already_extended_by_slicing); //updating AOS_SHAPE dataset
+        dataSetHandler.updateTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), aos_indices, dynamic_aos_already_extended_by_slicing, true); //updating AOS_SHAPE dataset
 
         dataSetHandler.setExtent();
 
@@ -780,9 +782,9 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std
                 dataSetHandler->setNonSliceMode();
             }
 
-            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
+            dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
 
-            dataSetHandler->updateAOSShapesTensorizedDataSet(ctx, tensorized_path, hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count);        //updating AOS_SHAPE dataset
+            dataSetHandler->updateAOSShapesTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count);        //updating AOS_SHAPE dataset
 
 
             HDF5HsSelectionWriter hsSelectionWriter;
@@ -811,9 +813,9 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std
                 dataSetHandler.setNonSliceMode();
             }
 
-            dataSetHandler.createOrOpenTensorizedDataSet(tensorized_path.c_str(), hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
+            dataSetHandler.createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 0, true, timed_AOS_index);
 
-            dataSetHandler.updateAOSShapesTensorizedDataSet(ctx, tensorized_path, hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count); //updating AOS_SHAPE dataset
+            dataSetHandler.updateAOSShapesTensorizedDataSet(ctx, tensorized_path, ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), put_slice_count); //updating AOS_SHAPE dataset
 
             HDF5HsSelectionWriter hsSelectionWriter;
             hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, dataSetHandler);
@@ -844,7 +846,7 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std
 
         hid_t dataset_id = -1;
 
-        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), hdf5const::unsigned_integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 1, true, timed_AOS_index);
+        dataSetHandler->createOrOpenTensorizedDataSet(tensorized_path.c_str(), ualconst::integer_data, dim, size, loc_id, &dataset_id, AOSRank, aos_shapes.data(), 1, true, timed_AOS_index);
 
         HDF5HsSelectionWriter hsSelectionWriter;
         hsSelectionWriter.setHyperSlabs(dataset_id, aos_indices, GLOBAL_OP, *dataSetHandler);
