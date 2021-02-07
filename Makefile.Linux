@@ -26,11 +26,11 @@ endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
 ifneq ("no","$(strip $(IMAS_HDF5))")
-CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-LIBS+= -L$(HDF5_HOME)/lib
-LIBS+= -lhdf5 -ldl -lz
-COMMON_OBJECTS+= hdf5_backend.o
-CPPSRC+=hdf5_backend.cpp
+CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include 
+LIBS+= -L$(HDF5_HOME)/lib 
+LIBS+= -lhdf5 -lhdf5_hl -ldl -lz -lboost_filesystem -lboost_system
+COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs_selection_reader.o hdf5_hs_selection_writer.o hdf5_dataset_handler.o hdf5_events_handler.o hdf5_backend_factory.o
+CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
 
 #-------------- Options for Matlab -------------
