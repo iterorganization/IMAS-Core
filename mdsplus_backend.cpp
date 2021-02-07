@@ -2306,6 +2306,84 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	}
     }
 
+//Gabriele 2021: lazy AoS
+   MDSplus::Apd *MDSplusBackend::readDynamicLazyApd(MDSplus::TreeNode *node, std::string timebasePath)
+   {
+	MDSplus::TreeNode *timeNode;
+        if(timebasePath == "")
+	    timeNode = node->getParent()->getNode("TIME");
+	else
+	    timeNode = tree->getNode(mdsconvertPath(timebasePath.c_str()).c_str());
+
+        int nTimes;
+	MDSplus::Data *timesD = timeNode->data();
+	double  *times = timesD->getDoubleArray(&nTimes);
+	MDSplus::deleteData(timesD);
+	delete [] times;
+        MDSplus::Apd *apd = new MDSplus::Apd();
+        for(int i = 0; i < nTimes; i++)
+	    apd->appendDesc(NULL);
+	apd->appendDesc(new MDSplus::TreeNode(node->getNid(), node->getTree())); //The returned APD has no data, shall be retrieved when needed
+	delete timeNode;
+	return apd;
+    }
+
+	
+    void MDSplusBackend::fillApdSlicesAroundIdx(MDSplus::Apd *apd, int sliceIdx)
+    {
+        MDSplus::TreeNode *node = (MDSplus::TreeNode *)apd->getDescAt(apd->len() -1);
+	if(!node)
+	    throw  UALBackendException("Internal error: TreeNode not found in fillApdSlicesArountIdx",LOG);
+	int numSegments = node->getNumSegments();
+	MDSplus::Data *startData, *endData;
+	int segIdx;
+	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    node->getSegmentLimits(segIdx, &startData, &endData);
+	    int startIdx, endIdx, dummyIdx;
+	    getIndexesInTimebaseExpr(startData, startIdx, dummyIdx);
+	    MDSplus::deleteData(startData);
+	    getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
+	    MDSplus::deleteData(endData);
+	    if(sliceIdx >= startIdx && sliceIdx <= endIdx)
+	    {
+		MDSplus::Data *segData = node->getSegment(segIdx);
+		int serializedLen;
+		char *serialized = (char *)segData->getByteUnsignedArray(&serializedLen);
+		MDSplus::deleteData(segData);
+		int bufIdx = 0;
+		int sliceLen;
+		for(int idx = 0; idx <= endIdx - startIdx; idx++)
+		{
+		    memcpy(&sliceLen, &serialized[bufIdx], sizeof(int));
+		    bufIdx += sizeof(int);
+		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[bufIdx]);
+		    if(sliceData->clazz != CLASS_APD)
+		  	throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
+	      	    MDSplus::Data **dscs = apd->getDscArray();
+		    if(dscs[startIdx + idx])
+		  	throw  UALBackendException("Internal error: unexpected  array of structure found in fillApdSlicesArountIdx",LOG);
+	      	    dscs[startIdx + idx] = sliceData;	
+		    bufIdx += sliceLen;
+		}
+		delete[]serialized;
+
+		break;
+	    }
+	}
+    }
+
+////////////Lazy AoS 2021
+
+
+
+
+
+
+
+
+
+
 //Gabriele 2017 
    MDSplus::Apd *MDSplusBackend::readDynamicApd(MDSplus::TreeNode *node) 
     {
@@ -2587,6 +2665,20 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	if(idx >= (int)apd->len())
 	  throw UALBackendException("Invalid index in array of structures",LOG);
+
+//Gabriele Feb 20201 Lazy Aos. Check if the Apd is partially filled. In this case the last descriptor is the originating TreeNode
+	MDSplus::Data *lastDesc = apd->getDescAt(apd->len() - 1);
+	if(lastDesc && lastDesc->clazz == CLASS_S && lastDesc->dtype == DTYPE_NID)
+	{
+	    if(!apd->getDescAt(idx))
+	    {
+	    	fillApdSlicesAroundIdx(apd, idx);
+	    }
+	}
+////////////////////////////////////////////////////		
+
+
+
 	MDSplus::Apd *currApd = (MDSplus::Apd*)apd->getDescAt(idx);
 	if(!currApd)  //Jan 2015 allow holes in struct arrays
           return NULL;
@@ -3543,7 +3635,25 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		return;
 	    }
 	    if(ctx->getRangemode() == GLOBAL_OP)
-	        currApd = readDynamicApd(node);
+	    {
+		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
+
+		if(timebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
+		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
+
+		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
+		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+
+
+//		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		    currApd = readDynamicLazyApd(node, "");
+		else
+		    currApd = readDynamicLazyApd(node, timebasePath);
+
+	    	*size = currApd->len() - 1; //The last descriptorcontains the node
+	        //currApd = readDynamicApd(node);
+	    }
 	    else
 	    {
 		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
@@ -3566,12 +3676,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  *size = 0;
 		  return;
 		}
+	    	*size = currApd->len();
 	    }
 	    //delete node;
 //std::cout << "BEGIN READARRAYSTRUCT\n";
 //dumpArrayStruct(currApd, 0);
 	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	    //*size = currApd->len();
 	}
     }
     else //The array of structures must be read from the pulse file
@@ -3596,7 +3707,22 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    }
 	    if(ctx->getRangemode() == GLOBAL_OP)
 	    {
-		currApd = readDynamicApd(node);
+		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
+
+		if(timebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
+		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
+
+		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
+		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+
+
+//		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		    currApd = readDynamicLazyApd(node, "");
+		else
+		    currApd = readDynamicLazyApd(node, timebasePath);
+		//currApd = readDynamicApd(node);
+	   	*size = currApd->len() -1;
 	    }
 	    else
 	    {
@@ -3608,12 +3734,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
+	   	*size = currApd->len();
 	    }
 	    //delete node;
 	}
 	else
 	{
 	    currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
+	    *size = currApd->len();
 	    if(!currApd)
 	    {
 	        *size = 0;
@@ -3642,7 +3770,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	else
 	{
 	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	   // *size = currApd->len();
 	}
     }
 }
