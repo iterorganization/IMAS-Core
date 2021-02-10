@@ -50,8 +50,6 @@ public:
             return;
         }
 
-        boost::char_separator<char> sep(" ");
-
         std::string line;
         while (std::getline(in_file, line)) {
             if (line[0] == '#') {
