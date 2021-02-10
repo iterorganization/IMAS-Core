@@ -50,7 +50,6 @@ public:
             return;
         }
 
-        typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
         boost::char_separator<char> sep(" ");
 
         std::string line;
