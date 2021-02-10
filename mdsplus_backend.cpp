@@ -2527,7 +2527,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		}
 		case ualconst::linear_interp:
 		{
-	    	    int sliceIdx, sliceIdx1;
+	    	    int sliceIdx, sliceIdx1 = -1;
 	    	    timebaseLen = dims[0];
 	    	    if(time <= timebase[0] || timebaseLen == 1)
 			sliceIdx = sliceIdx1 = 0;

@@ -47,7 +47,7 @@ class LIBRARY_API UalData
 
 
 public:
-    typedef enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
+    enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
     UalData();
     bool isTimed() { return timed;}
     int getMapState() {return mapState;}
