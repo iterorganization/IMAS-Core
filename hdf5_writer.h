@@ -35,6 +35,7 @@ class HDF5Writer {
     bool init_slice_index;
      std::set < hid_t > dynamic_aos_already_extended_by_slicing;
     int put_slice_count;
+	int dynamic_AOS_slices_extension;
     bool use_core_driver;
 
     hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index);
