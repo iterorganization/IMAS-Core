@@ -26,6 +26,7 @@ class HDF5DataSetHandler {
 
     bool slice_mode;
     int slice_index;
+	int slices_extension;
     int timed_AOS_index;
     bool isTimed;
     bool dataset_already_extended_by_slicing;
@@ -55,15 +56,17 @@ class HDF5DataSetHandler {
 
 	void createOrOpenTensorizedDataSet2(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index);
 
-    void updateAOSShapesTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes, int shapes_slice_index);
+    void updateAOSShapesTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes);
 
-    void updateTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes, std::vector < int >&current_arrctx_indices, std::set < hid_t > &dynamic_aos_already_extended_by_slicing, bool shape_dataset);
+    void updateTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes, std::vector < int >&current_arrctx_indices, std::set < hid_t > &dynamic_aos_already_extended_by_slicing, bool shape_dataset, int dynamic_AOS_slices_extension);
 
     void extendTensorizedDataSet(int datatype, int dim, int *size, hid_t loc_id, hid_t dataset_id, int AOSRank, int *AOSSize);
 
     void getAttributes(bool * isTimed, int *slice_index, int *timed_AOS_index) const;
 
     int getSliceIndex() const;
+
+	int getSlicesExtension() const;
 
      std::string getName() const;
 

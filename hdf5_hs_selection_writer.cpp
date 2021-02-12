@@ -16,7 +16,7 @@ HDF5HsSelectionWriter::~HDF5HsSelectionWriter()
 }
 
 void
- HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler)
+ HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler, int dynamic_AOS_slices_extension)
 {
     bool isTimed;
     int slice_index;
@@ -41,7 +41,7 @@ void
             offset[i] = 0;
         } else {
             if (slice_index != -1 && timed_AOS_index == i) {
-                offset[i] = dataspace_dims[i] - 1;      //slicing is inside a dynamic AOS
+				offset[i] = dataspace_dims[i] - dynamic_AOS_slices_extension + current_arrctx_indices[timed_AOS_index];
             } else {
                 offset[i] = current_arrctx_indices[i];  //slicing is outside a dynamic AOS
             }
@@ -51,8 +51,8 @@ void
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
         if (slice_mode == SLICE_OP && !isTimed && slice_index != -1 && (i == dataset_rank - AOSRank - 1)) {
-            offset[i + AOSRank] = dataspace_dims[i + AOSRank] - 1;      //offset set to the latest element which has been appended by HDF5 set_extent operation
-            count[i + AOSRank] = 1;
+			offset[i + AOSRank] = dataspace_dims[i + AOSRank] - dataSetHandler.getSlicesExtension(); 
+			count[i + AOSRank] = dataSetHandler.getSlicesExtension();
         } else {
             offset[i + AOSRank] = 0;
             count[i + AOSRank] = dataspace_dims[i + AOSRank];
@@ -102,8 +102,8 @@ void
         dims[i + AOSRank] = (hsize_t) dataspace_dims[i + AOSRank];
         if (slicing && (i == dataset_rank - AOSRank - 1)) {
             offset_out[i + AOSRank] = 0;        // when sliced and not timed, offset_out = 0, count_out = 1
-            count_out[i + AOSRank] = 1;
-            dims[i + AOSRank] = 1;
+			count_out[i + AOSRank] = dataSetHandler.getSlicesExtension();
+            dims[i + AOSRank] = dataSetHandler.getSlicesExtension();
         } else {
             offset_out[i + AOSRank] = 0;
             count_out[i + AOSRank] = dims[i + AOSRank];
