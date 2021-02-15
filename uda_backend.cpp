@@ -4,22 +4,6 @@
 
 namespace {
 
-const char* type_to_string(int datatype)
-{
-    switch (datatype) {
-        case CHAR_DATA:
-            return "char";
-        case INTEGER_DATA:
-            return "integer";
-        case DOUBLE_DATA:
-            return "double";
-        case COMPLEX_DATA:
-            return "complex";
-        default:
-            throw UALBackendException("Unknown datatype " + std::to_string(datatype), LOG);
-    }
-}
-
 std::string array_path(ArraystructContext* ctx, bool for_dim = false)
 {
     std::string path;
