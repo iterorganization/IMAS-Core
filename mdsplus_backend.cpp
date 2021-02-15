@@ -3741,12 +3741,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	else
 	{
 	    currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
-	    *size = currApd->len();
 	    if(!currApd)
 	    {
 	        *size = 0;
 		return;
 	    }	
+	    *size = currApd->len();
+
 /*****Lazy AoS	
 	    MDSplus::Apd *resApd;
 	    if(ctx->getRangemode() == GLOBAL_OP)
