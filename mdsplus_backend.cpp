@@ -3019,18 +3019,21 @@ printf("Warning, struct field added more than once\n");
 		if(isSlice)
 		{
 //Gabriele July 2017. writeSlice expects an additional dimension (=1) from high level
-		    int *newSize = new int[dim+1];
+		   int *newSize = new int[dim];
 		    for(int i = 0; i < dim; i++)
 		    	newSize[i] = size[i];
-		    newSize[dim++] = 1;
+//Gabriele Febrarry 2021
+		    int numSlices = size[dim-1];
+		    newSize[dim-1] = 1;
 		    //size[dim++] = 1;
 //////////////////////////////////////////////////////////
 //Gabriele November 2017 In case this is being written by put_non_timed. Slices will be added afterwards
-		    if(dim > 0)
+		   
 ///////////////////////////////////////////////////////////
-//   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, size);
-   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
-		    delete[] newSize;
+ //  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
+		    for(int i = 0; i < numSlices; i++)
+  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, newSize, true, isInternalTime);
+		   // delete[] newSize;
 
 		}
 		else
