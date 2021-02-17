@@ -90,7 +90,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     void writeApdSlice(MDSplus::Apd *inApd, std::string aosPath, std::string timebasePath, double time);
     MDSplus::Apd *readApd(MDSplus::Tree *tree, std::string dataobjectPath, std::string path);
     MDSplus::Apd *readDynamicApd(std::string dataobjectPath, std::string path);
-    MDSplus::Apd *readDynamicLazyApd(MDSplus::TreeNode *node, std::string timebasePath);
+    MDSplus::Apd *readDynamicLazyApd(MDSplus::TreeNode *node);
     MDSplus::Apd *readSliceApd(MDSplus::TreeNode *inNode, std::string timebase, double time, int interpolation);
     MDSplus::Apd *getApdSliceAt(MDSplus::TreeNode *node, int idx);
     MDSplus::Data *getFromApd(MDSplus::Apd *apd, int idx, std::string path, ArraystructContext *ctx = NULL);

@@ -2307,7 +2307,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
     }
 
 //Gabriele 2021: lazy AoS
-   MDSplus::Apd *MDSplusBackend::readDynamicLazyApd(MDSplus::TreeNode *node, std::string timebasePath)
+   MDSplus::Apd *MDSplusBackend::readDynamicLazyApd(MDSplus::TreeNode *node)
    {
 /*	MDSplus::TreeNode *timeNode;
         if(timebasePath == "")
@@ -3668,10 +3668,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		    currApd = readDynamicLazyApd(node, "");
-		else
-		    currApd = readDynamicLazyApd(node, timebasePath);
+		currApd = readDynamicLazyApd(node);
 		if(currApd->len() == 0) //Empty AoS
 		    *size = 0;
 		else
@@ -3741,10 +3738,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		    currApd = readDynamicLazyApd(node, "");
-		else
-		    currApd = readDynamicLazyApd(node, timebasePath);
+		currApd = readDynamicLazyApd(node);
 		//currApd = readDynamicApd(node);
 		if(currApd->len() == 0) //Empty AoS
 		    *size = 0;
@@ -3760,6 +3754,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		    std::string timebase = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
+		}
+		if(!currApd)
+		{
+		    *size = 0;
+		    return;
 		}
 	   	*size = currApd->len();
 	    }
