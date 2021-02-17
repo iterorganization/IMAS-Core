@@ -3018,13 +3018,24 @@ printf("Warning, struct field added more than once\n");
  		std::string timedPath = getTimedNode(ctx, path, idx, false);
 		if(isSlice)
 		{
-//Gabriele July 2017. writeSlice expects an additional dimension (=1) from high level
-		   int *newSize = new int[dim];
+//Gabriele July 2017. writeSlice expects an additional dimension (=slices to be written) from high level
+		    int *newSize = new int[dim];
+		    int rowSamples=1;
 		    for(int i = 0; i < dim; i++)
 		    	newSize[i] = size[i];
 //Gabriele Febrarry 2021
+		    for(int i = 0; i < dim - 1; i++)
+			rowSamples *= size[i];
 		    int numSlices = size[dim-1];
 		    newSize[dim-1] = 1;
+ 		    int sampleSize = 0;
+		    switch(datatype)  {
+			case ualconst::char_data: sampleSize = 1; break;
+			case ualconst::integer_data: sampleSize = 4; break;
+			case ualconst::double_data: sampleSize = 8; break;
+			case ualconst::complex_data: sampleSize = 16; break;
+		    }
+		    char *charData = (char *)data;
 		    //size[dim++] = 1;
 //////////////////////////////////////////////////////////
 //Gabriele November 2017 In case this is being written by put_non_timed. Slices will be added afterwards
@@ -3032,7 +3043,7 @@ printf("Warning, struct field added more than once\n");
 ///////////////////////////////////////////////////////////
  //  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
 		    for(int i = 0; i < numSlices; i++)
-  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, newSize, true, isInternalTime);
+  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, &charData[i*rowSamples*sampleSize], datatype, dim, newSize, true, isInternalTime);
 		   // delete[] newSize;
 
 		}
