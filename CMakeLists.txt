@@ -24,7 +24,11 @@ endif()
 
 if( IMAS_HDF5 )
   find_package( HDF5 COMPONENTS C HL REQUIRED )
+  find_package( HDF5ex REQUIRED )
   find_package( SZIP REQUIRED )
+  find_package( SZIPex REQUIRED )
+  find_package( Boost COMPONENTS system filesystem REQUIRED )
+  find_package( Boostex REQUIRED )
 endif()
 
 
@@ -56,6 +60,7 @@ set( HEADER_FILES
 )
 
 include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${OPENSSL_INCLUDE_DIR}
   ${LIBXML2_INCLUDE_DIR}
   ${PThreads4W_INCLUDE_DIR}
@@ -81,9 +86,9 @@ if( IMAS_UDA OR IMAS_FATUDA )
 endif()
 
 if( IMAS_HDF5 )
-  set( SRC_FILES ${SRC_FILES} hdf5_backend.cpp )
-  set( HEADER_FILES ${HEADER_FILES} hdf5_backend.h )
-  include_directories( ${HDF5_INCLUDE_DIRS} )
+  set( SRC_FILES ${SRC_FILES} hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp )
+  set( HEADER_FILES ${HEADER_FILES} hdf5_backend.h hdf5_writer.h hdf5_reader.h hdf5_utils.h hdf5_hs_selection_reader.h hdf5_hs_selection_writer.h hdf5_dataset_handler.h hdf5_events_handler.h hdf5_backend_factory.h)
+  include_directories( ${HDF5_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} )
   add_definitions( -DHDF5 )
 endif()
 
@@ -122,7 +127,7 @@ if( IMAS_FATUDA )
 endif()
 
 if( IMAS_HDF5 )
-  set( LOWLEVEL_LINK ${LOWLEVEL_LINK} ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} )
+  set( LOWLEVEL_LINK ${LOWLEVEL_LINK} ${HDF5_LIBRARIES} ${HDF5_HL_LIBRARIES} ${Boost_LIBRARIES} )
 endif()
 
 target_link_libraries( lowlevel-static PRIVATE ${LOWLEVEL_LINK} )
@@ -224,6 +229,15 @@ if( BUILD_SHARED_LIBS )
       ResolveDependencyPath( "${SZIP_DLL}" SZIP_PATH "" )
       
       install( FILES ${SZIP_PATH}
+        DESTINATION bin
+      )
+    endforeach()
+    
+    # Boost is required by HDF5 DLL
+    foreach( Boost_DLL ${Boost_RUNTIME_LIB} )
+      ResolveDependencyPath( "${Boost_DLL}" Boost_PATH "" )
+      
+      install( FILES ${Boost_PATH}
         DESTINATION bin
       )
     endforeach()

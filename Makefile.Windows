@@ -38,9 +38,9 @@ endif # IMAS_UDA
 ifeq ("yes","$(strip $(IMAS_HDF5))")
 CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
 LIBS+= -L$(HDF5_HOME)/lib
-LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz
-COMMON_OBJECTS+= hdf5_backend.o
-CPPSRC+=hdf5_backend.cpp
+LIBS+= $(HDF5_HOME)/lib/libhdf5.a -ldl -lz -lboost_filesystem-mt -lboost_system-mt
+COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs_selection_reader.o hdf5_hs_selection_writer.o hdf5_dataset_handler.o hdf5_events_handler.o hdf5_backend_factory.o
+CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
 
 

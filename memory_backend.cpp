@@ -1346,7 +1346,7 @@ else
     }
     void UalData::readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation)
     {
-	int sliceIdx1, sliceIdx2;
+	int sliceIdx1, sliceIdx2 = -1;
 	if(time <= times[0])
 	    sliceIdx1 = sliceIdx2 = 0;
 	else if (time >= times[numTimes - 1])
