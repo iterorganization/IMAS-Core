@@ -73,6 +73,7 @@ printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
 # Dynamic library
 libal.so.$(SO_NUM): $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,$(SONAME_OPT),$@ $^ $(LIBS) -pthread
+libal.so: %:%.$(SO_NUM)
 	$(LN_S) $< $@
 libal.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
