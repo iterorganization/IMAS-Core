@@ -394,6 +394,16 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet2(const char *dataset_name
             type_size = H5Tget_size(dtype_id);
             break;
         }
+	case ualconst::complex_data:
+        {
+			immutable = false;
+			complex_t tmp;  /*used only to compute offsets */
+            dtype_id = H5Tcreate (H5T_COMPOUND, sizeof tmp);
+			H5Tinsert (dtype_id, "real", HOFFSET(complex_t,re), H5T_NATIVE_DOUBLE);
+			H5Tinsert (dtype_id, "imaginary", HOFFSET(complex_t,im),H5T_NATIVE_DOUBLE);
+            type_size = H5Tget_size(dtype_id);
+            break;
+        }
     case ualconst::char_data:
         {
             immutable = false;
@@ -412,7 +422,7 @@ void HDF5DataSetHandler::createOrOpenTensorizedDataSet2(const char *dataset_name
             }
             break;
         }
-
+	
     default:
         throw UALBackendException("Data type not supported", LOG);
     }

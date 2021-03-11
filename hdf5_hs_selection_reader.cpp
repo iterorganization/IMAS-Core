@@ -37,6 +37,12 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
             dtype_id = H5T_NATIVE_DOUBLE;
             break;
         }
+	case ualconst::complex_data:
+        {
+            immutable = false;
+            dtype_id = H5Dget_type(dataset_id);
+            break;
+        }
     case ualconst::char_data:
         {
             immutable = false;

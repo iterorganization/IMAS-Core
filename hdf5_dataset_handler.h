@@ -15,6 +15,11 @@ namespace hdf5const {
     const int unsigned_integer_data = UINT_DATA;
 }
 
+typedef struct {
+   double re;   /*real part */
+   double im;   /*imaginary part */
+} complex_t;
+
 class HDF5DataSetHandler {
   private:
     std::string tensorized_path;        //full tensorized path
