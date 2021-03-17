@@ -236,6 +236,15 @@ int HDF5Utils::max(int num1, int num2)
     return (num1 > num2) ? num1 : num2;
 }
 
+
+/**
+* Find maximum between two numbers.
+*/
+int HDF5Utils::min(int num1, int num2)
+{
+    return (num1 < num2) ? num1 : num2;
+}
+
 bool HDF5Utils::isTimed(Context * ctx, int *timed_AOS_index)
 {
     bool isTimed = false;

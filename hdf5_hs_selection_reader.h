@@ -46,7 +46,6 @@ class HDF5HsSelectionReader {
     void setSize(int *size_, int dim);
     int getDim() const;
     int getRank() const;
-    void getDims(hsize_t * dataspace_dims, size_t n) const;
     void getSize(int *size, int slice_mode, bool is_dynamic) const;
     void getDataIndex(std::vector < int >current_arrctx_indices, std::vector < int >&index);
     int getShape(int axis_index) const;

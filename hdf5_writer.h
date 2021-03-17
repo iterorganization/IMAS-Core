@@ -12,11 +12,6 @@
 #include <list>
 #include <unordered_map>
 
-struct dataSetState {
-    int mode;                   //SLICE or GLOBAL_OP
-    int state;                  //0 = NEW, 1=UPDATED
-};
-
 class HDF5Writer {
   private:
 
@@ -29,6 +24,7 @@ class HDF5Writer {
 
      std::vector < int >current_arrctx_indices;
      std::vector < int >current_arrctx_shapes;
+	static bool compression_enabled;
     static hid_t IDS_core_file_id;
     hid_t IDS_group_id;
     static hid_t core_tmp_group_id;
@@ -38,22 +34,16 @@ class HDF5Writer {
 	int dynamic_AOS_slices_extension;
     bool use_core_driver;
 
-    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, const struct dataSetState &ds_state, int timed_AOS_index);
-
+    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, int timed_AOS_index);
     void createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std::string & IDS_link_name);
-
     void readTimedAOSShape(hid_t loc_id);
-
     void close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler, hid_t dataset_id, hid_t dataset_shape_id, std::string & tensorized_path);
-    //void copy(Context * ctx, hid_t dataset_id, std::string &tensorized_path);
     static void create_file_in_memory(std::string idsName, const std::string & coreFileName, std::unordered_map < std::string, hid_t > &opened_IDS_files, hbool_t flush);
-
 
   public:
 
      HDF5Writer(std::string backend_version_);
     ~HDF5Writer();
-
 
     int slice_mode;
 
@@ -64,9 +54,7 @@ class HDF5Writer {
     virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size, hid_t loc_id, std::string & IDS_link_name);
 
     void close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files);
-
     void create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
-
     void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     void close_datasets();
     void close_group();
@@ -74,7 +62,6 @@ class HDF5Writer {
     void clear_stacks();
     void start_put_slice_operation();
     void end_put_slice_operation();
-
 };
 
 #endif
