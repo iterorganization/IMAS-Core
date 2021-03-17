@@ -7,8 +7,8 @@
 
 HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(-1), AOSRank(AOSRank_), dtype_id(-1), dataspace(-1), memspace(-1), buffer_size(0)
 {
-    if (dataspace != -1)
-        H5Sclose(dataspace);
+    //if (dataspace != -1)
+    //    H5Sclose(dataspace);
     dataspace = H5Dget_space(dataset_id);
     dataset_rank = H5Sget_simple_extent_ndims(dataspace);
     herr_t status = H5Sget_simple_extent_dims(dataspace, dataspace_dims, NULL);
@@ -22,9 +22,6 @@ HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, int datatype_, i
 
 void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim)
 {
-    if (AOSRank == 0)
-        AOSRank = 1;            //no AOS, so we store the data in a dim + 1 rank data set
-
     switch (datatype) {
 
     case ualconst::integer_data:
@@ -71,10 +68,14 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
 
 HDF5HsSelectionReader::~HDF5HsSelectionReader()
 {
-    if (dataspace != -1)
-        H5Sclose(dataspace);
-    if (memspace != -1)
-        H5Sclose(memspace);
+    if (dataspace != -1) {
+		if (dataspace != H5S_ALL)
+        	H5Sclose(dataspace);
+	}
+    if (memspace != -1) {
+		if (memspace != H5S_ALL)
+        	H5Sclose(memspace);
+	}
     if (!immutable)
         H5Tclose(dtype_id);
 }
@@ -117,11 +118,6 @@ int HDF5HsSelectionReader::getDim() const
 int HDF5HsSelectionReader::getRank() const
 {
     return dataset_rank;
-}
-
-void HDF5HsSelectionReader::getDims(hsize_t * dataspace_dims, size_t n) const
-{
-    memcpy(dataspace_dims, this->dataspace_dims, n * sizeof(hsize_t));
 }
 
 void HDF5HsSelectionReader::getSize(int *size, int slice_mode, bool is_dynamic) const
@@ -182,9 +178,12 @@ void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool 
 {
     //Create hyperslabs
     //creating selection in the dataspace
-    /*for (int i = 0; i < current_arrctx_indices.size(); i++) {
-        std::cout << "current_arrctx_indices[" << i << "] = " << current_arrctx_indices[i] << std::endl;
-    }*/
+
+	if (dataset_rank == 0) {
+		dataspace = H5S_ALL;
+		memspace = H5S_ALL;
+		return;
+	}
 
     if (slice_mode == SLICE_OP && isTimed) {
         current_arrctx_indices[timed_AOS_index] = slice_index;

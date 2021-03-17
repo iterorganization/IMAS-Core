@@ -12,8 +12,6 @@ class HDF5HsSelectionWriter {
 
     int dataset_rank;
 
-    hsize_t dataspace_dims[H5S_MAX_RANK];
-    hsize_t dataspace_maxdims[H5S_MAX_RANK];
     hsize_t offset[H5S_MAX_RANK];
     hsize_t count[H5S_MAX_RANK];
 
