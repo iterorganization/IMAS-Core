@@ -35,7 +35,7 @@ void
     H5Eget_auto(current_stack_id, &old_func, &old_client_data);
 
     /* Turn off error handling */
-    //H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
     /* Probe. Likely to fail, but that's okay */
     //Opening master file

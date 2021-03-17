@@ -7,8 +7,6 @@
 
 HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(-1), AOSRank(AOSRank_), dtype_id(-1), dataspace(-1), memspace(-1), buffer_size(0)
 {
-    //if (dataspace != -1)
-    //    H5Sclose(dataspace);
     dataspace = H5Dget_space(dataset_id);
     dataset_rank = H5Sget_simple_extent_ndims(dataspace);
     herr_t status = H5Sget_simple_extent_dims(dataspace, dataspace_dims, NULL);
