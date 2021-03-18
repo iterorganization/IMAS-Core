@@ -85,7 +85,7 @@ void
         create_file_in_memory("core_file", IDScorePulseFile, opened_IDS_files, false);
     }
 
-	if (!options.empty() && options.find("compression_enabled=no") != std::string::npos) {
+	if (!options.empty() && options.find("-no_compression") != std::string::npos) {
 		compression_enabled = false;
 	}
 
