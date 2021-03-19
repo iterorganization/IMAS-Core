@@ -11,27 +11,27 @@ HDF5HsSelectionWriter::HDF5HsSelectionWriter():dataset_rank(-1), memspace(-1)
 
 HDF5HsSelectionWriter::~HDF5HsSelectionWriter()
 {
-    //H5Sclose(dataspace);
-    H5Sclose(memspace);
+	if (memspace != H5S_ALL)
+    	H5Sclose(memspace);
 }
 
 void
  HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler, int dynamic_AOS_slices_extension)
 {
     bool isTimed;
-    int slice_index;
     int timed_AOS_index;
 
-    dataSetHandler.getAttributes(&isTimed, &slice_index, &timed_AOS_index);
-
+    dataSetHandler.getAttributes(&isTimed, &timed_AOS_index);
     int AOSRank = current_arrctx_indices.size();
-
-    if (AOSRank == 0)
-        AOSRank = 1;            //no AOS, so we store the data in a dim + 1 rank data set
 
     hid_t dataspace = dataSetHandler.getDataSpace();
     dataset_rank = dataSetHandler.getRank();
-    dataSetHandler.getDims(dataspace_dims);
+    hsize_t *dataspace_dims = dataSetHandler.getDims();
+
+	if (dataset_rank == 0) {
+		memspace = H5S_ALL;
+		return;
+	}
 
     //Create hyperslabs
     //creating selection in the dataspace
@@ -40,7 +40,7 @@ void
         if (current_arrctx_indices.size() == 0) {       //data is not located in an AOS
             offset[i] = 0;
         } else {
-            if (slice_index != -1 && timed_AOS_index == i) {
+            if (slice_mode == SLICE_OP && timed_AOS_index == i) {
 				offset[i] = dataspace_dims[i] - dynamic_AOS_slices_extension + current_arrctx_indices[timed_AOS_index];
             } else {
                 offset[i] = current_arrctx_indices[i];  //slicing is outside a dynamic AOS
@@ -50,7 +50,7 @@ void
     }
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
-        if (slice_mode == SLICE_OP && !isTimed && slice_index != -1 && (i == dataset_rank - AOSRank - 1)) {
+        if (slice_mode == SLICE_OP && !isTimed && (i == dataset_rank - AOSRank - 1)) {
 			offset[i + AOSRank] = dataspace_dims[i + AOSRank] - dataSetHandler.getSlicesExtension(); 
 			count[i + AOSRank] = dataSetHandler.getSlicesExtension();
         } else {
@@ -96,7 +96,7 @@ void
         count_out[i] = 1;
     }
 
-    bool slicing = (slice_mode == SLICE_OP && !isTimed && slice_index != -1);   //appending slice
+    bool slicing = (slice_mode == SLICE_OP && !isTimed);   //appending slice
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
         dims[i + AOSRank] = (hsize_t) dataspace_dims[i + AOSRank];

@@ -15,6 +15,11 @@ namespace hdf5const {
     const int unsigned_integer_data = UINT_DATA;
 }
 
+typedef struct {
+   double re;   /*real part */
+   double im;   /*imaginary part */
+} complex_t;
+
 class HDF5DataSetHandler {
   private:
     std::string tensorized_path;        //full tensorized path
@@ -25,11 +30,9 @@ class HDF5DataSetHandler {
     bool immutable;
 
     bool slice_mode;
-    int slice_index;
 	int slices_extension;
     int timed_AOS_index;
     bool isTimed;
-    bool dataset_already_extended_by_slicing;
     bool use_core_driver;
 
     hsize_t dims[H5S_MAX_RANK];
@@ -50,11 +53,9 @@ class HDF5DataSetHandler {
     hid_t IDS_group_id;
     hid_t IDS_core_file_id;
 
-    void setSliceIndex();
+    void createOrOpenTensorizedDataSet(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index, bool compression_enabled);
 
-    void createOrOpenTensorizedDataSet(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index);
-
-	void createOrOpenTensorizedDataSet2(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index);
+	void createOrOpenTensorizedDataSet2(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index, bool compression_enabled);
 
     void updateAOSShapesTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes);
 
@@ -62,9 +63,7 @@ class HDF5DataSetHandler {
 
     void extendTensorizedDataSet(int datatype, int dim, int *size, hid_t loc_id, hid_t dataset_id, int AOSRank, int *AOSSize);
 
-    void getAttributes(bool * isTimed, int *slice_index, int *timed_AOS_index) const;
-
-    int getSliceIndex() const;
+    void getAttributes(bool * isTimed, int *timed_AOS_index) const;
 
 	int getSlicesExtension() const;
 
@@ -72,7 +71,9 @@ class HDF5DataSetHandler {
 
     int getRank() const;
 
-    void getDims(hsize_t * dataspace_dims) const;
+    hsize_t * getDims();
+
+	int getSize() const;
 
     hid_t getDataSpace();
 

@@ -16,7 +16,9 @@ class HDF5Reader {
     std::vector < std::string > tensorized_paths;
     std::unordered_map < std::string, hid_t > opened_data_sets;
     std::unordered_map < std::string, hid_t > opened_shapes_data_sets;
+	std::unordered_map < std::string, hid_t > opened_aos_shapes_data_sets;
     std::unordered_map < hid_t, int *>shapes_data;
+	std::unordered_map < hid_t, int *>aos_shapes_data;
     std::unordered_map < hid_t, void *>datasets_data;
 
      std::unordered_map < hid_t, std::unique_ptr < HDF5HsSelectionReader >> shapes_selection_readers;
