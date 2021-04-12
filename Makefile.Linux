@@ -26,11 +26,11 @@ endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
 ifneq ("no","$(strip $(IMAS_HDF5))")
-CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-LIBS+= -L$(HDF5_HOME)/lib
-LIBS+= -lhdf5 -ldl -lz
-COMMON_OBJECTS+= hdf5_backend.o
-CPPSRC+=hdf5_backend.cpp
+CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include 
+LIBS+= -L$(HDF5_HOME)/lib 
+LIBS+= -lhdf5 -lhdf5_hl -ldl -lz -lboost_filesystem -lboost_system
+COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs_selection_reader.o hdf5_hs_selection_writer.o hdf5_dataset_handler.o hdf5_events_handler.o hdf5_backend_factory.o
+CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
 
 #-------------- Options for Matlab -------------
@@ -52,7 +52,7 @@ install: all libimas.so_install libimas.a_install pkgconfig_install sources_inst
 	$(INSTALL_DATA) matlab_adapter.h ual_defs.h ual_lowlevel.h ual_backend.h ual_context.h ual_exception.h ual_const.h \
 		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
-	$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.
+	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.,)
 
 uninstall: libimas.so_uninstall libimas.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
@@ -69,7 +69,7 @@ printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
 
 # Dynamic library
 libimas.so.$(SO_NUM): $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,$(SONAME_OPT),$@ $^ $(LIBS)
+	$(CXX) -g -o $@ -Wl,-z,defs -shared -Wl,$(SONAME_OPT),$@ $^ $(LIBS) -pthread
 libimas.so: %:%.$(SO_NUM)
 	$(LN_S) $< $@
 libimas.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
