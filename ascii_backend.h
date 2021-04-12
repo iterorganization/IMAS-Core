@@ -12,6 +12,9 @@
 #include <fstream>
 #include <complex>
 
+static const int ASCII_BACKEND_VERSION_MAJOR = 0;
+static const int ASCII_BACKEND_VERSION_MINOR = 0;
+
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
 #else
@@ -93,6 +96,8 @@ public:
 
   virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size);
+
+  virtual std::pair<int,int> getVersion(PulseContext *ctx);
 
 };
 
