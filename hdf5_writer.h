@@ -8,8 +8,6 @@
 
 #include <memory>
 #include <vector>
-#include <set>
-#include <list>
 #include <unordered_map>
 
 class HDF5Writer {
@@ -20,26 +18,20 @@ class HDF5Writer {
     std::unordered_map < std::string, hid_t > opened_data_sets;
     std::unordered_map < hid_t, std::unique_ptr < HDF5DataSetHandler >> dataset_handlers;
     std::unordered_map < std::string, std::unique_ptr < HDF5HsSelectionWriter >> selection_writers;
-    int homogeneous_time;
+    std::vector < int >current_arrctx_indices;
+    std::vector < int >current_arrctx_shapes;
 
-     std::vector < int >current_arrctx_indices;
-     std::vector < int >current_arrctx_shapes;
+    int homogeneous_time; 
 	static bool compression_enabled;
-    static hid_t IDS_core_file_id;
     hid_t IDS_group_id;
-    static hid_t core_tmp_group_id;
     bool init_slice_index;
-     std::set < hid_t > dynamic_aos_already_extended_by_slicing;
     int put_slice_count;
 	int dynamic_AOS_slices_extension;
-    bool use_core_driver;
 
     hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, int timed_AOS_index);
-    void createOrUpdateAOSShapesDataSet(Context * ctx, hid_t loc_id, std::string & IDS_link_name);
-    void readTimedAOSShape(hid_t loc_id);
-    void close_dataset(Context * ctx, HDF5DataSetHandler & fieldHandler, hid_t dataset_id, hid_t dataset_shape_id, std::string & tensorized_path);
-    static void create_file_in_memory(std::string idsName, const std::string & coreFileName, std::unordered_map < std::string, hid_t > &opened_IDS_files, hbool_t flush);
-
+    void createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t loc_id, std::string & IDS_link_name, int timedAOS_shape);
+    int readTimedAOSShape(hid_t loc_id);
+ 
   public:
 
      HDF5Writer(std::string backend_version_);

@@ -26,6 +26,7 @@ void
 
     hid_t dataspace = dataSetHandler.getDataSpace();
     dataset_rank = dataSetHandler.getRank();
+    bool isShapeDataSet = dataSetHandler.isShapeDataset();
     hsize_t *dataspace_dims = dataSetHandler.getDims();
 
 	if (dataset_rank == 0) {
@@ -37,11 +38,11 @@ void
     //creating selection in the dataspace
     for (int i = 0; i < AOSRank; i++) {
 
-        if (current_arrctx_indices.size() == 0) {       //data is not located in an AOS
+        if (current_arrctx_indices.size() == 0) {  //data is not located in an AOS or is a dataset for AOS shapes management
             offset[i] = 0;
         } else {
-            if (slice_mode == SLICE_OP && timed_AOS_index == i) {
-				offset[i] = dataspace_dims[i] - dynamic_AOS_slices_extension + current_arrctx_indices[timed_AOS_index];
+            if (slice_mode == SLICE_OP && isTimed && timed_AOS_index == i) {
+				offset[i] = dataspace_dims[i] - 1;
             } else {
                 offset[i] = current_arrctx_indices[i];  //slicing is outside a dynamic AOS
             }
@@ -49,40 +50,62 @@ void
         count[i] = 1;
     }
 
+    bool slicing = slice_mode == SLICE_OP && !isTimed;   //appending slice 
+    bool array_slicing = slicing && dynamic_AOS_slices_extension == 0;
+    bool AOS_slicing = slicing && dynamic_AOS_slices_extension != 0;
+
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
-        if (slice_mode == SLICE_OP && !isTimed && (i == dataset_rank - AOSRank - 1)) {
-			offset[i + AOSRank] = dataspace_dims[i + AOSRank] - dataSetHandler.getSlicesExtension(); 
-			count[i + AOSRank] = dataSetHandler.getSlicesExtension();
-        } else {
-            offset[i + AOSRank] = 0;
-            count[i + AOSRank] = dataspace_dims[i + AOSRank];
+
+        if (isShapeDataSet) {
+           offset[i + AOSRank] = 0;
+           count[i + AOSRank] = dataspace_dims[i + AOSRank];
         }
+        else {
+            if (array_slicing && (i == 0)) {
+                offset[i + AOSRank] = dataSetHandler.getTimeWriteOffset();
+                count[i + AOSRank] = dataspace_dims[i + AOSRank];
+            }
+            else if (AOS_slicing && (i == 0)) {
+                offset[i + AOSRank] = dataSetHandler.getTimeWriteOffset();
+                count[i + AOSRank] = dataspace_dims[i + AOSRank];
+            }
+            else {
+                offset[i + AOSRank] = 0;
+                count[i + AOSRank] = dataspace_dims[i + AOSRank];
+            }
+        }
+        
     }
 
-
-    /*std::cout << "-------->dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
-       for (int i = 0; i < AOSRank; i++) {
-       std::cout << "dataspace_dims[" << i << "] = " <<  dataspace_dims[i] << std::endl;
-       std::cout << "offset[" << i << "] = " <<  offset[i] << std::endl;
-       std::cout << "count[" << i << "] = " <<  count[i] << std::endl;
-       }
-       std::cout << "-------->end of dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
-
-       std::cout << "-------->dataspace dimensions in setHyperSlabs for the array" << std::endl;
-       for (int i = 0; i <  dataset_rank - AOSRank; i++) {
-       std::cout << "dataspace_dims[" << i + AOSRank << "] = " <<  dataspace_dims[i + AOSRank] << std::endl;
-       std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
-       std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
-       }
-       std::cout << "---------dataspace dimensions in setHyperSlabs" << std::endl; */
-
-
+		/*std::cout << ">-------------------------------------------------------<" << std::endl;
+		
+		std::cout << "datasetname = " << dataSetHandler.getName() << std::endl;
+		std::cout << "isTimed = " << isTimed << std::endl;
+		std::cout << "timed_AOS_index = " << timed_AOS_index << std::endl;
+		std::cout << "-------->dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
+		for (int i = 0; i < AOSRank; i++) {
+		std::cout << "dataspace_dims[" << i << "] = " <<  dataspace_dims[i] << std::endl;
+		std::cout << "offset[" << i << "] = " <<  offset[i] << std::endl;
+		std::cout << "count[" << i << "] = " <<  count[i] << std::endl;
+		}
+		std::cout << "-------->end of dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
+	
+		std::cout << "-------->dataspace dimensions in setHyperSlabs for the array" << std::endl;
+		for (int i = 0; i <  dataset_rank - AOSRank; i++) {
+		std::cout << "dataspace_dims[" << i + AOSRank << "] = " <<  dataspace_dims[i + AOSRank] << std::endl;
+		std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
+		std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
+		}
+		std::cout << "---------dataspace dimensions in setHyperSlabs" << std::endl;
+		std::cout << ">-------------------------------------------------------<" << std::endl;
+	 */
 
     herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count,
                                         NULL);
 
     /*int n = H5Sget_select_npoints( dataspace );
-       std::cout << "n(dataspace) = " << n << std::endl; */
+       std::cout << "n(dataspace) = " << n << std::endl; 
+	*/
 
     if (status < 0) {
         char error_message[200];
@@ -96,15 +119,23 @@ void
         count_out[i] = 1;
     }
 
-    bool slicing = (slice_mode == SLICE_OP && !isTimed);   //appending slice
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
         dims[i + AOSRank] = (hsize_t) dataspace_dims[i + AOSRank];
-        if (slicing && (i == dataset_rank - AOSRank - 1)) {
-            offset_out[i + AOSRank] = 0;        // when sliced and not timed, offset_out = 0, count_out = 1
-			count_out[i + AOSRank] = dataSetHandler.getSlicesExtension();
-            dims[i + AOSRank] = dataSetHandler.getSlicesExtension();
-        } else {
+
+        if (isShapeDataSet) {
+           offset_out[i + AOSRank] = 0;
+           count_out[i + AOSRank] = dims[i + AOSRank];
+        }
+        else if (array_slicing && i == 0) {
+            offset_out[i + AOSRank] = 0;
+            count_out[i + AOSRank] = dims[i + AOSRank];
+        }
+        else if (AOS_slicing && i == 0) {
+            offset_out[i + AOSRank] = 0;
+            count_out[i + AOSRank] = dims[i + AOSRank];
+        }
+        else {
             offset_out[i + AOSRank] = 0;
             count_out[i + AOSRank] = dims[i + AOSRank];
         }
@@ -112,17 +143,18 @@ void
 
     /*std::cout << "-------->memory dimensions" << std::endl;
        for (int i = 0; i < AOSRank; i++) {
-       std::cout << "dims[" << i << "] = " <<  dims[i] << std::endl;
-       std::cout << "offset[" << i << "] = " <<  offset[i] << std::endl;
-       std::cout << "count[" << i << "] = " <<  count[i] << std::endl;
+       //std::cout << "dims[" << i << "] = " <<  dims[i] << std::endl;
+       std::cout << "offset[" << i << "] = " <<  offset_out[i] << std::endl;
+       std::cout << "count[" << i << "] = " <<  count_out[i] << std::endl;
        }
 
        for (int i = 0; i <  dataset_rank - AOSRank; i++) {
-       std::cout << "dims[" << i + AOSRank << "] = " <<  dims[i + AOSRank] << std::endl;
-       std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
-       std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
+       //std::cout << "dims[" << i + AOSRank << "] = " <<  dims[i + AOSRank] << std::endl;
+       std::cout << "offset[" << i + AOSRank << "] = " <<  offset_out[i + AOSRank] << std::endl;
+       std::cout << "count[" << i + AOSRank << "] = " <<  count_out[i + AOSRank] << std::endl;
        }
-       std::cout << "---------memory dimensions" << std::endl; */
+       std::cout << "---------memory dimensions" << std::endl;
+	*/
 
     bool msHasChanged = memSpaceHasChanged(dims);
     if (memspace == -1 || msHasChanged) {
@@ -133,8 +165,10 @@ void
     }
 
     status = H5Sselect_hyperslab(memspace, H5S_SELECT_SET, offset_out, NULL, count_out, NULL);
-    /*int n2 = H5Sget_select_npoints( memspace );
-       std::cout << "n2(dataspace) = " << n2 << std::endl; */
+	/*
+    int n2 = H5Sget_select_npoints( memspace );
+       std::cout << "n2(memspace) = " << n2 << std::endl;
+	*/
 
     if (status < 0) {
         char error_message[200];

@@ -33,11 +33,9 @@ class HDF5Utils {
      HDF5Utils();
     ~HDF5Utils();
      std::string pulseFilePathFactory(PulseContext * ctx, int strategy, std::string & files_directory, std::string & relative_file_path);
-
      std::string getShotNumber(PulseContext * ctx);
      std::string getFullShotNumber(PulseContext * ctx);
      std::string getRunNumber(PulseContext * ctx);
-
      std::string getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name);
 
     void writeUserBlock(const std::string & filePath, PulseContext * ctx);

@@ -11,10 +11,6 @@
 
 #define UINT_DATA   61
 
-namespace hdf5const {
-    const int unsigned_integer_data = UINT_DATA;
-}
-
 typedef struct {
    double re;   /*real part */
    double im;   /*imaginary part */
@@ -23,24 +19,30 @@ typedef struct {
 class HDF5DataSetHandler {
   private:
     std::string tensorized_path;        //full tensorized path
-
     hid_t dataset_id;
     int dataset_rank;
     int AOSRank;
+	int datatype;
     bool immutable;
+	bool shape_dataset;
 
     bool slice_mode;
 	int slices_extension;
+    int dynamic_AOS_slices_extension;
     int timed_AOS_index;
     bool isTimed;
-    bool use_core_driver;
+    int timedAOS_shape;
+    int timeWriteOffset;
 
     hsize_t dims[H5S_MAX_RANK];
     hsize_t maxdims[H5S_MAX_RANK];
     hsize_t largest_dims[H5S_MAX_RANK];
     hsize_t chunk_dims[H5S_MAX_RANK];
 
-    void copy_to_disk();
+    hsize_t initial_dims[H5S_MAX_RANK]; //dims stored at beginning of a put_slice
+
+    int setType();
+	
 
   public:
 
@@ -49,42 +51,44 @@ class HDF5DataSetHandler {
 
     hid_t dtype_id;
     hid_t dataspace_id;
-
     hid_t IDS_group_id;
-    hid_t IDS_core_file_id;
+	void showDims(std::string context);
+	void showAOSIndices(std::string context, std::vector<int> &AOS_indices);
+	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
 
-    void createOrOpenTensorizedDataSet(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index, bool compression_enabled);
+	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool compression_enabled);
+	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, int dynamic_AOS_extension);
+	void setCurrentShapesAndExtend(int *size, int *AOSShapes);
+	void setCurrentShapes(int *size, int *AOSShapes);
+	void setExtent();
+    void storeInitialDims();
+	void extendDataSpaceForTimeSlices(int *size, int *AOSShapes);
+	void setTimeAxisOffset(const std::vector < int > &current_arrctx_indices);
+    void updateTimeAxisOffset(const std::vector < int > &current_arrctx_indices);
 
-	void createOrOpenTensorizedDataSet2(const char *dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSSize, bool create, bool shape_dataset, int timed_AOS_index, bool compression_enabled);
+	//AOS Dataset management
+	void setCurrentShapesAndExtendForAOSDataSet(int *size, int *AOSShapes);
+	void setCurrentShapesForAOSDataSet(int *size, int *AOSShapes);
+    void extendDataSpaceForTimeSlicesForAOSDataSet(int *size, int *AOSShapes); 
+	void setTimeAxisOffsetForAOSDataSet();
+    void setTimedAOSShape(int timedAOS_shape);
+    int getTimedAOSShape() const;
+    int getTimeWriteOffset() const;
 
-    void updateAOSShapesTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes);
-
-    void updateTensorizedDataSet(Context * ctx, const std::string & dataset_name, int datatype, int dim, int *size, hid_t loc_id, hid_t * dataset_id, int AOSRank, int *AOSShapes, std::vector < int >&current_arrctx_indices, std::set < hid_t > &dynamic_aos_already_extended_by_slicing, bool shape_dataset, int dynamic_AOS_slices_extension);
-
-    void extendTensorizedDataSet(int datatype, int dim, int *size, hid_t loc_id, hid_t dataset_id, int AOSRank, int *AOSSize);
-
+	std::string getName() const;
     void getAttributes(bool * isTimed, int *timed_AOS_index) const;
-
 	int getSlicesExtension() const;
-
-     std::string getName() const;
-
+	bool isShapeDataset() const;
+     
     int getRank() const;
-
     hsize_t * getDims();
-
+    int getInitialOffset() const;
 	int getSize() const;
-
+	int getShape(int axis) const;
     hid_t getDataSpace();
-
     void setNonSliceMode();
-
-    void setSliceMode(Context * ctx, int homogeneous_time);
-
+    void setSliceMode(Context * ctx);
     int getTimedShape(int *timed_AOS_index_);
-
-    void setExtent();
-
     void setTensorizedPath(std::string p) {
         tensorized_path = p;
 }};
