@@ -10,7 +10,6 @@ HDF5Backend::HDF5Backend()
 :  opened_IDS_files()
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-    createBackendComponents(getVersion());
 }
 
 HDF5Backend::HDF5Backend(Backend * targetB)
@@ -24,41 +23,6 @@ HDF5Backend::~HDF5Backend()
 
 std::string HDF5Backend::files_directory;
 std::string HDF5Backend::relative_file_path;
-
-void
- HDF5Backend::createBackendComponents(std::string backend_version) {
-    HDF5BackendFactory backendFactory(backend_version);
-    hdf5Writer = backendFactory.createWriter();
-    hdf5Reader = backendFactory.createReader();
-    eventsHandler = backendFactory.createEventsHandler();
-}
-
-std::pair<int,int> HDF5Backend::getVersion(PulseContext *ctx)
-{
-  std::pair<int,int> version;
-  if(ctx==NULL)
-    version = {HDF5_BACKEND_VERSION_MAJOR, HDF5_BACKEND_VERSION_MINOR};
-  else
-    {
-      std::string backend_version;
-      std::string options;
-      files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
-      HDF5Reader::openPulse(ctx, OPEN_PULSE, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
-      std::string::size_type pos = backend_version.find_first_of('.');
-      std::string version_major = backend_version.substr(0, pos);
-      std::string version_minor = backend_version.substr(pos+1, std::string::npos);
-      version = {std::stoi( version_major ),std::stoi( version_minor )};
-      HDF5BackendFactory backendFactory(backend_version);
-      hdf5Reader = backendFactory.createReader();
-      hdf5Reader->closePulse(ctx, OPEN_PULSE, options, this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
-    }
-  return version;
-}
-
-std::string HDF5Backend::getVersion() {
-    std::pair<int,int> version = getVersion(NULL);
-    return std::to_string(version.first) + "." + std::to_string(version.second);
-}
 
 void
  HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
@@ -78,14 +42,17 @@ void
     case CREATE_PULSE:
     case FORCE_CREATE_PULSE:
         access_mode = 2;
-        backend_version = getVersion();
+        backend_version = HDF5_BACKEND_VERSION;
         HDF5Writer::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
         break;
     default:
         throw UALBackendException("Mode not yet supported", LOG);
     }
     assert(H5Pclose(fapl)>=0);
-    createBackendComponents(backend_version);
+    HDF5BackendFactory backendFactory(backend_version);
+    hdf5Writer = backendFactory.createWriter();
+    hdf5Reader = backendFactory.createReader();
+    eventsHandler = backendFactory.createEventsHandler();
 }
 
 void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
