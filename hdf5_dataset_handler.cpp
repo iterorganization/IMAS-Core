@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), datatype(-1), immutable(true), shape_dataset(false), slice_mode(false), slices_extension(0), dynamic_AOS_slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), dtype_id(-1), dataspace_id(-1)
+HDF5DataSetHandler::HDF5DataSetHandler():dataset_id(-1), dataset_rank(-1), AOSRank(0), datatype(-1), immutable(true), shape_dataset(false), slice_mode(false), slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), dtype_id(-1), dataspace_id(-1)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -118,10 +118,9 @@ int HDF5DataSetHandler::getTimeWriteOffset() const {
     return timeWriteOffset;
 }
 
-void HDF5DataSetHandler::open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, int dynamic_AOS_extension) {
+void HDF5DataSetHandler::open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset) {
         
 		this->tensorized_path = std::string(dataset_name);
-		this->dynamic_AOS_slices_extension =  dynamic_AOS_extension;
 		
 		if (datatype != ualconst::char_data) {
 			if (dim > 0 && !isTimed && timed_AOS_index == -1) {
@@ -181,7 +180,7 @@ void HDF5DataSetHandler::showDims(std::string context) {
     std::cout << context << "-->showDims::rank=" << dataset_rank <<  std::endl;
     std::cout << context << "-->showDims::AOSRank=" << AOSRank <<  std::endl;
     std::cout << context << "-->showDims::slices_extension=" << slices_extension <<  std::endl;
-    std::cout << context << "-->showDims::dynamic_AOS_slices_extension" << dynamic_AOS_slices_extension <<  std::endl;
+    //std::cout << context << "-->showDims::dynamic_AOS_slices_extension" << dynamic_AOS_slices_extension <<  std::endl;
     std::cout << context << "-->showDims::datatype=" << dtype_id <<  std::endl;
     for (int i = 0; i < dataset_rank; i++) {
        std::cout << context << "-->showDims::dims[" << i << "]=" << dims[i] << std::endl;
@@ -407,17 +406,15 @@ void HDF5DataSetHandler::storeInitialDims() {
     memcpy(initial_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
 }
 
-void HDF5DataSetHandler::setTimeAxisOffset(const std::vector < int > &current_arrctx_indices) {
+void HDF5DataSetHandler::setTimeAxisOffset(const std::vector < int > &current_arrctx_indices, int dynamic_AOS_slices_extension) {
     assert(slice_mode);
     assert(dataset_id > 0);
     int dim = dataset_rank - AOSRank;
-    //timeWriteOffset = 0;
     if (!shape_dataset && datatype != ualconst::char_data && dynamic_AOS_slices_extension == 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
         timeWriteOffset = initial_dims[AOSRank];
         dims[AOSRank] = slices_extension; //increase coordinate along the time axis, done once after opening a dataset in slice mode
     }
     else if (!shape_dataset && datatype != ualconst::char_data && dynamic_AOS_slices_extension != 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
-        //int slice_index = current_arrctx_indices[timed_AOS_index];
         timeWriteOffset = initial_dims[AOSRank];
         dims[AOSRank] = dynamic_AOS_slices_extension;
     }
@@ -444,7 +441,7 @@ void HDF5DataSetHandler::setTimeAxisOffsetForAOSDataSet() {
 	}
 }
 
-void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes) {
+void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes, int dynamic_AOS_slices_extension) {
 	assert(slice_mode);
 	setCurrentShapes(size, AOSShapes);
 	int dim = dataset_rank - AOSRank;
@@ -462,7 +459,7 @@ void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes)
 	   setExtent();
 }
 
-void HDF5DataSetHandler::extendDataSpaceForTimeSlicesForAOSDataSet(int *size, int *AOSShapes) {
+void HDF5DataSetHandler::extendDataSpaceForTimeSlicesForAOSDataSet(int *size, int *AOSShapes, int dynamic_AOS_slices_extension) {
 	assert(slice_mode);
 	setCurrentShapes(size, AOSShapes);
 
