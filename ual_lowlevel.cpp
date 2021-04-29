@@ -180,10 +180,10 @@ void* Lowlevel::convertData(From* data, size_t size, int desttype)
 void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, int desttype, void** var)
 {
   void* convdata;
-  size_t totsize = 0;
+  size_t totsize = 1;
 
   for (int i=0; i<dim; i++)
-    totsize+=size[i];
+    totsize*=size[i];
   
   switch (srctype) {
   case ualconst::char_data:
