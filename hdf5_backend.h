@@ -12,7 +12,9 @@
 
 class HDF5Backend:public Backend {
   private:
-    std::string HDF5_BACKEND_VERSION = "1.0";
+    
+    static const int HDF5_BACKEND_VERSION_MAJOR = 1;
+    static const int HDF5_BACKEND_VERSION_MINOR = 0;
 
     static std::string files_directory; //directory containing the pulse files
     static std::string relative_file_path; 
@@ -27,6 +29,8 @@ class HDF5Backend:public Backend {
     int access_mode;
     int files_path_strategy;
 
+     void createBackendComponents(std::string backend_version);
+     std::string getVersion();
      std::string getPulseFilePath(PulseContext * ctx);
 
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
@@ -40,6 +44,8 @@ class HDF5Backend:public Backend {
 
 
      virtual ~ HDF5Backend();
+
+     virtual std::pair<int,int> getVersion(PulseContext *ctx);
 
         /**
      Opens a database entry.
