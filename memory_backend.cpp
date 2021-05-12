@@ -329,8 +329,17 @@ else
 		throw;
       	    }
 	}
-
-
+	else
+	{
+//Gabriele May 2021
+	    UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
+	    if(size != (int)aos->aos.size())
+	    {
+	    	aos->aos.resize(size);
+	    	for(int i = 0; i < size; i++)
+	    	    if(!aos->aos[i]) aos->aos[i] = new UalStruct;
+	    }
+	}
 
 //	targetB->beginWriteArraystruct(ctx, size);
 //No write propagated to target backend
