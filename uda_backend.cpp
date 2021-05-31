@@ -25,6 +25,18 @@ std::string array_path(ArraystructContext* ctx, bool for_dim = false)
 
 }
 
+std::pair<int,int> UDABackend::getVersion(PulseContext *ctx)
+{
+  std::pair<int,int> version;
+  if(ctx==NULL)
+    version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
+  else
+    {
+      version = {0,0}; // temporary placeholder
+    }
+  return version;
+}
+
 void UDABackend::openPulse(PulseContext* ctx,
                            int mode,
                            std::string options)

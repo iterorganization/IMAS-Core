@@ -31,6 +31,8 @@
 
 #ifdef __cplusplus
 
+static const int UDA_BACKEND_VERSION_MAJOR = 0;
+static const int UDA_BACKEND_VERSION_MINOR = 0;
 
 class LIBRARY_API MachineMapping
 {
@@ -163,6 +165,9 @@ public:
 
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
+    std::pair<int,int> getVersion(PulseContext *ctx) override;
+
+    
 };
 
 #endif
