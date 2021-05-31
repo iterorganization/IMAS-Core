@@ -20,6 +20,7 @@ class HDF5Backend:public Backend {
     static std::string relative_file_path; 
 
     hid_t file_id;
+     std::string pulseFilePath;
      std::unordered_map < std::string, hid_t > opened_IDS_files;
 
      std::unique_ptr < HDF5Writer > hdf5Writer;
