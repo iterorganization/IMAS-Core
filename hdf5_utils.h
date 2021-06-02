@@ -61,6 +61,7 @@ class HDF5Utils {
     hid_t openHDF5Group(const std::string & path, const hid_t & parent_loc_id);
     int max(int num1, int num2);
 	int min(int num1, int num2);
+    int compareShapes(int *first_slice_shape, int *second_slice_shape, int dim);
     bool isTimed(Context * ctx, int *timed_AOS_index);
     void getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index);
     int getAOSIndicesSize(Context * ctx);

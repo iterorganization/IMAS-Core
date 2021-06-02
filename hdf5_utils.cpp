@@ -672,3 +672,12 @@ void HDF5Utils::showStatus(hid_t file_id) {
    n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
   std::cout << "number of objects opened: " << n << std::endl;
 }
+
+int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, int dim) {
+    for (int i = 0; i < dim; i++) {
+        if (first_slice_shape[i] != second_slice_shape[i]) {
+            return 1; //shapes are different
+        }
+    }
+    return 0; //shapes are the same
+}
