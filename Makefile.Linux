@@ -5,7 +5,7 @@ LIBS+= -lpthread
 
 #-------------- Options for MDSplus ------------
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I. 
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 COMMON_OBJECTS+=mdsplus_backend.o
