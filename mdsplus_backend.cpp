@@ -1474,7 +1474,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
-		char buf[16]; //TODO: Check size -- DONE
+		char buf[64]; //TODO: Check size -- DONE
 		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
 		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
@@ -1506,7 +1506,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
-		char buf[16]; //TODO: Check size -- DONE
+		char buf[64]; //TODO: Check size -- DONE
 		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
 		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
@@ -4248,6 +4248,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     std::pair<int,int> MDSplusBackend::getVersion(PulseContext *ctx)
     {
 	char szTree[256] = { 0 };
+	 strcpy(szTree, DEF_TREENAME);
+
 	std::pair<int,int> version;
 	if(!ctx)
 	    version = {MDSPLUS_BACKEND_MAJOR, MDSPLUS_BACKEND_MINOR};
