@@ -404,18 +404,18 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
         filePath += version;
     } else {
 #ifdef WIN32
-	char szHomeDir[256];
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-	    filePath += szHomeDir;
+        char szHomeDir[256];
+        if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+            filePath += szHomeDir;
 #else 
-	struct passwd *pw = getpwnam( user.c_str() );
-	if( pw != NULL ) {
-	    filePath += pw->pw_dir;
+        struct passwd *pw = getpwnam( user.c_str() );
+        if( pw != NULL ) {
+            filePath += pw->pw_dir;
 #endif
-	}
-	else {
-	    throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
-	}
+        }
+        else {
+            throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+        }
         filePath += "/public/imasdb/";
         filePath += tokamak;
         filePath += "/";
