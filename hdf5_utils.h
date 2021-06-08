@@ -13,6 +13,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/types.h>
+#ifdef WIN32
+#include <windows.h>
+#include <Shlobj.h>
+#else 
+#include <pwd.h>
+#endif 
+
 extern "C" herr_t file_info(hid_t loc_id, const char *name, const H5L_info_t * linfo, void *opdata);
 
 struct opdata {
