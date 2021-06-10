@@ -7,7 +7,7 @@
 #include "hdf5_backend_factory.h"
 
 HDF5Backend::HDF5Backend()
-:  opened_IDS_files()
+:  pulseFilePath(""), opened_IDS_files()
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
     createBackendComponents(getVersion());
@@ -43,7 +43,7 @@ std::pair<int,int> HDF5Backend::getVersion(PulseContext *ctx)
       std::string backend_version;
       std::string options;
       files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
-      HDF5Reader::openPulse(ctx, OPEN_PULSE, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+      HDF5Utils::openPulse(ctx, OPEN_PULSE, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
       std::string::size_type pos = backend_version.find_first_of('.');
       std::string version_major = backend_version.substr(0, pos);
       std::string version_minor = backend_version.substr(pos+1, std::string::npos);
@@ -63,23 +63,31 @@ std::string HDF5Backend::getVersion() {
 void
  HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
 {
+    access_mode = mode;
     hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     assert(fapl>= 0);
     H5Pset_alignment(fapl, 0, 16);
     std::string backend_version;
-
+    
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
     switch (mode) {
     case OPEN_PULSE:
-    case FORCE_OPEN_PULSE:
-        access_mode = 1;
-        HDF5Reader::openPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+    case FORCE_OPEN_PULSE: 
+        {
+        int status = HDF5Utils::openPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+        if (status == -1) { //master file doesn't exist
+            backend_version = getVersion();
+            HDF5Utils::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+        }
         break;
+        }
     case CREATE_PULSE:
     case FORCE_CREATE_PULSE:
-        access_mode = 2;
         backend_version = getVersion();
-        HDF5Writer::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        HDF5Utils::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+        if (!options.empty() && options.find("-no_compression") != std::string::npos) {
+            HDF5Writer::compression_enabled = false;
+        }
         break;
     default:
         throw UALBackendException("Mode not yet supported", LOG);
@@ -90,15 +98,13 @@ void
 
 void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
 {
-    if (access_mode == 1) {
+    if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
         hdf5Writer->close_datasets();
         hdf5Reader->closePulse(ctx, mode, options, file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
-    } else if (access_mode == 2) {
+    } else if (access_mode == CREATE_PULSE || access_mode == FORCE_CREATE_PULSE) {
         hdf5Reader->close_datasets();
         hdf5Writer->closePulse(ctx, mode, options, file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }
-    opened_IDS_files.clear();
-
 }
 
 void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size)
@@ -138,7 +144,7 @@ void HDF5Backend::beginReadArraystructAction(ArraystructContext * ctx, int *size
 
 void HDF5Backend::beginAction(OperationContext * ctx)
 {
-    eventsHandler->beginAction(ctx, file_id, opened_IDS_files, *hdf5Writer, *hdf5Reader, files_directory, relative_file_path);
+    eventsHandler->beginAction(ctx, file_id, opened_IDS_files, *hdf5Writer, *hdf5Reader, files_directory, relative_file_path, access_mode);
 }
 
 void HDF5Backend::endAction(Context * ctx)

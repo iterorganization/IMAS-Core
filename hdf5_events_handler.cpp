@@ -10,11 +10,11 @@ HDF5EventsHandler::~HDF5EventsHandler()
 }
 
 void
- HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path)
+ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
     if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP) {
         writer.clear_stacks();
-        writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
+        writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
         writer.slice_mode = GLOBAL_OP;
     } else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP) {
         writer.clear_stacks();

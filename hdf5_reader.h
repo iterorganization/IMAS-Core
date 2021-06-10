@@ -45,7 +45,6 @@ class HDF5Reader {
     ~HDF5Reader();
     int slice_mode;
 
-    static void openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual void closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual int read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size);
     virtual void beginReadArraystructAction(ArraystructContext * ctx, int *size);

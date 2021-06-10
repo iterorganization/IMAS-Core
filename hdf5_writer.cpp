@@ -6,7 +6,10 @@
 #include "hdf5_utils.h"
 #include "ual_defs.h"
 #include "hdf5_hs_selection_reader.h"
+#include "ual_backend.h"
+#include <boost/filesystem.hpp>
 
+using namespace boost::filesystem;
 
 HDF5Writer::HDF5Writer(std::string backend_version_)
 :  backend_version(backend_version_), tensorized_paths(), opened_data_sets(), dataset_handlers(), selection_writers(), current_arrctx_indices(), current_arrctx_shapes(), homogeneous_time(-1), IDS_group_id(-1), init_slice_index(false), dynamic_AOS_slices_extension(0), slice_mode(GLOBAL_OP)
@@ -20,85 +23,11 @@ HDF5Writer::~HDF5Writer()
 
 bool HDF5Writer::compression_enabled = true;
 
-void
- HDF5Writer::createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path)
-{
-    HDF5Utils hdf5_utils;
-    std::string filePath = hdf5_utils.pulseFilePathFactory(ctx, files_paths_strategy, files_directory, relative_file_path);
-
-    /* Save old error handler */
-    //H5E_auto2_t old_func;
-    //void *old_client_data;
-    //hid_t current_stack_id = H5Eget_current_stack();
-    //H5Eget_auto(current_stack_id, &old_func, &old_client_data);
-
-    /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-
-    /* Probe. Likely to fail, but that's okay */
-    //Opening master file
-    *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    /* Restore previous error handler */
-    //H5Eset_auto(current_stack_id, old_func, old_client_data); //TODO
-
-    if (*file_id >= 0) {
-        //std::cout << "Successfull read of the master file" << std::endl;
-        struct opdata od;
-        od.mode = false;
-        od.files_directory = files_directory;
-        od.relative_file_path = relative_file_path;
-        od.count = 0;
-
-        H5Literate(*file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void *) &od);
-
-        for (int i = 0; i < od.count; i++) {
-            std::string ids_name = std::string(od.link_names[i]);
-            std::replace(ids_name.begin(), ids_name.end(), '/', '_');
-            opened_IDS_files[ids_name] = -1;
-        }
-    }
-
-    else {
-        hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
-        herr_t status = H5Pset_userblock(create_plist, 1024);
-        if (status < 0) {
-            throw UALBackendException("createPulse:unable to set a user block.", LOG);
-        }
-        //Creating master file
-        *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
-
-        H5Pclose(create_plist);
-
-        //write backend version in the file
-        if (*file_id < 0) {
-            std::string message("Unable to create HDF5 file: ");
-            message += filePath;
-            throw UALBackendException(message, LOG);
-        }
-
-        hdf5_utils.writeHeader(ctx, *file_id, filePath, backend_version);
-    }
-
-	if (!options.empty() && options.find("-no_compression") != std::string::npos) {
-		compression_enabled = false;
-	}
-
-}
-
 void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
 {
-    HDF5Utils hdf5_utils;
     close_datasets();
-
-    //Closing first master file
-    std::string filePath = hdf5_utils.pulseFilePathFactory(ctx, files_path_strategy, files_directory, relative_file_path);
-    herr_t status = H5Fclose(file_id);
-
-    if (status < 0) {
-        char error_message[100];
-        sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) file_id);
-        throw UALBackendException(error_message);
-    }
+    HDF5Utils hdf5_utils;
+    hdf5_utils.closeMasterFile(file_id);
 
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
@@ -111,7 +40,10 @@ void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options,
 void HDF5Writer::close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files)
 {
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
-    hid_t pulse_file_id = opened_IDS_files[external_link_name];
+    hid_t pulse_file_id = -1;
+    if (opened_IDS_files.find(external_link_name) != opened_IDS_files.end()) {
+        pulse_file_id = opened_IDS_files[external_link_name];
+    }
     if (pulse_file_id != -1) {
 		/*std::cout << "WRITER:close_file_handler :showing status for pulse file..." << std::endl;
 			HDF5Utils hdf5_utils;
@@ -154,48 +86,46 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
     IDS_group_id = -1;
 }
 
-void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+void HDF5Writer::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
+hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+{
+    HDF5Utils hdf5_utils;
+    hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &IDS_group_id);
+}
+
+void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-
+    
     HDF5Utils hdf5_utils;
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
     hid_t IDS_file_id = -1;
 
     if (opened_IDS_files.find(IDS_link_name) == opened_IDS_files.end()) {
-        hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
-        herr_t status = H5Pset_userblock(create_plist, 1024);
-        if (status < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to set a user block on pulse file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
-        }
-        //std::cout << "creating external file: " << IDSpulseFile.c_str() << std::endl;
-        IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_EXCL, create_plist, H5P_DEFAULT);
-        assert(H5Pclose(create_plist) >= 0);
-
-        if (IDS_file_id < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
-        }
+            if (!exists(IDSpulseFile.c_str())) {
+                hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
+            }
+            else {
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id);
+            }
+        
         opened_IDS_files[IDS_link_name] = IDS_file_id;
-
-        hdf5_utils.writeHeader(ctx, IDS_file_id, IDSpulseFile, backend_version);
 
     } else {
         IDS_file_id = opened_IDS_files[IDS_link_name];
-        if (IDS_file_id == -1) {
-            IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-            if (IDS_file_id < 0) {
-                char error_message[200];
-                sprintf(error_message, "unable to open external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-                throw UALBackendException(error_message, LOG);
+        if (IDS_file_id == -1) { //file not opened
+            if (!exists(IDSpulseFile.c_str())) {
+                hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
             }
+            else {
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id);
+            }
+            
             opened_IDS_files[IDS_link_name] = IDS_file_id;
         }
     }
+    assert(IDS_file_id >= 0);
 
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) == 0) {
         std::string relative_IDSpulseFile = hdf5_utils.getIDSPulseFilePath(".", relative_file_path, IDS_link_name);
@@ -217,39 +147,6 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
     assert(IDS_group_id >= 0);
 }
 
-void HDF5Writer::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
-{
-    if (IDS_group_id != -1) {
-        H5Gclose(IDS_group_id);
-        IDS_group_id = -1;
-    }
-
-    HDF5Utils hdf5_utils;
-    std::string IDS_link_name = ctx->getDataobjectName();
-    std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-
-    hid_t IDS_file_id = opened_IDS_files[IDS_link_name];
-
-    if (IDS_file_id == -1) {
-        std::string IDS_pulse_file = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-        IDS_file_id = H5Fopen(IDS_pulse_file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        if (IDS_file_id < 0) {
-            char error_message[200];
-            sprintf(error_message, "unable to open external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
-        }
-        opened_IDS_files[IDS_link_name] = IDS_file_id;   
-    }
-
-    hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
-    //hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
-    if (loc_id >= 0) {
-        IDS_group_id = loc_id;
-    } else {
-        IDS_group_id = -1;
-    }
-
-}
 
 void HDF5Writer::start_put_slice_operation()
 {

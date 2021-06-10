@@ -25,7 +25,7 @@ class HDF5EventsHandler {
   /**
    Upon receiving a Low Level beginAction event, send operations sequences to reader and writer instances.
    **/
-    virtual void beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path);
+    virtual void beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode);
 
   /**
    Upon receiving a Low Level endAction event, send operations sequences to reader and writer instances.

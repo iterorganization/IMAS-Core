@@ -20,105 +20,19 @@ HDF5Reader::~HDF5Reader()
 {
 }
 
-void
- HDF5Reader::openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path)
-{
-    HDF5Utils hdf5_utils;
-    std::string filePath = hdf5_utils.pulseFilePathFactory(ctx, files_paths_strategy, files_directory, relative_file_path);
-    //std::cout << "Opening HDF5 file at path: " << filePath << std::endl;
-    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_alignment(fapl, 0, 16);
-    H5Pclose(fapl);
-
-    /* Save old error handler */
-    //H5E_auto2_t old_func;
-    //void *old_client_data;
-    //hid_t current_stack_id = H5Eget_current_stack();
-    //H5Eget_auto(current_stack_id, &old_func, &old_client_data); 
-
-    /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-
-    /* Probe. Likely to fail, but that's okay */
-    *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    /* Restore previous error handler */
-    //H5Eset_auto(current_stack_id, old_func, old_client_data); //TODO
-
-
-    if (*file_id < 0) {
-        std::string message("Unable to open HDF5 file: ");
-        message += filePath;
-        throw UALBackendException(message, LOG);
-    }
-    //std::cout << "Successfull read of the master file" << std::endl;
-    struct opdata od;
-    od.mode = true;
-    od.files_directory = files_directory;
-    od.relative_file_path = relative_file_path;
-    od.count = 0;
-    H5Literate(*file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void *) &od);
-    for (int i = 0; i < od.count; i++) {
-        std::string ids_name = std::string(od.link_names[i]);
-        free(od.link_names[i]);
-        std::replace(ids_name.begin(), ids_name.end(), '/', '_');
-        //opened_IDS_files[ids_name] = od.file_ids[i];
-        opened_IDS_files[ids_name] = -1;
-    }
-
-    const char *backend_version_attribute_name = "HDF5_BACKEND_VERSION";
-
-    //read version from file
-    if (H5Aexists(*file_id, backend_version_attribute_name) > 0) {
-        hid_t att_id = H5Aopen(*file_id, backend_version_attribute_name, H5P_DEFAULT);
-        if (att_id < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message, LOG);
-        }
-        hid_t dtype_id = H5Tcreate(H5T_STRING, 10);
-        herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
-        if (tset < 0) {
-            char error_message[100];
-            sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message);
-        }
-
-        char version[10];
-        herr_t status = H5Aread(att_id, dtype_id, version);
-        if (status < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message, LOG);
-        }
-        backend_version = std::string(version);
-        H5Tclose(dtype_id);
-        H5Aclose(att_id);
-    } else {
-        char error_message[200];
-        sprintf(error_message, "Not a IMAS HDF5 pulse file. Unable to find attribute: %s\n", backend_version_attribute_name);
-        throw UALBackendException(error_message, LOG);
-    }
-}
-
 void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
 {
     close_datasets();
-    herr_t status = H5Fclose(file_id);
     HDF5Utils hdf5_utils;
-    std::string filePath = hdf5_utils.pulseFilePathFactory(ctx, files_path_strategy, files_directory, relative_file_path);
+    hdf5_utils.closeMasterFile(file_id);
 
-    if (status < 0) {
-        char error_message[100];
-        sprintf(error_message, "Unable to close HDF5 file with handler: %d\n", (int) file_id);
-        throw UALBackendException(error_message);
-    }
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
         const std::string & external_link_name = it->first;
         hid_t pulse_file_id = opened_IDS_files[external_link_name];
 
         if (pulse_file_id != -1) {
-            status = H5Fclose(pulse_file_id);
+            herr_t status = H5Fclose(pulse_file_id);
 
             if (status < 0) {
                 char error_message[100];
@@ -478,10 +392,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         if (zero_shape)
             return 0;
 
-        if (shapesDataSetExists == 1) {
+        if (shapesDataSetExists == 1)
             hsSelectionReader.setSize(size, hsSelectionReader.getDim());
-        }
-
+        
 		hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
 		hsSelectionReader.getSize(size, slice_mode, is_dynamic);
 		hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
@@ -490,6 +403,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *data);
         } else {
             status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) data);
+        }
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read dataset: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
         }
 
     } else {
@@ -516,19 +434,22 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         if (zero_shape)
             return 0;
 
-        if (shapesDataSetExists == 1) {	
+        if (shapesDataSetExists == 1)
             hsSelectionReader->setSize(size, *dim);
-        }
-
+        
         hsSelectionReader->setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
         hsSelectionReader->getSize(size, slice_mode, is_dynamic);
         hsSelectionReader->allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
     
         if (datatype != ualconst::char_data) {
-
              status = H5Dread(dataset_id, hsSelectionReader->dtype_id, hsSelectionReader->memspace, hsSelectionReader->dataspace, H5P_DEFAULT, *data);
         } else {
              status = H5Dread(dataset_id, hsSelectionReader->dtype_id, hsSelectionReader->memspace, hsSelectionReader->dataspace, H5P_DEFAULT, (char **) data);
+        }
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read dataset: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
         }
         selection_readers[tensorized_path] = std::move(hsSelectionReader);
     }
@@ -587,13 +508,54 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
     if (!ignore_linear_interpolation) {
 
-        //Taking the next slide for linear interpolation
-        void *next_slice_data = nullptr;
         HDF5HsSelectionReader & hsSelectionReader = *selection_readers[tensorized_path];
+        
+         //Taking the next slide to make the linear interpolation
+        void *next_slice_data = nullptr;
+
+        if (isTimed) { //checking if neighbour nodes have the same shapes
+
+            int first_slice_shape[H5S_MAX_RANK];
+            int second_slice_shape[H5S_MAX_RANK];
+
+            for (int i = 0; i < hsSelectionReader.getDim(); i++)
+                    first_slice_shape[i] = size[i];
+
+            bool zero_shape = false;
+            getPersistentShapes(ctx,
+                                tensorized_path,
+                                datatype,
+                                slice_mode,
+                                is_dynamic,
+                                isTimed,
+                                slice_sup,
+                                hsSelectionReader.getDim(),
+                                size,
+                                timed_AOS_index,
+                                &zero_shape,
+                                &dataset_id_shapes);
+
+            if (datatype != ualconst::char_data) {
+                for (int i = 0; i < hsSelectionReader.getDim(); i++)
+                    second_slice_shape[i] = size[i];
+
+                if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, hsSelectionReader.getDim()) != 0) {
+                    char error_message[200];
+                    sprintf(error_message, "Unable to make the linear interpolation. Field %s has different shape at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
+                    throw UALBackendException(error_message, LOG);
+                }
+            }
+        }
+
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Linear interpolation: unable to read dataset of the neighbor slice: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
         size_t N =  buffer / hsSelectionReader.dtype_size;
 
         //Making linear interpolation
@@ -625,12 +587,6 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                 break;
             }
         }
-    }
-
-    if (status < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to read dataset: %s\n", tensorized_path.c_str());
-        throw UALBackendException(error_message, LOG);
     }
 
     return 1;
@@ -869,43 +825,22 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tenso
 
 void HDF5Reader::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
-    if (IDS_group_id != -1)
-        H5Gclose(IDS_group_id);
-
     HDF5Utils hdf5_utils;
-    std::string IDS_link_name = ctx->getDataobjectName();
-    std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-    hid_t IDS_file_id = opened_IDS_files[IDS_link_name];
-    if (IDS_file_id == -1) {
-        std::string IDS_pulse_file = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-        IDS_file_id = H5Fopen(IDS_pulse_file.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        if (IDS_file_id < 0) {
-            char error_message[200];
-            sprintf(error_message, "unable to open external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
-        }
-        opened_IDS_files[IDS_link_name] = IDS_file_id;
-    }
-
-    hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
-
-    if (loc_id >= 0) {
-        IDS_group_id = loc_id;
-    } else {
-        IDS_group_id = -1;
-    }
+    hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &IDS_group_id);
 }
 
 void HDF5Reader::close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files)
 {
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
-    hid_t pulse_file_id = opened_IDS_files[external_link_name];
-    if (pulse_file_id != -1) {
-		/*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
-			HDF5Utils hdf5_utils;
-	        hdf5_utils.showStatus(pulse_file_id);*/
-        H5Fclose(pulse_file_id);
-        opened_IDS_files[external_link_name] = -1;
+    if (opened_IDS_files.find(external_link_name) != opened_IDS_files.end()) {
+        hid_t pulse_file_id = opened_IDS_files[external_link_name];
+        if (pulse_file_id != -1) {
+		    /*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
+			    HDF5Utils hdf5_utils;
+	            hdf5_utils.showStatus(pulse_file_id);*/
+            assert(H5Fclose(pulse_file_id)>=0);
+            opened_IDS_files[external_link_name] = -1;
+        }
     }
 }
 

@@ -19,6 +19,247 @@ HDF5Utils::~HDF5Utils()
 {
 }
 
+
+int
+ HDF5Utils::openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+{
+    HDF5Utils hdf5_utils;
+    pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
+    //std::cout << "Opening HDF5 file at path: " << filePath << std::endl;
+    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_alignment(fapl, 0, 16);
+    H5Pclose(fapl);
+
+    /* Save old error handler */
+    //H5E_auto2_t old_func;
+    //void *old_client_data;
+    //hid_t current_stack_id = H5Eget_current_stack();
+    //H5Eget_auto(current_stack_id, &old_func, &old_client_data); 
+
+    /* Turn off error handling */
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    assert(mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE);
+    *file_id = -1;
+    switch (mode) {
+        case OPEN_PULSE:
+            hdf5_utils.openMasterFile(file_id, pulseFilePath);
+            break;
+        case FORCE_OPEN_PULSE:
+            if (!exists(pulseFilePath.c_str())) {
+                return -1;
+            }
+            else {
+                hdf5_utils.openMasterFile(file_id, pulseFilePath);
+            }
+            break;
+    }
+
+    const char *backend_version_attribute_name = "HDF5_BACKEND_VERSION";
+
+    //read version from file
+    if (H5Aexists(*file_id, backend_version_attribute_name) > 0) {
+        hid_t att_id = H5Aopen(*file_id, backend_version_attribute_name, H5P_DEFAULT);
+        if (att_id < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
+            throw UALBackendException(error_message, LOG);
+        }
+        hid_t dtype_id = H5Tcreate(H5T_STRING, 10);
+        herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
+        if (tset < 0) {
+            char error_message[100];
+            sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", backend_version_attribute_name);
+            throw UALBackendException(error_message);
+        }
+
+        char version[10];
+        herr_t status = H5Aread(att_id, dtype_id, version);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
+            throw UALBackendException(error_message, LOG);
+        }
+        backend_version = std::string(version);
+        H5Tclose(dtype_id);
+        H5Aclose(att_id);
+    } else {
+        char error_message[200];
+        sprintf(error_message, "Not a IMAS HDF5 pulse file. Unable to find attribute: %s\n", backend_version_attribute_name);
+        throw UALBackendException(error_message, LOG);
+    }
+
+    /* Restore previous error handler */
+    //H5Eset_auto(current_stack_id, old_func, old_client_data); //TODO
+    return 0;
+}
+
+void
+ HDF5Utils::createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+{
+    HDF5Utils hdf5_utils;
+    pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
+
+    /* Save old error handler */
+    //H5E_auto2_t old_func;
+    //void *old_client_data;
+    //hid_t current_stack_id = H5Eget_current_stack();
+    //H5Eget_auto(current_stack_id, &old_func, &old_client_data);
+
+    /* Turn off error handling */
+    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    //Opening master file
+    *file_id = -1;
+    switch (mode) {
+        case FORCE_OPEN_PULSE:
+        case CREATE_PULSE:
+            if (!exists(pulseFilePath.c_str())) {
+                hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
+            }
+            else {
+                char error_message[200];
+                sprintf(error_message, "HDF5 master file: %s already exists. Use FORCE_CREATE_PULSE instead.\n", pulseFilePath.c_str());
+                throw UALBackendException(error_message, LOG);
+            }
+            break;
+        case FORCE_CREATE_PULSE:
+            hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
+            hdf5_utils.initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
+            hdf5_utils.deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
+            break;
+        default:
+            throw UALBackendException("Mode not yet supported", LOG);
+    }
+
+    /* Restore previous error handler */
+    //H5Eset_auto(current_stack_id, old_func, old_client_data); //TODO
+
+}
+
+void HDF5Utils::deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path) {
+    auto it = opened_IDS_files.begin();
+    while (it != opened_IDS_files.end()) {
+        const std::string & external_link_name = it->first;
+        std::string IDSpulseFile = getIDSPulseFilePath(files_directory, relative_file_path, external_link_name);
+        if (exists(IDSpulseFile.c_str())) {
+            remove(IDSpulseFile.c_str());
+            if (exists(IDSpulseFile.c_str())) {
+                char error_message[200];
+                sprintf(error_message, "Unable to remove HDF5 pulse file: %s\n", IDSpulseFile.c_str());
+                throw UALBackendException(error_message, LOG);
+            }
+        }
+        it++;
+    }
+}
+
+
+void HDF5Utils::createMasterFile(PulseContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version) {
+    hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
+    herr_t status = H5Pset_userblock(create_plist, 1024);
+    if (status < 0) {
+        throw UALBackendException("createPulse:unable to set a user block.", LOG);
+    }
+    /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
+    assert(fap_plist >= 0);
+    assert(H5Pset_fclose_degree(fap_plist, H5F_CLOSE_STRONG) >=0);*/
+    //Creating master file
+    *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
+
+    H5Pclose(create_plist);
+    //H5Pclose(fap_plist);
+
+    //write backend version in the file
+    if (*file_id < 0) {
+        std::string message("Unable to create HDF5 file: ");
+        message += filePath;
+        throw UALBackendException(message, LOG);
+    }
+    HDF5Utils hdf5_utils;
+    hdf5_utils.writeHeader(ctx, *file_id, filePath, backend_version);
+
+}
+
+void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile, std::string &backend_version, hid_t *IDS_file_id) {
+
+    hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
+    herr_t status = H5Pset_userblock(create_plist, 1024);
+    if (status < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to set a user block on pulse file for IDS: %s.\n", ctx->getDataobjectName().c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+    *IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
+    if (*IDS_file_id < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+    assert(H5Pclose(create_plist) >= 0);
+
+    writeHeader(ctx, *IDS_file_id, IDSpulseFile, backend_version);
+
+}
+
+void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id) {
+    *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    if (*IDS_file_id < 0) {
+        *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        if (*IDS_file_id < 0) { 
+            char error_message[200];
+            sprintf(error_message, "Unable to open external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+}
+
+void HDF5Utils::openMasterFile(hid_t *file_id, std::string &filePath) { //open master file
+    if (!exists(filePath)) {
+        std::string message("HDF5 master file not found: ");
+        message += filePath;
+        throw UALBackendException(message, LOG);
+    }
+    /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
+    assert(fap_plist >= 0);
+    assert(H5Pset_fclose_degree(fap_plist, H5F_CLOSE_STRONG) >=0);*/
+    *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT); 
+    //H5Pclose(fap_plist);
+    if (*file_id < 0) { //have a try now in read only access
+        *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        if (*file_id < 0) {
+            std::string message("Unable to open HDF5 master file: ");
+            message += filePath;
+            throw UALBackendException(message, LOG);
+        }
+    }
+    
+}
+
+void HDF5Utils::closeMasterFile(hid_t file_id) {
+    herr_t status = H5Fclose(file_id);
+    if (status < 0) {
+        char error_message[100];
+        sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) file_id);
+        throw UALBackendException(error_message);
+    }
+}
+
+void HDF5Utils::initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
+    assert(*file_id > 0);
+    struct opdata od;
+    od.mode = false;
+    od.files_directory = files_directory;
+    od.relative_file_path = relative_file_path;
+    od.count = 0;
+    H5Literate(*file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void *) &od);
+
+    for (int i = 0; i < od.count; i++) {
+        std::string ids_name = std::string(od.link_names[i]);
+        free(od.link_names[i]);
+        std::replace(ids_name.begin(), ids_name.end(), '/', '_');
+        opened_IDS_files[ids_name] = -1;
+    }
+}
+
 void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version)
 {
 
@@ -115,8 +356,7 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
         if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
             H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
     }
-
-    H5Fclose(IDS_file_id);      //closing the IDS file
+    assert(H5Fclose(IDS_file_id)>=0);      //closing the IDS file
     od->link_names[od->count] = (char *) malloc(100);
     strcpy(od->link_names[od->count], IDS_link_name);
     od->count++;
@@ -125,14 +365,14 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
 }
 
 
-std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int strategy, std::string & files_directory, std::string & relative_file_path)
+std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
     switch (strategy) {
     case FULL_MDSPLUS_STRATEGY:
-        return getPulseFilePath(ctx, strategy, files_directory, relative_file_path);
+        return getPulseFilePath(ctx, mode, strategy, files_directory, relative_file_path);
         break;
     case MODIFIED_MDSPLUS_STRATEGY:
-        return getPulseFilePath(ctx, strategy, files_directory, relative_file_path);
+        return getPulseFilePath(ctx, mode, strategy, files_directory, relative_file_path);
         break;
     case FREE_PATH_STRATEGY:
         throw UALBackendException("Strategy for pulse files path location not yet implemented", LOG);
@@ -142,7 +382,7 @@ std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int strategy, st
     }
 }
 
-std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int strategy, std::string & files_directory, std::string & relative_file_path)
+std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
     std::string filePath;
     std::string user = ctx->getUser();
@@ -163,11 +403,19 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int strategy, std::s
         filePath += "/";
         filePath += version;
     } else {
-        std::string userHome = std::string(getenv("HOME"));
-        std::string parentUserHome = userHome.substr(0, userHome.find_last_of("/\\"));
-        filePath += parentUserHome;
-        filePath += "/";
-        filePath += user;
+#ifdef WIN32
+        char szHomeDir[256];
+        if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+            filePath += szHomeDir;
+#else 
+        struct passwd *pw = getpwnam( user.c_str() );
+        if( pw != NULL ) {
+            filePath += pw->pw_dir;
+#endif
+        }
+        else {
+            throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+        }
         filePath += "/public/imasdb/";
         filePath += tokamak;
         filePath += "/";
@@ -186,7 +434,10 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int strategy, std::s
     files_directory = filePath;
     files_directory += getShotNumber(ctx);
     try {
-        create_directories(files_directory.c_str());
+        if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+         if (!exists(files_directory.c_str()))
+            create_directories(files_directory.c_str());
+        }
     }
     catch(std::exception & e) {
         std::string message("Unable to create pulse files shot directory: ");
@@ -196,7 +447,10 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int strategy, std::s
 
     files_directory += "/" + getRunNumber(ctx);
     try {
-        create_directories(files_directory.c_str());
+	    if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+	     if (!exists(files_directory.c_str()))
+            create_directories(files_directory.c_str());
+        }
     }
     catch(std::exception & e) {
         std::string message("Unable to create pulse files run directory: ");
@@ -376,6 +630,35 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
     return loc_id;
 }
 
+void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
+hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
+{
+    if (*IDS_group_id != -1) {
+        H5Gclose(*IDS_group_id);
+        *IDS_group_id = -1;
+    }
+
+    std::string IDS_link_name = ctx->getDataobjectName();
+    std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
+    hid_t IDS_file_id = -1;
+    if (opened_IDS_files.find(IDS_link_name) != opened_IDS_files.end()) {
+        IDS_file_id = opened_IDS_files[IDS_link_name];
+    }
+
+    if (IDS_file_id == -1) {
+        std::string IDS_pulse_file = getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
+        openIDSFile(ctx, IDS_pulse_file, &IDS_file_id);
+        opened_IDS_files[IDS_link_name] = IDS_file_id;
+    }
+
+    hid_t loc_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
+    //hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
+    if (loc_id >= 0) {
+        *IDS_group_id = loc_id;
+    } else {
+        *IDS_group_id = -1;
+    }
+}
 
 hid_t HDF5Utils::searchDataSetId(const std::string & tensorized_path, std::unordered_map < std::string, hid_t > &opened_data_sets)
 {
@@ -396,4 +679,13 @@ void HDF5Utils::showStatus(hid_t file_id) {
   std::cout << "number of files opened: " << n << std::endl;
    n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
   std::cout << "number of objects opened: " << n << std::endl;
+}
+
+int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, int dim) {
+    for (int i = 0; i < dim; i++) {
+        if (first_slice_shape[i] != second_slice_shape[i]) {
+            return 1; //shapes are different
+        }
+    }
+    return 0; //shapes are the same
 }
