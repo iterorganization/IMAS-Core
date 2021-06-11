@@ -48,7 +48,6 @@ set( SRC_FILES
 
 set( HEADER_FILES
   ascii_backend.h
-  dummy_backend.h
   memory_backend.h
   no_backend.h
   ual_backend.h
