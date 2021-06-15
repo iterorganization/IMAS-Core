@@ -56,7 +56,7 @@ class HDF5Utils {
      std::string getRunNumber(PulseContext * ctx);
      std::string getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name);
 
-    void closeMasterFile(hid_t file_id);
+    void closeMasterFile(hid_t *file_id);
     void openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id);
     void createIDSFile(OperationContext * ctx, std::string &IDSpulseFile, std::string &backend_version, hid_t *IDS_file_id);
     void writeUserBlock(const std::string & filePath, PulseContext * ctx);

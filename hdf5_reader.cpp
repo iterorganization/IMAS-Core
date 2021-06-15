@@ -20,11 +20,10 @@ HDF5Reader::~HDF5Reader()
 {
 }
 
-void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
+void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
 {
     close_datasets();
     HDF5Utils hdf5_utils;
-    hdf5_utils.closeMasterFile(file_id);
 
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
@@ -37,11 +36,12 @@ void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options,
             if (status < 0) {
                 char error_message[100];
                 sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
-                throw UALBackendException(error_message);
+                throw UALBackendException(error_message, LOG);
             }
         }
         it++;
     }
+    hdf5_utils.closeMasterFile(file_id);
 }
 
 void HDF5Reader::close_datasets()

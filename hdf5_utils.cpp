@@ -213,6 +213,8 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
 }
 
 void HDF5Utils::openMasterFile(hid_t *file_id, std::string &filePath) { //open master file
+    if (*file_id != -1)
+      return;
     if (!exists(filePath)) {
         std::string message("HDF5 master file not found: ");
         message += filePath;
@@ -234,13 +236,16 @@ void HDF5Utils::openMasterFile(hid_t *file_id, std::string &filePath) { //open m
     
 }
 
-void HDF5Utils::closeMasterFile(hid_t file_id) {
-    herr_t status = H5Fclose(file_id);
+void HDF5Utils::closeMasterFile(hid_t *file_id) {
+    if (*file_id == -1)
+      return;
+    herr_t status = H5Fclose(*file_id);
     if (status < 0) {
         char error_message[100];
-        sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) file_id);
-        throw UALBackendException(error_message);
+        sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) *file_id);
+        throw UALBackendException(error_message, LOG);
     }
+    *file_id = -1;
 }
 
 void HDF5Utils::initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
@@ -297,7 +302,16 @@ void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & fil
         sprintf(error_message, "Unable to create attribute: %s\n", shot);
         throw UALBackendException(error_message, LOG);
     }
-    int shotNumber = std::stoi(getShotNumber(ctx));
+    
+    int shotNumber = -1;
+    try {
+        shotNumber = std::stoi(getShotNumber(ctx));
+    }
+    catch (std::exception &e) {
+        char error_message[200];
+        sprintf(error_message, "Unable to convert shot number: %s\n", e.what());
+        throw UALBackendException(error_message, LOG);
+    }
     status = H5Awrite(att_id, H5T_NATIVE_INT, &shotNumber);
     if (status < 0) {
         char error_message[200];
@@ -313,7 +327,15 @@ void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & fil
         sprintf(error_message, "Unable to create attribute: %s\n", run);
         throw UALBackendException(error_message, LOG);
     }
-    int runNumber = std::stoi(getRunNumber(ctx));
+    int runNumber = -1;
+    try {
+        runNumber = std::stoi(getRunNumber(ctx));
+    }
+    catch (std::exception &e) {
+        char error_message[200];
+        sprintf(error_message, "Unable to convert run number: %s\n", e.what());
+        throw UALBackendException(error_message, LOG);
+    }
     status = H5Awrite(att_id, H5T_NATIVE_INT, &runNumber);
     if (status < 0) {
         char error_message[200];
