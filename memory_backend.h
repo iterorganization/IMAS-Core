@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <pthread.h>
 
 #include "dummy_backend.h"
 #include "ual_backend.h"
@@ -23,6 +24,11 @@
 #endif
 
 #ifdef __cplusplus
+
+//Global lock management (used only when opening databases)
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static void lock() {pthread_mutex_lock(&mutex);}
+static void unlock() {pthread_mutex_unlock(&mutex);}
 
 
 //Support classes for memory mapping
@@ -41,7 +47,7 @@ class LIBRARY_API UalData
 
 
 public:
-    typedef enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
+    enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
     UalData();
     bool isTimed() { return timed;}
     int getMapState() {return mapState;}
@@ -229,6 +235,46 @@ public:
 };
 
 
+class InternalCtx  
+{
+public:
+    std::unordered_map<std::string, UalStruct *> idsMap;
+    std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
+    pthread_mutex_t mutex;
+    int refCount;
+    std::string fullName;
+    InternalCtx()
+    {
+	refCount = 1;
+//Mutex must be recursive as readData can be called recursively
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&mutex, &attr);
+    }
+    ~InternalCtx()
+    {
+	pthread_mutex_destroy(&mutex);
+    }
+    void lock()
+    {
+	pthread_mutex_lock(&mutex);
+    }
+    void unlock()
+    {
+	pthread_mutex_lock(&mutex);
+    }
+   
+};
+
+
+
+//Hash Context, addressed by exp name+shot+run. Same behavior as pulse files: new: creates a new one, open: open an existing memory content, if any report error otherwise. 
+    static std::unordered_map<std::string, InternalCtx * > ctxMap;
+
+
+
+
 class LIBRARY_API MemoryBackend:public Backend 
 {
 	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
@@ -237,8 +283,9 @@ class LIBRARY_API MemoryBackend:public Backend
 
     Backend *targetB;
     bool isCreated;
-    std::unordered_map<std::string, UalStruct *> idsMap;
-    std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
+    InternalCtx *internalCtx;
+    //std::unordered_map<std::string, UalStruct *> idsMap;
+    //std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
 
 //currentAoS will containg the fields being written when assembing a new AoS (or AoS slice)
     UalAoS currentAos;
@@ -271,6 +318,8 @@ public:
     {
 	this->targetB = new DummyBackend();
 	lastIdsPathShot = lastIdsPathRun = 0;
+//	internalCtx = new InternalCtx;
+	internalCtx = NULL;
     }
    MemoryBackend(Backend *targetB) 
     {
@@ -278,14 +327,27 @@ public:
     }
     ~MemoryBackend()
     {
-  	for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
+// Gabriele Sept 2020 Deallocate and remove from ctxMap the InternalCtx instance if refCount reaches 0;
+	lock();
+	internalCtx->refCount--;
+	if(internalCtx->refCount <= 0)
 	{
-	    delete it->second;
+  	//for ( auto it = idsMap.cbegin(); it != idsMap.cend(); ++it )
+  	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
+	    {
+	    	delete it->second;
+	    }
 	}
+	ctxMap.erase(internalCtx->fullName);
+	delete internalCtx;
+	unlock();
     } 
     void dump(std::string ids)
     {
-	idsMap[ids]->dump();
+//	idsMap[ids]->dump();
+        internalCtx->lock();
+	internalCtx->idsMap[ids]->dump();
+	internalCtx->unlock();
     }
 
 
@@ -309,6 +371,44 @@ public:
     {
 	targetB->openPulse(ctx, mode, options);
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
+
+	std::string  fullName = ctx->getUser()+" " + ctx->getTokamak()+ " " + ctx->getVersion() + " " + std::to_string(ctx->getShot())+ " " + std::to_string(ctx->getRun());
+	
+	lock();  //Global Lock
+	try {
+	    internalCtx = ctxMap.at(fullName);
+	    if(mode == ualconst::create_pulse)
+	    {
+		unlock();
+		throw  UALBackendException("CreatePulse: a pulse file already exists",LOG);
+	    }
+	    internalCtx->refCount++;
+	} catch (const std::out_of_range& oor) 
+	{
+	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse || mode == ualconst::force_open_pulse)
+	    {
+		internalCtx = new InternalCtx;
+		internalCtx->fullName = fullName;
+		ctxMap[fullName] = internalCtx;
+	    }
+            else
+	    {
+		unlock();
+		throw  UALBackendException("Missing pulse",LOG);
+	    }
+	}
+	if (mode == ualconst::force_create_pulse)  //Empty previous content, if any
+	{
+   	    internalCtx->lock();
+
+	    for ( auto it = internalCtx->idsMap.cbegin(); it != internalCtx->idsMap.cend(); ++it )
+	    {
+		delete it->second;
+	    }  
+	    internalCtx->idsMap.clear();
+	    internalCtx->unlock();
+	}
+	unlock();
     }
 
   /**

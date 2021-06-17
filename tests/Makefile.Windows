@@ -50,7 +50,7 @@ endif
 
 ifneq ("no","$(strip $(IMAS_HDF5))")
 LIBS+= -L$(HDF5_HOME)/lib
-LIBS+= $(HDF5_HOME)/lib/libhdf5.a
+LIBS+= $(HDF5_HOME)/lib/libhdf5.a -lboost_filesystem-mt -lboost_system-mt
 LIBS+= -ldl -lz
 endif
 

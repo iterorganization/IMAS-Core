@@ -1,0 +1,863 @@
+#include "hdf5_reader.h"
+
+#include <assert.h>
+#include <string.h>
+#include <algorithm>
+#include "hdf5_utils.h"
+#include "hdf5_dataset_handler.h"
+#include <math.h>
+#include <stdlib.h>
+
+
+HDF5Reader::HDF5Reader(std::string backend_version_)
+:  backend_version(backend_version_), tensorized_paths(), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(),
+shapes_selection_readers(), aos_shapes_selection_readers(), non_existing_data_sets(), selection_readers(), homogeneous_time(-1), ignore_linear_interpolation(true), current_arrctx_indices(), current_arrctx_shapes(), IDS_group_id(-1), slice_mode(GLOBAL_OP)
+{
+    //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+}
+
+HDF5Reader::~HDF5Reader()
+{
+}
+
+void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
+{
+    close_datasets();
+    HDF5Utils hdf5_utils;
+    hdf5_utils.closeMasterFile(file_id);
+
+    auto it = opened_IDS_files.begin();
+    while (it != opened_IDS_files.end()) {
+        const std::string & external_link_name = it->first;
+        hid_t pulse_file_id = opened_IDS_files[external_link_name];
+
+        if (pulse_file_id != -1) {
+            herr_t status = H5Fclose(pulse_file_id);
+
+            if (status < 0) {
+                char error_message[100];
+                sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
+                throw UALBackendException(error_message);
+            }
+        }
+        it++;
+    }
+}
+
+void HDF5Reader::close_datasets()
+{
+    auto it_ds = opened_data_sets.begin ();
+    while (it_ds != opened_data_sets.end ())
+    {
+      hid_t dset_id = it_ds->second;
+      assert(H5Dclose (dset_id) >=0);
+      it_ds++;
+    }
+    opened_data_sets.clear();
+
+	it_ds = opened_shapes_data_sets.begin ();
+	while (it_ds != opened_shapes_data_sets.end ())
+    {
+      hid_t dset_id = it_ds->second;
+      assert(H5Dclose (dset_id) >=0);
+      it_ds++;
+    }
+	opened_shapes_data_sets.clear();
+
+	it_ds = aos_opened_shapes_data_sets.begin ();
+	while (it_ds != aos_opened_shapes_data_sets.end ())
+    {
+      hid_t dset_id = it_ds->second;
+      assert(H5Dclose (dset_id) >=0);
+      it_ds++;
+    }
+	aos_opened_shapes_data_sets.clear();
+
+    auto it = datasets_data.begin();
+    while (it != datasets_data.end()) {
+        free(it->second);
+        it++;
+    }
+    datasets_data.clear();
+    non_existing_data_sets.clear();
+    selection_readers.clear();
+    shapes_selection_readers.clear();
+	aos_shapes_selection_readers.clear();
+}
+
+void HDF5Reader::close_group()
+{
+    if (IDS_group_id != -1) {
+        H5Gclose(IDS_group_id);
+        IDS_group_id = -1;
+    }
+}
+
+
+void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
+{
+    if (IDS_group_id == -1) {   //IDS does not exist in the file
+        *size = 0;
+        return;
+    }
+	
+    HDF5Utils hdf5_utils;
+    hdf5_utils.setTensorizedPaths(ctx, tensorized_paths);
+
+    std::string tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
+
+    if (non_existing_data_sets.find(tensorized_path) != non_existing_data_sets.end())   //optimization
+    {
+        *size = 0;
+        tensorized_paths.pop_back();
+        return;
+    } else {
+        if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) <= 0) {
+            non_existing_data_sets[tensorized_path] = 1;
+            *size = 0;
+            tensorized_paths.pop_back();
+            return;
+        }
+    }
+
+    current_arrctx_indices.push_back(ctx->getIndex());
+    int timed_AOS_index = -1;
+    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
+    int *shapes = nullptr;
+
+	bool isTimed = (timed_AOS_index != -1);
+    int slice_index = -1;
+	OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+	slice_mode = opCtx->getRangemode();
+
+    if (slice_mode == SLICE_OP && isTimed) {
+			double linear_interpolation_factor = 0;
+			int slice_sup = -1;
+			std::string att_name("time"); 
+			std::string timebasename("time");
+            slice_index = getSliceIndex(opCtx, att_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index);
+        
+    }
+
+    readAOSPersistentShapes(ctx, tensorized_path, timed_AOS_index, slice_index, (void **) &shapes);
+    *size = shapes[0];
+    free(shapes);
+    current_arrctx_shapes.push_back(*size);
+
+    if (slice_mode == SLICE_OP && ctx->getTimed() && *size > 0) {
+        *size = 1;
+    }
+    else if (*size == 0) {
+        current_arrctx_indices.pop_back();
+        tensorized_paths.pop_back();
+    }
+}
+
+int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, std::string & timebasename, 
+int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
+{
+
+    HDF5Utils hdf5_utils;
+    double time = opCtx->getTime();
+    int interp = opCtx->getInterpmode();
+    std::string dataset_name;
+
+    if (homogeneous_time == 1) {
+        dataset_name = "time";
+    } else {
+        std::string tensorized_path = timebasename;
+        if (tensorized_paths.size() > 0)
+            tensorized_path = tensorized_paths.back() + "&" + timebasename;
+
+        if (timed_AOS_index != -1) {
+            dataset_name = "time";
+        } else {
+            if (timebasename.compare("&time") == 0 || timebasename.compare("time") == 0) {
+                dataset_name = "time";
+            } else {
+                dataset_name = tensorized_path;
+            }
+        }
+    }
+
+    hid_t dataset_id = -1;
+    if (opened_data_sets.find(dataset_name) != opened_data_sets.end()) {
+        dataset_id = opened_data_sets[dataset_name];
+    } else {
+        dataset_id = H5Dopen2(IDS_group_id, dataset_name.c_str(), H5P_DEFAULT);
+        opened_data_sets[dataset_name] = dataset_id;
+    }
+
+    if (dataset_id < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to open dataset: %s for getting time vector.\n", dataset_name.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+
+    hid_t dataspace = H5Dget_space(dataset_id);
+    hsize_t dataspace_dims[H5S_MAX_RANK];
+    int dataset_rank = H5Sget_simple_extent_dims(dataspace, dataspace_dims, NULL);
+    H5Sclose(dataspace);
+    if (dataset_rank < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to call H5Sget_simple_extent_dims on dataset:%s\n", dataset_name.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+
+    double *slices_times = nullptr;
+
+    if (homogeneous_time == 1 || dataset_name.compare("time") == 0) {
+        slices_times = (double *) malloc(dataspace_dims[dataset_rank - 1] * sizeof(H5T_NATIVE_DOUBLE));
+        herr_t status = H5Dread(dataset_id, H5T_NATIVE_DOUBLE, H5P_DEFAULT, H5P_DEFAULT,
+                                H5P_DEFAULT, (void *) slices_times);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read the homogeneous time basis:%s\n", dataset_name.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    } else {
+
+        // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
+        HDF5Utils hdf5_utils;
+        int timed_AOS_index;
+        hdf5_utils.getAOSIndices(opCtx, current_arrctx_indices, &timed_AOS_index);
+        int dim = -1;
+
+        HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::double_data, current_arrctx_indices.size(), &dim);
+        hsSelectionReader.allocateGlobalOpBuffer((void **) &slices_times);
+        hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices);
+        herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id,
+                                hsSelectionReader.memspace,
+                                hsSelectionReader.dataspace, H5P_DEFAULT,
+                                slices_times);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read the inhomogeneous time basis: %s\n", dataset_name.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+
+    *slice_sup = dataspace_dims[dataset_rank - 1] - 1;
+    int slice_inf = 0;
+    if (*slice_sup > 0)
+        slice_inf = *slice_sup - 1;
+    int closest;
+    int n = (int) dataspace_dims[dataset_rank - 1];
+    for (int i = 0; i < n; i++) {
+        //std::cout << "--> slices_times[" << i << "]=" << slices_times[i] << std::endl;
+        if (slices_times[i] >= time) {
+            *slice_sup = i;
+			if (interp != CLOSEST_INTERP) {
+				if (*slice_sup == 0 && n > 1)
+					*slice_sup = 1;
+			}
+				if (*slice_sup > 0)
+					slice_inf = *slice_sup - 1;
+				break;
+			
+        }
+    }
+    //std::cout << "--> slice_inf = " << slice_inf << std::endl;
+    //std::cout << "--> slice_sup = " << *slice_sup << std::endl;
+    switch (interp) {
+
+    case CLOSEST_INTERP:
+
+        if (fabs(time - slices_times[*slice_sup]) <= (fabs(time - slices_times[slice_inf]))) {
+            closest = *slice_sup;
+        } else {
+            closest = slice_inf;
+        }
+        free(slices_times);
+        return closest;
+        break;
+    case PREVIOUS_INTERP:
+        free(slices_times);
+        return slice_inf;
+        break;
+    case LINEAR_INTERP:
+        if (*slice_sup == slice_inf) {
+            ignore_linear_interpolation = true;
+            free(slices_times);
+            return slice_inf;
+        } else {
+            ignore_linear_interpolation = false;
+        }
+        *linear_interpolation_factor = (time - slices_times[slice_inf]) / (slices_times[*slice_sup] - slices_times[slice_inf]);
+        //std::cout << "linear_interpolation_factor: " << *linear_interpolation_factor << std::endl;
+        free(slices_times);
+        return slice_inf;
+        break;
+
+    default:
+        throw UALBackendException("Interpolation mode not yet supported", LOG);
+    }
+}
+
+int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size)
+{
+
+    if (IDS_group_id == -1) {   //IDS does not exist in the file
+        return 0;
+    }
+
+    std::string & dataset_name = att_name;
+    std::replace(dataset_name.begin(), dataset_name.end(), '/', '&');   // character '/' is not supported in datasets names
+    std::replace(timebasename.begin(), timebasename.end(), '/', '&');
+
+    hid_t dataset_id = -1;
+    std::string tensorized_path = dataset_name;
+
+    if (tensorized_paths.size() > 0)
+        tensorized_path = tensorized_paths.back() + "&" + dataset_name;
+
+    if (non_existing_data_sets.find(tensorized_path) != non_existing_data_sets.end())   //optimization
+    {
+        return 0;
+    } else if (opened_data_sets.find(tensorized_path) != opened_data_sets.end()) {
+        dataset_id = opened_data_sets[tensorized_path];
+    } else if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) == 0) {
+        non_existing_data_sets[tensorized_path] = 1;
+        return 0;
+    }
+    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
+    HDF5Utils hdf5_utils;
+    int timed_AOS_index = -1;
+    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
+
+    bool is_dynamic = timebasename.compare("") != 0 ? true : false;
+
+    ignore_linear_interpolation = true;
+    int slice_sup = -1;         //used for linear interpolation
+    double linear_interpolation_factor = 0;
+
+    bool isTimed = (timed_AOS_index != -1);
+    int slice_index = -1;
+
+    if (ctx->getType() == CTX_OPERATION_TYPE || ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+
+        OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+        if (opCtx->getRangemode() == SLICE_OP) {
+            slice_mode = opCtx->getRangemode();
+            bool search_slice_index = (slice_mode == SLICE_OP) && (is_dynamic || isTimed);
+            if (search_slice_index) {
+                slice_index = getSliceIndex(opCtx, dataset_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index);
+            }
+        }
+    }
+
+    if (dataset_id < 0) {
+		hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
+		size_t rdcc_nbytes = 1000*1024*1024; //0.5GB
+		size_t chunk_size = 2 * 1024 * 1024;
+        size_t rdcc_nslots = (size_t) 100*(float) rdcc_nbytes/ (float) chunk_size;
+		if (rdcc_nslots > 300)
+			rdcc_nslots = 300;
+        H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
+        dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
+        H5Pclose(dapl);
+        if (dataset_id < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to open dataset: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+        opened_data_sets[tensorized_path] = dataset_id;
+    }
+
+    herr_t status = -1;
+    hid_t dataset_id_shapes = -1;
+
+    if (selection_readers.find(tensorized_path) != selection_readers.end()) {
+        HDF5HsSelectionReader & hsSelectionReader = *selection_readers[tensorized_path];
+
+        if (!hsSelectionReader.isRequestInExtent(current_arrctx_indices)) {
+            return 0;
+        }
+
+        bool zero_shape = false;
+        int shapesDataSetExists = getPersistentShapes(ctx,
+                                                      tensorized_path,
+                                                      datatype,
+                                                      slice_mode,
+                                                      is_dynamic,
+                                                      isTimed,
+                                                      slice_index,
+                                                      hsSelectionReader.getDim(),
+                                                      size,
+													  timed_AOS_index,
+                                                      &zero_shape,
+                                                      &dataset_id_shapes);
+
+
+        if (zero_shape)
+            return 0;
+
+        if (shapesDataSetExists == 1)
+            hsSelectionReader.setSize(size, hsSelectionReader.getDim());
+        
+		hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
+		hsSelectionReader.getSize(size, slice_mode, is_dynamic);
+		hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
+    
+        if (datatype != ualconst::char_data) {
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *data);
+        } else {
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) data);
+        }
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read dataset: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+
+    } else {
+        std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(dataset_id, datatype, current_arrctx_indices.size(), dim));
+
+        if (!hsSelectionReader->isRequestInExtent(current_arrctx_indices)) {
+            return 0;
+        }
+
+        bool zero_shape = false;
+        int shapesDataSetExists = getPersistentShapes(ctx,
+                                                      tensorized_path,
+                                                      datatype,
+                                                      slice_mode,
+                                                      is_dynamic,
+                                                      isTimed,
+                                                      slice_index,
+                                                      *dim,
+                                                      size,
+													  timed_AOS_index,
+                                                      &zero_shape,
+                                                      &dataset_id_shapes);
+
+        if (zero_shape)
+            return 0;
+
+        if (shapesDataSetExists == 1)
+            hsSelectionReader->setSize(size, *dim);
+        
+        hsSelectionReader->setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
+        hsSelectionReader->getSize(size, slice_mode, is_dynamic);
+        hsSelectionReader->allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
+    
+        if (datatype != ualconst::char_data) {
+             status = H5Dread(dataset_id, hsSelectionReader->dtype_id, hsSelectionReader->memspace, hsSelectionReader->dataspace, H5P_DEFAULT, *data);
+        } else {
+             status = H5Dread(dataset_id, hsSelectionReader->dtype_id, hsSelectionReader->memspace, hsSelectionReader->dataspace, H5P_DEFAULT, (char **) data);
+        }
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to read dataset: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+        selection_readers[tensorized_path] = std::move(hsSelectionReader);
+    }
+
+    if (tensorized_path.compare("ids_properties&homogeneous_time") == 0) {
+        int *d = (int *) *data;
+        homogeneous_time = *d;
+    }
+
+
+    char **p = nullptr;
+    if (datatype == ualconst::char_data) {
+
+        if (*dim == 1) {
+            p = (char **) data;
+            if (*p == nullptr) {
+                char ch = '\0';
+                *data = strdup(&ch);
+                size[0] = 1;
+            } else {
+                char *copy = (char *) malloc(strlen(p[0]) + 1);
+                strncpy(copy, p[0], strlen(p[0]) + 1);
+                free(*data);
+                *data = copy;
+                size[0] = strlen(p[0]);
+            }
+        } else {
+            p = (char **) data;
+            if (*p == nullptr) {
+                return 0;
+            } else {
+                size_t maxlength = 0;
+                for (int i = 0; i < size[0]; i++) {
+                    if (p[i] != nullptr && strlen(p[i]) > maxlength)
+                        maxlength = strlen(p[i]);
+                }
+				if (maxlength == 0)
+					return 0;
+                char *buffer = (char *) malloc(size[0] * (maxlength + 1));
+                char ch = '\0';
+                memset(buffer, 0, size[0] * (maxlength + 1));
+                for (int i = 0; i < size[0]; i++) {
+					if (p[i] == nullptr)
+						continue;
+                    strcpy(buffer + i * maxlength, p[i]);
+                    for (int j = 0; j < (int) (maxlength - strlen(p[i])); j++) {
+                        strncat(buffer + i * maxlength, &ch, 1);
+                    }
+                }
+                free(*data);
+                *data = buffer;
+                size[1] = maxlength;
+            }
+        }
+    }
+
+    if (!ignore_linear_interpolation) {
+
+        HDF5HsSelectionReader & hsSelectionReader = *selection_readers[tensorized_path];
+        
+         //Taking the next slide to make the linear interpolation
+        void *next_slice_data = nullptr;
+
+        if (isTimed) { //checking if neighbour nodes have the same shapes
+
+            int first_slice_shape[H5S_MAX_RANK];
+            int second_slice_shape[H5S_MAX_RANK];
+
+            for (int i = 0; i < hsSelectionReader.getDim(); i++)
+                    first_slice_shape[i] = size[i];
+
+            bool zero_shape = false;
+            getPersistentShapes(ctx,
+                                tensorized_path,
+                                datatype,
+                                slice_mode,
+                                is_dynamic,
+                                isTimed,
+                                slice_sup,
+                                hsSelectionReader.getDim(),
+                                size,
+                                timed_AOS_index,
+                                &zero_shape,
+                                &dataset_id_shapes);
+
+            if (datatype != ualconst::char_data) {
+                for (int i = 0; i < hsSelectionReader.getDim(); i++)
+                    second_slice_shape[i] = size[i];
+
+                if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, hsSelectionReader.getDim()) != 0) {
+                    char error_message[200];
+                    sprintf(error_message, "Unable to make the linear interpolation. Field %s has different shape at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
+                    throw UALBackendException(error_message, LOG);
+                }
+            }
+        }
+
+        hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
+        hsSelectionReader.getSize(size, slice_mode, is_dynamic);
+        int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
+        status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Linear interpolation: unable to read dataset of the neighbor slice: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+        size_t N =  buffer / hsSelectionReader.dtype_size;
+
+        //Making linear interpolation
+        switch (datatype) {
+
+        case ualconst::integer_data:
+            {
+                int *data_int = (int *) *data;
+                int *next_slice_data_int = (int *) next_slice_data;
+                for (size_t i = 0; i < N; i++)
+                    data_int[i] = (int) round(data_int[i] + (next_slice_data_int[i] - data_int[i]) * linear_interpolation_factor);
+                free(next_slice_data);
+                break;
+            }
+        case ualconst::double_data:
+            {
+                double *data_double = (double *) *data;
+                double *next_slice_data_double = (double *) next_slice_data;
+                for (size_t i = 0; i < N; i++) 
+                    data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * linear_interpolation_factor;
+                free(next_slice_data);
+                break;
+            }
+        case ualconst::char_data:
+            {
+                char error_message[200];
+                sprintf(error_message, "Linear interpolation of char data not supported, dataset: %s\n", tensorized_path.c_str());
+                throw UALBackendException(error_message, LOG);
+                break;
+            }
+        }
+    }
+
+    return 1;
+
+}
+
+int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes)
+{
+
+    int AOSRank = current_arrctx_indices.size();
+    if (AOSRank == 0)
+        return 0;
+
+    int shapesDataSetExists = 0;
+
+    if ((datatype != ualconst::char_data && dim > 0)
+        || (datatype == ualconst::char_data && dim == 2)) {
+        int *shapes = nullptr;
+        shapesDataSetExists = readPersistentShapes(ctx, tensorized_path, (void **) &shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes);
+
+        if (*zero_shape) {
+            free(shapes);
+            return shapesDataSetExists;
+        }
+
+        if (shapesDataSetExists == 1) {
+
+            if (datatype == ualconst::char_data && dim == 2) {
+                size[0] = shapes[0];
+            } else {
+                size[0] = 1;    //for scalars
+                for (int i = 0; i < dim; i++)
+                    size[i] = shapes[dim - i - 1];
+            }
+        }
+        free(shapes);
+    }
+    return shapesDataSetExists;
+}
+
+int
+HDF5Reader::readPersistentShapes(Context * ctx,
+				  const std::string & field_tensorized_path,
+				  void **shapes, int slice_mode,
+				  bool is_dynamic, bool isTimed,
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes)
+{
+    if (slice_mode == SLICE_OP) {
+		return readPersistentShapes_GetSlice(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes);
+    }
+    else {
+		return readPersistentShapes_Get(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, zero_shape, dataset_id_shapes);
+    }
+}
+
+int HDF5Reader::readPersistentShapes_Get(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes)
+{
+    const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
+	//std::cout << "Reading SHAPE datasets: " <<  tensorized_path.c_str() << std::endl;
+    hid_t dataset_id = -1;
+    if (opened_shapes_data_sets.find(tensorized_path) != opened_shapes_data_sets.end()) {
+        dataset_id = opened_shapes_data_sets[tensorized_path];
+    } else {
+		hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
+		size_t rdcc_nbytes = 1000*1024*1024;
+		size_t chunk_size = 2 * 1024 * 1024;
+        size_t rdcc_nslots = (size_t) 100*(float) rdcc_nbytes/ (float) chunk_size;
+		if (rdcc_nslots > 300)
+			rdcc_nslots = 300;
+        H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
+        dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
+        H5Pclose(dapl);
+
+        opened_shapes_data_sets[tensorized_path] = dataset_id;
+ 
+        if (dataset_id < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to open dataset SHAPE: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+
+    *dataset_id_shapes = dataset_id;
+	int dim = -1;
+	HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::integer_data, current_arrctx_indices.size(), &dim);
+	hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
+	hsSelectionReader.allocateBuffer(shapes, slice_mode, is_dynamic, isTimed, slice_index);
+	herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+
+	if (status < 0)
+    {
+      char error_message[200];
+      sprintf (error_message,
+	       "Unable to read SHAPE: %s\n", tensorized_path.c_str ());
+      throw UALBackendException (error_message, LOG);
+    }
+
+    int *shapes_int = (int *) *shapes;
+
+    if (shapes_int[0] == 0) {   //if this condition is satisfied, it means that the dataset has 0-shapes for the current AOSs indices
+        *zero_shape = true;
+        return 1;
+    }
+
+    return 1;
+}
+
+int
+HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
+				  const std::string & field_tensorized_path,
+				  void **shapes, int slice_mode,
+				  bool is_dynamic, bool isTimed,
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes)
+{
+  const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
+
+  std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end());
+  hid_t dataset_id = -1;
+  if (opened_shapes_data_sets.find (tensorized_path) != opened_shapes_data_sets.end ())
+    {
+      dataset_id = opened_shapes_data_sets[tensorized_path];
+    }
+  else
+    {
+	    hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
+		size_t rdcc_nbytes = 1000*1024*1024;
+		size_t chunk_size = 2 * 1024 * 1024;
+        size_t rdcc_nslots = (size_t) 100*(float) rdcc_nbytes/ (float) chunk_size;
+		if (rdcc_nslots > 300)
+			rdcc_nslots = 300;
+        H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
+        dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
+        H5Pclose(dapl);
+
+      opened_shapes_data_sets[tensorized_path] = dataset_id;
+      if (dataset_id < 0)
+	{
+	  char error_message[200];
+	  sprintf (error_message,
+		   "Unable to open dataset SHAPE: %s\n",
+		   tensorized_path.c_str ());
+	  throw UALBackendException (error_message, LOG);
+	}
+	
+    }
+
+    if (timed_AOS_index != -1) {
+        aos_indices[timed_AOS_index] = slice_index;
+    }
+
+	*dataset_id_shapes = dataset_id;
+    int dim = -1;
+	HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::integer_data, aos_indices.size(), &dim);
+    hsSelectionReader.setHyperSlabs(GLOBAL_OP, false, isTimed, -1, timed_AOS_index, aos_indices);
+    hsSelectionReader.allocateBuffer(shapes, GLOBAL_OP, false, isTimed, -1);
+	herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+   
+	if (status < 0)
+    {
+      char error_message[200];
+      sprintf (error_message,
+	       "Unable to read SHAPE: %s\n", tensorized_path.c_str ());
+      throw UALBackendException (error_message, LOG);
+    }
+
+  int *shapes_int = (int *) *shapes;
+  if (shapes_int[0] == 0)
+    {				//if this condition is satisfied, it means that the dataset has 0-shapes for the current AOSs indices
+      *zero_shape = true;
+      return 1;
+    }
+
+  if (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1)
+    {
+      shapes_int[0] = 1;	//we set the latest element of the shapes vector to 1 when slicing
+    }
+
+  return 1;
+}
+
+int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes)
+{
+	//std::cout << "Reading AOS SHAPE datasets: " <<  tensorized_path.c_str() << std::endl;
+	std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end() -1);
+    hid_t dataset_id = -1;
+
+    if (aos_opened_shapes_data_sets.find(tensorized_path) != aos_opened_shapes_data_sets.end()) {
+        dataset_id = aos_opened_shapes_data_sets[tensorized_path];
+    } else {
+		hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
+		size_t rdcc_nbytes = 1000*1024*1024;
+		size_t chunk_size = 2 * 1024 * 1024;
+        size_t rdcc_nslots = (size_t) 100*(float) rdcc_nbytes/ (float) chunk_size;
+		if (rdcc_nslots > 300)
+			rdcc_nslots = 300;
+        H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
+        dataset_id = H5Dopen2(IDS_group_id, tensorized_path.c_str(), dapl);
+        H5Pclose(dapl);
+
+        aos_opened_shapes_data_sets[tensorized_path] = dataset_id;
+
+        if (dataset_id < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to open dataset SHAPE: %s\n", tensorized_path.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+
+	if (slice_mode == SLICE_OP && timed_AOS_index != -1 && timed_AOS_index < (int) aos_indices.size()) {
+        aos_indices[timed_AOS_index] = slice_index;
+    }
+    int dim = -1;
+	int *shapes_buffer;
+	HDF5HsSelectionReader hsSelectionReader(dataset_id, ualconst::integer_data, aos_indices.size(), &dim);
+    hsSelectionReader.allocateFullBuffer((void **) &shapes_buffer);
+	herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, shapes_buffer);
+	std::vector < int >index;
+    hsSelectionReader.getDataIndex(aos_indices, index);
+    int n = hsSelectionReader.getShape(hsSelectionReader.getRank() - 1);        //n is the length of the vector of shapes
+
+	*shapes = (int *) malloc(sizeof(int) * n);
+    int *shapes_int = (int *) *shapes;
+    shapes_int[0] = shapes_buffer[index[0]];
+	free(shapes_buffer);
+
+	if (status < 0)
+    {
+      char error_message[200];
+      sprintf (error_message,
+	       "Unable to read AOS SHAPE: %s\n", tensorized_path.c_str ());
+      throw UALBackendException (error_message, LOG);
+    }
+
+    return 1;
+}
+
+void HDF5Reader::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+{
+    HDF5Utils hdf5_utils;
+    hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &IDS_group_id);
+}
+
+void HDF5Reader::close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files)
+{
+    std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
+    if (opened_IDS_files.find(external_link_name) != opened_IDS_files.end()) {
+        hid_t pulse_file_id = opened_IDS_files[external_link_name];
+        if (pulse_file_id != -1) {
+		    /*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
+			    HDF5Utils hdf5_utils;
+	            hdf5_utils.showStatus(pulse_file_id);*/
+            assert(H5Fclose(pulse_file_id)>=0);
+            opened_IDS_files[external_link_name] = -1;
+        }
+    }
+}
+
+void HDF5Reader::pop_back_stacks()
+{
+    if (current_arrctx_indices.size() > 0)
+        current_arrctx_indices.pop_back();
+    if (current_arrctx_shapes.size() > 0)
+        current_arrctx_shapes.pop_back();
+    if (tensorized_paths.size() > 0) {
+        tensorized_paths.pop_back();
+    }
+}
+
+void HDF5Reader::clear_stacks()
+{
+    current_arrctx_indices.clear();
+    current_arrctx_shapes.clear();
+    tensorized_paths.clear();
+}

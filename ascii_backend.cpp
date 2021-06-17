@@ -438,13 +438,12 @@ int AsciiBackend::readData(Context *ctx,
     pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname;
   }
 
+  std::streampos backup_pos = this->curcontent.tellg();
   if (this->curline == "") {
     std::getline(this->curcontent, this->curline);
   }
 
-  std::streampos backup_pos = -1;
   if (this->curline != pathname) { // not found, try to find it further in file
-    backup_pos = this->curcontent.tellg();
     bool found = false;
     while (std::getline(this->curcontent, this->curline)) {
       if (this->curline == pathname) {

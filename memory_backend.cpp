@@ -3,6 +3,8 @@
 #define MAX_DIM 64
 
 
+
+
     void UalAoS::addSlice(UalAoS &sliceAos, ArraystructContext *ctx)
     {
 //	if(ctx->getTimebasePath().length() > 0)
@@ -91,7 +93,9 @@ else if (datatype == INTEGER_DATA || datatype == COMPLEX_DATA)
     std::cout << "WRITE DATA IDS:" << ctx->getDataobjectName() << "   FIELD: " << fieldname << *(int *)data << std::endl;
 else
     std::cout << "WRITE DATA IDS:" << ctx->getDataobjectName() << "   FIELD: " << fieldname << (char *)data << std::endl;
-*/
+*/	
+      internalCtx->lock();
+      try  {
 
 	UalStruct *ids = getIds(ctx);
 	UalData *ualData = ids->getData(fieldname);
@@ -118,6 +122,13 @@ else
 	    	ualData->addSlice(datatype, dim, currDims, ((unsigned char *)data)+(i * sliceSize));
 	    delete[] currDims;
 	}
+      } 
+      catch(...)
+      {
+	internalCtx->unlock();
+	throw;
+      }
+      internalCtx->unlock();
     }
    /**
      Reads data.
@@ -135,19 +146,23 @@ else
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
   */
-    int MemoryBackend::readData(OperationContext *ctx,
+  int MemoryBackend::readData(OperationContext *ctx,
 			std::string fieldname,
 			std::string timebase,
 			void** data,
 			int* datatype,
 			int* dim,
 			int* size)
-    {
-
+  {
+    internalCtx->lock();  
+    try {
 	UalStruct *ids = getIds(ctx);
 	UalData *ualData = ids->getData(fieldname);
-	if(ualData->isEmpty()) return 0;
-
+	if(ualData->isEmpty())
+	{
+	    internalCtx->unlock();
+	    return 0;
+	}
 
 
 	int status = 1;
@@ -193,7 +208,9 @@ else
 	    int timeDims[16];
 	    if(timebase.length() == 0)  //handle empty time and /time
 	    {
-		return ualData->readData(data, datatype, dim, size);  //Not time dependent
+		int status = ualData->readData(data, datatype, dim, size);  //Not time dependent
+		internalCtx->unlock();
+                return status; 
 	    }
 	    else
 	    {
@@ -202,7 +219,11 @@ else
 		else
     	    	    status = readData(&newCtx, timebase, timebase, (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    }
-	    if(!status) return 0;
+	    if(!status)
+	    {
+		internalCtx->unlock();
+		return 0;
+	    }
 	    //Check timebase consistency
 	    if(timeDatatype != ualconst::double_data || timeNumDims != 1)
 	    {
@@ -219,8 +240,15 @@ else if (*datatype == INTEGER_DATA || *datatype == COMPLEX_DATA)
 else
     std::cout << "READ DATA IDS:" << ctx->getDataobjectName() << "   FIELD: " << fieldname << *(char **)data << std::endl;
 */
+	internalCtx->unlock();
         return status;
     }
+    catch(...)
+    {
+	internalCtx->unlock();
+	throw;
+    }
+  }
   /*
     Deletes data.
     This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
@@ -232,6 +260,8 @@ else
     void MemoryBackend::deleteData(OperationContext *ctx,
 			  std::string fieldname)
     {
+      internalCtx->lock();
+      try  {
 	UalStruct *ids = getIds(ctx);
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
         {
@@ -252,6 +282,13 @@ else
 	      ualData->deleteData();
 	    }
 	}
+        internalCtx->unlock();
+      }
+      catch(...)
+      {
+	internalCtx->unlock();
+	throw;
+      }
     }
 
 
@@ -276,15 +313,33 @@ else
 //If it is to topomost ArrayStructContext, prepare currentAos 
 	if(!ctx->getParent()) //If it is the topmost AoS
 	{
-	    currentAos.deleteData();
+	    internalCtx->lock();
+	    try {
+	    	currentAos.deleteData();
 	//prepare empty structure if not existing
-	    UalStruct *ids = getIds(ctx);	
-	    UalAoS *aos = ids->getSubAoS(ctx->getPath());
-	    if(ctx->getRangemode() == GLOBAL_OP) 
-	    	aos->deleteData();
+	    	UalStruct *ids = getIds(ctx);	
+	    	UalAoS *aos = ids->getSubAoS(ctx->getPath());
+	    	if(ctx->getRangemode() == GLOBAL_OP) 
+	    	    aos->deleteData();
+		internalCtx->unlock();
+	    }
+      	    catch(...)
+      	    {
+		internalCtx->unlock();
+		throw;
+      	    }
 	}
-
-
+	else
+	{
+//Gabriele May 2021
+	    UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
+	    if(size != (int)aos->aos.size())
+	    {
+	    	aos->aos.resize(size);
+	    	for(int i = 0; i < size; i++)
+	    	    if(!aos->aos[i]) aos->aos[i] = new UalStruct;
+	    }
+	}
 
 //	targetB->beginWriteArraystruct(ctx, size);
 //No write propagated to target backend
@@ -320,22 +375,30 @@ else
 	    prepareSlice(ctx);
 	}
 */
-	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
-	{
-	    prepareSlice(ctx);
-	    UalAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
-            if(aos->timebase == "")
-	        *size = aos->aos.size();  //Static AoS
+	internalCtx->lock();
+        try {
+	    if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
+	    {
+	    	prepareSlice(ctx);
+	    	UalAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
+            	if(aos->timebase == "")
+	            *size = aos->aos.size();  //Static AoS
+	    	else
+		    *size = 1;
+	    }
 	    else
-		*size = 1;
-	}
-
-	else
-	{
+	    {
     //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    	    UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
-	    *size = aos->aos.size();
+    	    	UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
+	    	*size = aos->aos.size();
+	    }
+	    internalCtx->unlock();
 	}
+      	catch(...)
+      	{
+	    internalCtx->unlock();
+	    throw;
+        }
     }
 
   /**
@@ -440,7 +503,8 @@ else
 
     void MemoryBackend::endAction(Context *inCtx)
     {
-    
+      internalCtx->lock();
+      try  {
         if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
         {
 	    ArraystructContext *ctx = (ArraystructContext *)inCtx;
@@ -448,6 +512,7 @@ else
 	    if(ctx->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
 	    {
 	    	targetB->endAction(inCtx);
+		internalCtx->unlock();
 	        return;
 	    }
 	    if(ctx->getParent() == NULL)
@@ -465,16 +530,21 @@ else
 		    }
 	        }
 	    }
+	    internalCtx->unlock();
 	    return;
         }
         if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
 	{
-	  idsInfoMap.erase(inCtx->getUid());
-	  /*OperationContext *ctx = (OperationContext *)inCtx; 
-	  IdsInfo *info = (IdsInfo *)ctx->getUserData();
-	  if(info) delete info;*/
+//	  idsInfoMap.erase(inCtx->getUid());
+	  internalCtx->idsInfoMap.erase(inCtx->getUid());
 	}
-
+	internalCtx->unlock();
+      }
+      catch(...)
+      {
+	    internalCtx->unlock();
+	    throw;
+      }
 //Everything outside AoS is expected to be mapped, so no action is required in write
 //Only in read mode target end action is called NOTE: in MDSplus backend this is neutral, for others we shopuld check whether 
     }
@@ -482,8 +552,17 @@ else
     void MemoryBackend::beginAction(OperationContext *ctx)  
     {
 //If reading or writing slices for non mapped AoS, pass to target backend
-	if((ctx->getType() != CTX_ARRAYSTRUCT_TYPE && ctx->getAccessmode() == ualconst::read_op) || (ctx->getType() == CTX_ARRAYSTRUCT_TYPE && !isMappedAoS((ArraystructContext *)ctx)))	
-	    targetB->beginAction(ctx);
+	internalCtx->lock();
+	try  {
+	    if((ctx->getType() != CTX_ARRAYSTRUCT_TYPE && ctx->getAccessmode() == ualconst::read_op) || (ctx->getType() == CTX_ARRAYSTRUCT_TYPE && !isMappedAoS((ArraystructContext *)ctx)))	
+	    	targetB->beginAction(ctx);
+	    internalCtx->unlock();
+	}
+     	catch(...)
+      	{
+	    internalCtx->unlock();
+	    throw;
+        }
     }
 
 
@@ -870,8 +949,10 @@ else
 
     std::string MemoryBackend::getIdsPath(OperationContext *ctx)
     {
-      auto search = idsInfoMap.find(ctx->getUid()); 
-      if (search!=idsInfoMap.end()) 
+//      auto search = idsInfoMap.find(ctx->getUid()); 
+      auto search = internalCtx->idsInfoMap.find(ctx->getUid()); 
+//      if (search!=idsInfoMap.end()) 
+      if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
       int shot = ctx->getShot();
@@ -890,25 +971,31 @@ else
     //Get the IDS (in UalStruct) 
     UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
-      auto search = idsInfoMap.find(ctx->getUid());
-      if (search!=idsInfoMap.end())
+//      auto search = /*idsInfoMap*/.find(ctx->getUid());
+      auto search = internalCtx->idsInfoMap.find(ctx->getUid());
+//      if (search!=idsInfoMap.end())
+      if (search!=internalCtx->idsInfoMap.end())
 	return search->second->ids;
 
 //std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
 	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
-	auto searchids = idsMap.find(idsPath);
-	if(searchids != idsMap.end())
+//	auto searchids = idsMap.find(idsPath);
+	auto searchids = internalCtx->idsMap.find(idsPath);
+//	if(searchids != idsMap.end())
+	if(searchids != internalCtx->idsMap.end())
 	{
 	  retIds = searchids->second; 
 	} 
 	else
 	{
 	  retIds = new UalStruct;
-	  idsMap[idsPath] = retIds;
+//	  idsMap[idsPath] = retIds;
+	  internalCtx->idsMap[idsPath] = retIds;
 	}
-	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
+//	idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
+	internalCtx->idsInfoMap.insert({ctx->getUid(),new IdsInfo(idsPath, retIds)});
 	return retIds;
 /*	try {
 	   // return idsMap.at(ctx->getDataobjectName());
@@ -1268,7 +1355,7 @@ else
     }
     void UalData::readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation)
     {
-	int sliceIdx1, sliceIdx2;
+	int sliceIdx1, sliceIdx2 = -1;
 	if(time <= times[0])
 	    sliceIdx1 = sliceIdx2 = 0;
 	else if (time >= times[numTimes - 1])

@@ -1361,6 +1361,11 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
     int MDSplusBackend::getMdsShot(int shot, int run, bool translate, std::string strTree)
     {
+	if(run > 99999)
+	    throw  UALBackendException("Maximum run number allowed by MDSplus Backend is 99999",LOG);
+        if(shot > 214748)
+	    throw  UALBackendException("Maximum shot number allowed by MDSplus Backend is 214748",LOG);
+
 	int runBunch = run/10000;
 
 	if(translate)
@@ -1406,6 +1411,35 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	return retShot;
     }
  
+
+
+// Reset the IDS path to what it was before the call to getMdsShot
+void MDSplusBackend::resetIdsPath(std::string strTree) {
+    if (originalIdsPath != "") {
+        char szPath[255] = { 0 };
+        if (strTree.length() > 0)
+        {
+            sprintf(szPath, "%s_path", strTree.c_str());
+        }
+        else
+        {
+            sprintf(szPath, "%s_path", DEF_TREENAME);
+        }
+
+#ifdef WIN32
+        char szEnv[256] = { 0 };
+        sprintf(szEnv, "%s=%s", szPath, originalIdsPath.c_str());
+        putenv(szEnv);
+#else // WIN32
+        setenv(szPath, originalIdsPath.c_str(), 1);
+#endif // WIN32
+
+        // Reset the global variable originalIdsPath to an empty string so
+        // the environment gets set correctly on the next call to getMdsShot
+        originalIdsPath = "";
+    }
+}
+
  #define PATH_MAX  2048
 void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
 {
@@ -2991,6 +3025,107 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	}
     }
 
+//Gabriele 2021: lazy AoS
+   MDSplus::Apd *MDSplusBackend::readDynamicLazyApd(MDSplus::TreeNode *node)
+   {
+/*	MDSplus::TreeNode *timeNode;
+        if(timebasePath == "")
+	    timeNode = node->getParent()->getNode("TIME");
+	else
+	    timeNode = tree->getNode(mdsconvertPath(timebasePath.c_str()).c_str());
+
+        int nTimes;
+	MDSplus::Data *timesD = timeNode->data();
+	double  *times = timesD->getDoubleArray(&nTimes);
+	MDSplus::deleteData(timesD);
+	delete [] times;
+*/
+//Gabriele June 2019: handle the case of empty AoS
+        if(strcmp(node->getDType(), "DTYPE_MISSING") == 0)
+        {
+ 	    MDSplus::Apd *retApd = new MDSplus::Apd();
+//	    retApd->appendDesc(NULL); October 2019
+	    return retApd;
+        }
+///////////////////////////////////
+        try {
+	    int numSegments = node->getNumSegments();
+	    MDSplus::Data *startData, *endData;
+	    //std::cout << "numSegments = " << numSegments << "\n";
+	    node->getSegmentLimits(numSegments - 1, &startData, &endData);
+	    int endIdx, dummyIdx, nSlices;
+	    getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
+	    nSlices = endIdx + 1;
+	    MDSplus::deleteData(endData);
+	    MDSplus::deleteData(startData);
+
+            MDSplus::Apd *apd = new MDSplus::Apd();
+            for(int i = 0; i < nSlices; i++)
+	        apd->appendDesc(NULL);
+	    apd->appendDesc(new MDSplus::TreeNode(node->getNid(), node->getTree())); //The returned APD has no data, shall 
+	    return apd;
+
+	}catch(MDSplus::MdsException &exc)	
+	{
+	  throw  UALBackendException(exc.what(),LOG); 
+	}
+    }
+	
+    void MDSplusBackend::fillApdSlicesAroundIdx(MDSplus::Apd *apd, int sliceIdx)
+    {
+        MDSplus::TreeNode *node = (MDSplus::TreeNode *)apd->getDescAt(apd->len() -1);
+	if(!node)
+	    throw  UALBackendException("Internal error: TreeNode not found in fillApdSlicesArountIdx",LOG);
+	int numSegments = node->getNumSegments();
+	MDSplus::Data *startData, *endData;
+	int segIdx;
+	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    node->getSegmentLimits(segIdx, &startData, &endData);
+	    int startIdx, endIdx, dummyIdx;
+	    getIndexesInTimebaseExpr(startData, startIdx, dummyIdx);
+	    MDSplus::deleteData(startData);
+	    getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
+	    MDSplus::deleteData(endData);
+	    if(sliceIdx >= startIdx && sliceIdx <= endIdx)
+	    {
+		MDSplus::Data *segData = node->getSegment(segIdx);
+		int serializedLen;
+		char *serialized = (char *)segData->getByteUnsignedArray(&serializedLen);
+		MDSplus::deleteData(segData);
+		int bufIdx = 0;
+		int sliceLen;
+		for(int idx = 0; idx <= endIdx - startIdx; idx++)
+		{
+		    memcpy(&sliceLen, &serialized[bufIdx], sizeof(int));
+		    bufIdx += sizeof(int);
+		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[bufIdx]);
+		    if(sliceData->clazz != CLASS_APD)
+		  	throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
+	      	    MDSplus::Data **dscs = apd->getDscArray();
+		    if(dscs[startIdx + idx])
+		  	throw  UALBackendException("Internal error: unexpected  array of structure found in fillApdSlicesArountIdx",LOG);
+	      	    dscs[startIdx + idx] = sliceData;	
+		    bufIdx += sliceLen;
+		}
+		delete[]serialized;
+
+		break;
+	    }
+	}
+    }
+
+////////////Lazy AoS 2021
+
+
+
+
+
+
+
+
+
+
 //Gabriele 2017 
    MDSplus::Apd *MDSplusBackend::readDynamicApd(MDSplus::TreeNode *node) 
     {
@@ -3210,7 +3345,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    	    {
 			for(sliceIdx = 0; sliceIdx < timebaseLen-1; sliceIdx++)
 			{
-		    	    if(timebase[sliceIdx] < time && timebase[sliceIdx+1] >= time)
+		    	    if(timebase[sliceIdx] <= time && timebase[sliceIdx+1] > time)
 				break;
 			}
 	    	    }
@@ -3220,7 +3355,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		}
 		case ualconst::linear_interp:
 		{
-	    	    int sliceIdx, sliceIdx1;
+	    	    int sliceIdx, sliceIdx1 = -1;
 	    	    timebaseLen = dims[0];
 	    	    if(time <= timebase[0] || timebaseLen == 1)
 			sliceIdx = sliceIdx1 = 0;
@@ -3259,7 +3394,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 			else  //AoS are not compatible (should ever happen)
 			{
 			    MDSplus::deleteData(apd1);
-			    return apd1;
+			    return apd;
 			}
 		    }
 		}
@@ -3272,7 +3407,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	}
     }
 	    
-    MDSplus::Data *MDSplusBackend::getFromApd(MDSplus::Apd *apd, int idx, std::string path)
+    MDSplus::Data *MDSplusBackend::getFromApd(MDSplus::Apd *apd, int idx, std::string path, ArraystructContext *ctx)
     {
 
 //std::cout<<"GET FROM APD path:" << path << "  idx: " << idx << std::endl;
@@ -3280,6 +3415,20 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 
 	if(idx >= (int)apd->len())
 	  throw UALBackendException("Invalid index in array of structures",LOG);
+
+//Gabriele Feb 20201 Lazy Aos. Check if the Apd is partially filled. In this case the last descriptor is the originating TreeNode
+	MDSplus::Data *lastDesc = apd->getDescAt(apd->len() - 1);
+	if(lastDesc && lastDesc->clazz == CLASS_S && lastDesc->dtype == DTYPE_NID)
+	{
+	    if(!apd->getDescAt(idx))
+	    {
+	    	fillApdSlicesAroundIdx(apd, idx);
+	    }
+	}
+////////////////////////////////////////////////////		
+
+
+
 	MDSplus::Apd *currApd = (MDSplus::Apd*)apd->getDescAt(idx);
 	if(!currApd)  //Jan 2015 allow holes in struct arrays
           return NULL;
@@ -3338,6 +3487,11 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		    if(isLast)
 		    {
 		        MDSplus::Data *retData = newApd->getDescAt(1);
+			if(ctx && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
+			{
+			    resolveApdField(newApd, ctx);
+			    retData = newApd->getDescAt(1);
+			}
 		        delete [] currNameChar;
 		        return retData;
 		    }
@@ -3360,6 +3514,11 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		  if(isLast)
 		    {
 		        MDSplus::Data *retData = currApd->getDescAt(1);
+			if(ctx && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
+			{
+			    resolveApdField(currApd, ctx);
+			    retData = currApd->getDescAt(1);
+			}
 		        delete [] currNameChar;
 		        return retData;
 		    }
@@ -3384,7 +3543,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	int len2 = apd2->len();
 	if(len1 != len2)
 	    return false;
-	if(len1 < 1) return false;
+	if(len1 < 1) return true;
 	if(apd1->getDescAt(0) &&  (apd1->getDescAt(0)->clazz != CLASS_APD)) //If is part of the APD tree and not a recursive AoS
 	    return checkStructRec(apd1, apd2);
 	for(int idx = 0; idx < len1; idx++)
@@ -3439,6 +3598,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
           int len = apd1->len();
+	  if(len == 0) 
+	      return interpApd;
 
 	  if(apd1->getDescAt(0) != NULL && apd1->getDescAt(0)->clazz != CLASS_APD)
 	      return interpolateStructRec(apd1, apd2, t, t1, t2);
@@ -3709,19 +3870,33 @@ printf("Warning, struct field added more than once\n");
  		std::string timedPath = getTimedNode(ctx, path, idx, false);
 		if(isSlice)
 		{
-//Gabriele July 2017. writeSlice expects an additional dimension (=1) from high level
-		    int *newSize = new int[dim+1];
+//Gabriele July 2017. writeSlice expects an additional dimension (=slices to be written) from high level
+		    int *newSize = new int[dim];
+		    int rowSamples=1;
 		    for(int i = 0; i < dim; i++)
 		    	newSize[i] = size[i];
-		    newSize[dim++] = 1;
+//Gabriele Febrarry 2021
+		    for(int i = 0; i < dim - 1; i++)
+			rowSamples *= size[i];
+		    int numSlices = size[dim-1];
+		    newSize[dim-1] = 1;
+ 		    int sampleSize = 0;
+		    switch(datatype)  {
+			case ualconst::char_data: sampleSize = 1; break;
+			case ualconst::integer_data: sampleSize = 4; break;
+			case ualconst::double_data: sampleSize = 8; break;
+			case ualconst::complex_data: sampleSize = 16; break;
+		    }
+		    char *charData = (char *)data;
 		    //size[dim++] = 1;
 //////////////////////////////////////////////////////////
 //Gabriele November 2017 In case this is being written by put_non_timed. Slices will be added afterwards
-		    if(dim > 0)
+		   
 ///////////////////////////////////////////////////////////
-//   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, size);
-   		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
-		    delete[] newSize;
+ //  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
+		    for(int i = 0; i < numSlices; i++)
+  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, &charData[i*rowSamples*sampleSize], datatype, dim, newSize, true, isInternalTime);
+		   // delete[] newSize;
 
 		}
 		else
@@ -4024,6 +4199,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw  UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
@@ -4036,14 +4212,17 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
 		  }catch(MDSplus::MdsException &exc)
 		  {
+                    resetIdsPath(szTree);
 		    throw UALBackendException(exc.what(),LOG); 
 		  }
 		  break;
 	    default:
+              resetIdsPath(szTree);
 	      throw  UALBackendException("Mode not yet supported",LOG);
 	  
 	  }
 	  treeNodeMap.clear();
+          resetIdsPath(szTree);
       }
 
       
@@ -4181,9 +4360,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     {
 	MDSplus::Apd *parentApd = getApdFromContext(ctx->getParent());
 	
-	if ((int)parentApd->len()==0)
+	if (parentApd == NULL ||  (int)parentApd->len()==0)
 	{
-	  delete parentApd;
+          if (parentApd != NULL)
+	     delete parentApd;
 	  *size = 0;
 	  return;
 	}
@@ -4219,7 +4399,23 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		return;
 	    }
 	    if(ctx->getRangemode() == GLOBAL_OP)
-	        currApd = readDynamicApd(node);
+	    {
+		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
+		if(timebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
+		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
+
+		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
+		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+
+
+//		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		currApd = readDynamicLazyApd(node);
+		if(currApd->len() == 0) //Empty AoS
+		    *size = 0;
+		else
+	    	    *size = currApd->len() - 1; //The last descriptorcontains the node
+	        //currApd = readDynamicApd(node);
+	    }
 	    else
 	    {
 		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
@@ -4242,12 +4438,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  *size = 0;
 		  return;
 		}
+	    	*size = currApd->len();
 	    }
 	    //delete node;
 //std::cout << "BEGIN READARRAYSTRUCT\n";
 //dumpArrayStruct(currApd, 0);
 	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	    //*size = currApd->len();
 	}
     }
     else //The array of structures must be read from the pulse file
@@ -4272,7 +4469,22 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    }
 	    if(ctx->getRangemode() == GLOBAL_OP)
 	    {
-		currApd = readDynamicApd(node);
+		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
+
+		if(timebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
+		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
+
+		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
+		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+
+
+//		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
+		currApd = readDynamicLazyApd(node);
+		//currApd = readDynamicApd(node);
+		if(currApd->len() == 0) //Empty AoS
+		    *size = 0;
+		else
+	    	    *size = currApd->len() - 1; //The last descriptorcontains the node
 	    }
 	    else
 	    {
@@ -4284,6 +4496,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		    timebase = ctx->getDataobjectName()+"/"+timebase;
 		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
 		}
+		if(!currApd)
+		{
+		    *size = 0;
+		    return;
+		}
+	   	*size = currApd->len();
 	    }
 	    //delete node;
 	}
@@ -4295,7 +4513,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	        *size = 0;
 		return;
 	    }	
-	    MDSplus::Apd *resApd;	
+	    *size = currApd->len();
+
+/*****Lazy AoS	
+	    MDSplus::Apd *resApd;
 	    if(ctx->getRangemode() == GLOBAL_OP)
 	    {
 	        resApd = resolveApdTimedFields(currApd);
@@ -4306,7 +4527,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    }
 	    MDSplus::deleteData(currApd);
 	    currApd = resApd;
-	
+**********/	
 	}
 
 //std::cout << "RESOLVED" << std::endl;
@@ -4317,7 +4538,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	else
 	{
 	    addContextAndApd(ctx, currApd);   
-	    *size = currApd->len();
+	   // *size = currApd->len();
 	}
     }
 }
@@ -4439,7 +4660,66 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
       return retApd;
   }
-			  
+	
+  void MDSplusBackend::resolveApdField(MDSplus::Apd *apd, ArraystructContext *ctx)
+  {
+      if(apd->len() != 2)
+      {
+	  std::cout << "INTERNAL ERROR in resolveApdField: wrong number (" << apd->len() << " !=2) of apd fields"<< std::endl;
+          throw UALBackendException("Internal error:  wrong number (%d !=2) of apd fields in resolveApdField",LOG);
+      }
+      MDSplus::Data *currDescr = apd->getDescAt(1);
+      const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
+      if(!strcmp(dtype, "DTYPE_MISSING"))
+      {
+          std::cout << "WARNING: EMPTY APD FIELD in resolveApdField" << std::endl;
+	  return;
+      }
+      if(!strcmp(dtype, "DTYPE_BU") && strcmp(dtype, "DTYPE_MISSING"))  //if it is not a serialized APD (nested dynamic AoS)
+      {
+	  std::cout << "INTERNAL ERROR in resolveApdField: unexpected serialized apd found" << std::endl;
+          throw UALBackendException("Internal error:  nexpected serialized apd found in resolveApdField",LOG);
+      }
+      if(ctx->getRangemode() == GLOBAL_OP)
+      {
+	  try {
+	      void *dataPtr;
+	      int datatype;
+	      int numDims;
+	      int dims[64];
+    	      readTimedData((MDSplus::TreeNode *)currDescr, &dataPtr, &datatype, &numDims, (int *)dims);
+    	      MDSplus::Data *currData = assembleData(dataPtr, datatype, numDims, dims);
+	      free(dataPtr);
+	      MDSplus::Data **dscs = apd->getDscArray();
+	      MDSplus::deleteData(dscs[1]);
+	      dscs[1] = currData;	
+ 	  }catch(MDSplus::MdsException &exc){std::cout << exc.what() << std::endl;}
+      }
+      else //get slice
+      {
+	  void *data;
+	  int datatype, numDims;
+	  int dims[16];
+          char *path = ((MDSplus::TreeNode *)currDescr)->getFullPath();
+          std::string pathStr(path);
+	  delete [] path;
+	  std::string emptyStr("");
+	  if(!readSlice(tree, true, pathStr, ctx->getDataobjectName(), ctx->getTimebasePath(), ctx->getTime(), ctx->getInterpmode(), &data, &datatype, &numDims, dims, false))
+		      throw UALBackendException("Internal error: expected valid slice in resolveApdField",LOG);
+
+	  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
+	  free((char *)data);
+	  MDSplus::Data **dscs = apd->getDscArray();
+	  MDSplus::deleteData(dscs[1]);
+	  dscs[1] = currData;	
+      }
+ }
+
+
+
+
+
+		  
 //Gabriele 2017
   void MDSplusBackend::putInArraystruct(ArraystructContext *ctx,
 				std::string fieldname,     //Relative to the curent AoS root
@@ -4475,7 +4755,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 				  
     {
 	MDSplus::Apd *currApd = getApdFromContext(ctx);
-        MDSplus::Data *data = getFromApd(currApd, idx, fieldname);
+        MDSplus::Data *data = getFromApd(currApd, idx, fieldname, ctx);
 	if(!data) return 0;
 	MDSplus::Data *evaluatedData = data->data();
 	MDSplusBackend::disassembleData(data, retData, datatype, dim, size);
@@ -4657,12 +4937,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     std::cout << "Access Layer: " << d1 << std::endl;
     std::cout << "Data Dictionary: " << d2 << std::endl;
 
+    be->resetIdsPath(DEF_TREENAME);
+
     delete(n1);
     delete(n2);
     delete(be->tree);
     delete(be);
   }
-
-
-
-
