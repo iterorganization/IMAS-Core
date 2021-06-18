@@ -659,7 +659,7 @@ static std::vector<MDSplus::Apd *> splitApdArrays(MDSplus::Apd *inApd, int numIn
 static void inflateApd(MDSplus::Apd *inApd)
 {
     if(!inApd) return;
- 
+
     unsigned char clazz;
     unsigned char dtype;
     short length;
@@ -3102,6 +3102,9 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		    MDSplus::Data *sliceData = MDSplus::deserialize(&serialized[bufIdx]);
 		    if(sliceData->clazz != CLASS_APD)
 		  	throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
+//Gabriele June 2021 -- must inflate
+		    inflateApd((MDSplus::Apd *)sliceData);
+/////////////////////////
 	      	    MDSplus::Data **dscs = apd->getDscArray();
 		    if(dscs[startIdx + idx])
 		  	throw  UALBackendException("Internal error: unexpected  array of structure found in fillApdSlicesArountIdx",LOG);
