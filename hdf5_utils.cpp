@@ -140,15 +140,19 @@ void HDF5Utils::deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened
     while (it != opened_IDS_files.end()) {
         const std::string & external_link_name = it->first;
         std::string IDSpulseFile = getIDSPulseFilePath(files_directory, relative_file_path, external_link_name);
-        if (exists(IDSpulseFile.c_str())) {
-            remove(IDSpulseFile.c_str());
-            if (exists(IDSpulseFile.c_str())) {
-                char error_message[200];
-                sprintf(error_message, "Unable to remove HDF5 pulse file: %s\n", IDSpulseFile.c_str());
-                throw UALBackendException(error_message, LOG);
-            }
-        }
+        deleteIDSFile(IDSpulseFile);
         it++;
+    }
+}
+
+void HDF5Utils::deleteIDSFile(const std::string &filePath) {
+    if (exists(filePath.c_str())) {
+        remove(filePath.c_str());
+        if (exists(filePath.c_str())) {
+            char error_message[200];
+            sprintf(error_message, "Unable to remove HDF5 pulse file: %s\n", filePath.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
     }
 }
 

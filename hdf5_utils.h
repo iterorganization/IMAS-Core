@@ -61,6 +61,7 @@ class HDF5Utils {
     void createIDSFile(OperationContext * ctx, std::string &IDSpulseFile, std::string &backend_version, hid_t *IDS_file_id);
     void writeUserBlock(const std::string & filePath, PulseContext * ctx);
     void writeHeader(PulseContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version);
+    void deleteIDSFile(const std::string &filePath);
 
     hid_t searchDataSetId(const std::string & tensorized_path, std::unordered_map < std::string, hid_t > &opened_data_sets);
 
