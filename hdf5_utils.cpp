@@ -430,7 +430,7 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
         filePath += version;
     } else if (user.rfind("/", 0) == 0) {
         filePath += user;
-        filePath += "/imasdb/";
+        filePath += "/";
         filePath += tokamak;
         filePath += "/";
         filePath += version;
