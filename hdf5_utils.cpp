@@ -39,7 +39,10 @@ int
     /* Turn off error handling */
     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     assert(mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE);
-    *file_id = -1;
+
+    if (*file_id != -1)
+        hdf5_utils.closeMasterFile(file_id);
+
     switch (mode) {
         case OPEN_PULSE:
             hdf5_utils.openMasterFile(file_id, pulseFilePath);
@@ -107,8 +110,11 @@ void
 
     /* Turn off error handling */
     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    
+    if (*file_id != -1)
+        hdf5_utils.closeMasterFile(file_id);
+
     //Opening master file
-    *file_id = -1;
     switch (mode) {
         case FORCE_OPEN_PULSE:
         case CREATE_PULSE:
