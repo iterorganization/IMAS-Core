@@ -4260,8 +4260,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
     	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 		t = new MDSplus::Tree(szTree, shotNum);
+		resetIdsPath(szTree);
 	    }catch(MDSplus::MdsException &exc)
 	    {
+		resetIdsPath(szTree);
 	      	throw UALBackendException("Cannot open MDSplus tree for getting version",LOG);
 	    }
 	    try {
@@ -4275,6 +4277,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		version = {major, minor};
 	    } catch(MDSplus::MdsException &exc)
 	    {
+		delete t;
 		version = {1,0};
 	    }
 	}
