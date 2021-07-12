@@ -22,7 +22,7 @@ HDF5Writer::~HDF5Writer()
 {
 }
 
-bool HDF5Writer::compression_enabled = false;
+bool HDF5Writer::compression_enabled = true;
 bool HDF5Writer::useBuffering = true;
 
 void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
