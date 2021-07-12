@@ -128,9 +128,8 @@ void
             }
             break;
         case FORCE_CREATE_PULSE:
+            hdf5_utils.deleteMasterFile(pulseFilePath, file_id, opened_IDS_files, files_directory, relative_file_path);
             hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
-            hdf5_utils.initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
-            hdf5_utils.deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
             break;
         default:
             throw UALBackendException("Mode not yet supported", LOG);
@@ -160,6 +159,22 @@ void HDF5Utils::deleteIDSFile(const std::string &filePath) {
             throw UALBackendException(error_message, LOG);
         }
     }
+}
+
+void HDF5Utils::deleteMasterFile(const std::string &filePath, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
+
+    if (exists(filePath.c_str())) {
+        openMasterFile(file_id, filePath);
+        initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
+        deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
+        closeMasterFile(file_id);
+        remove(filePath.c_str());
+        if (exists(filePath.c_str())) {
+            char error_message[200];
+            sprintf(error_message, "Unable to remove HDF5 master file: %s\n", filePath.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+     }
 }
 
 
@@ -222,7 +237,7 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
     }
 }
 
-void HDF5Utils::openMasterFile(hid_t *file_id, std::string &filePath) { //open master file
+void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //open master file
     if (*file_id != -1)
       return;
     if (!exists(filePath)) {
@@ -382,13 +397,19 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
 
     struct opdata *od = (struct opdata *) opdata1;
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(od->files_directory, od->relative_file_path, std::string(IDS_link_name));
-    hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    if (!od->mode) {
-        //herr_t status = 
-        if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
-            H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
+    if (exists(IDSpulseFile.c_str())) {
+        hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        if (IDS_file_id < 0) {
+            std::string message("Unable to open external file: ");
+            message += IDSpulseFile;
+            throw UALBackendException(message, LOG);
+        }
+        if (!od->mode) {
+            if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
+                H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
+        }
+        assert(H5Fclose(IDS_file_id)>=0);      //closing the IDS file
     }
-    assert(H5Fclose(IDS_file_id)>=0);      //closing the IDS file
     od->link_names[od->count] = (char *) malloc(100);
     strcpy(od->link_names[od->count], IDS_link_name);
     od->count++;
@@ -659,13 +680,18 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
         return -1;
     }
     hid_t loc_id = H5Gopen2(parent_loc_id, att_name.c_str(), H5P_DEFAULT);
+    if (loc_id < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to open HDF5 group: %s\n", att_name.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
     return loc_id;
 }
 
 void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
 hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
 {
-    if (*IDS_group_id != -1) {
+    if (*IDS_group_id >= 0) {
         H5Gclose(*IDS_group_id);
         *IDS_group_id = -1;
     }
@@ -683,23 +709,7 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
         opened_IDS_files[IDS_link_name] = IDS_file_id;
     }
 
-    hid_t loc_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
-    //hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
-    if (loc_id >= 0) {
-        *IDS_group_id = loc_id;
-    } else {
-        *IDS_group_id = -1;
-    }
-}
-
-hid_t HDF5Utils::searchDataSetId(const std::string & tensorized_path, std::unordered_map < std::string, hid_t > &opened_data_sets)
-{
-    hid_t dataset_id = -1;
-
-    if (opened_data_sets.find(tensorized_path) != opened_data_sets.end())
-        dataset_id = opened_data_sets[tensorized_path];
-
-    return dataset_id;
+    *IDS_group_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
 }
 
 void HDF5Utils::showStatus(hid_t file_id) {
@@ -720,4 +730,31 @@ int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, in
         }
     }
     return 0; //shapes are the same
+}
+
+void HDF5Utils::getDataIndex(int dataset_rank, const hsize_t *dataspace_dims, std::vector < int >current_arrctx_indices, std::vector < int >&index)
+{
+    int n = dataspace_dims[dataset_rank - 1];   //n is the length of the vector of shapes
+    std::vector < int >basis_tmp;
+    basis_tmp.reserve(dataset_rank);
+    basis_tmp.push_back(1);
+
+    for (int i = 1; i < dataset_rank; i++) {
+        basis_tmp[i] = basis_tmp[i - 1] * dataspace_dims[dataset_rank - i];
+    }
+    std::vector < int >basis;
+    basis.reserve(dataset_rank);
+    for (int i = 0; i < dataset_rank; i++) {
+        basis[i] = basis_tmp[dataset_rank - i - 1];
+    }
+    current_arrctx_indices.push_back(0);        //adding the shapes axis; v targets to the first component of the shape vector
+    index.reserve(n);           //index[i] is the index of the ith component of the shapes vector in the linearized buffer
+
+    for (size_t j = 0; j < (size_t) n; j++) {
+        index[j] = 0;
+        for (size_t i = 0; i < (size_t) dataset_rank; i++) {
+            index[j] += current_arrctx_indices[i] * basis[i];
+        }
+        current_arrctx_indices.back() += 1;     //increasing component along shapes axis
+    }
 }
