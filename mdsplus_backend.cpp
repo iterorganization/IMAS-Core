@@ -5,6 +5,14 @@
 #include <pthread.h>
 
 #include "mdsplus_backend.h"
+
+
+//Version definition
+#define MDSPLUS_BACKEND_MAJOR 1
+#define MDSPLUS_BACKEND_MINOR 0
+
+
+
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
 //#define MDSPLUS_SEGMENT_SIZE 134144
@@ -26,7 +34,24 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static std::string originalIdsPath = "";
 
 
-
+static void saveVersion(MDSplus::Tree *t)
+{
+    try {
+	MDSplus::TreeNode *nMajor = t->getNode("VERSION:BACK_MAJOR");
+	MDSplus::TreeNode *nMinor = t->getNode("VERSION:BACK_MINOR");
+	MDSplus::Int32 *majorD = new MDSplus::Int32(MDSPLUS_BACKEND_MAJOR);
+	MDSplus::Int32 *minorD = new MDSplus::Int32(MDSPLUS_BACKEND_MINOR);
+	nMajor->putData(majorD);
+	nMinor->putData(minorD);
+	MDSplus::deleteData(majorD);
+	MDSplus::deleteData(minorD);
+	delete nMajor;
+	delete nMinor;
+    } catch(MDSplus::MdsException &exc)
+    {
+	throw UALBackendException("Cannot save Backend version in new pulse",LOG);
+    }
+}
 
 #ifdef NODENAME_MANGLING
 
@@ -2143,7 +2168,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
-		char buf[16]; //TODO: Check size -- DONE
+		char buf[64]; //TODO: Check size -- DONE
 		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
 		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
@@ -2175,7 +2200,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
 	    for(int groupIdx = 1; groupIdx <= numGroups; groupIdx++)
 	    {
-		char buf[16]; //TODO: Check size -- DONE
+		char buf[64]; //TODO: Check size -- DONE
 		sprintf(buf, "group_%d", groupIdx);
 		currPath = buf;
 		MDSplus::TreeNode *currGroup = currNode->getNode(checkFullPath(currPath, true).c_str());
@@ -4213,6 +4238,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      modelTree->createPulse(shotNum);
 		      delete modelTree;
 		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
+		      saveVersion(tree);
 		  }catch(MDSplus::MdsException &exc)
 		  {
                     resetIdsPath(szTree);
@@ -4947,3 +4973,45 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     delete(be->tree);
     delete(be);
   }
+
+//Return version info
+    std::pair<int,int> MDSplusBackend::getVersion(PulseContext *ctx)
+    {
+	char szTree[256] = { 0 };
+	 strcpy(szTree, DEF_TREENAME);
+
+	std::pair<int,int> version;
+	if(!ctx)
+	    version = {MDSPLUS_BACKEND_MAJOR, MDSPLUS_BACKEND_MINOR};
+	else
+	{
+	    MDSplus::Tree *t;
+	    try {
+	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
+    	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+		t = new MDSplus::Tree(szTree, shotNum);
+		resetIdsPath(szTree);
+	    }catch(MDSplus::MdsException &exc)
+	    {
+		resetIdsPath(szTree);
+	      	throw UALBackendException("Cannot open MDSplus tree for getting version",LOG);
+	    }
+	    try {
+		MDSplus::TreeNode *nMajor = t->getNode("VERSION:BACK_MAJOR");
+		int major =  nMajor->getInt();
+		MDSplus::TreeNode *nMinor = t->getNode("VERSION:BACK_MINOR");
+		int minor =  nMinor->getInt();
+		delete nMajor;
+		delete nMinor;
+		delete t;
+		version = {major, minor};
+	    } catch(MDSplus::MdsException &exc)
+	    {
+		delete t;
+		version = {1,0};
+	    }
+	}
+	return version;
+    }
+		
+		

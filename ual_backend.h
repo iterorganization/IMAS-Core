@@ -57,6 +57,17 @@ public:
   static Backend* initBackend(int id);
 
   /**
+     Returns version of the backend (pair <major,minor>), to be used for compatibility checks.
+     Version number needs to be bumped when:
+     - non-backward compatible changes are being introduced --> major
+     - non-forward compatible changes are being introduced --> minor
+     @param[in] ctx pointer on pulse context, if NULL then returns the version of the backend,
+     otherwise returns the version stored in associated pulse file
+     @result std::pair<int,int> for <major,minor> version numbers
+  */
+  virtual std::pair<int,int> getVersion(PulseContext *ctx) = 0;
+
+  /**
      Opens a database entry.
      This function opens a database entry described by the passed pulse context.
      @param[in] ctx pointer on pulse context

@@ -72,3 +72,10 @@ void NoBackend::beginArraystructAction(ArraystructContext *ctx,
     std::cout << "NoBackend beginWriteArraystruct\n";
 }
 
+std::pair<int,int> NoBackend::getVersion(PulseContext *ctx)
+{
+  if (verbose)
+    std::cout << "NoBackend getVersion\n";
+  return {0,0};
+}
+
