@@ -423,6 +423,8 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
 
     if (!strcmp(user.c_str(), "public")) {
         char *home = getenv("IMAS_HOME");
+        if (home == NULL)
+            throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
         filePath += home;
         filePath += "/shared/imasdb/";
         filePath += tokamak;

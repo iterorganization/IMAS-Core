@@ -781,6 +781,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
   if(!strcmp(user, "public")) 
     {
       char *home = getenv("IMAS_HOME");
+      if (home == NULL)
+        throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
       mdsplusBaseStr += home;
       mdsplusBaseStr += "/shared/imasdb/";
       mdsplusBaseStr += tokamak;
