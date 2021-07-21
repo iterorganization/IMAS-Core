@@ -39,6 +39,7 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
     } else if (ctx->getType() == CTX_OPERATION_TYPE) {
         OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
         if (opCtx->getRangemode() == GLOBAL_OP && opCtx->getAccessmode() == WRITE_OP) {
+            writer.write_buffers();
             H5Fflush(file_id, H5F_SCOPE_LOCAL);
             writer.close_datasets();
             writer.close_group();

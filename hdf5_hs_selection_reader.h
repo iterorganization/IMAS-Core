@@ -34,7 +34,7 @@ class HDF5HsSelectionReader {
     bool memSpaceHasChanged(hsize_t * dims);
 
   public:
-     HDF5HsSelectionReader(hid_t dataset_id, int datatype, int AOSRank_, int *dim);
+     HDF5HsSelectionReader(int dataset_rank_, hid_t dataset_id_, hid_t dataspace_, hsize_t *dims, int datatype, int AOSRank_, int *dim);
     ~HDF5HsSelectionReader();
 
     hid_t dtype_id;
@@ -43,16 +43,17 @@ class HDF5HsSelectionReader {
     hid_t memspace;
     size_t buffer_size;
 
+    int getSize2();
     void setSize(int *size_, int dim);
     int getDim() const;
     int getRank() const;
     void getSize(int *size, int slice_mode, bool is_dynamic) const;
-    void getDataIndex(std::vector < int >current_arrctx_indices, std::vector < int >&index);
+    const hsize_t* getDataSpaceDims();
     int getShape(int axis_index) const;
     bool isRequestInExtent(std::vector < int >&current_arrctx_indices);
     void allocateGlobalOpBuffer(void **data);
     int allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index);
-    void allocateFullBuffer(void **data);
+    int allocateFullBuffer(void **data);
     void setHyperSlabsGlobalOp(std::vector < int >&current_arrctx_indices);
     void setHyperSlabs(int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, std::vector < int >&current_arrctx_indices);
 };

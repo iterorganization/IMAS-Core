@@ -78,12 +78,20 @@ void
  HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
 {
     access_mode = mode;
-    hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
+    /*hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
     assert(fapl>= 0);
-    H5Pset_alignment(fapl, 0, 16);
+    H5Pset_alignment(fapl, 0, 16);*/
     std::string backend_version;
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
+
+    if (!options.empty() && options.find("-no_compression") != std::string::npos)
+        HDF5Writer::compression_enabled = false;
+    if (!options.empty() && options.find("-no_read_buffering") != std::string::npos)
+        HDF5Reader::useBuffering = false;
+    if (!options.empty() && options.find("-no_write_buffering") != std::string::npos)
+        HDF5Writer::useBuffering = false;
+
     switch (mode) {
     case OPEN_PULSE:
     case FORCE_OPEN_PULSE: 
@@ -99,14 +107,10 @@ void
     case FORCE_CREATE_PULSE:
         backend_version = getVersion();
         HDF5Utils::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
-        if (!options.empty() && options.find("-no_compression") != std::string::npos) {
-            HDF5Writer::compression_enabled = false;
-        }
         break;
     default:
         throw UALBackendException("Mode not yet supported", LOG);
     }
-    assert(H5Pclose(fapl)>=0);
     createBackendComponents(backend_version);
 }
 
@@ -123,10 +127,7 @@ void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
 
 void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size)
 {
-    OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-    std::string IDS_link_name = opCtx->getDataobjectName();
-    std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-    hdf5Writer->write_ND_Data(ctx, -1, fieldname, timebasename, datatype, dim, size, data);
+    hdf5Writer->write_ND_Data(ctx, fieldname, timebasename, datatype, dim, size, data);
 }
 
 int HDF5Backend::readData(Context * ctx, std::string fieldname, std::string timebasename, void **data, int *datatype, int *dim, int *size)
@@ -139,6 +140,8 @@ int HDF5Backend::readData(Context * ctx, std::string fieldname, std::string time
 
 void HDF5Backend::deleteData(OperationContext * ctx, std::string path)
 {
+    if (file_id == -1) //master file is closed
+        return;
     hdf5Writer->deleteData(ctx, this->file_id, opened_IDS_files, files_directory, relative_file_path);
 }
 
@@ -146,9 +149,7 @@ void HDF5Backend::beginWriteArraystructAction(ArraystructContext * ctx, int *siz
 {
     if (*size == 0)
         return;
-    std::string IDS_link_name = ctx->getDataobjectName();
-    std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
-    hdf5Writer->beginWriteArraystructAction(ctx, size, -1, IDS_link_name);
+    hdf5Writer->beginWriteArraystructAction(ctx, size);
 }
 
 void HDF5Backend::beginReadArraystructAction(ArraystructContext * ctx, int *size)

@@ -38,7 +38,7 @@ class HDF5Utils {
     std::string getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
     void deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     void createMasterFile(PulseContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
-    void openMasterFile(hid_t *file_id, std::string &filePath);
+    void openMasterFile(hid_t *file_id, const std::string &filePath);
     void initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
 
   public:
@@ -62,8 +62,7 @@ class HDF5Utils {
     void writeUserBlock(const std::string & filePath, PulseContext * ctx);
     void writeHeader(PulseContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version);
     void deleteIDSFile(const std::string &filePath);
-
-    hid_t searchDataSetId(const std::string & tensorized_path, std::unordered_map < std::string, hid_t > &opened_data_sets);
+    void deleteMasterFile(const std::string &filePath, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
 
     void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id);
     hid_t createOrOpenHDF5Group(const std::string & path, const hid_t & parent_loc_id);
@@ -72,13 +71,13 @@ class HDF5Utils {
     int max(int num1, int num2);
 	int min(int num1, int num2);
     int compareShapes(int *first_slice_shape, int *second_slice_shape, int dim);
+    void getDataIndex(int dataset_rank, const hsize_t *dataspace_dims, std::vector < int >current_arrctx_indices, std::vector < int >&index);
     bool isTimed(Context * ctx, int *timed_AOS_index);
     void getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index);
     int getAOSIndicesSize(Context * ctx);
     void setTensorizedPaths(ArraystructContext * ctx, std::vector < std::string > &tensorized_paths);
     void showStatus(hid_t file_id);
-    enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3
-    };
+    enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
 
 };
 
