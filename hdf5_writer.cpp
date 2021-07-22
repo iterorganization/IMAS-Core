@@ -41,21 +41,18 @@ void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options,
 void HDF5Writer::close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files)
 {
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
+    HDF5Utils hdf5_utils;
     hid_t pulse_file_id = -1;
-    if (opened_IDS_files.find(external_link_name) != opened_IDS_files.end()) {
-        pulse_file_id = opened_IDS_files[external_link_name];
-    }
-    if (pulse_file_id != -1) {
-		/*std::cout << "WRITER:close_file_handler :showing status for pulse file..." << std::endl;
-			HDF5Utils hdf5_utils;
-	        hdf5_utils.showStatus(pulse_file_id);*/
-        herr_t status = H5Fclose(pulse_file_id);
-        if (status < 0) {
-            char error_message[100];
-            sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
-            throw UALBackendException(error_message, LOG);
+    auto got = opened_IDS_files.find(external_link_name);
+    if (got != opened_IDS_files.end()) {
+        pulse_file_id = got->second;
+        if (pulse_file_id != -1) {
+		    /*std::cout << "WRITER:close_file_handler :showing status for pulse file..." << std::endl;
+			    HDF5Utils hdf5_utils;
+	            hdf5_utils.showStatus(pulse_file_id);*/
+            hdf5_utils.closeIDSFile(pulse_file_id, external_link_name);
+            opened_IDS_files[external_link_name] = -1;
         }
-        opened_IDS_files[external_link_name] = -1;
     }
 }
 
@@ -70,23 +67,25 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
     HDF5Utils hdf5_utils;
     //Deleting IDS link from master file
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0) { //the IDS is referenced in the master file
-        if (opened_IDS_files.find(IDS_link_name) != opened_IDS_files.end()) {
-            hid_t IDS_file_id = opened_IDS_files[IDS_link_name];
-            if (IDS_file_id != -1) {
-                if (H5Lexists(IDS_file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0)
-                    assert(H5Ldelete(IDS_file_id, IDS_link_name.c_str(), H5P_DEFAULT) >= 0);
-                assert(H5Fclose(IDS_file_id) >=0);
+        auto got = opened_IDS_files.find(IDS_link_name);
+        hid_t IDS_file_id = -1;
+        std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
+        if (got != opened_IDS_files.end()) {
+            IDS_file_id = got->second;
+            if (IDS_file_id < 0) {
+                if (exists(IDSpulseFile.c_str())) {
+                    hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
+                }
+            }
+            else {
+                hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name);
+                hdf5_utils.deleteIDSFile(IDSpulseFile);
             }
             opened_IDS_files[IDS_link_name] = -1;
         }
-        std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-        if (exists(IDSpulseFile.c_str())) {
-        	hdf5_utils.deleteIDSFile(IDSpulseFile);
-        }
-        if (H5Ldelete(file_id, IDS_link_name.c_str(), H5P_DEFAULT) < 0) {
-            char error_message[200];
-            sprintf(error_message, "Unable to remove HDF5 link %s from master file.\n", IDS_link_name.c_str());
-            throw UALBackendException(error_message, LOG);
+        else {
+            if (exists(IDSpulseFile.c_str())) 
+                hdf5_utils.deleteIDSFile(IDSpulseFile);
         }
     }
     H5Gclose(IDS_group_id);
@@ -114,7 +113,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
                 hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
             }
             else {
-                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id);
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
             }
         
         opened_IDS_files[IDS_link_name] = IDS_file_id;
@@ -126,7 +125,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
                 hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
             }
             else {
-                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id);
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
             }
             
             opened_IDS_files[IDS_link_name] = IDS_file_id;

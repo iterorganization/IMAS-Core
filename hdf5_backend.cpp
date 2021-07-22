@@ -91,6 +91,8 @@ void
         HDF5Reader::useBuffering = false;
     if (!options.empty() && options.find("-no_write_buffering") != std::string::npos)
         HDF5Writer::useBuffering = false;
+    if (!options.empty() && options.find("-debug") != std::string::npos)
+        HDF5Utils::debug = true;
 
     switch (mode) {
     case OPEN_PULSE:

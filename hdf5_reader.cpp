@@ -29,17 +29,8 @@ void HDF5Reader::closePulse(PulseContext * ctx, int mode, std::string & options,
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
         const std::string & external_link_name = it->first;
-        hid_t pulse_file_id = opened_IDS_files[external_link_name];
-
-        if (pulse_file_id != -1) {
-            herr_t status = H5Fclose(pulse_file_id);
-
-            if (status < 0) {
-                char error_message[100];
-                sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
-                throw UALBackendException(error_message, LOG);
-            }
-        }
+        hid_t &pulse_file_id = it->second;
+        hdf5_utils.closeIDSFile(pulse_file_id, external_link_name); //closing the IDS file
         it++;
     }
     hdf5_utils.closeMasterFile(file_id);
