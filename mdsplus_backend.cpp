@@ -9,7 +9,7 @@
 
 //Version definition
 #define MDSPLUS_BACKEND_MAJOR 1
-#define MDSPLUS_BACKEND_MINOR 0
+#define MDSPLUS_BACKEND_MINOR 1
 
 
 
