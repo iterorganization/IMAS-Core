@@ -172,6 +172,7 @@ int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
     auto got = opened_data_sets.find(dataset_name);
     if (got != opened_data_sets.end()) {
         data_set = std::move(got->second);
+        opened_data_sets.erase(got);
         dataset_id = data_set->dataset_id;
     } else {
         std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler(false));
@@ -312,13 +313,19 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
     }
 
+    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
+
+    std::unique_ptr < HDF5DataSetHandler > data_set;
+
     auto got = opened_data_sets.find(tensorized_path);
+
     if (got != opened_data_sets.end()) {
-        const HDF5DataSetHandler &dh = *(got->second);
-        dataset_id =  dh.dataset_id;
+        data_set = std::move(got->second);
+        opened_data_sets.erase(got);
+        assert(data_set);
+        dataset_id = data_set->dataset_id;
     }
 
-    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
     HDF5Utils hdf5_utils;
     int timed_AOS_index = -1;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
@@ -344,16 +351,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
     }
 
-    std::unique_ptr < HDF5DataSetHandler > data_set;
-
     if (dataset_id < 0) {
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false));
         new_data_set-> open(tensorized_path.c_str(), IDS_group_id, &dataset_id, *dim, size, datatype, false, true, useBuffering);
         dataset_id = new_data_set->dataset_id;
         data_set = std::move(new_data_set);
-    }
-    else {
-        data_set = std::move(got->second);
     }
 
     herr_t status = -1;
@@ -625,6 +627,7 @@ int HDF5Reader::readPersistentShapes_Get(Context * ctx, const std::string & fiel
 
     if (isOpenedShapesDataSet) {
         data_set = std::move(opened_shapes_data_sets[tensorized_path]);
+        opened_shapes_data_sets.erase(tensorized_path);
     } else {
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false));
         hid_t dataset_id = -1;
@@ -660,6 +663,7 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
   if (isOpenedShapesDataSet)
     {
         data_set = std::move(opened_shapes_data_sets[tensorized_path]);
+        opened_shapes_data_sets.erase(tensorized_path);
         dataset_id = data_set->dataset_id;
     }
   else
@@ -724,6 +728,7 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tenso
     bool isOpenedShapesDataSet = (got != aos_opened_shapes_data_sets.end());
     if (isOpenedShapesDataSet) {
         data_set = std::move(got->second);
+        aos_opened_shapes_data_sets.erase(tensorized_path);
     } else {
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false));
         hid_t dataset_id = -1;

@@ -316,6 +316,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             data_set = std::move(dataSetHandler);
         } else {
             data_set = std::move(got->second);
+            opened_data_sets.erase(got);
             data_set->setNonSliceMode();
 			data_set->setCurrentShapesAndExtend(size, AOSShapes.data());
         }
@@ -334,6 +335,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             data_set = std::move(dataSetHandler);
         } else {
             data_set = std::move(got->second);
+            opened_data_sets.erase(got);
             data_set->setSliceMode(ctx);
             data_set->updateTimeAxisOffset(current_arrctx_indices);
 			data_set->setCurrentShapesAndExtend(size, AOSShapes.data());
@@ -485,7 +487,7 @@ std::string & timebasename, int timed_AOS_index)
     } else  //dataset already used in previous LL request
     {
         data_set = std::move(got->second);
-
+        opened_data_sets.erase(got);
         if (slice_mode == SLICE_OP) {
             data_set->setSliceMode(ctx);
             data_set->updateTimeAxisOffset(current_arrctx_indices);
@@ -581,6 +583,7 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
         }
         else {
             data_set = std::move(got->second);
+            opened_data_sets.erase(got);
 			if (slice_mode == SLICE_OP) {
             	data_set->setSliceMode(ctx);
                 if (ctx->getTimed()) {
