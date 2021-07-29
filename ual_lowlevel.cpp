@@ -1,5 +1,8 @@
 #include "ual_lowlevel.h"
 
+#include "dlfcn.h"
+#include "access_layer_plugin.h"
+
 #include <assert.h>
 #include <string.h>
 #include <complex.h>
@@ -31,6 +34,209 @@ const int Lowlevel::EMPTY_INT   = -999999999;
 const double Lowlevel::EMPTY_DOUBLE = -9.0E40;
 const std::complex<double> Lowlevel::EMPTY_COMPLEX = std::complex<double>(-9.0E40,-9.0E40);
 
+std::map<std::string, LLplugin> LLplugin::llpluginsStore;
+std::map<std::string, std::string>  LLplugin::attachedPlugins;
+
+void LLplugin::addPluginHandler(const char* name, void *plugin_handler) {
+  llpluginsStore[std::string(name)].plugin_handler = plugin_handler;
+}
+
+void LLplugin::addDestroyPlugin(const char* name, void *destroy_plugin) {
+  llpluginsStore[std::string(name)].destroy_plugin = destroy_plugin;
+}
+
+void LLplugin::addPlugin(const char* name, void *plugin) {
+  llpluginsStore[std::string(name)].al_plugin = plugin;
+}
+
+bool LLplugin::attachedPlugin(int ctxID, const char* fieldPath, std::string &pluginName) {
+  LLenv lle = Lowlevel::getLLenv(ctxID);
+  Context *c= dynamic_cast<Context *>(lle.context);
+  std::string fullPath = c->fullPath() + "/" + std::string(fieldPath);
+  auto got = attachedPlugins.find(fullPath);
+  if (got != attachedPlugins.end()) {
+    pluginName = got->second;
+    return true;
+  }
+  return false;
+}
+
+void LLplugin::attachPlugin(const char* fieldPath, const char* pluginName) {
+    if (!isPluginRegistered(pluginName)) {
+        char error_message[200];
+        sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be attached.\n", pluginName);
+        throw UALBackendException(error_message, LOG);
+    }
+    auto got = attachedPlugins.find(std::string(fieldPath));
+    if (got != attachedPlugins.end()) {
+        char error_message[200];
+        sprintf(error_message, "Field path: %s has already an attached plugin (plugin name=%s).\n", fieldPath, (got->second).c_str());
+        throw UALBackendException(error_message, LOG);
+    }
+    attachedPlugins[fieldPath] = pluginName;
+}
+
+void LLplugin::detachPlugin(const char* fieldPath, const char* pluginName) {
+    auto got = attachedPlugins.find(std::string(fieldPath));
+    if (got == attachedPlugins.end()) {
+        printf("No plugin attached to field path:%s\n", fieldPath);
+    }
+    else {
+        attachedPlugins.erase(got);
+    }
+}
+
+bool LLplugin::isPluginRegistered(const char* name) {
+   return llpluginsStore.find(std::string(name)) != llpluginsStore.end();
+}
+
+void LLplugin::register_plugin(const char* plugin_name) {
+    const char* AL_PLUGINS = std::getenv("UAL_PLUGINS");
+    if (AL_PLUGINS == NULL)
+        throw UALLowlevelException("AL_PLUGINS environment variable not defined",LOG);
+
+    if (isPluginRegistered(plugin_name)) {
+        char error_message[200];
+        sprintf(error_message, "Plugin %s already registered in the plugins store.\n", plugin_name);
+        throw UALBackendException(error_message, LOG);
+    }
+    llpluginsStore[std::string(plugin_name)] = LLplugin();
+    LLplugin &lle = llpluginsStore[std::string(plugin_name)];
+    void* plugin_handler = lle.plugin_handler;
+
+    create_t* create_plugin = NULL;
+    destroy_t* destroy_plugin = NULL;
+
+    std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
+    //printf("ids_plugins:%s\n", ids_plugin.c_str());
+    plugin_handler =  dlopen(ids_plugin.c_str(), RTLD_LAZY);
+    addPluginHandler(plugin_name, plugin_handler);
+    //load the symbols
+    create_plugin = (create_t*) dlsym(plugin_handler, "create");
+    const char* dlsym_error = dlerror();
+    if (dlsym_error) {
+        char error_message[200];
+        sprintf(error_message, "Cannot load symbol create:%s for plugin:%s.\n", dlerror(), plugin_name);
+        throw UALBackendException(error_message, LOG);
+    }
+    destroy_plugin = (destroy_t*) dlsym(plugin_handler, "destroy");
+    dlsym_error = dlerror();
+    if (dlsym_error) {
+        char error_message[200];
+        sprintf(error_message, "Cannot load symbol destroy:%s for plugin:%s.\n", dlerror(), plugin_name);
+        throw UALBackendException(error_message, LOG);
+    }
+    //reset errors
+    dlerror();
+    access_layer_plugin* al_plugin = (access_layer_plugin*) lle.al_plugin;
+    al_plugin = create_plugin();
+    addPlugin(plugin_name, al_plugin);
+    addDestroyPlugin(plugin_name, (void*) destroy_plugin);
+}
+
+al_status_t LLplugin::begin_global_action_plugins(int pulseCtx, const char* dataobjectname, int mode, int opCtx) {
+  al_status_t al_status;
+  access_layer_plugin* al_plugin = NULL;
+  auto it = llpluginsStore.begin();
+  while (it != llpluginsStore.end()) {
+      //const std::string &plugin_name = it->first;
+      LLplugin &lle = it->second;
+      al_plugin = (access_layer_plugin*) lle.al_plugin;
+      al_status = al_plugin->begin_global_action(pulseCtx, dataobjectname, mode, opCtx);
+      if (al_status.code != 0)
+         return al_status;
+      ++it;
+  }
+  al_status.code = 0;
+  return al_status;
+}
+
+al_status_t LLplugin::begin_slice_action_plugins(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
+  al_status_t al_status;
+  access_layer_plugin* al_plugin = NULL;
+  auto it = llpluginsStore.begin();
+  while (it != llpluginsStore.end()) {
+      LLplugin &lle = it->second;
+      al_plugin = (access_layer_plugin*) lle.al_plugin;
+      al_status = al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
+      if (al_status.code != 0)
+         return al_status;
+      ++it;
+  }
+  al_status.code = 0;
+  return al_status;
+}
+
+al_status_t LLplugin::begin_arraystruct_action_plugins(int ctx, const char* fieldPath, const char* timeBasePath, int arraySize) {
+  al_status_t al_status;
+  access_layer_plugin* al_plugin = NULL;
+  auto it = llpluginsStore.begin();
+  while (it != llpluginsStore.end()) {
+      //const std::string &plugin_name = it->first;
+      LLplugin &lle = it->second;
+      al_plugin = (access_layer_plugin*) lle.al_plugin;
+      al_status = al_plugin->begin_arraystruct_action(ctx, fieldPath, timeBasePath, arraySize);
+      if (al_status.code != 0)
+         return al_status;
+      ++it;
+  }
+  al_status.code = 0;
+  return al_status;
+}
+
+al_status_t LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
+              void **data, int datatype, int dim, int *size)
+{
+
+al_status_t status;
+void *retData=NULL;
+LLenv lle = Lowlevel::getLLenv(ctxID);
+Context *c= dynamic_cast<Context *>(lle.context);
+std::string fullPath = c->fullPath() + "/" + std::string(field);
+
+status.code = 0;
+try {
+    access_layer_plugin* al_plugin = NULL;
+    LLplugin &llp = llpluginsStore[plugin_name];
+    al_plugin = (access_layer_plugin*) llp.al_plugin;
+    int ret = al_plugin->read_data(ctxID, field, timebase, &retData, datatype, dim, size);
+
+    if (ret == 0) {
+        // no data
+        Lowlevel::setDefaultValue(datatype, dim, data, size);
+    }
+    else {
+        Lowlevel::setValue(retData, datatype, dim, data);
+    }
+
+}
+catch (const UALBackendException& e) {
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
+}
+catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+}
+catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+}
+
+return status;
+}
+
+/*al_status_t LLplugin::ual_write_aos_content_plugins(int ctx, const char* fieldPath, const char* timeBasePath) {
+  al_status_t al_status;
+  access_layer_plugin* al_plugin = NULL;
+  LLplugin llp = LLplugin::getPluginsStore();
+  al_plugin = (access_layer_plugin*) llp.al_plugin;
+  if (al_plugin != NULL) {
+    return al_plugin->write_aos_content(ctx, fieldPath, timeBasePath);
+  }
+  al_status.code = 0;
+  return al_status;
+}*/
 
 int Lowlevel::addLLenv(Backend *be, Context *ctx)
 {
@@ -776,4 +982,63 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
   }
 
   return status;
+}
+
+//HLI Wrappers for calling LL functions - Call plugins if required
+
+al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
+                    int *octxID)
+{
+  al_status_t status = ual_begin_global_action(pctxID, dataobjectname, rwmode, octxID);
+  if (status.code != 0)
+     return status;
+  return LLplugin::begin_global_action_plugins(pctxID, dataobjectname, rwmode, *octxID);
+}
+
+al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+                   double time, int interpmode, int *octxID)
+{
+  al_status_t status = ual_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
+  if (status.code != 0)
+     return status;
+  return LLplugin::begin_slice_action_plugins(pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
+}
+
+al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, 
+                     const char *timebase, int *size,
+                     int *actxID)
+{
+  al_status_t status = ual_begin_arraystruct_action(ctxID, path, timebase, size, actxID);
+  if (status.code != 0)
+     return status;
+  return LLplugin::begin_arraystruct_action_plugins(*actxID, path, timebase, *size);
+}
+
+al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, 
+              void **data, int datatype, int dim, int *size)
+{
+  std::string pluginName;
+  bool isPluginAttached = LLplugin::attachedPlugin(ctxID, field, pluginName);
+  if (isPluginAttached) {
+     return LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
+  }
+  else {
+    return ual_read_data(ctxID, field, timebase, data, datatype, dim, size);
+  }
+}
+
+//HLI wrappers for plugins API
+al_status_t hli_register_plugin(const char *plugin_name)
+{
+  al_status_t status;
+  status.code = 0;
+  LLplugin::register_plugin(plugin_name);
+  return status;
+}
+
+al_status_t hli_attach_plugin(const char* fieldPath, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    LLplugin::attachPlugin(fieldPath, pluginName);
+    return status;
 }

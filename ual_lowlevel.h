@@ -23,8 +23,57 @@
 #ifdef __cplusplus
 
 #include <vector>
+#include <map>
 #include <mutex>
 #include <complex>
+
+typedef struct 
+  {
+    int code;
+    char message[MAX_ERR_MSG_LEN];
+  } al_status_t;
+
+
+/**
+   Holds a plugin.
+*/
+class LIBRARY_API LLplugin
+{ 
+public:
+  
+  void* plugin_handler;
+  void* al_plugin;
+  void* destroy_plugin;
+  char* name;
+  static std::map<std::string, LLplugin>  llpluginsStore;           /**< plugins */
+  static std::map<std::string, std::string>  attachedPlugins;           /** key = field path, value=plugin name*/
+
+  LLplugin()
+  {
+    plugin_handler = NULL;
+    al_plugin = NULL;
+    destroy_plugin = NULL;
+    name = NULL;
+  }
+  static void register_plugin(const char* plugin_name);
+
+  static al_status_t begin_global_action_plugins(int pulseCtx, const char* dataobjectname, int mode, int opCtx);
+  static al_status_t begin_slice_action_plugins(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
+  static al_status_t begin_arraystruct_action_plugins(int ctx, const char* fieldPath, const char* timeBasePath, int arraySize);
+  static al_status_t read_data_plugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
+  //static al_status_t ual_write_aos_content_plugins(int ctx, const char* fieldPath, const char* timeBasePath);
+  //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
+  //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
+
+  static bool isPluginRegistered(const char* name);
+  static void attachPlugin(const char* fieldPath, const char* name);
+  static void detachPlugin(const char* fieldPath, const char* name);
+  static void addPluginHandler(const char* name, void *plugin_handler);
+  static void addDestroyPlugin(const char* name, void *destroy_plugin);
+  static void addPlugin(const char* name, void *plugin);
+  static bool attachedPlugin(int ctxID, const char* fieldPath, std::string &pluginName); //switch
+
+};
 
 /**
    Lowlevel environment structure.
@@ -157,11 +206,7 @@ extern "C"
 
   /******************** DEFINITION OF THE C API ********************/
 
-  typedef struct 
-  {
-    int code;
-    char message[MAX_ERR_MSG_LEN];
-  } al_status_t;
+
 
 
   /**
@@ -377,7 +422,22 @@ extern "C"
    */
   LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
 						       int step);
-  
+
+
+  LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
+
+  LIBRARY_API al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+
+  LIBRARY_API al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
+
+  LIBRARY_API al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
+
+  //LIBRARY_API al_status_t hli_close_pulse(int pctxID, int mode, const char *options);
+
+  //HLI wrappers for plugins API
+  LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
+
+  LIBRARY_API al_status_t hli_attach_plugin(const char* fieldPath, const char* pluginName);
 
 #if defined(__cplusplus)
 }
