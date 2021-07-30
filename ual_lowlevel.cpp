@@ -134,73 +134,86 @@ void LLplugin::register_plugin(const char* plugin_name) {
     addDestroyPlugin(plugin_name, (void*) destroy_plugin);
 }
 
-al_status_t LLplugin::begin_global_action_plugins(int pulseCtx, const char* dataobjectname, int mode, int opCtx) {
-  al_status_t al_status;
+
+bool LLplugin::findByValue(std::vector<std::string> & vec, std::map<std::string, std::string> mapOfElemen, std::string value)
+{
+    bool bResult = false;
+    auto it = mapOfElemen.begin();
+    while(it != mapOfElemen.end())
+    {
+        if(it->second == value)
+        {
+            bResult = true;
+            vec.push_back(it->first);
+        }
+        it++;
+    }
+    return bResult;
+}
+
+void LLplugin::unregister_plugin(const char* plugin_name) {
+    if (!isPluginRegistered(plugin_name)) {
+        char error_message[200];
+        sprintf(error_message, "Plugin %s not registered in the plugins store.\n", plugin_name);
+        throw UALBackendException(error_message, LOG);
+    }
+    //Erasing all paths attached to this plugin from the attachedPlugins map
+    std::vector<std::string> keys;
+    if (findByValue(keys, attachedPlugins, plugin_name)) {
+       auto it = keys.begin();
+       while (it != keys.end()) {
+        attachedPlugins.erase(*it);
+        it++;
+       }
+    }
+}
+
+void LLplugin::begin_global_action_plugins(int pulseCtx, const char* dataobjectname, int mode, int opCtx) {
   access_layer_plugin* al_plugin = NULL;
   auto it = llpluginsStore.begin();
   while (it != llpluginsStore.end()) {
       //const std::string &plugin_name = it->first;
       LLplugin &lle = it->second;
       al_plugin = (access_layer_plugin*) lle.al_plugin;
-      al_status = al_plugin->begin_global_action(pulseCtx, dataobjectname, mode, opCtx);
-      if (al_status.code != 0)
-         return al_status;
+      al_plugin->begin_global_action(pulseCtx, dataobjectname, mode, opCtx);
       ++it;
   }
-  al_status.code = 0;
-  return al_status;
 }
 
-al_status_t LLplugin::begin_slice_action_plugins(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
-  al_status_t al_status;
+void LLplugin::begin_slice_action_plugins(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
   access_layer_plugin* al_plugin = NULL;
   auto it = llpluginsStore.begin();
   while (it != llpluginsStore.end()) {
       LLplugin &lle = it->second;
       al_plugin = (access_layer_plugin*) lle.al_plugin;
-      al_status = al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
-      if (al_status.code != 0)
-         return al_status;
+      al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
       ++it;
   }
-  al_status.code = 0;
-  return al_status;
 }
 
-al_status_t LLplugin::begin_arraystruct_action_plugins(int ctx, const char* fieldPath, const char* timeBasePath, int arraySize) {
-  al_status_t al_status;
+void LLplugin::begin_arraystruct_action_plugins(int ctx, const char* fieldPath, const char* timeBasePath, int arraySize) {
   access_layer_plugin* al_plugin = NULL;
   auto it = llpluginsStore.begin();
   while (it != llpluginsStore.end()) {
       //const std::string &plugin_name = it->first;
       LLplugin &lle = it->second;
       al_plugin = (access_layer_plugin*) lle.al_plugin;
-      al_status = al_plugin->begin_arraystruct_action(ctx, fieldPath, timeBasePath, arraySize);
-      if (al_status.code != 0)
-         return al_status;
+      al_plugin->begin_arraystruct_action(ctx, fieldPath, timeBasePath, arraySize);
       ++it;
   }
-  al_status.code = 0;
-  return al_status;
 }
 
-al_status_t LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
+void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
-
-al_status_t status;
-void *retData=NULL;
-LLenv lle = Lowlevel::getLLenv(ctxID);
-Context *c= dynamic_cast<Context *>(lle.context);
-std::string fullPath = c->fullPath() + "/" + std::string(field);
-
-status.code = 0;
-try {
+    void *retData=NULL;
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    Context *c= dynamic_cast<Context *>(lle.context);
+    std::string fullPath = c->fullPath() + "/" + std::string(field);
     access_layer_plugin* al_plugin = NULL;
     LLplugin &llp = llpluginsStore[plugin_name];
     al_plugin = (access_layer_plugin*) llp.al_plugin;
     int ret = al_plugin->read_data(ctxID, field, timebase, &retData, datatype, dim, size);
-
     if (ret == 0) {
         // no data
         Lowlevel::setDefaultValue(datatype, dim, data, size);
@@ -208,34 +221,15 @@ try {
     else {
         Lowlevel::setValue(retData, datatype, dim, data);
     }
-
-}
-catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
-}
-catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
-}
-catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
 }
 
-return status;
-}
-
-/*al_status_t LLplugin::ual_write_aos_content_plugins(int ctx, const char* fieldPath, const char* timeBasePath) {
-  al_status_t al_status;
+/*void LLplugin::ual_write_aos_content_plugins(int ctx, const char* fieldPath, const char* timeBasePath) {
   access_layer_plugin* al_plugin = NULL;
   LLplugin llp = LLplugin::getPluginsStore();
   al_plugin = (access_layer_plugin*) llp.al_plugin;
   if (al_plugin != NULL) {
-    return al_plugin->write_aos_content(ctx, fieldPath, timeBasePath);
+    al_plugin->write_aos_content(ctx, fieldPath, timeBasePath);
   }
-  al_status.code = 0;
-  return al_status;
 }*/
 
 int Lowlevel::addLLenv(Backend *be, Context *ctx)
@@ -989,42 +983,118 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
 al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
                     int *octxID)
 {
-  al_status_t status = ual_begin_global_action(pctxID, dataobjectname, rwmode, octxID);
-  if (status.code != 0)
-     return status;
-  return LLplugin::begin_global_action_plugins(pctxID, dataobjectname, rwmode, *octxID);
+  al_status_t status;
+
+  status.code = 0;
+
+  try {
+    status = ual_begin_global_action(pctxID, dataobjectname, rwmode, octxID);
+    if (status.code != 0)
+        return status;
+    LLplugin::begin_global_action_plugins(pctxID, dataobjectname, rwmode, *octxID);
+  }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
 }
 
 al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
                    double time, int interpmode, int *octxID)
 {
-  al_status_t status = ual_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
-  if (status.code != 0)
+  al_status_t status;
+
+  status.code = 0;
+  try {
+    status = ual_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
+    if (status.code != 0)
      return status;
-  return LLplugin::begin_slice_action_plugins(pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
+    LLplugin::begin_slice_action_plugins(pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
+   }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
 }
 
 al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, 
                      const char *timebase, int *size,
                      int *actxID)
 {
-  al_status_t status = ual_begin_arraystruct_action(ctxID, path, timebase, size, actxID);
-  if (status.code != 0)
-     return status;
-  return LLplugin::begin_arraystruct_action_plugins(*actxID, path, timebase, *size);
+  al_status_t status;
+  status.code = 0;
+  try {
+    status = ual_begin_arraystruct_action(ctxID, path, timebase, size, actxID);
+    if (status.code != 0)
+        return status;
+    LLplugin::begin_arraystruct_action_plugins(*actxID, path, timebase, *size);
+  }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
 }
 
 al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
-  std::string pluginName;
-  bool isPluginAttached = LLplugin::attachedPlugin(ctxID, field, pluginName);
-  if (isPluginAttached) {
-     return LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
+  al_status_t status;
+
+  status.code = 0;
+  try {
+  
+    std::string pluginName;
+    bool isPluginAttached = LLplugin::attachedPlugin(ctxID, field, pluginName);
+    if (isPluginAttached) {
+        LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
+    }
+    else {
+        status = ual_read_data(ctxID, field, timebase, data, datatype, dim, size);
+        if (status.code != 0)
+            return status;
+    }
   }
-  else {
-    return ual_read_data(ctxID, field, timebase, data, datatype, dim, size);
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
   }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
+   
 }
 
 //HLI wrappers for plugins API
@@ -1032,13 +1102,84 @@ al_status_t hli_register_plugin(const char *plugin_name)
 {
   al_status_t status;
   status.code = 0;
-  LLplugin::register_plugin(plugin_name);
+  try {
+    LLplugin::register_plugin(plugin_name);
+  }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
+}
+
+al_status_t hli_unregister_plugin(const char *plugin_name)
+{
+  al_status_t status;
+  status.code = 0;
+  try {
+    LLplugin::unregister_plugin(plugin_name);
+  }
+  catch (const UALContextException& e) {
+    status.code = ualerror::context_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
   return status;
 }
 
 al_status_t hli_attach_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
-    LLplugin::attachPlugin(fieldPath, pluginName);
+    try {
+        LLplugin::attachPlugin(fieldPath, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_detach_plugin(const char* fieldPath, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+        LLplugin::detachPlugin(fieldPath, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
     return status;
 }
