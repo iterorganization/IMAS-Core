@@ -464,15 +464,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 				if (maxlength == 0)
 					return 0;
                 char *buffer = (char *) malloc(size[0] * (maxlength + 1));
-                char ch = '\0';
-                memset(buffer, 0, size[0] * (maxlength + 1));
+                memset(buffer, 0, size[0] * maxlength);
                 for (int i = 0; i < size[0]; i++) {
 					if (p[i] == nullptr)
 						continue;
                     strcpy(buffer + i * maxlength, p[i]);
-                    for (int j = 0; j < (int) (maxlength - strlen(p[i])); j++) {
-                        strncat(buffer + i * maxlength, &ch, 1);
-                    }
                 }
                 free(*data);
                 *data = buffer;
