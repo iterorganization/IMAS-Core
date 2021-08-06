@@ -46,6 +46,11 @@ void LLplugin::addDestroyPlugin(const char* name, void *destroy_plugin) {
 }
 
 void LLplugin::addPlugin(const char* name, void *plugin) {
+  if (!plugin) {
+    char error_message[200];
+    sprintf(error_message, "Plugin %s is NULL and can not be registered in the plugins store. Is the plugin implementing the create() function?\n", name);
+    throw UALBackendException(error_message, LOG);
+  }
   llpluginsStore[std::string(name)].al_plugin = plugin;
 }
 
@@ -65,13 +70,13 @@ void LLplugin::attachPlugin(const char* fieldPath, const char* pluginName) {
     if (!isPluginRegistered(pluginName)) {
         char error_message[200];
         sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be attached.\n", pluginName);
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     auto got = attachedPlugins.find(std::string(fieldPath));
     if (got != attachedPlugins.end()) {
         char error_message[200];
         sprintf(error_message, "Field path: %s has already an attached plugin (plugin name=%s).\n", fieldPath, (got->second).c_str());
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     attachedPlugins[fieldPath] = pluginName;
 }
@@ -98,7 +103,7 @@ void LLplugin::register_plugin(const char* plugin_name) {
     if (isPluginRegistered(plugin_name)) {
         char error_message[200];
         sprintf(error_message, "Plugin %s already registered in the plugins store.\n", plugin_name);
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     llpluginsStore[std::string(plugin_name)] = LLplugin();
     LLplugin &lle = llpluginsStore[std::string(plugin_name)];
@@ -108,23 +113,28 @@ void LLplugin::register_plugin(const char* plugin_name) {
     destroy_t* destroy_plugin = NULL;
 
     std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
-    //printf("ids_plugins:%s\n", ids_plugin.c_str());
+    //printf("-->ids_plugins:%s\n", ids_plugin.c_str());
     plugin_handler =  dlopen(ids_plugin.c_str(), RTLD_LAZY);
+    if (plugin_handler == nullptr) {
+        char error_message[200];
+        sprintf(error_message, "Error:%s for plugin:%s.\n", dlerror(), plugin_name);
+        throw UALLowlevelException(error_message, LOG);
+    }
     addPluginHandler(plugin_name, plugin_handler);
     //load the symbols
     create_plugin = (create_t*) dlsym(plugin_handler, "create");
-    const char* dlsym_error = dlerror();
-    if (dlsym_error) {
+    //const char* dlsym_error = dlerror();
+    if (!create_plugin) {
         char error_message[200];
         sprintf(error_message, "Cannot load symbol create:%s for plugin:%s.\n", dlerror(), plugin_name);
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     destroy_plugin = (destroy_t*) dlsym(plugin_handler, "destroy");
-    dlsym_error = dlerror();
-    if (dlsym_error) {
+    //dlsym_error = dlerror();
+    if (!destroy_plugin) {
         char error_message[200];
         sprintf(error_message, "Cannot load symbol destroy:%s for plugin:%s.\n", dlerror(), plugin_name);
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     //reset errors
     dlerror();
@@ -155,7 +165,7 @@ void LLplugin::unregister_plugin(const char* plugin_name) {
     if (!isPluginRegistered(plugin_name)) {
         char error_message[200];
         sprintf(error_message, "Plugin %s not registered in the plugins store.\n", plugin_name);
-        throw UALBackendException(error_message, LOG);
+        throw UALLowlevelException(error_message, LOG);
     }
     //Erasing all paths attached to this plugin from the attachedPlugins map
     std::vector<std::string> keys;

@@ -37,6 +37,9 @@ class LIBRARY_API LLplugin
 private:
 
   static bool findByValue(std::vector<std::string> & vec, std::map<std::string, std::string> mapOfElemen, std::string value);
+  static void addPluginHandler(const char* name, void *plugin_handler);
+  static void addDestroyPlugin(const char* name, void *destroy_plugin);
+  static void addPlugin(const char* name, void *plugin);
 
 public:
 
@@ -68,10 +71,7 @@ public:
   static bool isPluginRegistered(const char* name);
   static void attachPlugin(const char* fieldPath, const char* name);
   static void detachPlugin(const char* fieldPath, const char* name);
-  static void addPluginHandler(const char* name, void *plugin_handler);
-  static void addDestroyPlugin(const char* name, void *destroy_plugin);
-  static void addPlugin(const char* name, void *plugin);
-  static bool attachedPlugin(int ctxID, const char* fieldPath, std::string &pluginName); //switch
+  static bool attachedPlugin(int ctxID, const char* fieldPath, std::string &pluginName);
 
 };
 
