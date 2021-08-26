@@ -9,6 +9,8 @@
 
 using namespace boost::filesystem;
 
+#define MASTER_FILE_NAME "master.h5" 
+
 
 HDF5Utils::HDF5Utils()
 {
@@ -448,6 +450,37 @@ std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int mode, int st
 
 std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
+    std::string user = ctx->getUser();
+    std::string tokamak = ctx->getTokamak();
+    std::string version = ctx->getVersion();
+    const std::string &path = ctx->getQueryParameter("path");
+    files_directory = path;
+    if (path.empty()) {
+        files_directory = getLegacyFilePath(ctx, strategy);
+        files_directory += getShotNumber(ctx);
+        files_directory += "/" + getRunNumber(ctx);
+    }
+    const std::string &refname = ctx->getQueryParameter("refname");
+    relative_file_path = refname;
+    if (refname.empty())
+        relative_file_path = MASTER_FILE_NAME;
+
+    try {
+        if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+         if (!exists(files_directory.c_str()))
+            create_directories(files_directory.c_str());
+        }
+    }
+    catch(std::exception & e) {
+        std::string message("Unable to create pulse files shot directory: ");
+        message += files_directory;
+        throw UALBackendException(message, LOG);
+    }
+    return files_directory + "/" + relative_file_path;
+}
+
+std::string HDF5Utils::getLegacyFilePath(PulseContext * ctx, int strategy) {
+
     std::string filePath;
     std::string user = ctx->getUser();
     std::string tokamak = ctx->getTokamak();
@@ -488,7 +521,6 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
         filePath += version;
     }
     const int run = ctx->getRun();
-    std::string runNumber = std::to_string(run);
 
     if (strategy == FULL_MDSPLUS_STRATEGY) {
         int r = run / 10000;
@@ -496,36 +528,7 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
     } else {
         filePath += "/";
     }
-
-    files_directory = filePath;
-    files_directory += getShotNumber(ctx);
-    try {
-        if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
-         if (!exists(files_directory.c_str()))
-            create_directories(files_directory.c_str());
-        }
-    }
-    catch(std::exception & e) {
-        std::string message("Unable to create pulse files shot directory: ");
-        message += files_directory;
-        throw UALBackendException(message, LOG);
-    }
-
-    files_directory += "/" + getRunNumber(ctx);
-    try {
-	    if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
-	     if (!exists(files_directory.c_str()))
-            create_directories(files_directory.c_str());
-        }
-    }
-    catch(std::exception & e) {
-        std::string message("Unable to create pulse files run directory: ");
-        message += files_directory;
-        throw UALBackendException(message, LOG);
-    }
-
-    relative_file_path = "master.h5";
-    return files_directory + "/" + relative_file_path;
+    return filePath;
 }
 
 std::string HDF5Utils::getShotNumber(PulseContext * ctx)

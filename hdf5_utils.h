@@ -35,6 +35,7 @@ struct opdata {
 
 class HDF5Utils {
   private:
+    std::string getLegacyFilePath(PulseContext * ctx, int strategy);
     std::string getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
     void deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     void createMasterFile(PulseContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
