@@ -85,6 +85,78 @@ int Context::getType() const
 
 /// PulseContext ///
 
+PulseContext::PulseContext(std::string uri_) : Context(getBackendID(uri_)), uri(uri_)
+{
+  std::string userFromURI = getQueryParameter("user");
+  if (!userFromURI.empty())
+    user = userFromURI;
+  else {
+    char *usr = std::getenv("USER"); 
+    if (usr!=NULL)
+        user = usr;
+  }
+
+  std::string databaseFromURI = getQueryParameter("database");
+  if (!databaseFromURI.empty())
+    tokamak = databaseFromURI;
+  else {
+    char *tok = std::getenv("TOKAMAKNAME");
+    if (tok!=NULL)
+        tokamak = tok;
+  }
+
+  std::string versionFromURI = getQueryParameter("version");
+  if (!versionFromURI.empty())
+      version = versionFromURI;
+  else {
+    char *ver = std::getenv("DATAVERSION");
+    if (ver!=NULL)
+        version = ver;
+  }
+
+  if (!userFromURI.empty()) {
+     if (tokamak.empty() || version.empty()) {
+         throw UALContextException("'user' is specified in URI however 'database' or 'version' parameters are not both defined (nor in URI, nor in global variables)",LOG);
+     }
+  }
+
+  if (!tokamak.empty()) {
+     if (user.empty() || version.empty()) {
+         throw UALContextException("'database' is specified (in URI or from global variable 'TOKAMAKNAME'), however 'user' or 'version' parameters are not both defined (nor in URI, nor in global variables)",LOG);
+     }
+  }
+
+  if (!version.empty()) {
+     if (user.empty() || tokamak.empty()) {
+         throw UALContextException("'version' is specified (in URI or from global variable 'DATAVERSION'), however 'user' or 'database' parameters are not defined (nor in URI, nor in global variables)",LOG);
+     }
+  }
+
+  if (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty()) {
+     if (!getQueryParameter("path").empty())
+       throw UALContextException("path should be not specified in the URI since user/database/version parameters are specified",LOG);
+  }
+
+  std::string shotFromURI = getQueryParameter("shot");
+  if (!shotFromURI.empty())
+      shot = std::stoi(shotFromURI);
+
+  std::string runFromURI = getQueryParameter("run");
+  if (!runFromURI.empty())
+      run = std::stoi(runFromURI);
+
+  if ( (!shotFromURI.empty() && runFromURI.empty()) || (shotFromURI.empty() && !runFromURI.empty())) {
+    throw UALContextException("shot/run parameters, only one of these 2 parameters is specified in the URI, however both should be specified in the URI",LOG);
+  } 
+
+  if ( !shotFromURI.empty() && !runFromURI.empty()) {
+    if (!getQueryParameter("refname").empty())
+       throw UALContextException("refname should be not specified in the URI since shot/run parameters are specified in the URI",LOG);
+  }
+
+  this->uid = ++SID;
+}
+
 PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t, 
 			   std::string v) : Context(id), shot(s), run(r)
 {
@@ -153,6 +225,11 @@ int PulseContext::getType() const
   return CTX_PULSE_TYPE;
 }
 
+int PulseContext::getBackendID() const
+{
+  return getBackendID(uri);
+}
+
 int PulseContext::getShot() const
 { 
   return shot; 
@@ -179,6 +256,76 @@ std::string PulseContext::getVersion() const
 }
 
 
+std::string PulseContext::getQuery() const
+{ 
+  std::string query;
+  if (!uri.empty()) {
+    std::size_t pos = uri.find("?");
+    if (pos != std::string::npos)
+        query = uri.substr(pos + 1, std::string::npos);
+  }
+  return query; 
+}
+
+std::string PulseContext::getQueryParameter(const std::string &parameter) const
+{ 
+  std::string parameter_value;
+  std::string query = getQuery();
+  std::size_t pos = query.find(parameter + "=");
+  if (pos != std::string::npos) {
+    query = query.substr(pos + parameter.length() + 1, std::string::npos);
+    std::size_t sep_pos = query.find(";");
+    std::size_t sharp_pos = query.find("#");
+    if (sep_pos != std::string::npos) {
+        parameter_value = query.substr(0, sep_pos);
+    }
+    else if (sharp_pos != std::string::npos) {
+        parameter_value = query.substr(0, sharp_pos);
+    }
+    else {
+        parameter_value = query;
+    }
+  }
+  return parameter_value; 
+}
+
+std::string PulseContext::getURI() const
+{
+  return uri;
+}
+
+int PulseContext::getBackendID(const std::string &uri) const {
+    std::string query = getQuery();
+    std::string authority_and_path = uri;
+    if (!query.empty()) {
+        std::size_t pos = uri.find("?");
+        authority_and_path = uri.substr(0, pos);
+    }
+    std::size_t pos = authority_and_path.find("imas:");
+    if (pos == std::string::npos)
+        throw UALContextException("Missing URI scheme",LOG);
+
+    pos = authority_and_path.find("imas:mdsplus");
+    if (pos != std::string::npos)
+        return MDSPLUS_BACKEND;
+    pos = authority_and_path.find("imas:hdf5");
+    if (pos != std::string::npos)
+        return HDF5_BACKEND;
+    pos = authority_and_path.find("imas:ascii");
+    if (pos != std::string::npos)
+        return ASCII_BACKEND;
+    pos = authority_and_path.find("imas:memory");
+    if (pos != std::string::npos)
+        return MEMORY_BACKEND;
+    pos = authority_and_path.find("imas:localhost");
+    if (pos != std::string::npos)
+        return UDA_BACKEND;
+    pos = authority_and_path.find("imas://");
+    if (pos != std::string::npos)
+        return UDA_BACKEND;
+
+    throw UALContextException("Unspecified backend in URI",LOG);
+}
 
 
 /// OperationContext ///

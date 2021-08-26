@@ -124,6 +124,13 @@ public:
   static void setConvertedValue(void *data, int srctype, int dim, int *size, int desttype, void** var);
 
   /**
+     Starts an action on a pulse in the database using an URI.
+     @param[in] uri URI
+     @return pulse context id [_error status < 0 or null context if = 0_]
+  */
+  static int beginUriAction(std::string uri);
+
+  /**
      Starts an action on a pulse in the database.
      This function associates a specified back-end with a specific entry in the database.
      @param[in] backendID name/ID of the back-end
@@ -182,8 +189,14 @@ extern "C"
   LIBRARY_API al_status_t ual_get_backendID(int ctx, int *beid);
 
 
+ /**
+     Starts an action on a pulse specified by an URI.
+     @param[in] uri uri
+     @param[out] pctx pulse context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+  */
+  LIBRARY_API al_status_t ual_begin_uri_action(const char *uri, int *pctx);
 
-  
   /**
      Starts an action on a pulse in the database.
      This function associates a specified back-end with a specific entry in the database.

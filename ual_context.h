@@ -122,6 +122,11 @@ public:
   */
   PulseContext(int id, int s, int r, std::string u, std::string t, std::string v);
 
+/**
+     @param uri URI
+  */
+  PulseContext(std::string uri);
+
   /**
      Pulse context destructor.
   */
@@ -142,6 +147,18 @@ public:
      @result CTX_PULSE_TYPE
   */
   virtual int getType() const; 
+
+  /**
+     Returns the backend identifier.
+     @result backendID 
+  */
+  int getBackendID() const;
+
+  /**
+     Returns the URI.
+     @result URI 
+  */
+  std::string getURI() const;
 
   /**
      Returns the shot number.
@@ -173,13 +190,31 @@ public:
   */
   std::string getVersion() const;
 
+  /**
+     Returns the URI query part.
+     @result query 
+  */
+  std::string getQuery() const;
+
+  /**
+     Returns the value of a parameter from the URI query part.
+     @param parameter name of the parameter
+     @result the parameter value 
+  */
+  std::string getQueryParameter(const std::string &parameter) const;
+
 
  protected:
+  std::string uri;                     /**< URI */
+
   int shot;                             /**< shot number */
   int run;                              /**< run number */
   std::string user;                     /**< user name */
   std::string tokamak;                  /**< tokamak name */
   std::string version;                  /**< data version */
+
+ private:
+  int getBackendID(const std::string &uri) const;
 };
 
 

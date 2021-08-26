@@ -210,8 +210,31 @@ void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, in
   free(data);
 }
 
+int Lowlevel::beginUriAction(std::string uri)
+{
+  int ctxID=ualerror::unknown_err;
+  PulseContext *pctx=NULL;
+  Backend *be=NULL;
+
+  try {
+    pctx = new PulseContext(uri);
+  }
+  catch (const UALContextException& e) {
+    std::cerr << e.what() << "\n";
+    ctxID = ualerror::context_err;
+    pctx = NULL;
+  }
 
 
+  if (pctx != NULL) 
+    {
+      be = Backend::initBackend(pctx->getBackendID());
+      // store reference of this object 
+      ctxID = Lowlevel::addLLenv(be, pctx);
+    }
+
+  return ctxID;
+}
 
 
 int Lowlevel::beginPulseAction(int backendID, int shot, int run, 
@@ -308,6 +331,29 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
   return status;
 }
 
+al_status_t ual_begin_uri_action(const char *uri, int *pctxID)
+{
+  al_status_t status;
+
+  status.code = 0;
+  try {
+    *pctxID = Lowlevel::beginUriAction(uri);
+  }
+  catch (const UALBackendException& e) {
+    status.code = ualerror::backend_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = ualerror::unknown_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+
+  return status;
+}
 
 al_status_t ual_begin_pulse_action(const int backendID, const int shot, const int run, 
 				   const char *usr, const char *tok, const char *ver,
@@ -356,6 +402,9 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
     if (options)
     {
       strOptions.assign(options);
+    }
+    else {
+        strOptions = pctx->getQuery();
     }
     lle.backend->openPulse(pctx,
 			   mode,
