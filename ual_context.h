@@ -191,17 +191,18 @@ public:
   std::string getVersion() const;
 
   /**
-     Returns the URI query part.
-     @result query 
+     Returns the URI query string.
+     @result query string 
   */
-  std::string getQuery() const;
+  std::string getQueryString() const;
 
   /**
      Returns the value of a parameter from the URI query part.
      @param parameter name of the parameter
-     @result the parameter value 
+     @param value value of the parameter (value is returned empty if the parameter doesn't exist in the Query string)
+     @result true if 'parameter' exists in the URI Query string, false otherwise
   */
-  std::string getQueryParameter(const std::string &parameter) const;
+  bool getURIQueryParameter(const std::string &parameter, std::string &value) const;
 
 
  protected:

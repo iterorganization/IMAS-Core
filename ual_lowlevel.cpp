@@ -4,6 +4,7 @@
 #include <string.h>
 #include <complex.h>
 #include <algorithm>
+//#include "uri_parser.h"
 
 #include <signal.h>
 
@@ -404,7 +405,7 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
       strOptions.assign(options);
     }
     else {
-        strOptions = pctx->getQuery();
+      strOptions = pctx->getQueryString();
     }
     lle.backend->openPulse(pctx,
 			   mode,

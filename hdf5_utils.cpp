@@ -453,14 +453,16 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
     std::string user = ctx->getUser();
     std::string tokamak = ctx->getTokamak();
     std::string version = ctx->getVersion();
-    const std::string &path = ctx->getQueryParameter("path");
+    std::string path;
+    ctx->getURIQueryParameter("path", path);
     files_directory = path;
     if (path.empty()) {
         files_directory = getLegacyFilePath(ctx, strategy);
         files_directory += getShotNumber(ctx);
         files_directory += "/" + getRunNumber(ctx);
     }
-    const std::string &refname = ctx->getQueryParameter("refname");
+    std::string refname;
+    ctx->getURIQueryParameter("refname", refname);
     relative_file_path = refname;
     if (refname.empty())
         relative_file_path = MASTER_FILE_NAME;
