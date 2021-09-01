@@ -450,9 +450,6 @@ std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int mode, int st
 
 std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
-    std::string user = ctx->getUser();
-    std::string tokamak = ctx->getTokamak();
-    std::string version = ctx->getVersion();
     std::string path;
     ctx->getURIQueryParameter("path", path);
     files_directory = path;
