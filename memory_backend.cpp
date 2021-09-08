@@ -63,7 +63,7 @@
 
 
    // Always return dummy version until there are use cases where version checks are required for memory BE
-   std::pair<int,int> MemoryBackend::getVersion(PulseContext *ctx)
+   std::pair<int,int> MemoryBackend::getVersion(DataEntryContext *ctx)
    {
      return {0,0};
    }
@@ -559,7 +559,7 @@ else
 
 
 
-    void MemoryBackend::flush(PulseContext *ctx, std::string dataobjectName)
+    void MemoryBackend::flush(DataEntryContext *ctx, std::string dataobjectName)
     {
 	OperationContext newCtx(*ctx, dataobjectName, GLOBAL_OP);
 	UalStruct *ids = getIds(&newCtx);

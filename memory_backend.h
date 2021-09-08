@@ -358,7 +358,7 @@ public:
      (possibly backend specific)
      @throw BackendException
   */
-    virtual void openPulse(PulseContext *ctx,
+    virtual void openPulse(DataEntryContext *ctx,
 			 int mode,
 			 std::string options)
     {
@@ -413,7 +413,7 @@ public:
      @param[in] options additional options (possibly backend specific)
      @throw BackendException
   */
-    virtual void closePulse(PulseContext *ctx,
+    virtual void closePulse(DataEntryContext *ctx,
 			  int mode,
 			  std::string options)
 
@@ -555,10 +555,10 @@ public:
 		
     virtual void beginAction(OperationContext *ctx);
 
-    std::pair<int,int> getVersion(PulseContext *ctx) override;
+    std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
 
-    void flush(PulseContext *ctx, std::string dataobjectName);
+    void flush(DataEntryContext *ctx, std::string dataobjectName);
     void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);
     void recFlushAoS(UalAoS &ualAoS, OperationContext *opCtx, ArraystructContext *ctx);
     int getFromAoS(ArraystructContext *ctx,

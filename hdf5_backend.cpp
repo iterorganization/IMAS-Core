@@ -36,7 +36,7 @@ void
     eventsHandler = backendFactory.createEventsHandler();
 }
 
-std::pair<int,int> HDF5Backend::getVersion(PulseContext *ctx)
+std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
 {
   std::pair<int,int> version;
   if(ctx==NULL)
@@ -75,7 +75,7 @@ std::string HDF5Backend::getVersion() {
 }
 
 void
- HDF5Backend::openPulse(PulseContext * ctx, int mode, std::string options)
+ HDF5Backend::openPulse(DataEntryContext * ctx, int mode, std::string options)
 {
     access_mode = mode;
     /*hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
@@ -116,7 +116,7 @@ void
     createBackendComponents(backend_version);
 }
 
-void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
+void HDF5Backend::closePulse(DataEntryContext * ctx, int mode, std::string options)
 {
     if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
         hdf5Writer->close_datasets();

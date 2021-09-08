@@ -32,7 +32,7 @@ class HDF5Backend:public Backend {
 
      void createBackendComponents(std::string backend_version);
      std::string getVersion();
-     std::string getPulseFilePath(PulseContext * ctx);
+     std::string getPulseFilePath(DataEntryContext * ctx);
 
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
     void beginReadArraystructAction(ArraystructContext * ctx, int *size);
@@ -46,7 +46,7 @@ class HDF5Backend:public Backend {
 
      virtual ~ HDF5Backend();
 
-     virtual std::pair<int,int> getVersion(PulseContext *ctx);
+     virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
 
         /**
      Opens a database entry.
@@ -61,7 +61,7 @@ class HDF5Backend:public Backend {
      (possibly backend specific)
      @throw BackendException
 	 */
-    virtual void openPulse(PulseContext * ctx, int mode, std::string options);
+    virtual void openPulse(DataEntryContext * ctx, int mode, std::string options);
 
         /**
      Closes a database entry.
@@ -73,7 +73,7 @@ class HDF5Backend:public Backend {
      @param[in] options additional options (possibly backend specific)
      @throw BackendException
 	 */
-    virtual void closePulse(PulseContext * ctx, int mode, std::string options);
+    virtual void closePulse(DataEntryContext * ctx, int mode, std::string options);
 
         /**
      Writes data.

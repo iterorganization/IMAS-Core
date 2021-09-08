@@ -233,8 +233,9 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 		int refRun, int *pulseCtx, char *user, char *tokamak,
 		char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
-			user, tokamak, version, pulseCtx);
+    char* uri;
+    ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, &uri);
+	al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;
@@ -260,8 +261,9 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, 
 		char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(UDA_BACKEND, shot, run,
-			user, tokamak, version, pulseCtx);
+    char* uri;
+    ual_build_uri_from_legacy_parameters(UDA_BACKEND, shot, run, user, tokamak, version, &uri);
+    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;
@@ -286,8 +288,9 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
 int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 		char *user, char *tokamak, char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
-			user, tokamak, version, pulseCtx);
+    char* uri;
+    ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, &uri);
+    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
 	if (*pulseCtx < 0)
 		return *pulseCtx;
 	else {
@@ -310,8 +313,9 @@ int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 int mtl_ual_open_public(int shot, int run, int *pulseCtx, 
 		char *user, char *tokamak, char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(UDA_BACKEND, shot, run,
-			user, tokamak, version, pulseCtx);
+    char* uri;
+    ual_build_uri_from_legacy_parameters(UDA_BACKEND, shot, run, user, tokamak, version, &uri);
+    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;

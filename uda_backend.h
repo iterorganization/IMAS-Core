@@ -136,9 +136,9 @@ public:
         }
     }
 
-    void openPulse(PulseContext *ctx, int mode, std::string options) override;
+    void openPulse(DataEntryContext *ctx, int mode, std::string options) override;
 
-    void closePulse(PulseContext *ctx, int mode, std::string options) override;
+    void closePulse(DataEntryContext *ctx, int mode, std::string options) override;
 
     void beginAction(OperationContext *ctx) override;
 
@@ -165,7 +165,7 @@ public:
 
     void beginArraystructAction(ArraystructContext* ctx, int* size) override;
 
-    std::pair<int,int> getVersion(PulseContext *ctx) override;
+    std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
     
 };

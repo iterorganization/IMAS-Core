@@ -65,7 +65,7 @@ public:
      otherwise returns the version stored in associated pulse file
      @result std::pair<int,int> for <major,minor> version numbers
   */
-  virtual std::pair<int,int> getVersion(PulseContext *ctx) = 0;
+  virtual std::pair<int,int> getVersion(DataEntryContext *ctx) = 0;
 
   /**
      Opens a database entry.
@@ -80,7 +80,7 @@ public:
      (possibly backend specific)
      @throw BackendException
   */
-  virtual void openPulse(PulseContext *ctx,
+  virtual void openPulse(DataEntryContext *ctx,
 			 int mode,
 			 std::string options) = 0;
 
@@ -94,7 +94,7 @@ public:
      @param[in] options additional options (possibly backend specific)
      @throw BackendException
   */
-  virtual void closePulse(PulseContext *ctx,
+  virtual void closePulse(DataEntryContext *ctx,
 			  int mode,
 			  std::string options) = 0;
 

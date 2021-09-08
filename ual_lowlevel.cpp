@@ -210,14 +210,14 @@ void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, in
   free(data);
 }
 
-int Lowlevel::beginUriAction(std::string uri)
+int Lowlevel::beginUriAction(const std::string &uri)
 {
   int ctxID=ualerror::unknown_err;
-  PulseContext *pctx=NULL;
+  DataEntryContext *pctx=NULL;
   Backend *be=NULL;
 
   try {
-    pctx = new PulseContext(uri);
+    pctx = new DataEntryContext(uri);
   }
   catch (const UALContextException& e) {
     std::cerr << e.what() << "\n";
@@ -229,39 +229,6 @@ int Lowlevel::beginUriAction(std::string uri)
   if (pctx != NULL) 
     {
       be = Backend::initBackend(pctx->getBackendID());
-      // store reference of this object 
-      ctxID = Lowlevel::addLLenv(be, pctx);
-    }
-
-  return ctxID;
-}
-
-
-int Lowlevel::beginPulseAction(int backendID, int shot, int run, 
-			       std::string usr, std::string tok, std::string ver)
-{
-  int ctxID=ualerror::unknown_err;
-  PulseContext *pctx=NULL;
-  Backend *be=NULL;
-
-  try {
-    pctx = new PulseContext(backendID, 
-			    shot, 
-			    run, 
-			    usr, 
-			    tok, 
-			    ver);
-  }
-  catch (const UALContextException& e) {
-    std::cerr << e.what() << "\n";
-    ctxID = ualerror::context_err;
-    pctx = NULL;
-  }
-
-
-  if (pctx != NULL) 
-    {
-      be = Backend::initBackend(backendID);
       // store reference of this object 
       ctxID = Lowlevel::addLLenv(be, pctx);
     }
@@ -321,7 +288,8 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-    *beid = lle.context->getBackendID();
+    DataEntryContext *pctx = static_cast<DataEntryContext *>(lle.context);
+    *beid = pctx->getBackendID();
   }
   catch (const UALLowlevelException& e) {
     status.code = ualerror::lowlevel_err;
@@ -355,37 +323,6 @@ al_status_t ual_begin_uri_action(const char *uri, int *pctxID)
   return status;
 }
 
-al_status_t ual_begin_pulse_action(const int backendID, const int shot, const int run, 
-				   const char *usr, const char *tok, const char *ver,
-				   int *pctxID)
-{
-  al_status_t status;
-
-  status.code = 0;
-  try {
-    *pctxID = Lowlevel::beginPulseAction(backendID, 
-					 shot, 
-					 run, 
-					 usr, 
-					 tok, 
-					 ver);
-  }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-  catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-
-  return status;
-}
-
 
 al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
 {
@@ -394,7 +331,7 @@ al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
-    PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
+    DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
@@ -448,7 +385,7 @@ al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
-    PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
+    DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
@@ -482,7 +419,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID); 
-    PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
+    DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL) 
       throw UALLowlevelException("Wrong Context type stored",LOG);
   
@@ -535,7 +472,7 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
-    PulseContext *pctx= dynamic_cast<PulseContext *>(lle.context); 
+    DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
@@ -825,4 +762,31 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
   }
 
   return status;
+}
+
+al_status_t ual_build_uri_from_legacy_parameters(const int backendID, 
+                         const int shot, 
+                         const int run, 
+                         const char *user, 
+                         const char *tokamak, 
+                         const char *version,
+                         char** uri) {
+    al_status_t status;
+    status.code = 0;
+
+    try {
+       DataEntryContext::build_uri_from_legacy_parameters(backendID, 
+                         shot, 
+                         run, 
+                         user, 
+                         tokamak, 
+                         version,
+                         uri);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+
+    return status;
 }

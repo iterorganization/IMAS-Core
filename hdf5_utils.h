@@ -35,10 +35,9 @@ struct opdata {
 
 class HDF5Utils {
   private:
-    std::string getLegacyFilePath(PulseContext * ctx, int strategy);
-    std::string getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
+    std::string getPulseFilePath(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
     void deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
-    void createMasterFile(PulseContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
+    void createMasterFile(DataEntryContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
     void openMasterFile(hid_t *file_id, const std::string &filePath);
     void initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
 
@@ -49,14 +48,14 @@ class HDF5Utils {
 
     static bool debug;
 
-    static int openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
+    static int openPulse(DataEntryContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
 
-    static void createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
+    static void createPulse(DataEntryContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
 
-     std::string pulseFilePathFactory(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
-     std::string getShotNumber(PulseContext * ctx);
-     std::string getFullShotNumber(PulseContext * ctx);
-     std::string getRunNumber(PulseContext * ctx);
+     std::string pulseFilePathFactory(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
+     std::string getShotNumber(DataEntryContext * ctx);
+     std::string getFullShotNumber(DataEntryContext * ctx);
+     std::string getRunNumber(DataEntryContext * ctx);
      std::string getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name);
 
     void closeMasterFile(hid_t *file_id);
@@ -65,8 +64,8 @@ class HDF5Utils {
     void closeIDSFile(hid_t pulse_file_id, const std::string &external_link_name) ;
     void createIDSFile(OperationContext * ctx, std::string &IDSpulseFile, std::string &backend_version, hid_t *IDS_file_id);
     void removeLinkFromIDSPulseFile(hid_t &IDS_file_id, const std::string &IDS_link_name);
-    void writeUserBlock(const std::string & filePath, PulseContext * ctx);
-    void writeHeader(PulseContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version);
+    void writeUserBlock(const std::string & filePath, DataEntryContext * ctx);
+    void writeHeader(DataEntryContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version);
     void deleteIDSFile(const std::string &filePath);
     void deleteMasterFile(const std::string &filePath, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
 

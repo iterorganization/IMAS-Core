@@ -5,7 +5,7 @@ NoBackend::NoBackend(bool verb) : verbose(verb)
 {
 }
 
-void NoBackend::openPulse(PulseContext *ctx,
+void NoBackend::openPulse(DataEntryContext *ctx,
 			  int mode,
 			  std::string options) 
 {
@@ -13,7 +13,7 @@ void NoBackend::openPulse(PulseContext *ctx,
     std::cout << "NoBackend openPulse\n";
 }
 
-void NoBackend::closePulse(PulseContext *ctx,
+void NoBackend::closePulse(DataEntryContext *ctx,
 			   int mode,
 			   std::string options) 
 {
@@ -72,7 +72,7 @@ void NoBackend::beginArraystructAction(ArraystructContext *ctx,
     std::cout << "NoBackend beginWriteArraystruct\n";
 }
 
-std::pair<int,int> NoBackend::getVersion(PulseContext *ctx)
+std::pair<int,int> NoBackend::getVersion(DataEntryContext *ctx)
 {
   if (verbose)
     std::cout << "NoBackend getVersion\n";

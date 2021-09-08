@@ -13,10 +13,13 @@
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
+#   define NOMINMAX
+#include <windows.h>
+#include <Shlobj.h>
 #else
 #  define LIBRARY_API
+#include <pwd.h>
 #endif
-
 
 #ifdef __cplusplus
 
@@ -53,18 +56,6 @@ public:
   virtual std::string fullPath() const; 
 
   /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const;
-
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const;
-
-  /**
      Returns object unique id.
      @result uid
   */
@@ -75,27 +66,10 @@ public:
      @result CTX_TYPE
   */
   virtual int getType() const;
-  
-  /**
-     Context copy constructor.
-     Explicit definition to handle uid update.
-  */
-  Context(const Context& ctx);
 
   
 protected:
-  /**
-     Context constructor.
-     @param id backend identifier (see ual_const.h):
-     - NO_BACKEND
-     - MDSPLUS_BACKEND
-     - HDF5_BACKEND
-     @todo need to check if passed id is valid
-     @todo how to check/configure available backends on a given system?
-  */
-  Context(int beid);
 
-  int backend_id;                            /**< a backend identifier */
   static std::atomic<unsigned long int> SID; /**< a global UID */
   unsigned long int uid;                     /**< a local ID to identify instances */
 };
@@ -104,33 +78,22 @@ protected:
 
 /**
    Context class for a given pulse file.
-   The PulseContext is a Context associated to a given pulse file.
+   The DataEntryContext is a Context associated to a given pulse file.
 */
-class LIBRARY_API PulseContext : public Context 
+class LIBRARY_API DataEntryContext : public Context 
 {
 public:
-  /**
-     Complete constructor.
-     It requires all informations as arguments, empty strings will be replaced 
-     by environment values.
-     @param id backend identifier 
-     @param s shot number
-     @param r run number
-     @param u user name
-     @param t tokamak name
-     @param v data version
-  */
-  PulseContext(int id, int s, int r, std::string u, std::string t, std::string v);
 
 /**
      @param uri URI
   */
-  PulseContext(std::string uri);
+  DataEntryContext(std::string uri);
+
 
   /**
-     Pulse context destructor.
+     DataEntryContext destructor.
   */
-  virtual ~PulseContext() {}
+  virtual ~DataEntryContext() {}
 
   /**
      Returns full description of the pulse context.
@@ -148,11 +111,17 @@ public:
   */
   virtual int getType() const; 
 
-  /**
-     Returns the backend identifier.
-     @result backendID 
+   /**
+     Returns the ID of associated backend.
+     @result backend_id
   */
   int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  std::string getBackendName() const;
 
   /**
      Returns the URI.
@@ -204,6 +173,37 @@ public:
   */
   bool getURIQueryParameter(const std::string &parameter, std::string &value) const;
 
+/**
+     Returns the legacy root directory.
+     @result path of the root directory
+  */
+  std::string getLegacyRootPath();
+
+  /**
+     Builds the URI backend from the backend ID.
+     @param[in] backend ID
+     @return URI backend string
+  */
+  static std::string getURIBackend(int backend_id);
+
+  /**
+     Builds an URI string using legacy parameters.
+     @param[in] backendID name/ID of the back-end
+     @param[in] shot shot number
+     @param[in] run run number
+     @param[in] user username [_optional, "" for default_]
+     @param[in] tokamak tokamak name [_optional, "" for default_]
+     @param[in] version data version [_optional, "" for default_]
+     @result uri string
+   */
+  static void build_uri_from_legacy_parameters(const int backendID, 
+                         const int shot, 
+                         const int run, 
+                         const char *user, 
+                         const char *tokamak, 
+                         const char *version,
+                         char** uri);
+
 
  protected:
   std::string uri;                     /**< URI */
@@ -213,18 +213,20 @@ public:
   std::string user;                     /**< user name */
   std::string tokamak;                  /**< tokamak name */
   std::string version;                  /**< data version */
+  int backend_id;                            /**< a backend identifier */
 
  private:
-  int getBackendID(const std::string &uri) const;
+  void setBackendID(const std::string &path, const std::string &host);
+
 };
 
 
 
 /**
    Context class for an operation on a DATAOBJECT.
-   The OperationContext is a PulseContext associated to a given DATAOBJECT for a given I/O operation.
+   The OperationContext is a DataEntryContext associated to a given DATAOBJECT for a given I/O operation.
 */
-class LIBRARY_API OperationContext : public PulseContext 
+class LIBRARY_API OperationContext : public DataEntryContext 
 {
 public:
   /**
@@ -238,7 +240,7 @@ public:
      - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
      "replace last slice"_]
   */
-  OperationContext(PulseContext ctx, std::string dataobject, int access);
+  OperationContext(DataEntryContext ctx, std::string dataobject, int access);
 
   /**
      Operation context constructor.
@@ -260,7 +262,7 @@ public:
      - LINEAR_INTERP: interpolating linearly values at previous and next slices
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
   */
-  OperationContext(PulseContext ctx, std::string dataobject, int access, 
+  OperationContext(DataEntryContext ctx, std::string dataobject, int access, 
 		   int range, double t, int interp);
 
   /**
@@ -449,7 +451,7 @@ protected:
 };
 
 LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
-LIBRARY_API std::ostream& operator<< (std::ostream& o, PulseContext const& ctx);
+LIBRARY_API std::ostream& operator<< (std::ostream& o, DataEntryContext const& ctx);
 LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
 LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 

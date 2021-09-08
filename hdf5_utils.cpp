@@ -24,7 +24,7 @@ HDF5Utils::~HDF5Utils()
 bool HDF5Utils::debug = false;
 
 int
- HDF5Utils::openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::openPulse(DataEntryContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -101,7 +101,7 @@ int
 }
 
 void
- HDF5Utils::createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::createPulse(DataEntryContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -183,7 +183,7 @@ void HDF5Utils::deleteMasterFile(const std::string &filePath, hid_t *file_id, st
 }
 
 
-void HDF5Utils::createMasterFile(PulseContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version) {
+void HDF5Utils::createMasterFile(DataEntryContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version) {
     hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
     herr_t status = H5Pset_userblock(create_plist, 1024);
     if (status < 0) {
@@ -302,7 +302,7 @@ void HDF5Utils::initExternalLinks(hid_t *file_id, std::unordered_map < std::stri
     }
 }
 
-void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version)
+void HDF5Utils::writeHeader(DataEntryContext * ctx, hid_t file_id, std::string & filePath, std::string backend_version)
 {
 
     const char *backend_version_attribute_name = "HDF5_BACKEND_VERSION";
@@ -389,7 +389,7 @@ struct ShotRun {
     char shot_run[200];
 };
 
-void HDF5Utils::writeUserBlock(const std::string & filePath, PulseContext * ctx)
+void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * ctx)
 {
     std::ofstream file(filePath, std::ifstream::binary);
     file.seekp(0, std::ios::beg);
@@ -431,7 +431,7 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
 }
 
 
-std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
+std::string HDF5Utils::pulseFilePathFactory(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
     switch (strategy) {
     case FULL_MDSPLUS_STRATEGY:
@@ -448,13 +448,13 @@ std::string HDF5Utils::pulseFilePathFactory(PulseContext * ctx, int mode, int st
     }
 }
 
-std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
+std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
     std::string path;
     ctx->getURIQueryParameter("path", path);
     files_directory = path;
     if (path.empty()) {
-        files_directory = getLegacyFilePath(ctx, strategy);
+        files_directory = ctx->getLegacyRootPath();
         files_directory += getShotNumber(ctx);
         files_directory += "/" + getRunNumber(ctx);
     }
@@ -478,69 +478,17 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
     return files_directory + "/" + relative_file_path;
 }
 
-std::string HDF5Utils::getLegacyFilePath(PulseContext * ctx, int strategy) {
-
-    std::string filePath;
-    std::string user = ctx->getUser();
-    std::string tokamak = ctx->getTokamak();
-    std::string version = ctx->getVersion();
-
-    if (!strcmp(user.c_str(), "public")) {
-        char *home = getenv("IMAS_HOME");
-        if (home == NULL)
-            throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
-        filePath += home;
-        filePath += "/shared/imasdb/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
-    } else if (user.rfind("/", 0) == 0) {
-        filePath += user;
-        filePath += "/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
-    } else {
-#ifdef WIN32
-        char szHomeDir[256];
-        if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-            filePath += szHomeDir;
-#else 
-        struct passwd *pw = getpwnam( user.c_str() );
-        if( pw != NULL ) {
-            filePath += pw->pw_dir;
-#endif
-        }
-        else {
-            throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
-        }
-        filePath += "/public/imasdb/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
-    }
-    const int run = ctx->getRun();
-
-    if (strategy == FULL_MDSPLUS_STRATEGY) {
-        int r = run / 10000;
-        filePath += "/" + std::to_string(r) + "/";
-    } else {
-        filePath += "/";
-    }
-    return filePath;
-}
-
-std::string HDF5Utils::getShotNumber(PulseContext * ctx)
+std::string HDF5Utils::getShotNumber(DataEntryContext * ctx)
 {
     return std::to_string(ctx->getShot());
 }
 
-std::string HDF5Utils::getRunNumber(PulseContext * ctx)
+std::string HDF5Utils::getRunNumber(DataEntryContext * ctx)
 {
     return std::to_string(ctx->getRun());
 }
 
-std::string HDF5Utils::getFullShotNumber(PulseContext * ctx)
+std::string HDF5Utils::getFullShotNumber(DataEntryContext * ctx)
 {
     return std::to_string(ctx->getShot()) + std::to_string(ctx->getRun());
 }

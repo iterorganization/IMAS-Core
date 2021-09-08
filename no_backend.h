@@ -28,11 +28,11 @@ public:
 
   ~NoBackend() {};
 
-  void openPulse(PulseContext *ctx,
+  void openPulse(DataEntryContext *ctx,
 		 int mode,
 		 std::string options);
 
-  void closePulse(PulseContext *ctx,
+  void closePulse(DataEntryContext *ctx,
 		  int mode,
 		  std::string options);
 
@@ -62,7 +62,7 @@ public:
   void beginArraystructAction(ArraystructContext *ctx,
 			      int *size);
 
-  std::pair<int,int> getVersion(PulseContext *ctx);
+  std::pair<int,int> getVersion(DataEntryContext *ctx);
 
 };
 

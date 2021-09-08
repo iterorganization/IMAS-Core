@@ -128,25 +128,7 @@ public:
      @param[in] uri URI
      @return pulse context id [_error status < 0 or null context if = 0_]
   */
-  static int beginUriAction(std::string uri);
-
-  /**
-     Starts an action on a pulse in the database.
-     This function associates a specified back-end with a specific entry in the database.
-     @param[in] backendID name/ID of the back-end
-     @param[in] shot shot number
-     @param[in] run run number
-     @param[in] usr username [_optional, empty string for default_]
-     @param[in] tok tokamak name [_optional, empty string for default_]
-     @param[in] ver data version [_optional, empty string for default_]
-     @return pulse context id [_error status < 0 or null context if = 0_]
-  */
-  static int beginPulseAction(int backendID,
-			      int shot,
-			      int run,
-			      std::string usr,
-			      std::string tok,
-			      std::string ver);
+  static int beginUriAction(const std::string &uri);
 
 private:
   static std::mutex mutex;                        /**< mutex for thread safe Factory accesses */
@@ -173,7 +155,7 @@ extern "C"
 
   /**
      Return all the Context information corresponding to the passed Context identifier.
-     @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
+     @param[in] ctx Context ID (either DataEntryContext, OperationContext or ArraystructContext)
      @param[out] info context info as a string -> NEED TO BE FREEED!!
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
@@ -182,7 +164,7 @@ extern "C"
 
   /**
      Get backendID from the passed Context identifier.
-     @param[in] ctx Context ID (either PulseContext, OperationContext or ArraystructContext)
+     @param[in] ctx Context ID (either DataEntryContext, OperationContext or ArraystructContext)
      @param[out] beid backendID 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
@@ -197,30 +179,11 @@ extern "C"
   */
   LIBRARY_API al_status_t ual_begin_uri_action(const char *uri, int *pctx);
 
-  /**
-     Starts an action on a pulse in the database.
-     This function associates a specified back-end with a specific entry in the database.
-     @param[in] backendID name/ID of the back-end
-     @param[in] shot shot number
-     @param[in] run run number
-     @param[in] user username [_optional, "" for default_]
-     @param[in] tokamak tokamak name [_optional, "" for default_]
-     @param[in] version data version [_optional, "" for default_]
-     @param[out] pctx pulse context id [_null context if = 0_]
-     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
-  */
-  LIBRARY_API al_status_t ual_begin_pulse_action(const int backendID, 
-						 const int shot, 
-						 const int run, 
-						 const char *user, 
-						 const char *tokamak, 
-						 const char *version,
-						 int *pctx);
 
   /**
      Opens a database entry.
      This function opens a database entry described by the passed pulse context.
-     @param[in] pulseCtx pulse context id (from ual_begin_pulse_action())
+     @param[in] pulseCtx pulse context id (from ual_begin_uri_action())
      @param[in] mode opening option:
      - OPEN_PULSE = open an existing pulse (only if exist)
      - FORCE_OPEN_PULSE = open a pulse (create it if not exist)
@@ -237,7 +200,7 @@ extern "C"
   /**
      Closes a database entry.
      This function closes a database entry described by the passed pulse context.
-     @param[in] pulseCtx pulse context id (from ual_begin_pulse_action())
+     @param[in] pulseCtx pulse context id (from ual_begin_uri_action())
      @param[in] mode closing option:
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
@@ -251,7 +214,7 @@ extern "C"
   /**
      Starts an I/O action on a DATAOBJECT.
      This function gives a new operation context for the duration of an action on a DATAOBJECT.
-     @param[in] ctx pulse context id (from ual_begin_pulse_action())
+     @param[in] ctx pulse context id (from ual_begin_uri_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] rwmode mode for this operation:
      - READ_OP = read operation
@@ -267,7 +230,7 @@ extern "C"
   /**
      Starts an I/O action on a DATAOBJECT slice.
      This function gives a new operation context for the duration of an action on a slice.  
-     @param[in] ctx pulse context (from ual_begin_pulse_action())
+     @param[in] ctx pulse context (from ual_begin_uri_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] rwmode mode for this operation:
      - READ_OP: read operation
@@ -294,7 +257,7 @@ extern "C"
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
-     @param[in] ctx a pulse (ual_begin_pulse_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
+     @param[in] ctx a pulse (ual_begin_uri_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
   LIBRARY_API al_status_t ual_end_action(int ctx); 
@@ -390,7 +353,25 @@ extern "C"
    */
   LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
 						       int step);
-  
+
+  /**
+     Builds an URI string using legacy parameters.
+     @param[in] backendID name/ID of the back-end
+     @param[in] shot shot number
+     @param[in] run run number
+     @param[in] user username [_optional, "" for default_]
+     @param[in] tokamak tokamak name [_optional, "" for default_]
+     @param[in] version data version [_optional, "" for default_]
+     @param[out] uri string
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+   */
+  LIBRARY_API al_status_t ual_build_uri_from_legacy_parameters(const int backendID, 
+                         const int shot, 
+                         const int run, 
+                         const char *user, 
+                         const char *tokamak, 
+                         const char *version,
+                         char** uri);
 
 #if defined(__cplusplus)
 }

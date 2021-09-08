@@ -63,11 +63,11 @@ public:
   AsciiBackend();
   virtual ~AsciiBackend() {};
 
-  virtual void openPulse(PulseContext *ctx,
+  virtual void openPulse(DataEntryContext *ctx,
 			 int mode,
 			 std::string options);
 
-  virtual void closePulse(PulseContext *ctx,
+  virtual void closePulse(DataEntryContext *ctx,
 			  int mode,
 			  std::string options);
 
@@ -97,7 +97,7 @@ public:
   virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size);
 
-  virtual std::pair<int,int> getVersion(PulseContext *ctx);
+  virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
 
 };
 

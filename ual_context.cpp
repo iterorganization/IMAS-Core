@@ -1,7 +1,7 @@
 #include "ual_context.h"
 
-#include "uri_parser.h"
 #include <unordered_map>
+#include "uri_parser.h"
 
 std::atomic<unsigned long int> Context::SID(0);
 
@@ -11,7 +11,7 @@ std::ostream& operator<< (std::ostream& o, Context const& ctx)
   return o << ctx.print();
 }
 
-std::ostream& operator<<(std::ostream& o, PulseContext const& ctx)
+std::ostream& operator<<(std::ostream& o, DataEntryContext const& ctx)
 {
   return o << ctx.print();
 }
@@ -30,31 +30,11 @@ std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx)
 
 /// Context ///
 
-Context::Context(int id)
-{ 
-  try
-  {
-    ualconst::backend_id_str.at(id-BACKEND_ID_0);
-  }
-  catch (const std::out_of_range& e) 
-  {
-    throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
-  }
-  backend_id = id;
-}
-
-Context::Context(const Context& ctx) 
-{
-  backend_id = ctx.backend_id;
-}
 
 std::string Context::print() const 
 {
   std::string s = "context_uid \t\t = " + 
-    std::to_string(this->uid) + "\n" + 
-    "backend_id \t\t = " + 
-    std::to_string(this->backend_id) + " (" + 
-    this->getBackendName() + ")\n";
+    std::to_string(this->uid) + "\n";
   return s;
 }
 
@@ -64,15 +44,6 @@ std::string Context::fullPath() const
   return s;
 }
 
-int Context::getBackendID() const
-{ 
-  return backend_id; 
-}
-
-std::string Context::getBackendName() const 
-{ 
-  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
-}
 
 unsigned long int Context::getUid() const 
 {
@@ -85,12 +56,18 @@ int Context::getType() const
 }
 
 
-/// PulseContext ///
+/// DataEntryContext ///
 
-PulseContext::PulseContext(std::string uri_) : Context(getBackendID(uri_)), uri(uri_)
+DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
 {
 
   auto uri_object = uri::parse_uri(uri_);
+
+  if (uri_object.error != uri::Error::None)
+        throw UALContextException("Unable to parse the URI",LOG);
+
+  setBackendID(uri_object.path, uri_object.authority.host);
+
   std::string userFromURI;
   if(uri::queryParameter("user", userFromURI, uri_object))
     user = userFromURI;
@@ -163,141 +140,136 @@ PulseContext::PulseContext(std::string uri_) : Context(getBackendID(uri_)), uri(
   this->uid = ++SID;
 }
 
-PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t, 
-			   std::string v) : Context(id), shot(s), run(r)
-{
-  char *usr = std::getenv("USER"); 
-  if (u=="")
-    {
-      if (usr!=NULL)
-	user = usr;
-      else
-	throw UALContextException("Undefined env variable USER",LOG);
-    }
-  else 
-    user = u;
-
-  char *tok = std::getenv("TOKAMAKNAME"); 
-  if (t=="") 
-    {
-      if (tok!=NULL)
-	tokamak = tok;
-      else
-	throw UALContextException("Undefined env variable TOKAMAKNAME",LOG);
-    }
-  else
-    tokamak = t;
-
-  char *ver = std::getenv("DATAVERSION"); 
-  if (v=="") 
-    {
-      if (ver!=NULL) 
-	{
-	  version = ver;
-	}
-      else
-	throw UALContextException("Undefined env variable DATAVERSION",LOG);
-    }
-  else
-    {
-      size_t pos = v.find('.');
-      if (pos == std::string::npos)
-	version = v;
-      else
-	version = v.substr(0,pos);
-    }
-  this->uid = ++SID;
-}
-
-std::string PulseContext::print() const 
+std::string DataEntryContext::print() const 
 {
   std::string s = ((Context)*this).print() +
     "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
     "run \t\t\t = " + std::to_string(this->run) + "\n" +
     "user \t\t\t = \"" + this->user + "\"\n" +
     "tokamak \t\t = \"" + this->tokamak + "\"\n" +
-    "version \t\t = \"" + this->version + "\"\n";
+    "version \t\t = \"" + this->version + "\"\n" +
+    "backend_id \t\t = " + std::to_string(this->backend_id) + " (" + this->getBackendName() + ")\n" ;
   return s;
 }
 
-std::string PulseContext::fullPath() const
+
+std::string DataEntryContext::fullPath() const
 {
   std::string s = ((Context)*this).fullPath();
   return s;
 }
 
-int PulseContext::getType() const 
+int DataEntryContext::getType() const 
 {
   return CTX_PULSE_TYPE;
 }
 
-int PulseContext::getBackendID() const
-{
-  return getBackendID(uri);
-}
-
-int PulseContext::getShot() const
+int DataEntryContext::getShot() const
 { 
   return shot; 
 }
 
-int PulseContext::getRun() const 
+int DataEntryContext::getRun() const 
 { 
   return run; 
 }
 
-std::string PulseContext::getUser() const
+std::string DataEntryContext::getUser() const
 { 
   return user; 
 }
 
-std::string PulseContext::getTokamak() const
+std::string DataEntryContext::getTokamak() const
 { 
   return tokamak; 
 }
 
-std::string PulseContext::getVersion() const
+std::string DataEntryContext::getVersion() const
 { 
   return version; 
 }
 
-std::string PulseContext::getURI() const
+std::string DataEntryContext::getURI() const
 {
   return uri;
 }
 
-int PulseContext::getBackendID(const std::string &uri) const {
-
-    auto uri_object = uri::parse_uri(uri);
-
-    if (uri_object.error != uri::Error::None)
-        throw UALContextException("Unable to parse the URI",LOG);
-
-    std::string path = uri_object.path;
-
-    if (path.compare("mdsplus") == 0)
-        return MDSPLUS_BACKEND;
-    else if (path.compare("hdf5") == 0)
-        return HDF5_BACKEND;
-    else if (path.compare("ascii") == 0)
-        return ASCII_BACKEND;
-    else if (path.compare("memory") == 0)
-        return MEMORY_BACKEND;
-    else {
-        std::string host = uri_object.authority.host;
-        if (!host.empty())
-           return UDA_BACKEND;
-    }
-
-    throw UALContextException("Unable to identify a backend from the URI",LOG);
+int DataEntryContext::getBackendID() const
+{ 
+  return backend_id; 
 }
 
-std::string PulseContext::getQueryString() const {
+std::string DataEntryContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
+}
+
+std::string DataEntryContext::getLegacyRootPath() {
+
+    std::string filePath;
+
+    if (!strcmp(user.c_str(), "public")) {
+        char *home = getenv("IMAS_HOME");
+        if (home == NULL)
+            throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
+        filePath += home;
+        filePath += "/shared/imasdb/";
+        filePath += tokamak;
+        filePath += "/";
+        filePath += version;
+    } else if (user.rfind("/", 0) == 0) {
+        filePath += user;
+        filePath += "/";
+        filePath += tokamak;
+        filePath += "/";
+        filePath += version;
+    } else {
+#ifdef WIN32
+        char szHomeDir[256];
+        if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+            filePath += szHomeDir;
+#else 
+        struct passwd *pw = getpwnam( user.c_str() );
+        if( pw != NULL ) {
+            filePath += pw->pw_dir;
+#endif
+        }
+        else {
+            throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+        }
+        filePath += "/public/imasdb/";
+        filePath += tokamak;
+        filePath += "/";
+        filePath += version;
+    }
+
+    return filePath;
+}
+
+void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
+
+    if (path.compare("mdsplus") == 0)
+        backend_id = MDSPLUS_BACKEND;
+    else if (path.compare("hdf5") == 0)
+        backend_id = HDF5_BACKEND;
+    else if (path.compare("ascii") == 0)
+        backend_id = ASCII_BACKEND;
+    else if (path.compare("memory") == 0)
+        backend_id = MEMORY_BACKEND;
+    else if (!host.empty()){
+           backend_id = UDA_BACKEND;
+    }
+    else {
+        throw UALContextException("Unable to identify a backend from the URI",LOG);
+    }
+}
+
+std::string DataEntryContext::getQueryString() const {
     auto uri_object = uri::parse_uri(uri);
     return uri_object.query_string;
 }
 
-bool PulseContext::getURIQueryParameter(const std::string &parameter, std::string &value) const {
+bool DataEntryContext::getURIQueryParameter(const std::string &parameter, std::string &value) const {
     auto uri_object = uri::parse_uri(uri);
     auto got = uri_object.query.find(parameter);
     if (got != uri_object.query.end()) {
@@ -309,11 +281,51 @@ bool PulseContext::getURIQueryParameter(const std::string &parameter, std::strin
     }
 }
 
+void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
+                         const int shot, 
+                         const int run, 
+                         const char *user, 
+                         const char *tokamak, 
+                         const char *version,
+                         char** uri) {
+
+    std::stringstream desc;
+    std::string backend = getURIBackend(backendID);
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << "\n";
+    const std::string& tmp = desc.str();
+    int size = tmp.length()+1;
+    *uri = (char *)malloc(size);
+    mempcpy(*uri, tmp.c_str(), tmp.length());
+    (*uri)[tmp.length()] = '\0';
+}
+
+std::string DataEntryContext::getURIBackend(int backend_id)
+{
+    std::string backend;
+
+    if (backend_id == MDSPLUS_BACKEND) {
+        backend = "mdsplus";
+    }
+    else if (backend_id == HDF5_BACKEND) {
+        backend = "hdf5";
+    }
+    else if (backend_id == ASCII_BACKEND) {
+        backend = "ascii";
+    }
+    else if (backend_id == MEMORY_BACKEND) {
+        backend = "memory";
+    }
+    else if (backend_id == UDA_BACKEND) {
+        throw UALContextException("getURIBackend, converting backend ID to backend URI string not yet implemented",LOG);
+    }
+    return backend;
+}
+
 
 /// OperationContext ///
 
-OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access)
-  : PulseContext(ctx), dataobjectname(dataobject)
+OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject, int access)
+  : DataEntryContext(ctx), dataobjectname(dataobject)
 {
   rangemode = ualconst::global_op;
   time = ualconst::undefined_time;
@@ -329,9 +341,9 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
   this->uid = ++SID;
 }
 
-OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access, 
+OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject, int access, 
 				   int range, double t, int interp)
-  : PulseContext(ctx), dataobjectname(dataobject), time(t)
+  : DataEntryContext(ctx), dataobjectname(dataobject), time(t)
 {
   try {
     ualconst::op_range_str.at(range-OP_RANGE_0);
@@ -368,7 +380,7 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
 
 std::string OperationContext::print() const 
 {
-  std::string s = ((PulseContext)*this).print() +
+  std::string s = ((DataEntryContext)*this).print() +
     "dataobjectname \t\t = " + this->dataobjectname + "\n" +
     "accessmode \t\t = " + std::to_string(this->accessmode) + 
     " (" + ualconst::op_access_str.at(this->accessmode-OP_ACCESS_0) + ")\n" +
@@ -382,7 +394,7 @@ std::string OperationContext::print() const
 
 std::string OperationContext::fullPath() const
 {
-  std::string s = ((PulseContext)*this).fullPath() + this->dataobjectname;
+  std::string s = ((DataEntryContext)*this).fullPath() + this->dataobjectname;
   return s;
 }
 

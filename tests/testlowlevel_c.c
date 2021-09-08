@@ -235,10 +235,13 @@ int main(int argc, char *argv[])
 		
 		// Low Level
 		int iPulseCtx = -1;
-		al_status_t alStatus = ual_begin_pulse_action(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &iPulseCtx);
+        char* uri;
+        ual_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &uri);
+        al_status_t al_status = ual_begin_uri_action(uri, &iPulseCtx);
+
 		if (alStatus.code != 0)
 		{
-			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_pulse_action = %s\n", iShot, iRun, alStatus.message);
+			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_uri_action = %s\n", iShot, iRun, alStatus.message);
 			iRet = alStatus.code;
 		}
 		else

@@ -104,7 +104,7 @@ AsciiBackend::AsciiBackend()
 }
 
 
-void AsciiBackend::openPulse(PulseContext *ctx,
+void AsciiBackend::openPulse(DataEntryContext *ctx,
 			int mode, 
 			std::string options) 
 {
@@ -137,7 +137,7 @@ void AsciiBackend::openPulse(PulseContext *ctx,
 
 
 
-void AsciiBackend::closePulse(PulseContext *ctx,
+void AsciiBackend::closePulse(DataEntryContext *ctx,
 			 int mode, 
 			 std::string options)
 {
@@ -149,7 +149,7 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 }
 
 
-std::pair<int,int> AsciiBackend::getVersion(PulseContext *ctx)
+std::pair<int,int> AsciiBackend::getVersion(DataEntryContext *ctx)
 {
   std::pair<int,int> version;
   if(ctx==NULL)

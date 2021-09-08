@@ -772,52 +772,12 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 }
 
  #define PATH_MAX  2048
-void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const char *version) 
+void MDSplusBackend::setDataEnv(DataEntryContext * ctx) 
 {
   int i;
 
-  std::string mdsplusBaseStr;
-  //Check for public user 
-  if(!strcmp(user, "public")) 
-    {
-      char *home = getenv("IMAS_HOME");
-      if (home == NULL)
-        throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
-      mdsplusBaseStr += home;
-      mdsplusBaseStr += "/shared/imasdb/";
-      mdsplusBaseStr += tokamak;
-      mdsplusBaseStr += "/";
-      mdsplusBaseStr += version;
-    }
-  else if (user[0] == '/')
-    {
-      mdsplusBaseStr += user;
-      mdsplusBaseStr += "/";
-      mdsplusBaseStr += tokamak;
-      mdsplusBaseStr += "/";
-      mdsplusBaseStr += version;
-    }
-  else
-    {
-#ifdef WIN32
-	char szHomeDir[MAX_PATH];
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-	  	mdsplusBaseStr += szHomeDir;
-#else // WIN32
-	struct passwd *pw = getpwnam( user );
-	if( pw != NULL ) {
-	  	mdsplusBaseStr += pw->pw_dir;
-#endif // WIN32
-	  	mdsplusBaseStr += "/public/imasdb/";
-	  	mdsplusBaseStr += tokamak;
-	  	mdsplusBaseStr += "/";
-	  	mdsplusBaseStr += version;
-	  }
-	  else {
-	  	throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
-	  }
-	}
-      
+  std::string mdsplusBaseStr = ctx->getLegacyRootPath();
+
       // set every MDSPLUS_TREE_BASE_n env. variable
       for (i = 0; i < 10; i++) 
 	{
@@ -3460,7 +3420,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   Backend* MDSplusBackend::initBackend(int id)
   {  return new MDSplusBackend; }
 
-  void MDSplusBackend::openPulse(PulseContext *ctx,
+  void MDSplusBackend::openPulse(DataEntryContext *ctx,
 			 int mode, std::string options)
     {
  	  // Extract MDSplus options
@@ -3489,7 +3449,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 	  }
 	  
-	  setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
+	  setDataEnv(ctx); 
     	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 		  
 	  switch(mode) {
@@ -3527,7 +3487,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       }
 
       
-  void MDSplusBackend::closePulse(PulseContext *ctx,
+  void MDSplusBackend::closePulse(DataEntryContext *ctx,
 			  int mode,
 			  std::string options) 
   {
@@ -4209,7 +4169,16 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   void MDSplusBackend::printFileVersionInfo(int shot, int run, std::string usr, std::string tok, std::string ver)
   {
     MDSplusBackend *be = new MDSplusBackend();
-    be->setDataEnv(usr.c_str(), tok.c_str(), ver.c_str()); 
+    char *uri;
+    DataEntryContext::build_uri_from_legacy_parameters(MDSPLUS_BACKEND, 
+                         shot,
+                         run,
+                         usr.c_str(),
+                         tok.c_str(),
+                         ver.c_str(),
+                         &uri);
+    DataEntryContext *pctx = new DataEntryContext(uri);
+    be->setDataEnv(pctx); 
     int shotNum = be->getMdsShot(shot, run, true, DEF_TREENAME);
     try {
       be->tree = new MDSplus::Tree(DEF_TREENAME, shotNum); 
@@ -4247,7 +4216,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   }
 
 //Return version info
-    std::pair<int,int> MDSplusBackend::getVersion(PulseContext *ctx)
+    std::pair<int,int> MDSplusBackend::getVersion(DataEntryContext *ctx)
     {
 	char szTree[256] = { 0 };
 	 strcpy(szTree, DEF_TREENAME);
@@ -4259,7 +4228,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	{
 	    MDSplus::Tree *t;
 	    try {
-	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
+	  	setDataEnv(ctx); 
     	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 		t = new MDSplus::Tree(szTree, shotNum);
 		resetIdsPath(szTree);

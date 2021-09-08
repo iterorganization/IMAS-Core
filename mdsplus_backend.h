@@ -67,7 +67,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     void disassembleData(MDSplus::Data *data, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     int getMdsShot(int shot, int run, bool translate, std::string strTree);
     void resetIdsPath(std::string strTree);
-    void setDataEnv(const char *user, const char *tokamak, const char *version); 
+    void setDataEnv(DataEntryContext * ctx); 
     int getSliceNumItems(int numDims, int *dims);
     int getSliceSize(MDSplus::TreeNode *node, void *data, int datatype, int numDims, int *dims, bool isMultiple = true);
     void writeData(MDSplus::Tree *tree, std::string dataobjectPath, std::string timePath, void *dataPtr, int datatype, int numDims,
@@ -140,11 +140,11 @@ class LIBRARY_API MDSplusBackend:public Backend
 
     static Backend* initBackend(int id);
 
-    virtual void openPulse(PulseContext *ctx,
+    virtual void openPulse(DataEntryContext *ctx,
 			   int mode, 
 			   std::string options);
       
-    virtual void closePulse(PulseContext *ctx,
+    virtual void closePulse(DataEntryContext *ctx,
 			    int mode,
 			    std::string options);
 
@@ -242,7 +242,7 @@ class LIBRARY_API MDSplusBackend:public Backend
      otherwise returns the version stored in associated pulse file
      @result std::pair<int,int> for <major,minor> version numbers
   */
-    virtual std::pair<int,int> getVersion(PulseContext *ctx);
+    virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
