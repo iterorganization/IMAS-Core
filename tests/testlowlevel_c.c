@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 		int iPulseCtx = -1;
         char* uri;
         ual_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &uri);
-        al_status_t al_status = ual_begin_uri_action(uri, &iPulseCtx);
+        al_status_t alStatus = ual_begin_uri_action(uri, &iPulseCtx);
 
 		if (alStatus.code != 0)
 		{
