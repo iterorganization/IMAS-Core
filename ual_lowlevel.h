@@ -171,31 +171,19 @@ extern "C"
   LIBRARY_API al_status_t ual_get_backendID(int ctx, int *beid);
 
 
- /**
-     Starts an action on a pulse specified by an URI.
-     @param[in] uri uri
-     @param[out] pctx pulse context id [_null context if = 0_]
-     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
-  */
-  LIBRARY_API al_status_t ual_begin_uri_action(const char *uri, int *pctx);
-
-
   /**
      Opens a database entry.
-     This function opens a database entry described by the passed pulse context.
-     @param[in] pulseCtx pulse context id (from ual_begin_uri_action())
+     This function opens an IMAS data entry.
+     @param[in] URI of the IMAS data entry
      @param[in] mode opening option:
      - OPEN_PULSE = open an existing pulse (only if exist)
      - FORCE_OPEN_PULSE = open a pulse (create it if not exist)
      - CREATE_PULSE = create a new pulse (do not overwrite if already exist)
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
-     @param[in] options additional options, ex: "name=treename refShot=1 refRun=2"
-     (possibly backend specific)
+     @param[out] dectxID data entry context id [_null context if = 0_] 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_open_pulse(int pulseCtx, 
-					 int mode, 
-					 const char *options);
+  LIBRARY_API al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID);
 
   /**
      Closes a database entry.

@@ -299,50 +299,27 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
   return status;
 }
 
-al_status_t ual_begin_uri_action(const char *uri, int *pctxID)
-{
-  al_status_t status;
 
-  status.code = 0;
-  try {
-    *pctxID = Lowlevel::beginUriAction(uri);
-  }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-  catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
-  }
-
-  return status;
-}
-
-
-al_status_t ual_open_pulse(int pctxID, int mode, const char *options)
+al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
 {
   al_status_t status = { 0 };
 
   status.code = 0;
   try {
-    LLenv lle = Lowlevel::getLLenv(pctxID);
+    int dectxID = Lowlevel::beginUriAction(uri);
+    LLenv lle = Lowlevel::getLLenv(dectxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
     std::string strOptions;
-    if (options)
+    /*if (options)
     {
       strOptions.assign(options);
     }
     else {
       strOptions = pctx->getQueryString();
-    }
+    }*/
     lle.backend->openPulse(pctx,
 			   mode,
 			   strOptions);

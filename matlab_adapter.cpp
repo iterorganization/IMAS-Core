@@ -235,12 +235,11 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 {
     char* uri;
     ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, &uri);
-	al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
+    al_status_t status_t = ual_begin_dataentry_action(uri, FORCE_CREATE_PULSE, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;
 	else {
-		status_t = ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
 	    return status_t.code;
 	}
 
@@ -263,12 +262,11 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
 {
     char* uri;
     ual_build_uri_from_legacy_parameters(UDA_BACKEND, shot, run, user, tokamak, version, &uri);
-    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
+    al_status_t status_t = ual_begin_dataentry_action(uri, FORCE_CREATE_PULSE, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;
 	else {
-		status_t = ual_open_pulse(*pulseCtx, FORCE_CREATE_PULSE, "");
 		return status_t.code;
 	}
 }
@@ -290,11 +288,10 @@ int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 {
     char* uri;
     ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, &uri);
-    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
+    al_status_t status_t = ual_begin_dataentry_action(uri, OPEN_PULSE, pulseCtx);
 	if (*pulseCtx < 0)
 		return *pulseCtx;
 	else {
-		status_t = ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 		return status_t.code;
 	}
 
@@ -315,12 +312,11 @@ int mtl_ual_open_public(int shot, int run, int *pulseCtx,
 {
     char* uri;
     ual_build_uri_from_legacy_parameters(UDA_BACKEND, shot, run, user, tokamak, version, &uri);
-    al_status_t status_t = ual_begin_uri_action(uri, pulseCtx);
+    al_status_t status_t = ual_begin_dataentry_action(uri, OPEN_PULSE, pulseCtx);
 
 	if (*pulseCtx < 0)
 		return *pulseCtx;
 	else {
-			status_t = ual_open_pulse(*pulseCtx, OPEN_PULSE, "");
 			return status_t.code;
 		}
 }
