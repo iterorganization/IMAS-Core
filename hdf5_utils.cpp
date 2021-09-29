@@ -143,6 +143,10 @@ void
 
 }
 
+bool HDF5Utils::pulseFileExists(const std::string &IDS_pulse_file) {
+	return exists(IDS_pulse_file.c_str());
+}
+
 void HDF5Utils::deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path) {
     auto it = opened_IDS_files.begin();
     while (it != opened_IDS_files.end()) {
@@ -229,21 +233,25 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
 }
 
 void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only) {
+    if (!exists(IDSpulseFile.c_str()))
+	    return;
     *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     if (*IDS_file_id < 0) {
         if(try_read_only) {
             *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
             if (*IDS_file_id < 0) { 
                 char error_message[200];
-                sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file does not exist or is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
+                sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
                 throw UALBackendException(error_message, LOG);
             }
+	    else return;
         }
         else {
-            char error_message[200];
-            sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file does not exist or is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
-       }
+		    char error_message[200];
+		    sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
+		    throw UALBackendException(error_message, LOG);
+	        
+        }
     }
 }
 

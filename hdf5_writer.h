@@ -47,9 +47,10 @@ class HDF5Writer {
     virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
 
     void write_buffers();
+    void read_homogeneous_time(int* homogenenous_time);
     void close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files);
     void create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode);
-    void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
+    void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *loc_id);
     void close_datasets();
     void close_group();
     void pop_back_stacks();
