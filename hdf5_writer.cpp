@@ -98,7 +98,6 @@ void HDF5Writer::read_homogeneous_time(int* homogenenous_time) {
 		return;
 	}
 	const char* dataset_name = "ids_properties&homogeneous_time";
-	int datatype = ualconst::integer_data;
 	hid_t dataset_id = H5Dopen2(IDS_group_id, dataset_name, H5P_DEFAULT);
 	herr_t status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, homogenenous_time);
 	if (status < 0)
