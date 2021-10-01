@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 
 		if (alStatus.code != 0)
 		{
-			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_uri_action = %s\n", iShot, iRun, alStatus.message);
+			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_dataentry_action = %s\n", iShot, iRun, alStatus.message);
 		}
 		else
 		{

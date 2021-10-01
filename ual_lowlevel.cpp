@@ -306,8 +306,8 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
 
   status.code = 0;
   try {
-    int dectxID = Lowlevel::beginUriAction(uri);
-    LLenv lle = Lowlevel::getLLenv(dectxID);
+    *dectxID = Lowlevel::beginUriAction(uri);
+    LLenv lle = Lowlevel::getLLenv(*dectxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);

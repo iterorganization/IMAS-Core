@@ -188,7 +188,7 @@ extern "C"
   /**
      Closes a database entry.
      This function closes a database entry described by the passed pulse context.
-     @param[in] pulseCtx pulse context id (from ual_begin_uri_action())
+     @param[in] pulseCtx pulse context id (from ual_begin_dataentry_action())
      @param[in] mode closing option:
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
@@ -202,7 +202,7 @@ extern "C"
   /**
      Starts an I/O action on a DATAOBJECT.
      This function gives a new operation context for the duration of an action on a DATAOBJECT.
-     @param[in] ctx pulse context id (from ual_begin_uri_action())
+     @param[in] ctx pulse context id (from ual_begin_dataentry_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] rwmode mode for this operation:
      - READ_OP = read operation
@@ -218,7 +218,7 @@ extern "C"
   /**
      Starts an I/O action on a DATAOBJECT slice.
      This function gives a new operation context for the duration of an action on a slice.  
-     @param[in] ctx pulse context (from ual_begin_uri_action())
+     @param[in] ctx pulse context (from ual_begin_dataentry_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] rwmode mode for this operation:
      - READ_OP: read operation
@@ -245,7 +245,7 @@ extern "C"
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
-     @param[in] ctx a pulse (ual_begin_uri_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
+     @param[in] ctx a pulse (ual_begin_dataentry_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
   LIBRARY_API al_status_t ual_end_action(int ctx); 
