@@ -272,6 +272,25 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
 }
 
 /**
+   Opens an IMAS Data Entry
+   This function opens/creates an IMAS Data Entry (fail if does not exist)
+   @param[in] uri URI of the Data Entry
+   @param[in] mode opening mode {OPEN_PULSE, FORCE_OPEN_PULSE, CREATE_PULSE, FORCE_CREATE_PULSE}
+   @result error status
+ */
+int mtl_ual_open(const char *uri, int mode)
+{
+    int pulseCtx;
+    al_status_t status_t = ual_begin_dataentry_action(uri, mode, &pulseCtx);
+    if (pulseCtx < 0)
+        return pulseCtx;
+    else {
+        return status_t.code;
+    }
+
+}
+
+/**
    Opens an entry in the MDSPlus database.
    This function opens an existing pulse file (fail if does not exist)
    in the MDSPlus database identified by the given arguments.
