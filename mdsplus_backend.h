@@ -13,6 +13,8 @@
 #include <pwd.h>
 #endif // WIN32
 
+#include "ual_utilities.h"
+
 #include "ual_context.h"
 #include "ual_backend.h"
 #include "ual_defs.h"

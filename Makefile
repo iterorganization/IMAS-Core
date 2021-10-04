@@ -40,14 +40,14 @@ endif
 
 CXXINCLUDES= -DASCII ${INCLUDES}
 
-CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
+CPPSRC= ual_utilities.cpp ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp \
 	memory_backend.cpp ascii_backend.cpp
 
 CSRC= 
 
 COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
-		ual_exception.o ual_backend.o no_backend.o \
+		ual_exception.o ual_utilities.o ual_backend.o no_backend.o \
 		memory_backend.o ascii_backend.o
 
 # Include OS-specific Makefile, if exists.

@@ -1,6 +1,7 @@
 #include "ual_context.h"
 
 #include <unordered_map>
+#include "ual_utilities.h"
 #include "uri_parser.h"
 
 std::atomic<unsigned long int> Context::SID(0);
@@ -297,7 +298,19 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
 
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
-    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << ";" << options << "\n";
+    std::string opts("");
+    if (options) {
+        std::map<std::string, std::string> mapOptions;
+        extractOptions(std::string(options), mapOptions);
+        auto it = mapOptions.begin();
+        while (it != mapOptions.end()) {
+            const std::string &key = it->first;
+            const std::string &value = it->second;
+            opts += ";" + key + "=" + value;
+            it++;
+        }
+    }
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << ";" << opts.c_str() << "\n";
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);
