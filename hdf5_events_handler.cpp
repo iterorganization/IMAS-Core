@@ -1,6 +1,7 @@
 #include "hdf5_events_handler.h"
 
 #include "hdf5_utils.h"
+#include <algorithm>
 
 HDF5EventsHandler::HDF5EventsHandler()
 {
