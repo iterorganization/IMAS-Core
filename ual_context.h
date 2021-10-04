@@ -173,6 +173,13 @@ public:
   */
   bool getURIQueryParameter(const std::string &parameter, std::string &value) const;
 
+  /**
+     Add an option to the URI query.
+     @param[in] option_name name of the option
+     @param[in] option_value value of the option
+   */
+  void addOptionToURIQuery(const std::string &option_name, const std::string &option_value);
+
 /**
      Returns the legacy root directory.
      @result path of the root directory
@@ -191,9 +198,10 @@ public:
      @param[in] backendID name/ID of the back-end
      @param[in] shot shot number
      @param[in] run run number
-     @param[in] user username [_optional, "" for default_]
-     @param[in] tokamak tokamak name [_optional, "" for default_]
-     @param[in] version data version [_optional, "" for default_]
+     @param[in] user username
+     @param[in] tokamak tokamak name
+     @param[in] version data version
+     @param[in] options options
      @result uri string
    */
   static void build_uri_from_legacy_parameters(const int backendID, 
@@ -202,8 +210,8 @@ public:
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
+                         const char *options,
                          char** uri);
-
 
  protected:
   std::string uri;                     /**< URI */

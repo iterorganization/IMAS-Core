@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
 		// Low Level
 		int iPulseCtx = -1;
         char* uri;
-        ual_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, &uri);
+        ual_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, "", &uri);
         al_status_t alStatus = ual_begin_dataentry_action(uri, iOpenAction, &iPulseCtx);
 
 		if (alStatus.code != 0)

@@ -4176,6 +4176,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
                          usr.c_str(),
                          tok.c_str(),
                          ver.c_str(),
+                         "",
                          &uri);
     DataEntryContext *pctx = new DataEntryContext(uri);
     be->setDataEnv(pctx); 

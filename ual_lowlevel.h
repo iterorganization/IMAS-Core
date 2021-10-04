@@ -359,6 +359,7 @@ extern "C"
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
+                         const char *options,
                          char** uri);
 
 #if defined(__cplusplus)

@@ -312,8 +312,8 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    std::string strOptions;
-    /*if (options)
+    /*std::string strOptions;
+    if (options)
     {
       strOptions.assign(options);
     }
@@ -322,7 +322,7 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
     }*/
     lle.backend->openPulse(pctx,
 			   mode,
-			   strOptions);
+			   pctx->getQueryString());
 
     switch (mode) {
     case ualconst::open_pulse:
@@ -747,9 +747,16 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
+                         const char *options,
                          char** uri) {
     al_status_t status;
     status.code = 0;
+
+    char opt[1024];
+    if (options == nullptr)
+       strcpy(opt, "");
+    else
+       strcpy(opt, options);
 
     try {
        DataEntryContext::build_uri_from_legacy_parameters(backendID, 
@@ -758,6 +765,7 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
                          user, 
                          tokamak, 
                          version,
+                         opt,
                          uri);
     }
     catch (const UALContextException& e) {

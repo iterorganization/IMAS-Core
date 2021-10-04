@@ -281,17 +281,23 @@ bool DataEntryContext::getURIQueryParameter(const std::string &parameter, std::s
     }
 }
 
+void DataEntryContext::addOptionToURIQuery(const std::string &option_name, const std::string &option_value) {
+    uri += ";" + option_name + "=" + option_value;
+}
+
+
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
                          const int run, 
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
+                         const char *options,
                          char** uri) {
 
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
-    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << "\n";
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << ";" << options << "\n";
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);
