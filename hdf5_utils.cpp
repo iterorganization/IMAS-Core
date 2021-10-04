@@ -455,7 +455,7 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
     files_directory = path;
     if (path.empty()) {
         files_directory = ctx->getLegacyRootPath();
-        files_directory += getShotNumber(ctx);
+        files_directory += "/" + getShotNumber(ctx);
         files_directory += "/" + getRunNumber(ctx);
     }
     std::string refname;
