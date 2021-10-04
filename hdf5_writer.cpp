@@ -92,11 +92,26 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
     IDS_group_id = -1;
 }
 
+void HDF5Writer::read_homogeneous_time(int* homogenenous_time) {
+	if (IDS_group_id == -1) {
+		*homogenenous_time = -1;
+		return;
+	}
+	const char* dataset_name = "ids_properties&homogeneous_time";
+	hid_t dataset_id = H5Dopen2(IDS_group_id, dataset_name, H5P_DEFAULT);
+	herr_t status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, homogenenous_time);
+	if (status < 0)
+	   *homogenenous_time = -1;
+	if (dataset_id >=0)
+	   H5Dclose(dataset_id);
+}
+
 void HDF5Writer::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
-hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *loc_id)
 {
     HDF5Utils hdf5_utils;
     hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &IDS_group_id);
+    *loc_id = IDS_group_id;
 }
 
 void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode)

@@ -57,7 +57,7 @@ class HDF5Utils {
      std::string getFullShotNumber(DataEntryContext * ctx);
      std::string getRunNumber(DataEntryContext * ctx);
      std::string getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name);
-
+    bool pulseFileExists(const std::string &IDS_pulse_file);
     void closeMasterFile(hid_t *file_id);
     void removeLinkFromMasterPulseFile(hid_t &file_id, const std::string &link_name);
     void openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only);
