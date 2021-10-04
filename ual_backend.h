@@ -23,22 +23,6 @@
 #include <map>
 #include <string>
 
-// Check if regex is available (fully implemented since GCC 4.9)
-// see https://stackoverflow.com/questions/12530406/is-gcc-4-8-or-earlier-buggy-about-regular-expressions
-#include <regex>
-
-#if __cplusplus >= 201103L &&								\
-	(!defined(__GLIBCXX__) || (__cplusplus >= 201402L)	||	\
-		(defined(_GLIBCXX_REGEX_DFS_QUANTIFIERS_LIMIT)	||	\
-		defined(_GLIBCXX_REGEX_STATE_LIMIT)				||	\
-			(defined(_GLIBCXX_RELEASE)					&&	\
-			_GLIBCXX_RELEASE > 4)))
-#  define HAVE_WORKING_REGEX 1
-#else
-#  define HAVE_WORKING_REGEX 0
-#endif
-
-
 /**
    Abstract Backend class.
    Defines the back-end API, as pure virtual member functions. 

@@ -312,14 +312,6 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    /*std::string strOptions;
-    if (options)
-    {
-      strOptions.assign(options);
-    }
-    else {
-      strOptions = pctx->getQueryString();
-    }*/
     lle.backend->openPulse(pctx,
 			   mode,
 			   pctx->getQueryString());
