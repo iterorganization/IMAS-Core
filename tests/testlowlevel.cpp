@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ual_lowlevel.h>
+#include "ual_utilities.h"
 
 #ifndef WIN32
 #define _countof(x) sizeof(x)
