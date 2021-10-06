@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <algorithm>
+#include <cctype>
 
 #ifndef simple_uri_CPLUSPLUS
 # if defined(_MSVC_LANG ) && !defined(__clang__)
