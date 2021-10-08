@@ -314,7 +314,7 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);
-    mempcpy(*uri, tmp.c_str(), tmp.length());
+    memcpy(*uri, tmp.c_str(), tmp.length());
     (*uri)[tmp.length()] = '\0';
 }
 
