@@ -29,9 +29,7 @@ class HDF5HsSelectionWriter {
     ~HDF5HsSelectionWriter();
 
     hid_t memspace;
-
-
-    void setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler, int dynamic_AOS_slices_extension);
+    void setHyperSlabs(hid_t dataset_id, const std::vector < int >&current_arrctx_indices, int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, int timed_AOS_index, int timeWriteOffset, const hsize_t *dataspace_dims, int dynamic_AOS_slices_extension);
 
 };
 
