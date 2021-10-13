@@ -124,7 +124,7 @@ class HDF5DataSetHandler {
     hsize_t * getLargestDims();
     int getInitialOffset() const;
 	int getSize() const;
-    int getMaxShape(int axis) const;
+    size_t getMaxShape(int axis) const;
 	int getShape(int axis) const;
     hid_t getDataSpace() const;
     void setNonSliceMode();

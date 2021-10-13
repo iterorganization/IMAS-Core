@@ -129,13 +129,13 @@ hid_t HDF5DataSetHandler::getDataSpace() const
 
 int HDF5DataSetHandler::getSize() const
 {
-	int s = 1;
+	size_t s = 1;
 	for (int i = 0; i < dataset_rank; i++)
         s *= largest_dims[i];
 	return s;
 }
 
-int HDF5DataSetHandler::getMaxShape(int axis) const
+size_t HDF5DataSetHandler::getMaxShape(int axis) const
 {
 	assert(axis < dataset_rank);
 	return largest_dims[axis];
@@ -870,9 +870,9 @@ void HDF5DataSetHandler::appendInt0DToBuffer(const std::vector < int >&current_a
 void HDF5DataSetHandler::appendIntNDToBuffer(const std::vector < int >&current_arrctx_indices, void *data, int dim) {
     std::vector<int *> &v = int_data_set_buffer;
     int* data_int = (int*) data;
-    int shape = 1;
+    size_t shape = 1;
     for (int i = 0; i < request_dim; i++)
-        shape *= getShape(getRank() - i - 1);
+        shape *= (size_t) getShape(getRank() - i - 1);
     int* p = (int*) malloc(sizeof(int)*shape);
     memcpy(p, data_int, shape*sizeof(int));
     v.push_back(p);
@@ -889,9 +889,9 @@ void HDF5DataSetHandler::appendDouble0DToBuffer(const std::vector < int >&curren
 void HDF5DataSetHandler::appendDoubleNDToBuffer(const std::vector < int >&current_arrctx_indices, void *data, int dim) {
     std::vector<double *> &v = double_data_set_buffer;
     double* data_double = (double*) data;
-    int shape = 1;
+    size_t shape = 1;
     for (int i = 0; i < request_dim; i++)
-        shape *= getShape(getRank() - i - 1);
+        shape *= (size_t) getShape(getRank() - i - 1);
     double* p = (double*) malloc(sizeof(double)*shape);
     memcpy(p, data_double, shape*sizeof(double));
     v.push_back(p);
@@ -945,7 +945,7 @@ void HDF5DataSetHandler::read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelec
 }
 
 void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    int s = hsSelectionReader.getSize2();
+    size_t s = hsSelectionReader.getSize2();
     std::vector<char *> values;
     values.resize(s);
     char** v = &values[0];
@@ -977,16 +977,16 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
     int *v = full_int_data_set_buffer;
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
-    int shape = 1;
+    size_t shape = 1;
     for (int i = 0; i < dim; i++)
-        shape *= hsSelectionReader.getShape(rank - i - 1);
+        shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(int));
     int* data_int = (int*) *data;
     if (rank != dim) {
         std::vector < int >index;
         HDF5Utils hdf5_utils;
         hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        for (int i = 0; i < shape; i++) 
+        for (size_t i = 0; i < shape; i++) 
             data_int[i] = v[index[i]];
     }
     else {
@@ -998,16 +998,16 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
     double *v = full_double_data_set_buffer;
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
-    int shape = 1;
+    size_t shape = 1;
     for (int i = 0; i < dim; i++)
-        shape *= hsSelectionReader.getShape(rank - i - 1);
+        shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(double));
     double* data_double = (double*) *data;
     if (rank != dim) {
         std::vector < int >index;
         HDF5Utils hdf5_utils;
         hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        for (int i = 0; i < shape; i++) 
+        for (size_t i = 0; i < shape; i++) 
             data_double[i] = v[index[i]];
     }
     else {
@@ -1016,7 +1016,7 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
 }
 
 void HDF5DataSetHandler::createIntBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    int s = hsSelectionReader.getSize2();
+    size_t s = hsSelectionReader.getSize2();
     full_int_data_set_buffer = (int*) malloc(s* sizeof(int));
     herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_int_data_set_buffer);
     if (status < 0) {
@@ -1041,7 +1041,7 @@ void HDF5DataSetHandler::readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelect
 }
 
 void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    int s = hsSelectionReader.getSize2();
+    size_t s = hsSelectionReader.getSize2();
     full_double_data_set_buffer = (double*) malloc(s* sizeof(double));
     herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_double_data_set_buffer);
     if (status < 0) {
