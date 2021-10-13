@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #include "mdsplus_backend.h"
-
+#include "ual_utilities.h"
 
 //Version definition
 #define MDSPLUS_BACKEND_MAJOR 1

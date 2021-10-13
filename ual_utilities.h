@@ -8,7 +8,6 @@
 #ifndef UAL_UTILITIES_H
 #define UAL_UTILITIES_H 1
 
-#include "ual_context.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
