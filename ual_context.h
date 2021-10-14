@@ -8,6 +8,7 @@
 #ifndef UAL_CONTEXT_H
 #define UAL_CONTEXT_H 1
 
+#include "ual_utilities.h"
 #include "ual_exception.h"
 #include "ual_const.h"
 

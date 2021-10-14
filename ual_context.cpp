@@ -1,7 +1,6 @@
 #include "ual_context.h"
 
 #include <unordered_map>
-#include "ual_utilities.h"
 #include "uri_parser.h"
 
 std::atomic<unsigned long int> Context::SID(0);
