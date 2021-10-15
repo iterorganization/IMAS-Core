@@ -38,6 +38,7 @@ endif()
 set( SRC_FILES
   ual_backend.cpp
   ual_lowlevel.cpp
+  ual_utilities.cpp
   ual_context.cpp
   ual_const.cpp
   ual_exception.cpp
@@ -56,6 +57,7 @@ set( HEADER_FILES
   ual_defs.h
   ual_exception.h
   ual_lowlevel.h
+  ual_utilities.h
 )
 
 include_directories(
