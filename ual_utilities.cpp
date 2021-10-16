@@ -1,5 +1,10 @@
 #include "ual_utilities.h"
 
+#ifdef _MSC_VER 
+//not #if defined(_WIN32) || defined(_WIN64) because we have strncasecmp in mingw
+#define strncasecmp _strnicmp
+#define strcasecmp _stricmp
+#endif
 
 int extractOptions(const std::string& strOptions, std::map<std::string, std::string>& mapOptions)
 {
