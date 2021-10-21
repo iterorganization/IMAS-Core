@@ -115,11 +115,12 @@ void LLplugin::register_plugin(const char* plugin_name) {
     std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     //printf("-->ids_plugins:%s\n", ids_plugin.c_str());
     plugin_handler =  dlopen(ids_plugin.c_str(), RTLD_LAZY);
-    if (plugin_handler == nullptr) {
+    /*if (plugin_handler == nullptr) {
         char error_message[200];
         sprintf(error_message, "Error:%s for plugin:%s.\n", dlerror(), plugin_name);
         throw UALLowlevelException(error_message, LOG);
-    }
+    }*/
+    assert(plugin_handler != nullptr);
     addPluginHandler(plugin_name, plugin_handler);
     //load the symbols
     create_plugin = (create_t*) dlsym(plugin_handler, "create");
