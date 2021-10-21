@@ -181,12 +181,12 @@ int HDF5HsSelectionReader::getSize2() {
     return size;
 }
 
-void HDF5HsSelectionReader::setHyperSlabsGlobalOp(std::vector < int >&current_arrctx_indices)
+void HDF5HsSelectionReader::setHyperSlabsGlobalOp(std::vector < int > current_arrctx_indices)
 {
     setHyperSlabs(GLOBAL_OP, false, false, -1, -1, current_arrctx_indices);
 }
 
-void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, std::vector < int >&current_arrctx_indices)
+void HDF5HsSelectionReader::setHyperSlabs(int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int timed_AOS_index, std::vector < int > current_arrctx_indices)
 {
     //Create hyperslabs
     //creating selection in the dataspace
@@ -338,7 +338,7 @@ int HDF5HsSelectionReader::getShape(int axis_index) const
     return dataspace_dims[axis_index];
 }
 
-bool HDF5HsSelectionReader::isRequestInExtent(std::vector < int >&current_arrctx_indices)
+bool HDF5HsSelectionReader::isRequestInExtent(const std::vector < int >&current_arrctx_indices)
 {
     if (current_arrctx_indices.size() == 0)
         return true;

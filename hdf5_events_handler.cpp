@@ -15,11 +15,9 @@ void
 HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
 	if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP) {
-		writer.clear_stacks();
 		writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		writer.slice_mode = GLOBAL_OP;
 	} else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP) {
-		writer.clear_stacks();
 		std::string IDS_link_name = ctx->getDataobjectName();
 		std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
 		HDF5Utils hdf5_utils;
@@ -48,7 +46,6 @@ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unord
 		}
 		
 	} else if (ctx->getAccessmode() == READ_OP) {
-		reader.clear_stacks();
 		reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
 		reader.slice_mode = ctx->getRangemode();
 	}
@@ -59,9 +56,9 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
 	if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
 		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
 		if (opCtx->getAccessmode() == WRITE_OP) {
-			writer.pop_back_stacks();
+			writer.endAction(ctx);
 		} else if (opCtx->getAccessmode() == READ_OP) {
-			reader.pop_back_stacks();
+			reader.endAction(ctx);
 		}
 	} else if (ctx->getType() == CTX_OPERATION_TYPE) {
 		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
@@ -71,18 +68,19 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
 			writer.close_datasets();
 			writer.close_group();
 			writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
-			writer.start_put_slice_operation();
 			reader.close_datasets();
+                        writer.endAction(ctx);
 		} else if (opCtx->getRangemode() == SLICE_OP && opCtx->getAccessmode() == WRITE_OP) {
 			H5Fflush(file_id, H5F_SCOPE_LOCAL);
-			writer.end_put_slice_operation();
 			writer.close_datasets();
 			writer.close_group();
 			writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
 			reader.close_datasets();
+                        writer.endAction(ctx);
 		} else if (opCtx->getAccessmode() == READ_OP) {
 			reader.close_datasets();
 			reader.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
+                        writer.endAction(ctx);
 		}
 	}
 }

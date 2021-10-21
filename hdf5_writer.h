@@ -13,23 +13,21 @@ class HDF5Writer {
   private:
 
     std::string backend_version;
-    std::vector < std::string > tensorized_paths;
     std::unordered_map < std::string, std::unique_ptr < HDF5DataSetHandler > > opened_data_sets;
     std::unordered_map < std::string, hid_t > existing_data_sets;
-
-    std::vector < int >current_arrctx_indices;
-    std::vector < int >current_arrctx_shapes;
-
-    int homogeneous_time; 
+    std::unordered_map < ArraystructContext *, std::vector < std::string >> tensorized_paths_per_context;
+    std::unordered_map < ArraystructContext *,  std::vector<int>> arrctx_shapes_per_context;
+    std::unordered_map < ArraystructContext *, int> dynamic_AOS_slices_extension;
+    
+    int homogeneous_time;
     hid_t IDS_group_id;
-    bool init_slice_index;
-    int put_slice_count;
-	int dynamic_AOS_slices_extension;
-
-    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, std::string & timebasename, int timed_AOS_index);
-    void createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t loc_id, int timedAOS_shape);
-    int readTimedAOSShape(hid_t loc_id);
-    int readTimedAOSShape(hid_t loc_id, std::string &tensorized_path);
+    
+    hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, 
+				      std::string & timebasename, int timed_AOS_index, const std::vector < int > &arrctx_indices, const std::vector < int > &arrctx_shapes);
+    void createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t loc_id, int timedAOS_shape, const std::vector < int > &arrctx_indices, const std::vector < int > &arrctx_shapes);
+    int readTimedAOSShape(ArraystructContext * ctx, hid_t loc_id, const std::vector < int > &current_arrctx_indices);
+    int readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, const std::vector < int > &current_arrctx_indices);
+    int getDynamic_AOS_slices_extension(Context *ctx);
  
   public:
 
@@ -53,10 +51,7 @@ class HDF5Writer {
     void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *loc_id);
     void close_datasets();
     void close_group();
-    void pop_back_stacks();
-    void clear_stacks();
-    void start_put_slice_operation();
-    void end_put_slice_operation();
+    void endAction(Context * ctx);
 };
 
 #endif

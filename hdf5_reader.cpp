@@ -10,7 +10,7 @@
 
 
 HDF5Reader::HDF5Reader(std::string backend_version_)
-:  backend_version(backend_version_), tensorized_paths(), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), homogeneous_time(-1), ignore_linear_interpolation(true), current_arrctx_indices(), current_arrctx_shapes(), IDS_group_id(-1), slice_mode(GLOBAL_OP)
+:  backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), tensorized_paths_per_context(), arrctx_shapes_per_context(), homogeneous_time(-1), IDS_group_id(-1), slice_mode(GLOBAL_OP)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -82,24 +82,34 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         *size = 0;
         return;
     }
-	
+    
+    std::string tensorized_path;
     HDF5Utils hdf5_utils;
-    hdf5_utils.setTensorizedPaths(ctx, tensorized_paths);
-
-    std::string tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
-
+    auto got = tensorized_paths_per_context.find(ctx);
+    if (got != tensorized_paths_per_context.end()) {
+      auto &tensorized_paths = got->second;
+      tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
+    }
+    else {
+       
+       std::vector < std::string > tensorized_paths;
+       if (ctx->getParent() != NULL)
+	 tensorized_paths = tensorized_paths_per_context[ctx->getParent()];
+       hdf5_utils.setTensorizedPaths(ctx, tensorized_paths);
+       tensorized_paths_per_context[ctx] = tensorized_paths;
+       tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
+    }
+    
     if (existing_data_sets.find(tensorized_path) != existing_data_sets.end())   //optimization
     {
         if (existing_data_sets[tensorized_path] == 0) {
             *size = 0;
-            tensorized_paths.pop_back();
             return;
         }
     } else {
         if (H5Lexists(IDS_group_id, tensorized_path.c_str(), H5P_DEFAULT) <= 0) {
             existing_data_sets[tensorized_path] = 0;
             *size = 0;
-            tensorized_paths.pop_back();
             return;
         }
         else {
@@ -107,41 +117,47 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         }
     }
 
-    current_arrctx_indices.push_back(ctx->getIndex());
     int timed_AOS_index = -1;
+    std::vector < int > current_arrctx_indices;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
     int *shapes = nullptr;
-
-	bool isTimed = (timed_AOS_index != -1);
+    bool isTimed = (timed_AOS_index != -1);
     int slice_index = -1;
-	OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-	slice_mode = opCtx->getRangemode();
+    OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+    slice_mode = opCtx->getRangemode();
 
     if (slice_mode == SLICE_OP && isTimed) {
 			double linear_interpolation_factor = 0;
 			int slice_sup = -1;
 			std::string att_name("time"); 
 			std::string timebasename("time");
-            slice_index = getSliceIndex(opCtx, att_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index);
+                        bool ignore_linear_interpolation = true;
+            slice_index = getSliceIndex(opCtx, att_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
         
     }
 
-    readAOSPersistentShapes(ctx, tensorized_path, timed_AOS_index, slice_index, (void **) &shapes);
+    readAOSPersistentShapes(ctx, tensorized_path, timed_AOS_index, slice_index, (void **) &shapes, current_arrctx_indices);
     *size = shapes[0];
     free(shapes);
-    current_arrctx_shapes.push_back(*size);
+
+    auto got_arrctx_shapes = arrctx_shapes_per_context.find(ctx);
+    if (got_arrctx_shapes != arrctx_shapes_per_context.end()) {
+      auto &arrctx_shapes = (*got_arrctx_shapes).second;
+      arrctx_shapes.push_back(*size);
+    }
+    else {
+      std::vector<int> arrctx_shapes;
+      arrctx_shapes.push_back(*size);
+      arrctx_shapes_per_context[ctx] = arrctx_shapes;
+    }
 
     if (slice_mode == SLICE_OP && ctx->getTimed() && *size > 0) {
         *size = 1;
     }
-    else if (*size == 0) {
-        current_arrctx_indices.pop_back();
-        tensorized_paths.pop_back();
-    }
 }
 
 int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::string & att_name, std::string & timebasename, 
-int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
+int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation)
 {
 
     HDF5Utils hdf5_utils;
@@ -153,8 +169,10 @@ int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
         dataset_name = "time";
     } else {
         std::string tensorized_path = timebasename;
-        if (tensorized_paths.size() > 0)
+	if (opCtx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+	    auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext*> (opCtx)];
             tensorized_path = tensorized_paths.back() + "&" + timebasename;
+	}
 
         if (timed_AOS_index != -1) {
             dataset_name = "time";
@@ -204,9 +222,6 @@ int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
     } else {
 
         // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
-        HDF5Utils hdf5_utils;
-        int timed_AOS_index;
-        hdf5_utils.getAOSIndices(opCtx, current_arrctx_indices, &timed_AOS_index);
         int dim = -1;
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), ualconst::double_data, current_arrctx_indices.size(), &dim);
         hsSelectionReader.allocateGlobalOpBuffer((void **) &slices_times);
@@ -263,11 +278,11 @@ int *slice_sup, double *linear_interpolation_factor, int timed_AOS_index)
         break;
     case LINEAR_INTERP:
         if (*slice_sup == slice_inf) {
-            ignore_linear_interpolation = true;
+            *ignore_linear_interpolation = true;
             free(slices_times);
             return slice_inf;
         } else {
-            ignore_linear_interpolation = false;
+            *ignore_linear_interpolation = false;
         }
         *linear_interpolation_factor = (time - slices_times[slice_inf]) / (slices_times[*slice_sup] - slices_times[slice_inf]);
         //std::cout << "linear_interpolation_factor: " << *linear_interpolation_factor << std::endl;
@@ -293,9 +308,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
     hid_t dataset_id = -1;
     std::string tensorized_path = dataset_name;
-
-    if (tensorized_paths.size() > 0)
-        tensorized_path = tensorized_paths.back() + "&" + dataset_name;
+    
+    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+	    auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext*> (ctx)];
+            tensorized_path = tensorized_paths.back() + "&" + dataset_name;
+     }
 
     if (existing_data_sets.find(tensorized_path) != existing_data_sets.end())   //optimization
     {
@@ -328,11 +345,12 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
     HDF5Utils hdf5_utils;
     int timed_AOS_index = -1;
+    std::vector < int > current_arrctx_indices;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
 
     bool is_dynamic = timebasename.compare("") != 0 ? true : false;
 
-    ignore_linear_interpolation = true;
+    bool ignore_linear_interpolation = true;
     int slice_sup = -1;         //used for linear interpolation
     double linear_interpolation_factor = 0;
 
@@ -346,7 +364,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             slice_mode = opCtx->getRangemode();
             bool search_slice_index = (slice_mode == SLICE_OP) && (is_dynamic || isTimed);
             if (search_slice_index) {
-                slice_index = getSliceIndex(opCtx, dataset_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index);
+                slice_index = getSliceIndex(opCtx, dataset_name, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
             }
         }
     }
@@ -384,7 +402,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 													  timed_AOS_index,
                                                       &zero_shape,
                                                       &dataset_id_shapes,
-                                                      isOpenedShapesDataSet);
+                                                      isOpenedShapesDataSet,
+						      current_arrctx_indices
+ 						    );
 
 
         if (zero_shape)
@@ -417,7 +437,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 													  timed_AOS_index,
                                                       &zero_shape,
                                                       &dataset_id_shapes,
-                                                      isOpenedShapesDataSet);
+                                                      isOpenedShapesDataSet,
+						      current_arrctx_indices
+ 						    );
 
         if (zero_shape)
             return 0;
@@ -505,7 +527,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                                 timed_AOS_index,
                                 &zero_shape,
                                 &dataset_id_shapes,
-                                isOpenedShapesDataSet);
+                                isOpenedShapesDataSet,
+				current_arrctx_indices
+ 			      );
 
             if (datatype != ualconst::char_data) {
                 for (int i = 0; i < hsSelectionReader.getDim(); i++)
@@ -566,7 +590,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
 }
 
-int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes, bool isOpenedShapesDataSet)
+int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorized_path, int datatype, int slice_mode, 
+				    bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index, 
+				    bool * zero_shape, hid_t * dataset_id_shapes, bool isOpenedShapesDataSet, const std::vector < int > &current_arrctx_indices)
 {
 
     int AOSRank = current_arrctx_indices.size();
@@ -579,7 +605,7 @@ int HDF5Reader::getPersistentShapes(Context * ctx, const std::string & tensorize
         || (datatype == ualconst::char_data && dim == 2)) {
         int *shapes = nullptr;
         shapesDataSetExists = readPersistentShapes(ctx, tensorized_path, (void **) &shapes, slice_mode, is_dynamic, isTimed, 
-slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet);
+slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet, current_arrctx_indices);
 
         if (*zero_shape) {
             free(shapes);
@@ -606,17 +632,20 @@ HDF5Reader::readPersistentShapes(Context * ctx,
 				  const std::string & field_tensorized_path,
 				  void **shapes, int slice_mode,
 				  bool is_dynamic, bool isTimed,
-				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes, bool isOpenedShapesDataSet)
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes, bool isOpenedShapesDataSet, const std::vector < int > &current_arrctx_indices)
 {
     if (slice_mode == SLICE_OP) {
-		return readPersistentShapes_GetSlice(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet);
+		return readPersistentShapes_GetSlice(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet, current_arrctx_indices);
     }
     else {
-		return readPersistentShapes_Get(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet);
+		return readPersistentShapes_Get(ctx, field_tensorized_path, shapes, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet, current_arrctx_indices);
     }
 }
 
-int HDF5Reader::readPersistentShapes_Get(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes, bool isOpenedShapesDataSet)
+int HDF5Reader::readPersistentShapes_Get(Context * ctx, const std::string & field_tensorized_path, void **shapes, int slice_mode, bool is_dynamic, 
+					 bool isTimed, int timed_AOS_index, int slice_index, bool * zero_shape, hid_t * dataset_id_shapes, bool isOpenedShapesDataSet,
+					 const std::vector < int > &current_arrctx_indices 
+					)
 {
     const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
     std::unique_ptr < HDF5DataSetHandler > data_set;
@@ -649,7 +678,9 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
 				  const std::string & field_tensorized_path,
 				  void **shapes, int slice_mode,
 				  bool is_dynamic, bool isTimed,
-				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes, bool isOpenedShapesDataSet)
+				  int slice_index, int timed_AOS_index, bool *zero_shape, hid_t *dataset_id_shapes, bool isOpenedShapesDataSet,
+				  const std::vector < int > &current_arrctx_indices
+ 					)
 {
   const std::string & tensorized_path = field_tensorized_path + "_SHAPE";
 
@@ -710,7 +741,7 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
   return 1;
 }
 
-int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes)
+int HDF5Reader::readAOSPersistentShapes(Context * ctx, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector < int > &current_arrctx_indices)
 {
     //std::cout << "Reading AOS SHAPE datasets: " <<  tensorized_path.c_str() << std::endl;
     std::vector < int >aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end() -1);
@@ -764,20 +795,14 @@ void HDF5Reader::close_file_handler(std::string external_link_name, std::unorder
     }
 }
 
-void HDF5Reader::pop_back_stacks()
-{
-    if (current_arrctx_indices.size() > 0)
-        current_arrctx_indices.pop_back();
-    if (current_arrctx_shapes.size() > 0)
-        current_arrctx_shapes.pop_back();
-    if (tensorized_paths.size() > 0) {
-        tensorized_paths.pop_back();
-    }
-}
-
-void HDF5Reader::clear_stacks()
-{
-    current_arrctx_indices.clear();
-    current_arrctx_shapes.clear();
-    tensorized_paths.clear();
+void HDF5Reader::endAction(Context * ctx)
+{   
+  if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+    auto arrctx_shapes_got = arrctx_shapes_per_context.find(static_cast<ArraystructContext*> (ctx));
+    if (arrctx_shapes_got != arrctx_shapes_per_context.end())
+      arrctx_shapes_per_context.erase(arrctx_shapes_got);
+    auto got = tensorized_paths_per_context.find(static_cast<ArraystructContext*> (ctx));
+    if (got != tensorized_paths_per_context.end())
+      tensorized_paths_per_context.erase(got);
+   }
 }
