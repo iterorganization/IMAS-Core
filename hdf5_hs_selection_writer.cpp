@@ -65,8 +65,7 @@ int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, in
     }
 
 		/*std::cout << ">-------------------------------------------------------<" << std::endl;
-		
-		std::cout << "datasetname = " << dataSetHandler.getName() << std::endl;
+
 		std::cout << "isTimed = " << isTimed << std::endl;
 		std::cout << "timed_AOS_index = " << timed_AOS_index << std::endl;
 		std::cout << "-------->dataspace dimensions in setHyperSlabs for AOSs" << std::endl;

@@ -612,18 +612,19 @@ void HDF5Utils::getAOSIndices(Context * ctx, std::vector < int >&indices, int *t
         if (arrCtx->getTimed()) {
             *timedAOS_index = i;
         }
-	indices.push_back(arrCtx->getIndex());
+	    indices.push_back(arrCtx->getIndex());
         ArraystructContext *parent = arrCtx->getParent();
         while (parent != NULL) {
-	    i++;
+	        i++;
             if (parent->getTimed()) {
                 *timedAOS_index = i;
             }
-	    indices.push_back(arrCtx->getIndex());
+	        indices.push_back(parent->getIndex());
             parent = parent->getParent();
         }
         std::reverse(indices.begin(), indices.end());
-	*timedAOS_index =  indices.size() - *timedAOS_index - 1;
+        if (*timedAOS_index != -1)
+	        *timedAOS_index =  indices.size() - *timedAOS_index - 1;
     }
 }
 

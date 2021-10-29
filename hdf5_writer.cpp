@@ -248,7 +248,7 @@ void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size
 {
     assert(IDS_group_id >= 0);
     HDF5Utils hdf5_utils;
-  
+    //std::cout << "Preparing AOS: " << ctx->getPath().c_str() << std::endl;
     auto got = tensorized_paths_per_context.find(ctx);
     if (got == tensorized_paths_per_context.end()) {
        std::vector < std::string > tensorized_paths;
@@ -278,7 +278,7 @@ void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size
     std::vector<int> &arrctx_shapes = (*got_arrctx_shapes).second;
     if (slice_mode == SLICE_OP && ctx->getTimed()) {
         AOS_timed_shape = readTimedAOSShape(ctx, IDS_group_id, current_arrctx_indices);
-	dynamic_AOS_slices_extension[ctx] = *size;
+	    dynamic_AOS_slices_extension[ctx] = *size;
         arrctx_shapes.back() = AOS_timed_shape;
     } else {
         arrctx_shapes.back() = *size;
@@ -678,7 +678,7 @@ int HDF5Writer::getDynamic_AOS_slices_extension(Context *ctx) {
   auto got = dynamic_AOS_slices_extension.find(static_cast<ArraystructContext*> (ctx));
   if (got != dynamic_AOS_slices_extension.end())
     return (*got).second;
-  return 0;
+  return 1;
 }
 
 void HDF5Writer::endAction(Context * ctx)
