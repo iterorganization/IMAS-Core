@@ -706,7 +706,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
 
-    actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
+    actx = new ArraystructContext((static_cast<OperationContext *>(lle.context)),
 					std::string(path),
 					std::string(timebase),
 				  dynamic_cast<ArraystructContext *>(lle.context));

@@ -716,11 +716,6 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
 void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
 hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
 {
-    if (*IDS_group_id >= 0) {
-        H5Gclose(*IDS_group_id);
-        *IDS_group_id = -1;
-    }
-
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     hid_t IDS_file_id = -1;
@@ -743,6 +738,10 @@ void HDF5Utils::showStatus(hid_t file_id) {
   n = H5Fget_obj_count (file_id, H5F_OBJ_DATASET);
   std::cout << "number of datasets opened: " << n << std::endl;
   n = H5Fget_obj_count (file_id, H5F_OBJ_FILE);
+  /*hid_t dataset_ids[10];
+  H5Fget_obj_ids(file_id, H5F_OBJ_DATASET, 10, dataset_ids);
+  for (int i = 0; i < 10; i++)
+    printf("opened datasetid=%d\n", dataset_ids[i]);*/
   std::cout << "number of files opened: " << n << std::endl;
    n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
   std::cout << "number of objects opened: " << n << std::endl;

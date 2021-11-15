@@ -33,7 +33,7 @@ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unord
 			} 
 			else {
 				int homogeneous_time = -1;
-				writer.read_homogeneous_time(&homogeneous_time);
+				writer.read_homogeneous_time(&homogeneous_time, loc_id);
 				call_put_required = (homogeneous_time == -1);
 			}
 		}
@@ -62,25 +62,19 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
 		}
 	} else if (ctx->getType() == CTX_OPERATION_TYPE) {
 		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-		if (opCtx->getRangemode() == GLOBAL_OP && opCtx->getAccessmode() == WRITE_OP) {
-			writer.write_buffers();
+
+		if (opCtx->getAccessmode() == WRITE_OP) {
+            if (opCtx->getRangemode() == GLOBAL_OP)
+			    writer.write_buffers();
 			H5Fflush(file_id, H5F_SCOPE_LOCAL);
 			writer.close_datasets();
-			writer.close_group();
+			writer.close_group(opCtx);
 			writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
+		} 
+        else if (opCtx->getAccessmode() == READ_OP) {
 			reader.close_datasets();
-                        writer.endAction(ctx);
-		} else if (opCtx->getRangemode() == SLICE_OP && opCtx->getAccessmode() == WRITE_OP) {
-			H5Fflush(file_id, H5F_SCOPE_LOCAL);
-			writer.close_datasets();
-			writer.close_group();
-			writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
-			reader.close_datasets();
-                        writer.endAction(ctx);
-		} else if (opCtx->getAccessmode() == READ_OP) {
-			reader.close_datasets();
+            reader.close_group(opCtx);
 			reader.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
-                        writer.endAction(ctx);
 		}
 	}
 }

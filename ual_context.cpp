@@ -292,26 +292,30 @@ int OperationContext::getInterpmode() const
 
 /// ArraystructContext ///
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb)
-  : OperationContext(ctx), path(p), timebase(tb)
+ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb)
+  : OperationContext(*ctx), path(p), timebase(tb), opCtx(ctx)
 {
   parent = NULL;
   index = 0;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
+ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb,
 				       ArraystructContext *cont)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont)
+  : OperationContext(*ctx), path(p), timebase(tb), parent(cont), opCtx(ctx)
 {
+  if (cont != NULL)
+    opCtx = cont->opCtx;
   index = 0;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
+ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb,
 				       ArraystructContext *cont, int idx)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx)
+  : OperationContext(*ctx), path(p), timebase(tb), parent(cont), index(idx), opCtx(ctx)
 {
+  if (cont != NULL)
+    opCtx = cont->opCtx;
   index = 0;
   this->uid = ++SID;
 }
@@ -371,6 +375,11 @@ ArraystructContext * ArraystructContext::getParent()
 int ArraystructContext::getIndex() const
 { 
   return index; 
+}
+
+OperationContext * ArraystructContext::getOperationContext() 
+{ 
+  return opCtx; 
 }
 
 void ArraystructContext::nextIndex(int step) 

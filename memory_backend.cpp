@@ -586,7 +586,7 @@ else
 
     void MemoryBackend::flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos)
     {
-	ArraystructContext arrayStructCtx(*ctx, fieldName, ualAos.timebase);
+	ArraystructContext arrayStructCtx(ctx, fieldName, ualAos.timebase);
 	recFlushAoS(ualAos, ctx, &arrayStructCtx);
     }
 
@@ -612,7 +612,7 @@ else
 		std::string fieldName = aosField.first;
 		UalAoS *currAos = aosField.second;
 
-		ArraystructContext currCtx(*opCtx, fieldName, currAos->timebase, ctx, idx);
+		ArraystructContext currCtx(opCtx, fieldName, currAos->timebase, ctx, idx);
 		recFlushAoS(*currAos, opCtx, &currCtx);
 	    }
 	}
