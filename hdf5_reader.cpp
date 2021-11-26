@@ -10,7 +10,7 @@
 
 
 HDF5Reader::HDF5Reader(std::string backend_version_)
-:  backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), tensorized_paths_per_context(), arrctx_shapes_per_context(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP)
+:  backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), tensorized_paths_per_context(), tensorized_paths_per_op_context(), arrctx_shapes_per_context(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -94,7 +94,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         *size = 0;
         return;
     }
-
+    //std::cout << "beginReadArraystructAction called for: " << ctx->getPath().c_str() << std::endl;
     std::string tensorized_path;
     auto got = tensorized_paths_per_context.find(ctx);
     if (got != tensorized_paths_per_context.end()) {
@@ -128,6 +128,8 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         }
     }
 
+    tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
+
     int timed_AOS_index = -1;
     std::vector < int > current_arrctx_indices;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index);    //getting current AOS indices
@@ -140,10 +142,8 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     if (slice_mode == SLICE_OP && isTimed) {
 			double linear_interpolation_factor = 0;
 			int slice_sup = -1;
-			//std::string att_name("time"); 
-			std::string timebasename("time");
-                        bool ignore_linear_interpolation = true;
-            std::string time_dataset_name = getTimeVectorDataSetName(opCtx, timebasename, timed_AOS_index);
+            bool ignore_linear_interpolation = true;
+            std::string time_dataset_name = getTimeVectorDataSetName(ctx, timed_AOS_index);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
             slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
@@ -173,25 +173,53 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index) {
 
     std::string dataset_name;
-    if (homogeneous_time == 1) {
-        dataset_name = "time";
-    } else {
-        std::string tensorized_path = timebasename;
-        if (opCtx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-            auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext*> (opCtx)];
-                tensorized_path = tensorized_paths.back() + "&" + timebasename;
-        }
-        if (timed_AOS_index != -1) {
+
+    //printf("getTimeVectorDataSetName::timebasename=%s\n", timebasename.c_str());
+
+     if (homogeneous_time == 1) {
             dataset_name = "time";
-        } 
-        else {
-            if (timebasename.compare("&time") == 0 || timebasename.compare("time") == 0) {
-                dataset_name = "time";
-            } else {
-                dataset_name = tensorized_path;
+            return dataset_name;
+       }
+    
+     //handling case where time basis is inhomogeneous
+
+    std::string tensorized_path = timebasename;
+
+    if (timed_AOS_index != -1) { //that means that the time basis is at the root of the dynamic AOS
+        auto &tensorized_paths = tensorized_paths_per_op_context[opCtx];
+        dataset_name = tensorized_paths[timed_AOS_index] + "&time";
+    } 
+    else {
+        if (timebasename.compare("&time") == 0 || timebasename.compare("time") == 0) {
+            dataset_name = "time";
+        } else {
+            auto got = tensorized_paths_per_op_context.find(opCtx);
+            if (got != tensorized_paths_per_op_context.end()) {
+                auto &tensorized_paths = got->second;
+                dataset_name = tensorized_paths.back() + "&" + timebasename;
             }
+            else {
+                dataset_name = timebasename;
+            }
+            
         }
     }
+    //printf("getTimeVectorDataSetName::result=%s\n", dataset_name.c_str());
+    return dataset_name;
+}
+
+std::string HDF5Reader::getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index) {
+
+    std::string dataset_name;
+
+     if (homogeneous_time == 1) {
+            dataset_name = "time";
+            return dataset_name;
+    }
+    assert(timed_AOS_index != -1);
+    auto &tensorized_paths = tensorized_paths_per_context[ctx];
+    dataset_name = tensorized_paths[timed_AOS_index] + "&time";
+    //printf("getTimeVectorDataSetName::AOS time basis=%s\n", dataset_name.c_str());
     return dataset_name;
 }
 
@@ -257,7 +285,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
             throw UALBackendException(error_message, LOG);
         }
     }
-
+    //printf("getSliceIndex::data_set=%s, timeVectorLength=%d\n", data_set->getName().c_str(), timeVectorLength);
     *slice_sup = timeVectorLength - 1;
     int slice_inf = 0;
     if (*slice_sup > 0)
@@ -377,14 +405,13 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
     if (ctx->getType() == CTX_OPERATION_TYPE || ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
 
         OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-        if (opCtx->getRangemode() == SLICE_OP) {
+        bool search_slice_index = is_dynamic || isTimed;
+        if (opCtx->getRangemode() == SLICE_OP && search_slice_index) {
             std::string time_dataset_name = getTimeVectorDataSetName(opctx, timebasename, timed_AOS_index);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
             slice_mode = opCtx->getRangemode();
-            bool search_slice_index = is_dynamic || isTimed;
-            if (search_slice_index)
-                slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
+            slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
             opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
         }
     }
@@ -844,11 +871,25 @@ void HDF5Reader::close_file_handler(std::string external_link_name, std::unorder
 void HDF5Reader::endAction(Context * ctx)
 {   
   if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-    auto arrctx_shapes_got = arrctx_shapes_per_context.find(static_cast<ArraystructContext*> (ctx));
+    ArraystructContext *arrctxt = static_cast<ArraystructContext*> (ctx);
+    auto arrctx_shapes_got = arrctx_shapes_per_context.find(arrctxt);
     if (arrctx_shapes_got != arrctx_shapes_per_context.end())
       arrctx_shapes_per_context.erase(arrctx_shapes_got);
-    auto got = tensorized_paths_per_context.find(static_cast<ArraystructContext*> (ctx));
+    auto got = tensorized_paths_per_context.find(arrctxt);
     if (got != tensorized_paths_per_context.end())
       tensorized_paths_per_context.erase(got);
+    auto got2 = tensorized_paths_per_op_context.find(arrctxt->getOperationContext());
+    if (got2 != tensorized_paths_per_op_context.end()) {
+        if (arrctxt->getParent() == NULL)
+            tensorized_paths_per_op_context.erase(got2);
+        else {
+            auto &tensorized_paths = got2->second;
+            tensorized_paths.pop_back();
+        }
+    }
    }
+   else {
+        //OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+        //tensorized_paths_per_op_context.erase(opCtx);
+    }
 }

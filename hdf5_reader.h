@@ -19,6 +19,9 @@ class HDF5Reader {
     std::unordered_map < std::string, std::unique_ptr < HDF5DataSetHandler > > aos_opened_shapes_data_sets;
     std::unordered_map < std::string, hid_t > existing_data_sets;
     std::unordered_map < ArraystructContext *,  std::vector<std::string>> tensorized_paths_per_context;
+
+    std::unordered_map < OperationContext *,  std::vector<std::string>> tensorized_paths_per_op_context;
+
     std::unordered_map < ArraystructContext *,  std::vector<int>> arrctx_shapes_per_context;
     
     int homogeneous_time;
@@ -43,6 +46,11 @@ class HDF5Reader {
  				    );
     int readAOSPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector < int > &current_arrctx_indices);
 
+    std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index);
+    std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
+    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
+    
+
   public:
 
      HDF5Reader(std::string backend_version_);
@@ -60,8 +68,6 @@ class HDF5Reader {
     void close_datasets();
     void close_group(OperationContext *ctx);
     void endAction(Context * ctx);
-    std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
-    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
 };
 
 #endif
