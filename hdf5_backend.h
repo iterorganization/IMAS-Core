@@ -13,8 +13,8 @@
 class HDF5Backend:public Backend {
   private:
     
-    static const int HDF5_BACKEND_VERSION_MAJOR = 1;
-    static const int HDF5_BACKEND_VERSION_MINOR = 0;
+    static const int HDF5_BACKEND_VERSION_MAJOR;
+    static const int HDF5_BACKEND_VERSION_MINOR;
 
     static std::string files_directory; //directory containing the pulse files
     static std::string relative_file_path; 

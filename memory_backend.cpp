@@ -30,6 +30,7 @@
 	    }
 	    else
 	    {
+/*********OLD
 		if(aos.size() != sliceAos.aos.size())
 		{
 			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
@@ -40,6 +41,17 @@
 			aos[i]->addSlice(*sliceAos.aos[i], ctx);
 //			aos[i]->addSlice(*sliceAos.aos[i]->clone(), ctx);
 		}
+****************/
+		for(size_t i = 0; i < sliceAos.aos.size(); i++)
+		{
+		    if(i >= aos.size())
+		    {
+			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
+			return;
+		    }
+		    aos[i]->addSlice(*sliceAos.aos[i], ctx);
+		}
+
 	    }
 	}
     }
@@ -60,6 +72,13 @@
 	    	aosField.second->addSlice(*ualSlice.aosFields[aosField.first], ctx);
 	}
     }
+
+
+   // Always return dummy version until there are use cases where version checks are required for memory BE
+   std::pair<int,int> MemoryBackend::getVersion(PulseContext *ctx)
+   {
+     return {0,0};
+   }
 
 
 
@@ -174,11 +193,9 @@ else
 		    status= ualData->readData(data, datatype, dim, size);
 		    break;
 	    	case UalData::MAPPING::UNMAPPED:
-		    targetB->readData(ctx, fieldname, timebase, data, datatype, dim, size);
 		    ualData->writeData(*datatype, *dim, size, (unsigned char *)*data, timebase);
 		    break;
 		case UalData::MAPPING::SLICE_MAPPED:
-		    targetB->readData(ctx, fieldname, timebase, data, datatype, dim, size);
 		    ualData->prependData(*datatype, *dim, size, (unsigned char *)*data);
 		    ualData->readData(data, datatype, dim, size);
 		    break;
@@ -193,12 +210,10 @@ else
  	    OperationContext newCtx(*ctx, ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
  	    if(ualData->getMapState() == UalData::MAPPING::UNMAPPED)
 	    {
-		targetB->readData(&newCtx, fieldname, timebase, data, datatype, dim, size);
 		ualData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
 	    }
 	    else if(ualData->getMapState() == UalData::MAPPING::SLICE_MAPPED) 
 	    {
-		targetB->readData(&newCtx, fieldname, timebase, data, datatype, dim, size);
 		ualData->prependData(*datatype, *dim, size, *(unsigned char **)data);
 	    }		
 	    //At this point all the info is in cache, we need to get time
@@ -305,8 +320,6 @@ else
 //If we are startng a writeArrayStruct for a SLICE_OP and the AoS is NOT mapped, take NO action
 	if(ctx->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
 	{
-//	    targetB->beginWriteArraystruct(ctx, size);
-	    targetB->beginArraystructAction(ctx, &size);
 	    return;
 	}
 
@@ -341,7 +354,6 @@ else
 	    }
 	}
 
-//	targetB->beginWriteArraystruct(ctx, size);
 //No write propagated to target backend
     }
   /**
@@ -360,8 +372,6 @@ else
 //If  the AoS is NOT mapped, take NO action, just pass it to the target backend
 	if(!isMappedAoS(ctx))
 	{
-//	    targetB->beginReadArraystruct(ctx, size);
-	    targetB->beginArraystructAction(ctx, size);
 	    return;
 	}
 //If it is a slice, then size = 1
@@ -430,8 +440,6 @@ else
 //If the AoS is NOT mapped, take NO action
 	if(!isMappedAoS(ctx))
 	{
-//	    targetB->putInArraystruct(ctx, fieldname, timebase, idx, data, datatype, dim, size);
-	    targetB->writeData(ctx, fieldname, timebase, data, datatype, dim, size);
 	    return;
 	}
 	UalData *ualData;
@@ -474,8 +482,6 @@ else
 //If we are starting a readArrayStruct for a SLICE_OP or the AoS is NOT mapped, take NO actio, just pass it to the target backend
 	if(!isMappedAoS(ctx))
 	{
-//	    targetB->getFromArraystruct(ctx, fieldname, idx, data, datatype, dim, size);
-	    targetB->readData((Context *)ctx, fieldname, timebase, data, datatype, dim, size);
 	    return 1;
 	}
 //Otherwise data are mapped
@@ -511,7 +517,6 @@ else
 //If we are startng a writeArrayStruct for a SLICE_OP and the AoS is NOT mapped, take NO action
 	    if(ctx->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
 	    {
-	    	targetB->endAction(inCtx);
 		internalCtx->unlock();
 	        return;
 	    }
@@ -555,7 +560,6 @@ else
 	internalCtx->lock();
 	try  {
 	    if((ctx->getType() != CTX_ARRAYSTRUCT_TYPE && ctx->getAccessmode() == ualconst::read_op) || (ctx->getType() == CTX_ARRAYSTRUCT_TYPE && !isMappedAoS((ArraystructContext *)ctx)))	
-	    	targetB->beginAction(ctx);
 	    internalCtx->unlock();
 	}
      	catch(...)
@@ -570,7 +574,6 @@ else
     void MemoryBackend::flush(PulseContext *ctx, std::string dataobjectName)
     {
 	OperationContext newCtx(*ctx, dataobjectName, GLOBAL_OP);
-	targetB->beginAction(&newCtx);
 	UalStruct *ids = getIds(&newCtx);
 	for(auto &field: ids->dataFields)
 	{
@@ -580,7 +583,6 @@ else
 	    int datatype, numDims;
 	    int dims[MAX_DIM];
 	    fieldData->readData(&data, &datatype, &numDims, dims);
-	    targetB->writeData(&newCtx, fieldName, fieldData->getTimebase(), data, datatype, numDims, dims);
 	}
 	for(auto &aosField: ids->aosFields)
 	{
@@ -588,7 +590,6 @@ else
 	    UalAoS *fieldAos = aosField.second;
 	    flushAoS(&newCtx, fieldName, *fieldAos);
 	}
-	targetB->endAction(&newCtx);
     }
 
 
@@ -603,9 +604,7 @@ else
 
     void MemoryBackend::recFlushAoS(UalAoS &ualAos, OperationContext *opCtx, ArraystructContext *ctx)
     {
-//    	targetB->beginWriteArraystruct(ctx, ualAos.aos.size());
 	int size = ualAos.aos.size();
-    	targetB->beginArraystructAction(ctx, &size);
 	for(size_t idx = 0; idx < ualAos.aos.size(); idx++)
 	{
 	    for(auto &field: ualAos.aos[idx]->dataFields)
@@ -618,8 +617,6 @@ else
 		int size[MAX_DIM];
     		fieldData->readData(&data, &datatype, &dim, size);
 	
-		//targetB->putInArraystruct(ctx, fieldName, fieldData->getTimebase(), idx, data, datatype, dim, size);
-		targetB->writeData(ctx, fieldName, fieldData->getTimebase(), data, datatype, dim, size);
 	    }
 	    //Normal fields done, now handle AoS
 	    for(auto &aosField: ualAos.aos[idx]->aosFields)
@@ -631,7 +628,6 @@ else
 		recFlushAoS(*currAos, opCtx, &currCtx);
 	    }
 	}
-	targetB->endAction(ctx);
     }
 
 

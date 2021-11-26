@@ -9,7 +9,6 @@
 #include <vector>
 #include <pthread.h>
 
-#include "dummy_backend.h"
 #include "ual_backend.h"
 #include "ual_context.h"
 #include "ual_defs.h"
@@ -281,7 +280,6 @@ class LIBRARY_API MemoryBackend:public Backend
 	MemoryBackend(const MemoryBackend&) = delete;
     MemoryBackend& operator=(const MemoryBackend&) = delete;
 
-    Backend *targetB;
     bool isCreated;
     InternalCtx *internalCtx;
     //std::unordered_map<std::string, UalStruct *> idsMap;
@@ -316,14 +314,9 @@ public:
   // virtual desctructor
     MemoryBackend() 
     {
-	this->targetB = new DummyBackend();
 	lastIdsPathShot = lastIdsPathRun = 0;
 //	internalCtx = new InternalCtx;
 	internalCtx = NULL;
-    }
-   MemoryBackend(Backend *targetB) 
-    {
-	this->targetB = targetB;
     }
     ~MemoryBackend()
     {
@@ -369,7 +362,6 @@ public:
 			 int mode,
 			 std::string options)
     {
-	targetB->openPulse(ctx, mode, options);
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
 
 	std::string  fullName = ctx->getUser()+" " + ctx->getTokamak()+ " " + ctx->getVersion() + " " + std::to_string(ctx->getShot())+ " " + std::to_string(ctx->getRun());
@@ -426,7 +418,6 @@ public:
 			  std::string options)
 
     {
-	targetB->closePulse(ctx, mode, options);
     }
 
      virtual void writeData(OperationContext *ctx,
@@ -563,6 +554,9 @@ public:
     virtual void endAction(Context *ctx); 
 		
     virtual void beginAction(OperationContext *ctx);
+
+    std::pair<int,int> getVersion(PulseContext *ctx) override;
+
 
     void flush(PulseContext *ctx, std::string dataobjectName);
     void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);

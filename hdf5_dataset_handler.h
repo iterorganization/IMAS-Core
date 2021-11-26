@@ -3,6 +3,7 @@
 
 #include <hdf5.h>
 #include "ual_backend.h"
+#include "hdf5_hs_selection_reader.h"
 
 #include <vector>
 #include <string>
@@ -18,11 +19,11 @@ typedef struct {
 
 class HDF5DataSetHandler {
   private:
+    bool writing_mode;
     std::string tensorized_path;        //full tensorized path
-    hid_t dataset_id;
+
     int dataset_rank;
     int AOSRank;
-	int datatype;
     bool immutable;
 	bool shape_dataset;
 
@@ -41,22 +42,60 @@ class HDF5DataSetHandler {
     hsize_t initial_dims[H5S_MAX_RANK]; //dims stored at beginning of a put_slice
 
     int setType();
-	
+	void writeBuffer();
+    void setBuffering(bool useBufferingOption);
+    void appendStringToBuffer(const std::vector < int >&current_arrctx_indices, char **data);
+    void appendInt0DToBuffer(const std::vector < int >&current_arrctx_indices, void *data);
+    void appendIntNDToBuffer(const std::vector < int >&current_arrctx_indices, void *data, int dim);
+    void appendDouble0DToBuffer(const std::vector < int >&current_arrctx_indices, void *data);
+    void appendDoubleNDToBuffer(const std::vector < int >&current_arrctx_indices, void *data, int dim);
+
+    //read operations
+    void read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void create0DStringsBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void readInt0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void readIntNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void createIntBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
+    void readUsingHyperslabs(std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings);
 
   public:
 
-     HDF5DataSetHandler();
+     HDF5DataSetHandler(bool writing_mode_);
     ~HDF5DataSetHandler();
 
+    int datatype;
+    hid_t dataset_id;
     hid_t dtype_id;
+    int request_dim;
     hid_t dataspace_id;
     hid_t IDS_group_id;
+    void *buffer;
+    int buffer_length;
+    bool useBuffering;
+    std::vector <std::vector<int> > requests_arrctx_indices;
+    std::vector <std::vector<int> > requests_shapes;
+
+    std::vector<char *> data_sets_buffers;
+    std::vector<int *> int_data_set_buffer;
+    std::vector<double *> double_data_set_buffer;
+
+    std::vector<char *> full_data_sets_buffers;
+    int * full_int_data_set_buffer;
+    double * full_double_data_set_buffer;
+
+    std::unique_ptr < HDF5HsSelectionReader > selection_reader;
+
+    bool operator==(const HDF5DataSetHandler &other) const;
+
 	void showDims(std::string context);
 	void showAOSIndices(std::string context, std::vector<int> &AOS_indices);
 	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
 
-	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool compression_enabled);
-	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset);
+	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache, bool compression_enabled, bool useBuffering);
+	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering);
 	void setCurrentShapesAndExtend(int *size, int *AOSShapes);
 	void setCurrentShapes(int *size, int *AOSShapes);
 	void setExtent();
@@ -75,21 +114,35 @@ class HDF5DataSetHandler {
     int getTimeWriteOffset() const;
 
 	std::string getName() const;
-    void getAttributes(bool * isTimed, int *timed_AOS_index) const;
 	int getSlicesExtension() const;
 	bool isShapeDataset() const;
-     
     int getRank() const;
-    hsize_t * getDims();
+    int getAOSRank() const;
+    const hsize_t * getDims();
+    std::vector<int> getDimsAsVector() const;
+    int computeShapeFromDimsVector(std::vector<int> &v);
+    hsize_t * getLargestDims();
     int getInitialOffset() const;
 	int getSize() const;
+    size_t getMaxShape(int axis) const;
 	int getShape(int axis) const;
-    hid_t getDataSpace();
+    hid_t getDataSpace() const;
     void setNonSliceMode();
     void setSliceMode(Context * ctx);
     int getTimedShape(int *timed_AOS_index_);
     void setTensorizedPath(std::string p) {
         tensorized_path = p;
-}};
+    }
+    void close();
+    void write_buffers();
+    void fillFullBuffers() ;
+
+    void writeUsingHyperslabs(const std::vector < int >&current_arrctx_indices, int slice_mode, int dynamic_AOS_slices_extension, void *data);
+    void appendToBuffer(const std::vector < int >&current_arrctx_indices, bool dataSetAlreadyOpened, int datatype, int dim, int slice_mode, int dynamic_AOS_slices_extension, char**p, void *data);
+
+    //Reading operation
+    void readData(bool dataSetAlreadyOpened, std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
+
+};
 
 #endif

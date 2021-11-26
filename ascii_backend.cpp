@@ -149,6 +149,19 @@ void AsciiBackend::closePulse(PulseContext *ctx,
 }
 
 
+std::pair<int,int> AsciiBackend::getVersion(PulseContext *ctx)
+{
+  std::pair<int,int> version;
+  if(ctx==NULL)
+    version = {ASCII_BACKEND_VERSION_MAJOR, ASCII_BACKEND_VERSION_MINOR};
+  else
+    {
+      version = {0,0}; // temporary placeholder
+    }
+  return version;
+}
+
+
 
 void AsciiBackend::beginAction(OperationContext *ctx)
 {

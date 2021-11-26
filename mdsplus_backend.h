@@ -27,6 +27,7 @@
 #ifdef __cplusplus
 
 
+
 class LIBRARY_API MDSplusBackend:public Backend 
 {
   private:
@@ -233,6 +234,16 @@ class LIBRARY_API MDSplusBackend:public Backend
 	else
 	   beginWriteArraystruct(ctx, *size);
     }
+ /**
+     Returns version of the backend (pair <major,minor>), to be used for compatibility checks.
+     Version number needs to be bumped when:
+     - non-backward compatible changes are being introduced --> major
+     - non-forward compatible changes are being introduced --> minor
+     @param[in] ctx pointer on pulse context, if NULL then returns the version of the backend,
+     otherwise returns the version stored in associated pulse file
+     @result std::pair<int,int> for <major,minor> version numbers
+  */
+    virtual std::pair<int,int> getVersion(PulseContext *ctx);
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
@@ -240,6 +251,21 @@ class LIBRARY_API MDSplusBackend:public Backend
     void updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples);
     std::unordered_map<std::string, std::vector<double>> timebaseMap;
     std::unordered_map<int, std::string> timebasePathMap;
+
+
+    class SegmentDescriptor
+    {
+	public:
+	    int segmentIdx, startIdx, endIdx;
+	    SegmentDescriptor(int segmentIdx, int startIdx, int endIdx)
+	    {
+		this->segmentIdx = segmentIdx;
+		this->startIdx = startIdx;
+		this->endIdx = endIdx;
+	    }
+    };
+    std::unordered_map<int, std::vector<SegmentDescriptor>> segmentIdxMap;
+    void getSegmentIdxFromSliceIdx(MDSplus::TreeNode *node, int sliceIdx, int &retSegmentIdx, int &retStartIdx, int &retEndIdx);
     //Temporary
     void fullResetNodePath();
 

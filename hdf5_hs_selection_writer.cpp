@@ -16,18 +16,11 @@ HDF5HsSelectionWriter::~HDF5HsSelectionWriter()
 }
 
 void
- HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, std::vector < int >&current_arrctx_indices, int slice_mode, HDF5DataSetHandler & dataSetHandler, int dynamic_AOS_slices_extension)
+ HDF5HsSelectionWriter::setHyperSlabs(hid_t dataset_id, const std::vector < int >&current_arrctx_indices, 
+int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, int timed_AOS_index, int timeWriteOffset, const hsize_t *dataspace_dims, int dynamic_AOS_slices_extension)
 {
-    bool isTimed;
-    int timed_AOS_index;
-
-    dataSetHandler.getAttributes(&isTimed, &timed_AOS_index);
     int AOSRank = current_arrctx_indices.size();
-
-    hid_t dataspace = dataSetHandler.getDataSpace();
-    dataset_rank = dataSetHandler.getRank();
-    bool isShapeDataSet = dataSetHandler.isShapeDataset();
-    hsize_t *dataspace_dims = dataSetHandler.getDims();
+    dataset_rank = rank;
 
 	if (dataset_rank == 0) {
 		memspace = H5S_ALL;
@@ -51,28 +44,22 @@ void
     }
 
     bool slicing = slice_mode == SLICE_OP && !isTimed;   //appending slice 
-    bool array_slicing = slicing && dynamic_AOS_slices_extension == 0;
-    bool AOS_slicing = slicing && dynamic_AOS_slices_extension != 0;
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
 
-        if (isShapeDataSet) {
+         if (isShapeDataSet) {
            offset[i + AOSRank] = 0;
            count[i + AOSRank] = dataspace_dims[i + AOSRank];
         }
         else {
-            if (array_slicing && (i == 0)) {
-                offset[i + AOSRank] = dataSetHandler.getTimeWriteOffset();
-                count[i + AOSRank] = dataspace_dims[i + AOSRank];
-            }
-            else if (AOS_slicing && (i == 0)) {
-                offset[i + AOSRank] = dataSetHandler.getTimeWriteOffset();
-                count[i + AOSRank] = dataspace_dims[i + AOSRank];
-            }
+            if (slicing && (i == 0)) {
+                    offset[i + AOSRank] = timeWriteOffset;
+                    count[i + AOSRank] = dataspace_dims[i + AOSRank];
+                }
             else {
-                offset[i + AOSRank] = 0;
-                count[i + AOSRank] = dataspace_dims[i + AOSRank];
-            }
+                    offset[i + AOSRank] = 0;
+                    count[i + AOSRank] = dataspace_dims[i + AOSRank];
+                }
         }
         
     }
@@ -122,23 +109,8 @@ void
 
     for (int i = 0; i < dataset_rank - AOSRank; i++) {
         dims[i + AOSRank] = (hsize_t) dataspace_dims[i + AOSRank];
-
-        if (isShapeDataSet) {
-           offset_out[i + AOSRank] = 0;
-           count_out[i + AOSRank] = dims[i + AOSRank];
-        }
-        else if (array_slicing && i == 0) {
-            offset_out[i + AOSRank] = 0;
-            count_out[i + AOSRank] = dims[i + AOSRank];
-        }
-        else if (AOS_slicing && i == 0) {
-            offset_out[i + AOSRank] = 0;
-            count_out[i + AOSRank] = dims[i + AOSRank];
-        }
-        else {
-            offset_out[i + AOSRank] = 0;
-            count_out[i + AOSRank] = dims[i + AOSRank];
-        }
+        offset_out[i + AOSRank] = 0;
+        count_out[i + AOSRank] = dims[i + AOSRank];
     }
 
     /*std::cout << "-------->memory dimensions" << std::endl;
