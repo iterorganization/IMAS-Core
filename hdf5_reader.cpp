@@ -273,8 +273,8 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
         int dim = -1;
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), ualconst::double_data, current_arrctx_indices.size(), &dim);
-        hsSelectionReader.allocateGlobalOpBuffer((void **) &slices_times);
-        hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices);
+        hsSelectionReader.allocateInhomogeneousTimeDataSet((void **) &slices_times, timed_AOS_index);
+        hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index!=-1);
         herr_t status = H5Dread(data_set->dataset_id, hsSelectionReader.dtype_id,
                                 hsSelectionReader.memspace,
                                 hsSelectionReader.dataspace, H5P_DEFAULT,
