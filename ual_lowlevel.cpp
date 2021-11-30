@@ -314,7 +314,7 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
 
     lle.backend->openPulse(pctx,
 			   mode,
-			   pctx->getQueryString());
+			   pctx->getOptions());
 
     switch (mode) {
     case ualconst::open_pulse:

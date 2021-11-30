@@ -137,6 +137,10 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
        throw UALContextException("refname should not be specified in the URI since shot/run parameters are specified in the URI",LOG);
   }
 
+  std::string optionsFromURI;
+  if(uri::queryParameter("options", optionsFromURI, uri_object))
+      options = optionsFromURI;
+
   this->uid = ++SID;
 }
 
@@ -187,6 +191,11 @@ std::string DataEntryContext::getTokamak() const
 std::string DataEntryContext::getVersion() const
 { 
   return version; 
+}
+
+std::string DataEntryContext::getOptions() const
+{ 
+  return options; 
 }
 
 std::string DataEntryContext::getURI() const
@@ -297,19 +306,7 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
 
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
-    std::string opts("");
-    if (options) {
-        std::map<std::string, std::string> mapOptions;
-        extractOptions(std::string(options), mapOptions);
-        auto it = mapOptions.begin();
-        while (it != mapOptions.end()) {
-            const std::string &key = it->first;
-            const std::string &value = it->second;
-            opts += ";" + key + "=" + value;
-            it++;
-        }
-    }
-    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << ";" << opts.c_str() << "\n";
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0] << ";options=" << options << "\n";
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);

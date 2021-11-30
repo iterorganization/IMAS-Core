@@ -161,6 +161,12 @@ public:
   std::string getVersion() const;
 
   /**
+    Returns options string.
+    @result options 
+  */
+  std::string getOptions() const;
+
+  /**
      Returns the URI query string.
      @result query string 
   */
@@ -222,6 +228,7 @@ public:
   std::string user;                     /**< user name */
   std::string tokamak;                  /**< tokamak name */
   std::string version;                  /**< data version */
+  std::string options;                  /**< options */
   int backend_id;                            /**< a backend identifier */
 
  private:
