@@ -151,8 +151,8 @@ void HDF5HsSelectionReader::allocateInhomogeneousTimeDataSet(void **data, int ti
 
 int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index)
 {
-    int buffer = buffer_size;
-
+    size_t buffer = buffer_size;
+    
     if (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1)  //Slicing
     {
         buffer /= this->size[dim - 1];
@@ -160,8 +160,18 @@ int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_d
 
     if (datatype != ualconst::char_data) {
         *data = malloc(buffer);
+        if (*data == nullptr) {
+             char error_message[200];
+             sprintf(error_message, "Unable to allocate memory.\n");
+             throw UALBackendException(error_message, LOG);
+        }
     } else {
         data = (void **) malloc(sizeof(char *) * this->size[0]);
+        if (data == nullptr) {
+             char error_message[200];
+             sprintf(error_message, "Unable to allocate memory.\n");
+             throw UALBackendException(error_message, LOG);
+        }
     }
     return buffer;
 }
@@ -182,8 +192,8 @@ int HDF5HsSelectionReader::allocateFullBuffer(void **data)
     return size;
 }
 
-int HDF5HsSelectionReader::getSize2() {
-    int size = 1;
+size_t HDF5HsSelectionReader::getSize2() {
+    size_t size = 1;
     for (int i = 0; i < dataset_rank; i++) {
         size *= dataspace_dims[i];
     }

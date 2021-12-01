@@ -30,6 +30,7 @@
 	    }
 	    else
 	    {
+/*********OLD
 		if(aos.size() != sliceAos.aos.size())
 		{
 			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
@@ -40,6 +41,17 @@
 			aos[i]->addSlice(*sliceAos.aos[i], ctx);
 //			aos[i]->addSlice(*sliceAos.aos[i]->clone(), ctx);
 		}
+****************/
+		for(size_t i = 0; i < sliceAos.aos.size(); i++)
+		{
+		    if(i >= aos.size())
+		    {
+			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
+			return;
+		    }
+		    aos[i]->addSlice(*sliceAos.aos[i], ctx);
+		}
+
 	    }
 	}
     }

@@ -43,7 +43,7 @@ class HDF5HsSelectionReader {
     hid_t memspace;
     size_t buffer_size;
 
-    int getSize2();
+    size_t getSize2();
     void setSize(int *size_, int dim);
     int getDim() const;
     int getRank() const;

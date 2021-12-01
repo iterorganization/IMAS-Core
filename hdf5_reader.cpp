@@ -255,7 +255,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
     int interp = opCtx->getInterpmode();
 
     int dataset_rank = data_set->getRank();
-    int timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
+    size_t timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
     double *slices_times = nullptr;
 
@@ -291,7 +291,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
     if (*slice_sup > 0)
         slice_inf = *slice_sup - 1;
     int closest;
-    for (int i = 0; i < timeVectorLength; i++) {
+    for (size_t i = 0; i < timeVectorLength; i++) {
         //std::cout << "--> slices_times[" << i << "]=" << slices_times[i] << std::endl;
         if (slices_times[i] >= time) {
             *slice_sup = i;
