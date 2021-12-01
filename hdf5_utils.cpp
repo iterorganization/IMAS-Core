@@ -19,6 +19,7 @@ HDF5Utils::~HDF5Utils()
 {
 }
 
+bool HDF5Utils::debug = false;
 
 int
  HDF5Utils::openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
@@ -37,7 +38,8 @@ int
     //H5Eget_auto(current_stack_id, &old_func, &old_client_data); 
 
     /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    if (!debug)
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     assert(mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE);
 
     if (*file_id != -1)
@@ -67,7 +69,7 @@ int
             sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
             throw UALBackendException(error_message, LOG);
         }
-        hid_t dtype_id = H5Tcreate(H5T_STRING, 10);
+        hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
         herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
         if (tset < 0) {
             char error_message[100];
@@ -109,7 +111,8 @@ void
     //H5Eget_auto(current_stack_id, &old_func, &old_client_data);
 
     /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    if (!debug)
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     
     if (*file_id != -1)
         hdf5_utils.closeMasterFile(file_id);
@@ -128,9 +131,8 @@ void
             }
             break;
         case FORCE_CREATE_PULSE:
+            hdf5_utils.deleteMasterFile(pulseFilePath, file_id, opened_IDS_files, files_directory, relative_file_path);
             hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
-            hdf5_utils.initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
-            hdf5_utils.deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
             break;
         default:
             throw UALBackendException("Mode not yet supported", LOG);
@@ -139,6 +141,10 @@ void
     /* Restore previous error handler */
     //H5Eset_auto(current_stack_id, old_func, old_client_data); //TODO
 
+}
+
+bool HDF5Utils::pulseFileExists(const std::string &IDS_pulse_file) {
+	return exists(IDS_pulse_file.c_str());
 }
 
 void HDF5Utils::deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path) {
@@ -160,6 +166,22 @@ void HDF5Utils::deleteIDSFile(const std::string &filePath) {
             throw UALBackendException(error_message, LOG);
         }
     }
+}
+
+void HDF5Utils::deleteMasterFile(const std::string &filePath, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
+
+    if (exists(filePath.c_str())) {
+        openMasterFile(file_id, filePath);
+        initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
+        deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
+        closeMasterFile(file_id);
+        remove(filePath.c_str());
+        if (exists(filePath.c_str())) {
+            char error_message[200];
+            sprintf(error_message, "Unable to remove HDF5 master file: %s\n", filePath.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+     }
 }
 
 
@@ -210,19 +232,30 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
 
 }
 
-void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id) {
+void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only) {
+    if (!exists(IDSpulseFile.c_str()))
+	    return;
     *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     if (*IDS_file_id < 0) {
-        *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-        if (*IDS_file_id < 0) { 
-            char error_message[200];
-            sprintf(error_message, "Unable to open external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
+        if(try_read_only) {
+            *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+            if (*IDS_file_id < 0) { 
+                char error_message[200];
+                sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
+                throw UALBackendException(error_message, LOG);
+            }
+	    else return;
+        }
+        else {
+		    char error_message[200];
+		    sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
+		    throw UALBackendException(error_message, LOG);
+	        
         }
     }
 }
 
-void HDF5Utils::openMasterFile(hid_t *file_id, std::string &filePath) { //open master file
+void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //open master file
     if (*file_id != -1)
       return;
     if (!exists(filePath)) {
@@ -282,7 +315,7 @@ void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & fil
 
     //write version to file
     hid_t dataspace_id = H5Screate(H5S_SCALAR);
-    hid_t dtype_id = H5Tcreate(H5T_STRING, 10);
+    hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
     herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
     if (tset < 0) {
         char error_message[200];
@@ -382,13 +415,20 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
 
     struct opdata *od = (struct opdata *) opdata1;
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(od->files_directory, od->relative_file_path, std::string(IDS_link_name));
-    hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    if (!od->mode) {
-        //herr_t status = 
-        if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
-            H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
+    if (exists(IDSpulseFile.c_str())) {
+        hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        if (IDS_file_id < 0) {
+            std::string message("Unable to open external file: ");
+            message += IDSpulseFile;
+            throw UALBackendException(message, LOG);
+       
+            if (!od->mode) {
+                if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
+                    H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
+            }
+            hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
+        }
     }
-    assert(H5Fclose(IDS_file_id)>=0);      //closing the IDS file
     od->link_names[od->count] = (char *) malloc(100);
     strcpy(od->link_names[od->count], IDS_link_name);
     od->count++;
@@ -423,6 +463,8 @@ std::string HDF5Utils::getPulseFilePath(PulseContext * ctx, int mode, int strate
 
     if (!strcmp(user.c_str(), "public")) {
         char *home = getenv("IMAS_HOME");
+        if (home == NULL)
+            throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
         filePath += home;
         filePath += "/shared/imasdb/";
         filePath += tokamak;
@@ -659,13 +701,18 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
         return -1;
     }
     hid_t loc_id = H5Gopen2(parent_loc_id, att_name.c_str(), H5P_DEFAULT);
+    if (loc_id < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to open HDF5 group: %s\n", att_name.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
     return loc_id;
 }
 
 void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
 hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
 {
-    if (*IDS_group_id != -1) {
+    if (*IDS_group_id >= 0) {
         H5Gclose(*IDS_group_id);
         *IDS_group_id = -1;
     }
@@ -679,27 +726,11 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
 
     if (IDS_file_id == -1) {
         std::string IDS_pulse_file = getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-        openIDSFile(ctx, IDS_pulse_file, &IDS_file_id);
+        openIDSFile(ctx, IDS_pulse_file, &IDS_file_id, true);
         opened_IDS_files[IDS_link_name] = IDS_file_id;
     }
 
-    hid_t loc_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
-    //hid_t loc_id = hdf5_utils.openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
-    if (loc_id >= 0) {
-        *IDS_group_id = loc_id;
-    } else {
-        *IDS_group_id = -1;
-    }
-}
-
-hid_t HDF5Utils::searchDataSetId(const std::string & tensorized_path, std::unordered_map < std::string, hid_t > &opened_data_sets)
-{
-    hid_t dataset_id = -1;
-
-    if (opened_data_sets.find(tensorized_path) != opened_data_sets.end())
-        dataset_id = opened_data_sets[tensorized_path];
-
-    return dataset_id;
+    *IDS_group_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
 }
 
 void HDF5Utils::showStatus(hid_t file_id) {
@@ -720,4 +751,60 @@ int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, in
         }
     }
     return 0; //shapes are the same
+}
+
+void HDF5Utils::getDataIndex(int dataset_rank, const hsize_t *dataspace_dims, std::vector < int >current_arrctx_indices, std::vector < int >&index)
+{
+    int n = dataspace_dims[dataset_rank - 1];   //n is the length of the vector of shapes
+    std::vector < int >basis_tmp;
+    basis_tmp.reserve(dataset_rank);
+    basis_tmp.push_back(1);
+
+    for (int i = 1; i < dataset_rank; i++) {
+        basis_tmp[i] = basis_tmp[i - 1] * dataspace_dims[dataset_rank - i];
+    }
+    std::vector < int >basis;
+    basis.reserve(dataset_rank);
+    for (int i = 0; i < dataset_rank; i++) {
+        basis[i] = basis_tmp[dataset_rank - i - 1];
+    }
+    current_arrctx_indices.push_back(0);        //adding the shapes axis; v targets to the first component of the shape vector
+    index.reserve(n);           //index[i] is the index of the ith component of the shapes vector in the linearized buffer
+
+    for (size_t j = 0; j < (size_t) n; j++) {
+        index[j] = 0;
+        for (size_t i = 0; i < (size_t) dataset_rank; i++) {
+            index[j] += current_arrctx_indices[i] * basis[i];
+        }
+        current_arrctx_indices.back() += 1;     //increasing component along shapes axis
+    }
+}
+
+void HDF5Utils::closeIDSFile(hid_t pulse_file_id, const std::string &external_link_name) {
+    if (pulse_file_id != -1) {
+        herr_t status = H5Fclose(pulse_file_id);
+        if (status < 0) {
+            char error_message[100];
+            sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+}
+
+void HDF5Utils::removeLinkFromIDSPulseFile(hid_t &IDS_file_id, const std::string &IDS_link_name) {
+    if (H5Lexists(IDS_file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0) {
+        if (H5Ldelete(IDS_file_id, IDS_link_name.c_str(), H5P_DEFAULT) < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to remove HDF5 link %s from IDS file.\n", IDS_link_name.c_str());
+            throw UALBackendException(error_message, LOG);
+        }
+    }
+}
+
+void HDF5Utils::removeLinkFromMasterPulseFile(hid_t &file_id, const std::string &link_name) {
+    if (H5Ldelete(file_id, link_name.c_str(), H5P_DEFAULT) < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to remove HDF5 link %s from master file.\n", link_name.c_str());
+        throw UALBackendException(error_message, LOG);
+    }
 }

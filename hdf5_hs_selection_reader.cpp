@@ -5,16 +5,9 @@
 #include "hdf5_utils.h"
 #include "hdf5_dataset_handler.h"
 
-HDF5HsSelectionReader::HDF5HsSelectionReader(hid_t dataset_id_, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(-1), AOSRank(AOSRank_), dtype_id(-1), dataspace(-1), memspace(-1), buffer_size(0)
+HDF5HsSelectionReader::HDF5HsSelectionReader(int dataset_rank_, hid_t dataset_id_, hid_t dataspace_, hsize_t *dims, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(dataset_rank_), AOSRank(AOSRank_), dtype_id(-1), dataspace(dataspace_), memspace(-1), buffer_size(0)
 {
-    dataspace = H5Dget_space(dataset_id);
-    dataset_rank = H5Sget_simple_extent_ndims(dataspace);
-    herr_t status = H5Sget_simple_extent_dims(dataspace, dataspace_dims, NULL);
-    if (status < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to call H5Sget_simple_extent_dims for space id: %d\n", (int) dataspace);
-        throw UALBackendException(error_message, LOG);
-    }
+    memcpy(dataspace_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
     init(dataset_id, datatype_, AOSRank_, dim);
 }
 
@@ -72,16 +65,16 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
 
 HDF5HsSelectionReader::~HDF5HsSelectionReader()
 {
-    if (dataspace != -1) {
-		if (dataspace != H5S_ALL)
-        	H5Sclose(dataspace);
-	}
     if (memspace != -1) {
 		if (memspace != H5S_ALL)
         	H5Sclose(memspace);
 	}
     if (!immutable)
         H5Tclose(dtype_id);
+}
+
+const hsize_t* HDF5HsSelectionReader::getDataSpaceDims() {
+    return this->dataspace_dims;
 }
 
 void
@@ -149,8 +142,8 @@ void HDF5HsSelectionReader::allocateGlobalOpBuffer(void **data)
 
 int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_dynamic, bool isTimed, int slice_index)
 {
-    int buffer = buffer_size;
-
+    size_t buffer = buffer_size;
+    
     if (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1)  //Slicing
     {
         buffer /= this->size[dim - 1];
@@ -158,20 +151,44 @@ int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_d
 
     if (datatype != ualconst::char_data) {
         *data = malloc(buffer);
+        if (*data == nullptr) {
+             char error_message[200];
+             sprintf(error_message, "Unable to allocate memory.\n");
+             throw UALBackendException(error_message, LOG);
+        }
     } else {
         data = (void **) malloc(sizeof(char *) * this->size[0]);
+        if (data == nullptr) {
+             char error_message[200];
+             sprintf(error_message, "Unable to allocate memory.\n");
+             throw UALBackendException(error_message, LOG);
+        }
     }
     return buffer;
 }
 
-void HDF5HsSelectionReader::allocateFullBuffer(void **data)
+int HDF5HsSelectionReader::allocateFullBuffer(void **data)
 {
-    int buffer = dataspace_dims[0];
-    for (int i = 1; i < dataset_rank; i++) {
-        buffer *= dataspace_dims[i];
+    int size = 1;
+    for (int i = 0; i < dataset_rank; i++) {
+        size *= dataspace_dims[i];
     }
 	//std::cout << "total buffer size = " << buffer * dtype_size << std::endl;
-    *data = malloc(buffer * dtype_size);
+    if (datatype != ualconst::char_data) {
+        *data = malloc(size * dtype_size);
+    }
+    else {
+        *data = malloc(size * sizeof(char*));
+    }
+    return size;
+}
+
+size_t HDF5HsSelectionReader::getSize2() {
+    size_t size = 1;
+    for (int i = 0; i < dataset_rank; i++) {
+        size *= dataspace_dims[i];
+    }
+    return size;
 }
 
 void HDF5HsSelectionReader::setHyperSlabsGlobalOp(std::vector < int >&current_arrctx_indices)
@@ -325,33 +342,6 @@ bool HDF5HsSelectionReader::memSpaceHasChanged(hsize_t * dims)
   }
   return false;
 }*/
-
-void HDF5HsSelectionReader::getDataIndex(std::vector < int >current_arrctx_indices, std::vector < int >&index)
-{
-    int n = dataspace_dims[dataset_rank - 1];   //n is the length of the vector of shapes
-    std::vector < int >basis_tmp;
-    basis_tmp.reserve(dataset_rank);
-    basis_tmp.push_back(1);
-
-    for (int i = 1; i < dataset_rank; i++) {
-        basis_tmp[i] = basis_tmp[i - 1] * dataspace_dims[dataset_rank - i];
-    }
-    std::vector < int >basis;
-    basis.reserve(dataset_rank);
-    for (int i = 0; i < dataset_rank; i++) {
-        basis[i] = basis_tmp[dataset_rank - i - 1];
-    }
-    current_arrctx_indices.push_back(0);        //adding the shapes axis; v targets to the first component of the shape vector
-    index.reserve(n);           //index[i] is the index of the ith component of the shapes vector in the linearized buffer
-
-    for (size_t j = 0; j < (size_t) n; j++) {
-        index[j] = 0;
-        for (size_t i = 0; i < (size_t) dataset_rank; i++) {
-            index[j] += current_arrctx_indices[i] * basis[i];
-        }
-        current_arrctx_indices.back() += 1;     //increasing component along shapes axis
-    }
-}
 
 int HDF5HsSelectionReader::getShape(int axis_index) const
 {
