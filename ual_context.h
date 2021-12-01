@@ -408,10 +408,10 @@ class LIBRARY_API ArraystructContext : public OperationContext
 
 protected:
   std::string path;                     /**< path of the array of structure */
-  std::string timebase;			/**< path of the timebase associated with the array of structure */
+  std::string timebase;			        /**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
-  OperationContext *opCtx;
   int index;                            /**< position of the current element of interest within the array of structure */
+  OperationContext *opCtx;              /** underlying operation context passed at the beginAction() **/
 
 };
 
