@@ -27,6 +27,7 @@
 #ifdef __cplusplus
 
 
+
 class LIBRARY_API MDSplusBackend:public Backend 
 {
   private:
@@ -250,6 +251,21 @@ class LIBRARY_API MDSplusBackend:public Backend
     void updateCachedTimebase(std::string timebasePath, double *timebase, int nSamples);
     std::unordered_map<std::string, std::vector<double>> timebaseMap;
     std::unordered_map<int, std::string> timebasePathMap;
+
+
+    class SegmentDescriptor
+    {
+	public:
+	    int segmentIdx, startIdx, endIdx;
+	    SegmentDescriptor(int segmentIdx, int startIdx, int endIdx)
+	    {
+		this->segmentIdx = segmentIdx;
+		this->startIdx = startIdx;
+		this->endIdx = endIdx;
+	    }
+    };
+    std::unordered_map<int, std::vector<SegmentDescriptor>> segmentIdxMap;
+    void getSegmentIdxFromSliceIdx(MDSplus::TreeNode *node, int sliceIdx, int &retSegmentIdx, int &retStartIdx, int &retEndIdx);
     //Temporary
     void fullResetNodePath();
 
