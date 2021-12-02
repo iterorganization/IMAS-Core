@@ -30,6 +30,7 @@
 	    }
 	    else
 	    {
+/*********OLD
 		if(aos.size() != sliceAos.aos.size())
 		{
 			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
@@ -40,6 +41,17 @@
 			aos[i]->addSlice(*sliceAos.aos[i], ctx);
 //			aos[i]->addSlice(*sliceAos.aos[i]->clone(), ctx);
 		}
+****************/
+		for(size_t i = 0; i < sliceAos.aos.size(); i++)
+		{
+		    if(i >= aos.size())
+		    {
+			std::cout << "INTERNAL ERROR IN MEMORY BACKEND: addSlice for an AoS with non consistent static AoS" << std::endl;
+			return;
+		    }
+		    aos[i]->addSlice(*sliceAos.aos[i], ctx);
+		}
+
 	    }
 	}
     }
@@ -586,7 +598,7 @@ else
 
     void MemoryBackend::flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos)
     {
-	ArraystructContext arrayStructCtx(*ctx, fieldName, ualAos.timebase);
+	ArraystructContext arrayStructCtx(ctx, fieldName, ualAos.timebase);
 	recFlushAoS(ualAos, ctx, &arrayStructCtx);
     }
 
@@ -612,7 +624,7 @@ else
 		std::string fieldName = aosField.first;
 		UalAoS *currAos = aosField.second;
 
-		ArraystructContext currCtx(*opCtx, fieldName, currAos->timebase, ctx, idx);
+		ArraystructContext currCtx(opCtx, fieldName, currAos->timebase, ctx, idx);
 		recFlushAoS(*currAos, opCtx, &currCtx);
 	    }
 	}

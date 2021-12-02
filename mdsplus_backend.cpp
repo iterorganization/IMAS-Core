@@ -1457,7 +1457,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
       if(!tree)  throw UALBackendException("Pulse file not open",LOG);
 //Workaround for the fact that default nid mau be left changed if TreeNode::getNode() generates an exception. Fixed in new MDSplus releases.
       MDSplus::TreeNode *topNode = getNode("\\TOP");
-
+      segmentIdxMap.clear();
       try {
 	std::string fullPath = composePaths(dataobjectPath, path);
 	MDSplus::TreeNode *node = getNode(checkFullPath(fullPath).c_str());
@@ -2386,8 +2386,10 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    throw  UALBackendException("Internal error: TreeNode not found in fillApdSlicesArountIdx",LOG);
 	int numSegments = node->getNumSegments();
 	MDSplus::Data *startData, *endData;
-	int segIdx;
-	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	int segIdx, startIdx, endIdx;
+	getSegmentIdxFromSliceIdx(node, sliceIdx, segIdx, startIdx, endIdx);
+
+/*	for(segIdx = 0; segIdx < numSegments; segIdx++)
 	{
 	    node->getSegmentLimits(segIdx, &startData, &endData);
 	    int startIdx, endIdx, dummyIdx;
@@ -2397,7 +2399,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    MDSplus::deleteData(endData);
 	    if(sliceIdx >= startIdx && sliceIdx <= endIdx)
 	    {
-		MDSplus::Data *segData = node->getSegment(segIdx);
+*/		MDSplus::Data *segData = node->getSegment(segIdx);
 		int serializedLen;
 		char *serialized = (char *)segData->getByteUnsignedArray(&serializedLen);
 		MDSplus::deleteData(segData);
@@ -2418,9 +2420,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		}
 		delete[]serialized;
 
-		break;
-	    }
-	}
+//		break;
+//	    }
+//	}
     }
 
 ////////////Lazy AoS 2021
@@ -2493,6 +2495,78 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	  throw  UALBackendException(exc.what(),LOG); 
 	}
     }
+
+    void MDSplusBackend::getSegmentIdxFromSliceIdx(MDSplus::TreeNode *node, int sliceIdx, int &retSegmentIdx, int &retStartIdx, int &retEndIdx)
+    {
+	int startIdx, endIdx, dummyIdx;
+	int numSegments = node->getNumSegments();
+	int nid = node->getNid();
+	bool found = false;
+	std::vector<SegmentDescriptor> segDescV;
+	try {
+	    segDescV = this->segmentIdxMap.at(nid);
+	    found = true;
+	}
+ 	catch (const std::out_of_range& oor) 
+	{
+	    std::vector<SegmentDescriptor> segIdxDescV;
+	    MDSplus::Data *startData, *endData;
+	    for(int segIdx = 0; segIdx < numSegments; segIdx++)
+	    {
+	    	node->getSegmentLimits(segIdx, &startData, &endData);
+	    	int startIdx, endIdx, dummyIdx;
+	    	getIndexesInTimebaseExpr(startData, startIdx, dummyIdx);
+	    	MDSplus::deleteData(startData);
+	    	getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
+	    	MDSplus::deleteData(endData);
+		segIdxDescV.push_back(SegmentDescriptor(segIdx, startIdx, endIdx));
+	    }
+	    this->segmentIdxMap[nid] = segIdxDescV;
+	}
+	if(!found)
+	{
+	    try {
+	    	segDescV = segmentIdxMap[nid];
+	    }
+ 	    catch (const std::out_of_range& oor) 
+	    {
+		throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase XXXX)",LOG);
+	    }
+	}
+	for(SegmentDescriptor segDesc : segDescV)
+	{
+	    if(sliceIdx >= segDesc.startIdx && sliceIdx <= segDesc.endIdx)
+	    {
+		retSegmentIdx = segDesc.segmentIdx;
+		retStartIdx = segDesc.startIdx;
+		retEndIdx =segDesc.endIdx;
+		return;
+	    }
+	}
+	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
+  }	
+
+/*	int numSegments = node->getNumSegments();
+	MDSplus::Data *startData, *endData;
+	for(int segIdx = 0; segIdx < numSegments; segIdx++)
+	{
+	    node->getSegmentLimits(segIdx, &startData, &endData);
+	    int startIdx, endIdx, dummyIdx;
+	    getIndexesInTimebaseExpr(startData, startIdx, dummyIdx);
+	    MDSplus::deleteData(startData);
+	    getIndexesInTimebaseExpr(endData, endIdx, dummyIdx);
+	    MDSplus::deleteData(endData);
+	    if(sliceIdx >= startIdx && sliceIdx <= endIdx)
+	    {
+		retSegmentIdx = segIdx;
+		retStartIdx = startIdx;
+		retEndIdx = endIdx;
+		return;
+	    }
+	}
+	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
+    }
+*/
 	
     MDSplus::Apd *MDSplusBackend::getApdSliceAt(MDSplus::TreeNode *node, int sliceIdx)
     {
@@ -2504,8 +2578,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	   return apd; ///XXXXXXXXXXXXXXXXXXXXXXXXXX
 	}
 	MDSplus::Data *startData, *endData;
-	int segIdx;
-	for(segIdx = 0; segIdx < numSegments; segIdx++)
+	int segIdx, startIdx, endIdx;
+	getSegmentIdxFromSliceIdx(node, sliceIdx, segIdx, startIdx, endIdx);
+	/* for(segIdx = 0; segIdx < numSegments; segIdx++)
 	{
 	    node->getSegmentLimits(segIdx, &startData, &endData);
 	    int startIdx, endIdx, dummyIdx;
@@ -2515,37 +2590,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	    MDSplus::deleteData(endData);
 	    if(sliceIdx >= startIdx && sliceIdx <= endIdx)
 	    {
-/* Gabriele February 2018: serialized slice size is ALWAYS written before serialized slice itself 
-		if(startIdx == endIdx)
-		{
-		    char dtype, nDims;
-		    int dims[64];
-		    int leftRow;
-//		    node->getSegmentInfo(numSegments - 1, &dtype, &nDims, dims, &leftRow); Gabriele February 2018
-		    node->getSegmentInfo(segIdx, &dtype, &nDims, dims, &leftRow);
-		    int leftSpace = dims[nDims - 1] - leftRow;
-//Check for slices created in the old way (one slice per segment without size indiation)
-//This happens if the single slice fits the segment or in the Old UAL (Segment Size == 30000) when there is only 
-//one slice in the segment and the segment is not the last one
-		    if(leftSpace == 0 || (dims[0] == 30000 && segIdx < numSegments - 1)) 
-		    {
-			MDSplus::Data *segData = node->getSegment(segIdx);
-			int serLen;
-			char *serialized = (char *)segData->getByteUnsignedArray(&serLen);
-			MDSplus::Data *sliceData = MDSplus::deserialize(serialized);
-			delete [] serialized;
-			MDSplus::deleteData(segData);
-			if(sliceData->clazz != CLASS_APD)
-			  throw  UALBackendException("Internal error: array of structure is not an APD data",LOG);
-			
-			//Feb 2015: Arrays of Structures MUST be always returned
-			retApd = new MDSplus::Apd();
-			retApd->setDescAt(0, sliceData);
-			return retApd;
-			//return (MDSplus::Apd *)sliceData;
-		    }
-		}  */
-		//From here slices are stored with their size
+		//From here slices are stored with their size 
+*/
 		MDSplus::Data *segData = node->getSegment(segIdx);
 		int serializedLen;
 		char *serialized = (char *)segData->getByteUnsignedArray(&serializedLen);
@@ -2575,9 +2621,9 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    return retApd; 
 		}
 		
-	    }
-	}
-	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
+//	    }
+//	}
+//	throw UALBackendException("Internal error in getSliceAt: expected slice element is missing (check consistency with timebase)",LOG);
     }
 	
 
@@ -3552,7 +3598,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   {
     
     timebaseMap.clear();
-
+    segmentIdxMap.clear();
     switch(ctx->getRangemode()) {
       case ualconst::global_op:
 	if(timebase.empty())
@@ -3608,8 +3654,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   void MDSplusBackend::beginWriteArraystruct(ArraystructContext *ctx,
 				     int size)
   {
-
-//std::cout << "BEGIN WRITE ARRAY STRUCT " << ctx->getParent() << "   " << ctx->getPath() << "  " << ctx->getIndex() << std::endl;
+      segmentIdxMap.clear();//std::cout << "BEGIN WRITE ARRAY STRUCT " << ctx->getParent() << "   " << ctx->getPath() << "  " << ctx->getIndex() << std::endl;
 
 //NOTE: size is not required as Apd uses std::vector to keep descriptors    
       std::string emptyStr("");
@@ -4199,6 +4244,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 //			  delete node;	
 		      }
 		  }
+//Gabriele Oct 2021: 	end of a AoS write: clear segmentIdxMap used for caching segment idx and slice idx mapping info
+		  segmentIdxMap.clear();
 	      }
 //dumpArrayStruct(currApd, 0);
 	      MDSplus::deleteData(currApd);

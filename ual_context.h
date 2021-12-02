@@ -313,7 +313,7 @@ class LIBRARY_API ArraystructContext : public OperationContext
      @param p path of the array of structure field [_within the DATAOBJECT if standalone, within its container if nested_]
      @param tb path of the timebase associated with the array of structure
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb);
+  ArraystructContext(OperationContext *ctx, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
@@ -327,7 +327,7 @@ class LIBRARY_API ArraystructContext : public OperationContext
      nested case_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
+  ArraystructContext(OperationContext *ctx, std::string p, std::string tb,  
 		     ArraystructContext *cont);
 
   /**
@@ -342,7 +342,7 @@ class LIBRARY_API ArraystructContext : public OperationContext
      nested case_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
+  ArraystructContext(OperationContext *ctx, std::string p, std::string tb,  
 		     ArraystructContext *cont, int idx);
 
   /**
@@ -404,10 +404,13 @@ class LIBRARY_API ArraystructContext : public OperationContext
   */
   void nextIndex(int step);
 
+  OperationContext * getOperationContext();
+
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
+  OperationContext *opCtx;
   int index;                            /**< position of the current element of interest within the array of structure */
 
 };

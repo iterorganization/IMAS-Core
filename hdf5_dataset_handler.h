@@ -124,7 +124,7 @@ class HDF5DataSetHandler {
     hsize_t * getLargestDims();
     int getInitialOffset() const;
 	int getSize() const;
-    int getMaxShape(int axis) const;
+    size_t getMaxShape(int axis) const;
 	int getShape(int axis) const;
     hid_t getDataSpace() const;
     void setNonSliceMode();
@@ -141,7 +141,7 @@ class HDF5DataSetHandler {
     void appendToBuffer(const std::vector < int >&current_arrctx_indices, bool dataSetAlreadyOpened, int datatype, int dim, int slice_mode, int dynamic_AOS_slices_extension, char**p, void *data);
 
     //Reading operation
-    void readData(bool dataSetAlreadyOpened, const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
+    void readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
 
 };
 

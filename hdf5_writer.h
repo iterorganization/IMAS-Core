@@ -20,7 +20,7 @@ class HDF5Writer {
     std::unordered_map < ArraystructContext *, int> dynamic_AOS_slices_extension;
     
     int homogeneous_time;
-    hid_t IDS_group_id;
+    std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
     
     hid_t createOrUpdateShapesDataSet(Context * ctx, hid_t loc_id, const std::string & field_tensorized_path, HDF5DataSetHandler & fieldHandler, 
 				      std::string & timebasename, int timed_AOS_index, const std::vector < int > &arrctx_indices, const std::vector < int > &arrctx_shapes);
@@ -45,12 +45,12 @@ class HDF5Writer {
     virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
 
     void write_buffers();
-    void read_homogeneous_time(int* homogenenous_time);
+    void read_homogeneous_time(int* homogenenous_time, hid_t gid);
     void close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files);
     void create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode);
     void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *loc_id);
     void close_datasets();
-    void close_group();
+    void close_group(OperationContext *ctx);
     void endAction(Context * ctx);
 };
 
