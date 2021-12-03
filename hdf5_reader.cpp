@@ -96,18 +96,17 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     }
     //std::cout << "beginReadArraystructAction called for: " << ctx->getPath().c_str() << std::endl;
     std::string tensorized_path;
+    std::vector < std::string > tensorized_paths;
+    
     auto got = tensorized_paths_per_context.find(ctx);
     if (got != tensorized_paths_per_context.end()) {
       auto &tensorized_paths = got->second;
       tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
     }
     else {
-       
-       std::vector < std::string > tensorized_paths;
        if (ctx->getParent() != NULL)
-	 tensorized_paths = tensorized_paths_per_context[ctx->getParent()];
+	     tensorized_paths = tensorized_paths_per_context[ctx->getParent()];
        hdf5_utils.setTensorizedPaths(ctx, tensorized_paths);
-       tensorized_paths_per_context[ctx] = tensorized_paths;
        tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
     }
     
@@ -127,6 +126,9 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
             existing_data_sets[tensorized_path] = 1;
         }
     }
+    
+    if (got == tensorized_paths_per_context.end())
+		tensorized_paths_per_context[ctx] = tensorized_paths;
 
     tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
 
@@ -152,6 +154,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 
     readAOSPersistentShapes(ctx, gid, tensorized_path, timed_AOS_index, slice_index, (void **) &shapes, current_arrctx_indices);
     *size = shapes[0];
+    //std::cout << "size: " << *size << std::endl;
     free(shapes);
 
     auto got_arrctx_shapes = arrctx_shapes_per_context.find(ctx);

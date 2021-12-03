@@ -244,7 +244,9 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
                 sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
                 throw UALBackendException(error_message, LOG);
             }
-	    else return;
+            else {
+				//printf("IDS read successfully with file_id=%d\n", *IDS_file_id);
+			}
         }
         else {
 		    char error_message[200];
@@ -275,6 +277,9 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
             message += filePath;
             throw UALBackendException(message, LOG);
         }
+		else {
+			//printf("master file read successfully with file_id=%d\n", *file_id);
+		}
     }
     
 }
