@@ -165,7 +165,7 @@ int HDF5DataSetHandler::getTimeWriteOffset() const {
 }
 
 void HDF5DataSetHandler::open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, 
-int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering) {
+int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering, int AOSRank, int *AOSSize, bool compression_enabled) {
         
 		this->tensorized_path = std::string(dataset_name);
         this->request_dim = dim;
@@ -190,15 +190,18 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBu
         
         if (*dataset_id < 0) {
             char error_message[200];
-			if (slice_mode) {
-				if (H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
-					sprintf(error_message, "Dataset: %s is not present in the pulse file. Have you set this field when calling put() for inserting the first slice ?\n", dataset_name);
-				}
+			if (slice_mode && H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
+					assert(AOSRank != -1);
+					assert(!shape_dataset);
+					assert(AOSSize != NULL);
+					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true));
+					data_set->setNonSliceMode();
+					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache, compression_enabled, useBuffering);
 			}
 			else {
 				sprintf(error_message, "Unable to open HDF5 dataset: %s\n", dataset_name);
+				throw UALBackendException(error_message, LOG);
 			}
-            throw UALBackendException(error_message, LOG);
         }
         this->dataset_id = *dataset_id;
         if (dataspace_id != -1)
