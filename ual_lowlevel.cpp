@@ -96,7 +96,7 @@ bool LLplugin::isPluginRegistered(const char* name) {
 }
 
 void LLplugin::register_plugin(const char* plugin_name) {
-    const char* AL_PLUGINS = std::getenv("UAL_PLUGINS");
+    const char* AL_PLUGINS = std::getenv("AL_PLUGINS");
     if (AL_PLUGINS == NULL)
         throw UALLowlevelException("AL_PLUGINS environment variable not defined",LOG);
 
@@ -115,11 +115,12 @@ void LLplugin::register_plugin(const char* plugin_name) {
     std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     //printf("-->ids_plugins:%s\n", ids_plugin.c_str());
     plugin_handler =  dlopen(ids_plugin.c_str(), RTLD_LAZY);
-    /*if (plugin_handler == nullptr) {
-        char error_message[200];
-        sprintf(error_message, "Error:%s for plugin:%s.\n", dlerror(), plugin_name);
-        throw UALLowlevelException(error_message, LOG);
-    }*/
+    if (plugin_handler == nullptr) {
+        //char error_message[200];
+        //sprintf(error_message, "%s for plugin: %s.\n", dlerror(), plugin_name);
+        printf("error:%s for plugin: %s\n", dlerror(), plugin_name);
+        //throw UALLowlevelException(error_message, LOG);
+    }
     assert(plugin_handler != nullptr);
     addPluginHandler(plugin_name, plugin_handler);
     //load the symbols
@@ -183,7 +184,6 @@ void LLplugin::begin_global_action_plugins(int pulseCtx, const char* dataobjectn
   access_layer_plugin* al_plugin = NULL;
   auto it = llpluginsStore.begin();
   while (it != llpluginsStore.end()) {
-      //const std::string &plugin_name = it->first;
       LLplugin &lle = it->second;
       al_plugin = (access_layer_plugin*) lle.al_plugin;
       al_plugin->begin_global_action(pulseCtx, dataobjectname, mode, opCtx);
@@ -206,7 +206,6 @@ void LLplugin::begin_arraystruct_action_plugins(int ctx, const char* fieldPath, 
   access_layer_plugin* al_plugin = NULL;
   auto it = llpluginsStore.begin();
   while (it != llpluginsStore.end()) {
-      //const std::string &plugin_name = it->first;
       LLplugin &lle = it->second;
       al_plugin = (access_layer_plugin*) lle.al_plugin;
       al_plugin->begin_arraystruct_action(ctx, fieldPath, timeBasePath, arraySize);
