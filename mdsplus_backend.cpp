@@ -2898,7 +2898,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		continue;
 	    else if (apd1->getDescAt(idx) == 0 || apd2->getDescAt(idx) == 0)
 		return false;
-	    if(!checkStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd1->getDescAt(idx)))
+	    if(!checkStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd2->getDescAt(idx)))
 		return false;
 	}
 	return true;
