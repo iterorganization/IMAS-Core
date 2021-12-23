@@ -28,31 +28,10 @@ std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx)
 
 /// Context ///
 
-Context::Context(int id)
-{ 
-  try
-  {
-    ualconst::backend_id_str.at(id-BACKEND_ID_0);
-  }
-  catch (const std::out_of_range& e) 
-  {
-    throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
-  }
-  backend_id = id;
-}
-
-Context::Context(const Context& ctx) 
-{
-  backend_id = ctx.backend_id;
-}
-
 std::string Context::print() const 
 {
   std::string s = "context_uid \t\t = " + 
-    std::to_string(this->uid) + "\n" + 
-    "backend_id \t\t = " + 
-    std::to_string(this->backend_id) + " (" + 
-    this->getBackendName() + ")\n";
+    std::to_string(this->uid) + "\n"; 
   return s;
 }
 
@@ -60,16 +39,6 @@ std::string Context::fullPath() const
 {
   std::string s = "";
   return s;
-}
-
-int Context::getBackendID() const
-{ 
-  return backend_id; 
-}
-
-std::string Context::getBackendName() const 
-{ 
-  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
 }
 
 unsigned long int Context::getUid() const 
@@ -86,8 +55,18 @@ int Context::getType() const
 /// PulseContext ///
 
 PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t, 
-			   std::string v) : Context(id), shot(s), run(r)
+			   std::string v) : backend_id(id), shot(s), run(r)
 {
+  try
+    {
+      ualconst::backend_id_str.at(id-BACKEND_ID_0);
+    }
+  catch (const std::out_of_range& e) 
+    {
+      throw UALContextException("Wrong backend identifier "+std::to_string(id),LOG);
+    }
+  backend_id = id;
+
   char *usr = std::getenv("USER"); 
   if (u=="")
     {
@@ -134,6 +113,9 @@ PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t,
 std::string PulseContext::print() const 
 {
   std::string s = ((Context)*this).print() +
+    "backend_id \t\t = " + 
+    std::to_string(this->backend_id) + " (" + 
+    this->getBackendName() + ")\n" + 
     "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
     "run \t\t\t = " + std::to_string(this->run) + "\n" +
     "user \t\t\t = \"" + this->user + "\"\n" +
@@ -151,6 +133,16 @@ std::string PulseContext::fullPath() const
 int PulseContext::getType() const 
 {
   return CTX_PULSE_TYPE;
+}
+
+int PulseContext::getBackendID() const
+{ 
+  return backend_id; 
+}
+
+std::string PulseContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
 }
 
 int PulseContext::getShot() const
@@ -183,8 +175,8 @@ std::string PulseContext::getVersion() const
 
 /// OperationContext ///
 
-OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access)
-  : PulseContext(ctx), dataobjectname(dataobject)
+OperationContext::OperationContext(PulseContext* ctx, std::string dataobject, int access)
+  : pctx(ctx), dataobjectname(dataobject)
 {
   rangemode = ualconst::global_op;
   time = ualconst::undefined_time;
@@ -200,9 +192,9 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
   this->uid = ++SID;
 }
 
-OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int access, 
+OperationContext::OperationContext(PulseContext* ctx, std::string dataobject, int access, 
 				   int range, double t, int interp)
-  : PulseContext(ctx), dataobjectname(dataobject), time(t)
+  : pctx(ctx), dataobjectname(dataobject), time(t)
 {
   try {
     ualconst::op_range_str.at(range-OP_RANGE_0);
@@ -239,7 +231,7 @@ OperationContext::OperationContext(PulseContext ctx, std::string dataobject, int
 
 std::string OperationContext::print() const 
 {
-  std::string s = ((PulseContext)*this).print() +
+  std::string s = this->pctx->print() +
     "dataobjectname \t\t = " + this->dataobjectname + "\n" +
     "accessmode \t\t = " + std::to_string(this->accessmode) + 
     " (" + ualconst::op_access_str.at(this->accessmode-OP_ACCESS_0) + ")\n" +
@@ -253,7 +245,7 @@ std::string OperationContext::print() const
 
 std::string OperationContext::fullPath() const
 {
-  std::string s = ((PulseContext)*this).fullPath() + this->dataobjectname;
+  std::string s = this->pctx->fullPath() + this->dataobjectname;
   return s;
 }
 
@@ -287,42 +279,42 @@ int OperationContext::getInterpmode() const
   return interpmode; 
 }
 
+PulseContext* OperationContext::getPulseContext() const
+{
+  return pctx;
+}
+
 
 
 
 /// ArraystructContext ///
 
-ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb)
-  : OperationContext(*ctx), path(p), timebase(tb), opCtx(ctx)
+ArraystructContext::ArraystructContext(OperationContext* ctx, std::string p, std::string tb)
+  : path(p), timebase(tb), opctx(ctx)
 {
   parent = NULL;
-  index = 0;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb,
-				       ArraystructContext *cont)
-  : OperationContext(*ctx), path(p), timebase(tb), parent(cont), opCtx(ctx)
+ArraystructContext::ArraystructContext(ArraystructContext* cont, std::string p, std::string tb)
+  : path(p), timebase(tb), parent(cont), opctx(cont->opctx)
 {
   if (cont != NULL)
-    opCtx = cont->opCtx;
-  index = 0;
+    opctx = cont->opctx;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext *ctx, std::string p, std::string tb,
-				       ArraystructContext *cont, int idx)
-  : OperationContext(*ctx), path(p), timebase(tb), parent(cont), index(idx), opCtx(ctx)
+ArraystructContext::ArraystructContext(ArraystructContext* cont, std::string p, std::string tb, int idx)
+  : path(p), timebase(tb), parent(cont), index(idx), opctx(cont->opctx)
 {
   if (cont != NULL)
-    opCtx = cont->opCtx;
-  index = 0;
+    opctx = cont->opctx;
   this->uid = ++SID;
 }
 
 std::string ArraystructContext::print() const
 {
-  std::string s = ((OperationContext)*this).print() +
+  std::string s = this->opctx->print() +
     "path \t\t\t = \"" + this->path + "\"\n" +
     "timebase \t\t = \"" + this->timebase + "\"\n" +
     "timed \t\t\t = " + 
@@ -342,7 +334,7 @@ std::string ArraystructContext::fullPath() const
       ppath = tmp->path + "/" + ppath;
       tmp = tmp->parent;
     }
-  std::string s = ((OperationContext)*this).fullPath() +
+  std::string s = this->opctx->fullPath() +
     "/" + ppath + this->path;
   return s;
 }
@@ -367,7 +359,7 @@ bool ArraystructContext::getTimed() const
   return !timebase.empty(); 
 }
 
-ArraystructContext * ArraystructContext::getParent() 
+ArraystructContext* ArraystructContext::getParent() 
 { 
   return parent; 
 }
@@ -377,9 +369,9 @@ int ArraystructContext::getIndex() const
   return index; 
 }
 
-OperationContext * ArraystructContext::getOperationContext() 
+OperationContext* ArraystructContext::getOperationContext() const
 { 
-  return opCtx; 
+  return opctx; 
 }
 
 void ArraystructContext::nextIndex(int step) 
