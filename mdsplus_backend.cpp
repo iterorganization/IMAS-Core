@@ -2384,8 +2384,8 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
         MDSplus::TreeNode *node = (MDSplus::TreeNode *)apd->getDescAt(apd->len() -1);
 	if(!node)
 	    throw  UALBackendException("Internal error: TreeNode not found in fillApdSlicesArountIdx",LOG);
-	int numSegments = node->getNumSegments();
-	MDSplus::Data *startData, *endData;
+	//int numSegments = node->getNumSegments();
+	//MDSplus::Data *startData, *endData;
 	int segIdx, startIdx, endIdx;
 	getSegmentIdxFromSliceIdx(node, sliceIdx, segIdx, startIdx, endIdx);
 
@@ -2498,7 +2498,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 
     void MDSplusBackend::getSegmentIdxFromSliceIdx(MDSplus::TreeNode *node, int sliceIdx, int &retSegmentIdx, int &retStartIdx, int &retEndIdx)
     {
-	int startIdx, endIdx, dummyIdx;
+      //int startIdx, endIdx, dummyIdx;
 	int numSegments = node->getNumSegments();
 	int nid = node->getNid();
 	bool found = false;
@@ -2577,7 +2577,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 	   apd->appendDesc(NULL);
 	   return apd; ///XXXXXXXXXXXXXXXXXXXXXXXXXX
 	}
-	MDSplus::Data *startData, *endData;
+	//MDSplus::Data *startData, *endData;
 	int segIdx, startIdx, endIdx;
 	getSegmentIdxFromSliceIdx(node, sliceIdx, segIdx, startIdx, endIdx);
 	/* for(segIdx = 0; segIdx < numSegments; segIdx++)
@@ -3241,16 +3241,16 @@ printf("Warning, struct field added more than once\n");
 ///////////////////////////////////////////////////////////
  //  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim - 1, newSize, true, isInternalTime);
 		    for(int i = 0; i < numSlices; i++)
-  		    	writeSlice(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, &charData[i*rowSamples*sampleSize], datatype, dim, newSize, true, isInternalTime);
+		        writeSlice(tree, ctx->getOperationContext()->getDataobjectName(), timedPath, currTimebasePath, &charData[i*rowSamples*sampleSize], datatype, dim, newSize, true, isInternalTime);
 		   // delete[] newSize;
 
 		}
 		else
 		{
-    		    writeTimedData(tree, ctx->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, size, true, isInternalTime);
+		    writeTimedData(tree, ctx->getOperationContext()->getDataobjectName(), timedPath, currTimebasePath, data, datatype, dim, size, true, isInternalTime);
 		}
 		try {
-		    std::string currPath = composePaths(ctx->getDataobjectName(), timedPath);
+		  std::string currPath = composePaths(ctx->getOperationContext()->getDataobjectName(), timedPath);
 		    MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str(), true); //In this case the node will be freed, so it cannot be reused!!
 		    newApd->appendDesc(node);
 
@@ -3300,7 +3300,7 @@ printf("Warning, struct field added more than once\n");
 	ArraystructContext *currCtx = ctx;
 	while(currCtx->getParent())
 	    currCtx = currCtx->getParent();
-	return currCtx->getDataobjectName() + "/" + currCtx->getPath();
+	return currCtx->getOperationContext()->getDataobjectName() + "/" + currCtx->getPath();
     }
 
 
@@ -3684,7 +3684,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  {
 	    std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getParent()->getIndex(), true);  //Gabriele March 2018
 //	      std::string nodePath =  getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getIndex(), true);
- 	      std::string currPath = composePaths(ctx->getDataobjectName(), nodePath+"/aos");
+	      std::string currPath = composePaths(ctx->getOperationContext()->getDataobjectName(), nodePath+"/aos");
 	      MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str(), true);
 
  	      insertNewInApd(ctx, ctx->getPath(), parentApd, ctx->getParent()->getIndex(), ctx->getPath(),  emptyStr, false, node); //Gabriele March 2018
@@ -3744,14 +3744,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		*size = 0;
 		return;
 	    }
-	    if(ctx->getRangemode() == GLOBAL_OP)
+	    if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP)
 	    {
 		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
 		if(timebasePath.find_first_of('[') != std::string::npos) //If it is the reference of an internal AoS field
 		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
 
 		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
-		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+		    timebasePath = ctx->getOperationContext()->getDataobjectName()+"/"+timebasePath;
 
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
@@ -3770,14 +3770,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
 
 		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
-		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+		    timebasePath = ctx->getOperationContext()->getDataobjectName()+"/"+timebasePath;
 
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
 		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		    currApd = readSliceApd(node, "", ctx->getTime(), ctx->getInterpmode());
+		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode());
 		else
-		    currApd = readSliceApd(node, timebasePath, ctx->getTime(), ctx->getInterpmode());
+		  currApd = readSliceApd(node, timebasePath, ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode());
 		if(!currApd)
 		{
 		  //delete node;
@@ -3799,7 +3799,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	// if(ctx->getTimed())
 	if(!ctx->getTimebasePath().empty()) 
 	{
-	    std::string currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_aos/group_1/item_1/aos");
+	  std::string currPath = composePaths(ctx->getOperationContext()->getDataobjectName(), ctx->getPath()+"/timed_aos/group_1/item_1/aos");
 	    MDSplus::TreeNode *node;
 	    //NOTE: Instead of this try/catch block, one could test the ACCESS_LAYER version in the \TOP.REF_INFO.ACC_LAYER node.
 	    try {
@@ -3808,12 +3808,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    catch(MDSplus::MdsException &exc) {
 	      if (!strcmp(exc.what(),"%TREE-W-NNF, Node Not Found")) {
 		  // Backward compatibility for previous MDSplus backend versions
-		  currPath = composePaths(ctx->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
+		currPath = composePaths(ctx->getOperationContext()->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
 		  node = getNode(checkFullPath(currPath, true).c_str());
 	      }
 	      else {throw;}
 	    }
-	    if(ctx->getRangemode() == GLOBAL_OP)
+	    if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP)
 	    {
 		std::string timebasePath = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
 
@@ -3821,7 +3821,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
 
 		if(!timebasePath.empty()) //If a timebase is defined, its path must be completed
-		    timebasePath = ctx->getDataobjectName()+"/"+timebasePath;
+		  timebasePath = ctx->getOperationContext()->getDataobjectName()+"/"+timebasePath;
 
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
@@ -3835,12 +3835,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    else
 	    {
 		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') //If it refers to a field which is internal to the AoS (must be time)
-		    currApd = readSliceApd(node, "", ctx->getTime(), ctx->getInterpmode());
+		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode());
 		else
 		{
 		    std::string timebase = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
-		    timebase = ctx->getDataobjectName()+"/"+timebase;
-		    currApd = readSliceApd(node, timebase, ctx->getTime(), ctx->getInterpmode());
+		    timebase = ctx->getOperationContext()->getDataobjectName()+"/"+timebase;
+		    currApd = readSliceApd(node, timebase, ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode());
 		}
 		if(!currApd)
 		{
@@ -3853,7 +3853,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	}
 	else
 	{
-	    currApd = readApd(tree, ctx->getDataobjectName(), ctx->getPath()+"/static");
+	  currApd = readApd(tree, ctx->getOperationContext()->getDataobjectName(), ctx->getPath()+"/static");
 	    if(!currApd)
 	    {
 	        *size = 0;
@@ -4026,7 +4026,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  std::cout << "INTERNAL ERROR in resolveApdField: unexpected serialized apd found" << std::endl;
           throw UALBackendException("Internal error:  nexpected serialized apd found in resolveApdField",LOG);
       }
-      if(ctx->getRangemode() == GLOBAL_OP)
+      if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP)
       {
 	  try {
 	      void *dataPtr;
@@ -4050,7 +4050,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
           std::string pathStr(path);
 	  delete [] path;
 	  std::string emptyStr("");
-	  if(!readSlice(tree, true, pathStr, ctx->getDataobjectName(), ctx->getTimebasePath(), ctx->getTime(), ctx->getInterpmode(), &data, &datatype, &numDims, dims, false))
+	  if(!readSlice(tree, true, pathStr, ctx->getOperationContext()->getDataobjectName(), ctx->getTimebasePath(), ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(), &data, &datatype, &numDims, dims, false))
 		      throw UALBackendException("Internal error: expected valid slice in resolveApdField",LOG);
 
 	  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
@@ -4087,7 +4087,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	else
 	    rootName = path.substr(currPos+1, path.size() - currPos);
 
-	insertNewInApd(ctx, rootName, currApd, idx, fieldname, timebasename, ctx->getRangemode() != GLOBAL_OP, NULL, data, datatype, dim, size);
+	insertNewInApd(ctx, rootName, currApd, idx, fieldname, timebasename, ctx->getOperationContext()->getRangemode() != GLOBAL_OP, NULL, data, datatype, dim, size);
   }
 
 
@@ -4131,7 +4131,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      if(!ctx->getTimebasePath().empty() && ctx->getParent()->getTimebasePath().empty())
 	      {
 
-	          if(ctx->getAccessmode() == ualconst::write_op)
+		if(ctx->getOperationContext()->getAccessmode() == ualconst::write_op)
 	          {
 		    std::string nodePath = getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getParent()->getIndex(), true); //Gabriele March 2018
    		      //std::string nodePath = getTimedNode(ctx->getParent(), ctx->getPath(), ctx->getIndex(), true);
@@ -4141,14 +4141,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 //Gabriele OCT 2017: If it is the reference to a field ingternal to the AoS, it is assumed to be field "time"
 			  timebasePath = "";
 //		          timebasePath = getTimedNode(ctx, timebasePath, true)+"/aos";
-		      if(ctx->getRangemode() == GLOBAL_OP)
+		      if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP)
 		      {
 			  //Handle the case in which timebase is defined within AoS itself
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
-			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, "", false);
+			    writeDynamicApd(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, "", false);
 			  else
-			      writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), false);
+			    writeDynamicApd(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, composePaths(ctx->getOperationContext()->getDataobjectName(), timebasePath), false);
 		      }
 		      else //SLICE_OP
 		      {
@@ -4160,16 +4160,16 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			    if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
 			    {
 				if(currApd->len() > 1)
-			            writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, "", true);
+				  writeDynamicApd(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, "", true);
 				else				
-		     	     	    writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, "", ctx->getTime());
+				  writeApdSlice(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, "", ctx->getOperationContext()->getTime());
 			    }
 			    else
 			    {
 				if(currApd->len() > 1)
-			            writeDynamicApd(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), true);
+				  writeDynamicApd(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, composePaths(ctx->getOperationContext()->getDataobjectName(), timebasePath), true);
 				else
-				    writeApdSlice(currApd, ctx->getDataobjectName()+"/"+nodePath, composePaths(ctx->getDataobjectName(), timebasePath), ctx->getTime());
+				  writeApdSlice(currApd, ctx->getOperationContext()->getDataobjectName()+"/"+nodePath, composePaths(ctx->getOperationContext()->getDataobjectName(), timebasePath), ctx->getOperationContext()->getTime());
 			    }
 		      }
 		  }
@@ -4185,14 +4185,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 	  if(ctx->getParent() == NULL)
 	  {
-	      if(ctx->getAccessmode() == ualconst::write_op)
+	    if(ctx->getOperationContext()->getAccessmode() == ualconst::write_op)
 	      {
-		  if(ctx->getRangemode() == GLOBAL_OP)
+		if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP)
 		  {
 		    //  if(ctx->getTimed())   //not static AoS. Only a single dynamic AoS. In this case only TIMED_AOS/GROUP_1/ITEM_1 is used
  		      if(!ctx->getTimebasePath().empty()) 
 		      {
-			  std::string aosPath = ctx->getDataobjectName() + "/" +ctx->getPath();
+			std::string aosPath = ctx->getOperationContext()->getDataobjectName() + "/" +ctx->getPath();
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
 			      writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", "");
@@ -4207,7 +4207,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 		  	  for (int idx = currApd->len(); idx < ctx->getIndex(); idx++)
 			      currApd->appendDesc(NULL);
-			  writeStaticApd(currApd, ctx->getDataobjectName(), ctx->getPath());
+			  writeStaticApd(currApd, ctx->getOperationContext()->getDataobjectName(), ctx->getPath());
 		      }	
 		  }
 		  else //SLICE_OP
@@ -4215,21 +4215,21 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		      //if(ctx->getTimed())   //not static AoS. Only a single dynamic AoS
 		      if(!ctx->getTimebasePath().empty())   //not static AoS. Only a single dynamic AoS
 		      {
-	          	  std::string aosPath = ctx->getDataobjectName() + "/" +ctx->getPath();
+			std::string aosPath = ctx->getOperationContext()->getDataobjectName() + "/" +ctx->getPath();
 //			  if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If timebase is internal to the AoS
 			  if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath()[0] != '/') //If timebase is internal to the AoS
 			  {
 			      if(currApd->len() > 1)
 			          writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", "", true);
 			      else
-		     	      	  writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", "", ctx->getTime());
+				writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", "", ctx->getOperationContext()->getTime());
 			  }
 			  else
 			  {
 			      if(currApd->len() > 1)
 				  writeDynamicApd(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), true);
 			      else
-		     	          writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getTime());
+				writeApdSlice(currApd, aosPath+"/timed_aos/group_1/item_1", relativeToAbsolutePath(ctx, ctx->getTimebasePath()), ctx->getOperationContext()->getTime());
 			  }
 		      }
 		      else //static AoS: needs to be written only once
@@ -4239,7 +4239,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			  MDSplus::TreeNode *node = getNode(checkFullPath(currPath, true).c_str());
 			  if(node->getLength() == 0) //If it is the first time it is written 
 		      	  {
-			      writeStaticApd(currApd, ctx->getDataobjectName(), ctx->getPath());
+			    writeStaticApd(currApd, ctx->getOperationContext()->getDataobjectName(), ctx->getPath());
 		      	  }
 //			  delete node;	
 		      }

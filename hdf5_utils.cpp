@@ -228,7 +228,7 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
     }
     assert(H5Pclose(create_plist) >= 0);
 
-    writeHeader(ctx, *IDS_file_id, IDSpulseFile, backend_version);
+    writeHeader(ctx->getPulseContext(), *IDS_file_id, IDSpulseFile, backend_version);
 
 }
 
