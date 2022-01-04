@@ -138,7 +138,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     int *shapes = nullptr;
     bool isTimed = (timed_AOS_index != -1);
     int slice_index = -1;
-    OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+    OperationContext *opCtx = ctx->getOperationContext();
     slice_mode = opCtx->getRangemode();
 
     if (slice_mode == SLICE_OP && isTimed) {
@@ -407,14 +407,14 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 
     if (ctx->getType() == CTX_OPERATION_TYPE || ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
 
-        OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+        //OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
         bool search_slice_index = is_dynamic || isTimed;
-        if (opCtx->getRangemode() == SLICE_OP && search_slice_index) {
+        if (opctx->getRangemode() == SLICE_OP && search_slice_index) {
             std::string time_dataset_name = getTimeVectorDataSetName(opctx, timebasename, timed_AOS_index);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
-            slice_mode = opCtx->getRangemode();
-            slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
+            slice_mode = opctx->getRangemode();
+            slice_index = getSliceIndex(opctx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
             opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
         }
     }
