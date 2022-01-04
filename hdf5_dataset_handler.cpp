@@ -449,7 +449,8 @@ int HDF5DataSetHandler::setType() {
     case ualconst::char_data:
         {
             immutable = false;
-            dtype_id = H5Tcreate(H5T_STRING, H5T_VARIABLE);
+            dtype_id = H5Tcopy (H5T_C_S1);
+            H5Tset_size(dtype_id, H5T_VARIABLE);
             type_size = H5Tget_size(dtype_id);
 			
             if (dim == 1) {

@@ -69,7 +69,10 @@ int
             sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
             throw UALBackendException(error_message, LOG);
         }
-        hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
+
+        hid_t dtype_id = H5Tcopy (H5T_C_S1);
+        H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
+        
         herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
         if (tset < 0) {
             char error_message[100];
@@ -320,7 +323,8 @@ void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & fil
 
     //write version to file
     hid_t dataspace_id = H5Screate(H5S_SCALAR);
-    hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
+    hid_t dtype_id = H5Tcopy (H5T_C_S1);
+    H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
     herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
     if (tset < 0) {
         char error_message[200];
