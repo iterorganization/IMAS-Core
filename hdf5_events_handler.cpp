@@ -54,7 +54,8 @@ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unord
 void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & writer, HDF5Reader & reader, std::unordered_map < std::string, hid_t > &opened_IDS_files)
 {
 	if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+		ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
+		OperationContext *opCtx = aosctx->getOperationContext();
 		if (opCtx->getAccessmode() == WRITE_OP) {
 			writer.endAction(ctx);
 		} else if (opCtx->getAccessmode() == READ_OP) {
@@ -62,7 +63,6 @@ void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & wri
 		}
 	} else if (ctx->getType() == CTX_OPERATION_TYPE) {
 		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-
 		if (opCtx->getAccessmode() == WRITE_OP) {
             if (opCtx->getRangemode() == GLOBAL_OP)
 			    writer.write_buffers();

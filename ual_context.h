@@ -38,8 +38,8 @@ class LIBRARY_API Context
 {
 public:
   /**
-     Context destructor.
-   */
+    Context destructor.
+  */
   virtual ~Context() {}
 
   /**
@@ -53,49 +53,20 @@ public:
   virtual std::string fullPath() const; 
 
   /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const;
-
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const;
-
-  /**
      Returns object unique id.
      @result uid
   */
-  unsigned long int getUid() const;
+  virtual unsigned long int getUid() const;
 
   /**
      Returns the type of context.
      @result CTX_TYPE
   */
   virtual int getType() const;
-  
-  /**
-     Context copy constructor.
-     Explicit definition to handle uid update.
-  */
-  Context(const Context& ctx);
+
 
   
 protected:
-  /**
-     Context constructor.
-     @param id backend identifier (see ual_const.h):
-     - NO_BACKEND
-     - MDSPLUS_BACKEND
-     - HDF5_BACKEND
-     @todo need to check if passed id is valid
-     @todo how to check/configure available backends on a given system?
-  */
-  Context(int beid);
-
-  int backend_id;                            /**< a backend identifier */
   static std::atomic<unsigned long int> SID; /**< a global UID */
   unsigned long int uid;                     /**< a local ID to identify instances */
 };
@@ -113,7 +84,13 @@ public:
      Complete constructor.
      It requires all informations as arguments, empty strings will be replaced 
      by environment values.
-     @param id backend identifier 
+     @param id backend identifier (see ual_const.h)
+     - NO_BACKEND
+     - ASCII_BACKEND
+     - MDSPLUS_BACKEND
+     - HDF5_BACKEND
+     - MEMORY_BACKEND
+     - UDA_BACKEND
      @param s shot number
      @param r run number
      @param u user name
@@ -173,8 +150,21 @@ public:
   */
   std::string getVersion() const;
 
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  std::string getBackendName() const;
+
 
  protected:
+  int backend_id;                       /**< a backend identifier */
   int shot;                             /**< shot number */
   int run;                              /**< run number */
   std::string user;                     /**< user name */
@@ -186,9 +176,9 @@ public:
 
 /**
    Context class for an operation on a DATAOBJECT.
-   The OperationContext is a PulseContext associated to a given DATAOBJECT for a given I/O operation.
+   The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given PulseContext .
 */
-class LIBRARY_API OperationContext : public PulseContext 
+class LIBRARY_API OperationContext : public Context 
 {
 public:
   /**
@@ -202,7 +192,7 @@ public:
      - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
      "replace last slice"_]
   */
-  OperationContext(PulseContext ctx, std::string dataobject, int access);
+  OperationContext(PulseContext* ctx, std::string dataobject, int access);
 
   /**
      Operation context constructor.
@@ -224,7 +214,7 @@ public:
      - LINEAR_INTERP: interpolating linearly values at previous and next slices
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
   */
-  OperationContext(PulseContext ctx, std::string dataobject, int access, 
+  OperationContext(PulseContext* ctx, std::string dataobject, int access, 
 		   int range, double t, int interp);
 
   /**
@@ -288,62 +278,59 @@ public:
   */
   int getInterpmode() const;
 
+  /**
+     Returns the associated PulseContext.
+     @result opctx
+   */
+  PulseContext* getPulseContext() const;
+  
 protected:
+  PulseContext* pctx;                   /**< associated pulse context */
   std::string dataobjectname;           /**< DATAOBJECT name */
   int accessmode;                       /**< operation access type */
   int rangemode;                        /**< operation range */
   double time;                          /**< operation time */
   int interpmode;                       /**< operation interpolation type */
-
 };
 
 
 
 /**
    Context class for an array of structures.
-   The ArraystructContext is an OperationContext associated to a given array of structure.
+   The ArraystructContext is a Context associated to a given array of structure from a given OperationContext.
 */
-class LIBRARY_API ArraystructContext : public OperationContext 
+class LIBRARY_API ArraystructContext : public Context 
 {
  public:
   /**
      Array of structure context constructor.
      Requires informations for describing usage of stand-alone or top-most arrays of structure in a DATAOBJECT.
      @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, within its container if nested_]
+     @param p path of the array of structure field [_within the DATAOBJECT_]
      @param tb path of the timebase associated with the array of structure
   */
-  ArraystructContext(OperationContext *ctx, std::string p, std::string tb);
+  ArraystructContext(OperationContext* ctx, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
      Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, 
-     within its container if nested_]
+     @param parent context of the parent array of structure 
+     @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param cont context of the container array of structure [_optional: only in nested case_]
-     @param idx index of the array of structure within its container [_optional: only in 
-     nested case_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext *ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont);
+  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
      Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, 
-     within its container if nested_]
+     @param parent context of the parent array of structure 
+     @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param cont context of the container array of structure [_optional: only in nested case_]
-     @param idx index of the array of structure within its container [_optional: only in 
-     nested case_]
+     @param idx index of the array of structure within its container [_by default first element_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext *ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont, int idx);
+  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb, int idx);
 
   /**
      Array of structure context destructor.
@@ -390,7 +377,7 @@ class LIBRARY_API ArraystructContext : public OperationContext
      Returns the context of the container array of structure
      @result parent
   */
-  ArraystructContext *getParent();
+  ArraystructContext* getParent();
 
   /**
      Returns the position of the current element of interest within the array of structure.
@@ -404,14 +391,19 @@ class LIBRARY_API ArraystructContext : public OperationContext
   */
   void nextIndex(int step);
 
-  OperationContext * getOperationContext();
+  /**
+     Returns the associated OperationContext.
+     @result opctx
+   */
+  OperationContext* getOperationContext() const;
 
+  
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
-  OperationContext *opCtx;
-  int index;                            /**< position of the current element of interest within the array of structure */
+  int index = 0;                        /**< position of the current element of interest within the array of structure */
+  OperationContext* opctx;              /**< associated operation context **/
 
 };
 

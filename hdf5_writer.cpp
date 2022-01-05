@@ -391,10 +391,10 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler(true));
             dataSetHandler->setSliceMode(ctx);
             bool create_chunk_cache = true;
-	    dataSetHandler->open(tensorized_path.c_str(), gid, &dataset_id, dim, size, datatype, shapes_dataset, create_chunk_cache, useBuffering);
+	        dataSetHandler->open(tensorized_path.c_str(), gid, &dataset_id, dim, size, datatype, shapes_dataset, create_chunk_cache, useBuffering, AOSRank, arrctx_shapes.data(), compression_enabled);
             dataSetHandler->storeInitialDims(); //store the dims into initial_dims at beginning of the put_slice
-	    dataSetHandler->extendDataSpaceForTimeSlices(size, arrctx_shapes.data(), slices_extension);
-	    dataSetHandler->setTimeAxisOffset(current_arrctx_indices, slices_extension);
+	        dataSetHandler->extendDataSpaceForTimeSlices(size, arrctx_shapes.data(), slices_extension);
+	        dataSetHandler->setTimeAxisOffset(current_arrctx_indices, slices_extension);
             data_set = std::move(dataSetHandler);
         } else {
             data_set = std::move(got->second);

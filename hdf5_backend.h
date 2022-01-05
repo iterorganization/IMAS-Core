@@ -122,7 +122,7 @@ class HDF5Backend:public Backend {
     virtual void deleteData(OperationContext * ctx, std::string path);
 
     virtual void beginArraystructAction(ArraystructContext * ctx, int *size) {
-        if (ctx->getAccessmode() == READ_OP)
+        if (ctx->getOperationContext()->getAccessmode() == READ_OP)
             beginReadArraystructAction(ctx, size);
         else
             beginWriteArraystructAction(ctx, size);
