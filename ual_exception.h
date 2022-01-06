@@ -86,6 +86,18 @@ public:
   UALContextException(const std::string &m, const std::string &f, const int l);
 };
 
+class LIBRARY_API UALPluginException : public UALException
+{
+public:
+  UALPluginException() {}
+  virtual ~UALPluginException() throw() {}
+
+  UALPluginException(const char *m);
+  UALPluginException(const std::string &m);
+  UALPluginException(const char *m, const std::string &f, const int l);
+  UALPluginException(const std::string &m, const std::string &f, const int l);
+};
+
 }
 #endif
 
