@@ -98,6 +98,8 @@ int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, in
         sprintf(error_message, "Unable to create dataspace HDF5 hyperslab for dataset: %d\n", (int) dataset_id);
         throw UALBackendException(error_message, LOG);
     }
+    
+    hsize_t maxdims[H5S_MAX_RANK];
     //creating selection in the memory dataspace
     for (int i = 0; i < AOSRank; i++) {
         dims[i] = 1;
@@ -131,7 +133,13 @@ int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, in
     if (memspace == -1 || msHasChanged) {
         if (memspace != -1)
             H5Sclose(memspace);
-        memspace = H5Screate_simple(dataset_rank, dims, NULL);
+        //patch for HDF51.8.6: see https://forum.hdfgroup.org/t/dimensions-of-length-zero/2130/7
+        for (int i = 0; i < dataset_rank; i++) {
+			maxdims[i] = dims[i];
+			if (dims[i] == 0)
+			   maxdims[i] = H5S_UNLIMITED;
+		}
+        memspace = H5Screate_simple(dataset_rank, dims, maxdims);
         memcpy(memspace_dims_copy, dims, H5S_MAX_RANK * sizeof(hsize_t));
     }
 

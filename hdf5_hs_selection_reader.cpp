@@ -279,6 +279,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     }
 
     hsize_t dims[H5S_MAX_RANK];
+    hsize_t maxdims[H5S_MAX_RANK];
 
 //creating selection in the memory dataspace
     for (int i = 0; i < AOSRank; i++) {
@@ -330,7 +331,13 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     if (memspace == -1 || msHasChanged) {
         if (memspace != -1)
             H5Sclose(memspace);
-        memspace = H5Screate_simple(dataset_rank, dims, NULL);
+		//patch for HDF51.8.6: see https://forum.hdfgroup.org/t/dimensions-of-length-zero/2130/7
+		for (int i = 0; i < dataset_rank; i++) {
+			maxdims[i] = dims[i];
+			if (dims[i] == 0)
+			   maxdims[i] = H5S_UNLIMITED;
+		}
+        memspace = H5Screate_simple(dataset_rank, dims, maxdims);
         memcpy(memspace_dims_copy, dims, H5S_MAX_RANK * sizeof(hsize_t));
     }
 
