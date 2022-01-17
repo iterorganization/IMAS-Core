@@ -298,36 +298,7 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-
-    switch (lle.context->getType())
-      {
-      case CTX_PULSE_TYPE:
-	{
-	  PulseContext* pctx = dynamic_cast<PulseContext *>(lle.context); 
-	  if (pctx==NULL)
-	    throw UALLowlevelException("Wrong Context type stored",LOG);
-	  *beid = pctx->getBackendID();
-	}
-	break;
-      case CTX_OPERATION_TYPE:
-	{
-	  OperationContext* octx = dynamic_cast<OperationContext *>(lle.context);
-	  if (octx==NULL)
-	    throw UALLowlevelException("Wrong Context type stored",LOG);
-	  *beid = octx->getPulseContext()->getBackendID();
-	}
-	break;
-      case CTX_ARRAYSTRUCT_TYPE:
-	{
-	  ArraystructContext* actx = dynamic_cast<ArraystructContext *>(lle.context);
-	  if (actx==NULL)
-	    throw UALLowlevelException("Wrong Context type stored",LOG);
-	  *beid = actx->getOperationContext()->getPulseContext()->getBackendID();
-	}
-	break;
-      default:
-	throw UALLowlevelException("Unknown Context type stored",LOG);
-      }
+    *beid = lle.context->getBackendID();
   }
   catch (const UALLowlevelException& e) {
     status.code = ualerror::lowlevel_err;

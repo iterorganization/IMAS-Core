@@ -35,21 +35,11 @@ std::string Context::print() const
   return s;
 }
 
-std::string Context::fullPath() const
-{
-  std::string s = "";
-  return s;
-}
-
 unsigned long int Context::getUid() const 
 {
   return uid;
 }
 
-int Context::getType() const 
-{
-  return CTX_TYPE;
-}
 
 
 /// PulseContext ///
@@ -112,7 +102,7 @@ PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t,
 
 std::string PulseContext::print() const 
 {
-  std::string s = ((Context)*this).print() +
+  std::string s = ((Context*)this)->print() +
     "backend_id \t\t = " + 
     std::to_string(this->backend_id) + " (" + 
     this->getBackendName() + ")\n" + 
@@ -126,7 +116,7 @@ std::string PulseContext::print() const
 
 std::string PulseContext::fullPath() const
 {
-  std::string s = ((Context)*this).fullPath();
+  std::string s = "";
   return s;
 }
 
@@ -254,6 +244,16 @@ int OperationContext::getType() const
   return CTX_OPERATION_TYPE;
 }
 
+int OperationContext::getBackendID() const
+{ 
+  return getPulseContext()->getBackendID(); 
+}
+
+std::string OperationContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(getPulseContext()->getBackendID()-BACKEND_ID_0); 
+}
+
 std::string OperationContext::getDataobjectName() const
 { 
   return dataobjectname; 
@@ -342,6 +342,16 @@ std::string ArraystructContext::fullPath() const
 int ArraystructContext::getType() const
 {
   return CTX_ARRAYSTRUCT_TYPE;
+}
+
+int ArraystructContext::getBackendID() const
+{ 
+  return getOperationContext()->getBackendID(); 
+}
+
+std::string ArraystructContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(getOperationContext()->getBackendID()-BACKEND_ID_0); 
 }
 
 std::string ArraystructContext::getPath() const

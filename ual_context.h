@@ -50,7 +50,7 @@ public:
   /**
      Returns simplified pseudo path for the context.
   */
-  virtual std::string fullPath() const; 
+  virtual std::string fullPath() const = 0; 
 
   /**
      Returns object unique id.
@@ -62,7 +62,19 @@ public:
      Returns the type of context.
      @result CTX_TYPE
   */
-  virtual int getType() const;
+  virtual int getType() const = 0;
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const = 0;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const = 0;
 
 
   
@@ -154,13 +166,13 @@ public:
      Returns the ID of associated backend.
      @result backend_id
   */
-  int getBackendID() const;
+  virtual int getBackendID() const;
 
   /**
      Returns the name of associated backend.
      @result name of the backend
   */
-  std::string getBackendName() const;
+  virtual std::string getBackendName() const;
 
 
  protected:
@@ -237,6 +249,18 @@ public:
      @result CTX_OPERATION_TYPE
   */
   virtual int getType() const; 
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const;
 
   /**
      Returns the name of the DATAOBJECT.
@@ -352,6 +376,18 @@ class LIBRARY_API ArraystructContext : public Context
      @result CTX_ARRAYSTRUCT_TYPE
   */
   virtual int getType() const;
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const;
 
   /**
      Returns the path of the array of structure.
