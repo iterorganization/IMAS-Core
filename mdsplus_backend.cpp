@@ -5038,6 +5038,8 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    try {
 	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
     	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+
+std::cout << getenv("ids_path") << std::endl;
 		t = new MDSplus::Tree(szTree, shotNum);
 		resetIdsPath(szTree);
 	    }catch(MDSplus::MdsException &exc)
@@ -5047,9 +5049,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    }
 	    try {
 		MDSplus::TreeNode *nMajor = t->getNode("VERSION:BACK_MAJOR");
-		int major =  nMajor->getInt();
+		MDSplus::Data *data = nMajor->getData();
+		int major =  data->getInt();
+		MDSplus::deleteData(data);
 		MDSplus::TreeNode *nMinor = t->getNode("VERSION:BACK_MINOR");
-		int minor =  nMinor->getInt();
+		data = nMinor->getData();
+		int minor =  data->getInt();
+		MDSplus::deleteData(data);
 		delete nMajor;
 		delete nMinor;
 		delete t;
