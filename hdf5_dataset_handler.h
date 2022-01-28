@@ -59,7 +59,7 @@ class HDF5DataSetHandler {
     void createIntBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
     void readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
     void createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
-    void readUsingHyperslabs(std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings);
+    void readUsingHyperslabs(const std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings);
 
   public:
 
@@ -95,7 +95,7 @@ class HDF5DataSetHandler {
 	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
 
 	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache, bool compression_enabled, bool useBuffering);
-	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering);
+	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering, int AOSRank=-1, int *AOSSize = NULL, bool compression_enabled=true);
 	void setCurrentShapesAndExtend(int *size, int *AOSShapes);
 	void setCurrentShapes(int *size, int *AOSShapes);
 	void setExtent();
@@ -141,7 +141,7 @@ class HDF5DataSetHandler {
     void appendToBuffer(const std::vector < int >&current_arrctx_indices, bool dataSetAlreadyOpened, int datatype, int dim, int slice_mode, int dynamic_AOS_slices_extension, char**p, void *data);
 
     //Reading operation
-    void readData(bool dataSetAlreadyOpened, std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
+    void readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
 
 };
 

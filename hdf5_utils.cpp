@@ -69,7 +69,10 @@ int
             sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
             throw UALBackendException(error_message, LOG);
         }
-        hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
+
+        hid_t dtype_id = H5Tcopy (H5T_C_S1);
+        H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
+        
         herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
         if (tset < 0) {
             char error_message[100];
@@ -228,7 +231,7 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
     }
     assert(H5Pclose(create_plist) >= 0);
 
-    writeHeader(ctx, *IDS_file_id, IDSpulseFile, backend_version);
+    writeHeader(ctx->getPulseContext(), *IDS_file_id, IDSpulseFile, backend_version);
 
 }
 
@@ -244,7 +247,9 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
                 sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
                 throw UALBackendException(error_message, LOG);
             }
-	    else return;
+            else {
+				//printf("IDS read successfully with file_id=%d\n", *IDS_file_id);
+			}
         }
         else {
 		    char error_message[200];
@@ -275,6 +280,9 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
             message += filePath;
             throw UALBackendException(message, LOG);
         }
+		else {
+			//printf("master file read successfully with file_id=%d\n", *file_id);
+		}
     }
     
 }
@@ -315,7 +323,8 @@ void HDF5Utils::writeHeader(PulseContext * ctx, hid_t file_id, std::string & fil
 
     //write version to file
     hid_t dataspace_id = H5Screate(H5S_SCALAR);
-    hid_t dtype_id = H5Tcreate(H5T_STRING, strlen(backend_version_attribute_name));
+    hid_t dtype_id = H5Tcopy (H5T_C_S1);
+    H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
     herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
     if (tset < 0) {
         char error_message[200];
@@ -607,20 +616,24 @@ void HDF5Utils::getAOSIndices(Context * ctx, std::vector < int >&indices, int *t
 {
     *timedAOS_index = -1;
     if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-        int i = indices.size() - 1;
+        int i = 0;
         ArraystructContext *arrCtx = dynamic_cast < ArraystructContext * >(ctx);
-        if (arrCtx->getTimed())
+        if (arrCtx->getTimed()) {
             *timedAOS_index = i;
-        indices[i] = arrCtx->getIndex();
-        i--;
+        }
+	    indices.push_back(arrCtx->getIndex());
         ArraystructContext *parent = arrCtx->getParent();
         while (parent != NULL) {
-            if (parent->getTimed())
+	        i++;
+            if (parent->getTimed()) {
                 *timedAOS_index = i;
-            indices[i] = parent->getIndex();
+            }
+	        indices.push_back(parent->getIndex());
             parent = parent->getParent();
-            i--;
         }
+        std::reverse(indices.begin(), indices.end());
+        if (*timedAOS_index != -1)
+	        *timedAOS_index =  indices.size() - *timedAOS_index - 1;
     }
 }
 
@@ -712,11 +725,6 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
 void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
 hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
 {
-    if (*IDS_group_id >= 0) {
-        H5Gclose(*IDS_group_id);
-        *IDS_group_id = -1;
-    }
-
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     hid_t IDS_file_id = -1;
@@ -739,6 +747,10 @@ void HDF5Utils::showStatus(hid_t file_id) {
   n = H5Fget_obj_count (file_id, H5F_OBJ_DATASET);
   std::cout << "number of datasets opened: " << n << std::endl;
   n = H5Fget_obj_count (file_id, H5F_OBJ_FILE);
+  /*hid_t dataset_ids[10];
+  H5Fget_obj_ids(file_id, H5F_OBJ_DATASET, 10, dataset_ids);
+  for (int i = 0; i < 10; i++)
+    printf("opened datasetid=%d\n", dataset_ids[i]);*/
   std::cout << "number of files opened: " << n << std::endl;
    n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
   std::cout << "number of objects opened: " << n << std::endl;

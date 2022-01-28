@@ -437,7 +437,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
     if (pctx==NULL) 
       throw UALLowlevelException("Wrong Context type stored",LOG);
   
-    octx = new OperationContext(*pctx, 
+    octx = new OperationContext(pctx, 
 				std::string(dataobjectname),
 				rwmode);
     lle.backend->beginAction(octx);
@@ -490,7 +490,7 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    OperationContext *octx= new OperationContext(*pctx, 
+    OperationContext *octx= new OperationContext(pctx, 
 						 std::string(dataobjectname),
 						 rwmode, 
 						 ualconst::slice_op, 
@@ -700,17 +700,26 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
 					 int *actxID)
 {
   al_status_t status;
-  ArraystructContext *actx=NULL;
+  ArraystructContext* actx=NULL;
 
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
 
-    actx = new ArraystructContext(*(static_cast<OperationContext *>(lle.context)),
-					std::string(path),
-					std::string(timebase),
-				  dynamic_cast<ArraystructContext *>(lle.context));
-
+    ArraystructContext* parent = dynamic_cast<ArraystructContext*>(lle.context);
+    if (parent!=NULL)
+      {
+	actx = new ArraystructContext(parent,
+				      std::string(path),
+				      std::string(timebase));
+      }
+    else
+      {
+	OperationContext* octx = dynamic_cast<OperationContext*>(lle.context);
+	actx = new ArraystructContext(octx,
+				      std::string(path),
+				      std::string(timebase));
+      }
     lle.backend->beginArraystructAction(actx, size);
 
     if (*size == 0)
