@@ -35,7 +35,7 @@ const double Lowlevel::EMPTY_DOUBLE = -9.0E40;
 const std::complex<double> Lowlevel::EMPTY_COMPLEX = std::complex<double>(-9.0E40,-9.0E40);
 
 std::map<std::string, LLplugin> LLplugin::llpluginsStore;
-std::map<std::string, std::vector<std::string>>  LLplugin::attachedPlugins;
+std::map<std::string, std::vector<std::string>>  LLplugin::boundPlugins;
 
 void LLplugin::addPluginHandler(const char* name, void *plugin_handler) {
   llpluginsStore[std::string(name)].plugin_handler = plugin_handler;
@@ -54,18 +54,37 @@ void LLplugin::addPlugin(const char* name, void *plugin) {
   llpluginsStore[std::string(name)].al_plugin = plugin;
 }
 
-bool LLplugin::getAttachedPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames) {
+bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames) {
   LLenv lle = Lowlevel::getLLenv(ctxID);
   std::string fullPath = lle.context->fullPath() + "/" + std::string(fieldPath);
-  auto got = attachedPlugins.find(fullPath);
-  if (got != attachedPlugins.end()) {
+  auto got = boundPlugins.find(fullPath);
+  if (got != boundPlugins.end()) {
     pluginsNames = got->second;
     return true;
+  }
+  else {
+	OperationContext *opctx = nullptr;
+    if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) {
+        opctx = (static_cast<ArraystructContext*> (lle.context))->getOperationContext();
+    }
+    else {
+        opctx = static_cast<OperationContext*> (lle.context);
+    }
+    const std::string &dataObjectName = opctx->getDataobjectName();
+    //printf("ids name = %s\n", dataObjectName.c_str());
+    fullPath = dataObjectName + "/*";
+    //printf("fullPath = %s\n", fullPath.c_str());
+    auto got2 = boundPlugins.find(fullPath);
+    if (got2 != boundPlugins.end()) {
+		//printf("found fullPath = %s\n", fullPath.c_str());
+		pluginsNames = got2->second;
+		return true;
+    }
   }
   return false;
 }
 
-bool LLplugin::getAttachedPlugins(const char* dataobjectname, std::set<std::string> &pluginsNames) {
+bool LLplugin::getBoundPlugins(const char* dataobjectname, std::set<std::string> &pluginsNames) {
   std::string ids_name = std::string(dataobjectname);
   char *copy = strdup(dataobjectname);
   char* ids_name_cstr = strtok(copy, "/");
@@ -73,7 +92,7 @@ bool LLplugin::getAttachedPlugins(const char* dataobjectname, std::set<std::stri
      ids_name = std::string(ids_name_cstr);
      free(ids_name_cstr);
   }
-  for(auto it = attachedPlugins.begin(); it != attachedPlugins.end(); ++it) {
+  for(auto it = boundPlugins.begin(); it != boundPlugins.end(); ++it) {
 	  char* key = strdup(it->first.c_str());
 	  char *token = strtok(key, "/");
 	  if (token != NULL) {
@@ -91,28 +110,27 @@ bool LLplugin::getAttachedPlugins(const char* dataobjectname, std::set<std::stri
   return false;
 }
 
-
-void LLplugin::attachPlugin(const char* fieldPath, const char* pluginName) {
+void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
     if (!isPluginRegistered(pluginName)) {
         char error_message[200];
-        sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be attached.\n", pluginName);
+        sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be bound.\n", pluginName);
         throw UALLowlevelException(error_message, LOG);
     }
-    auto got = attachedPlugins.find(std::string(fieldPath));
-    if (got != attachedPlugins.end()) {
+    auto got = boundPlugins.find(std::string(fieldPath));
+    if (got != boundPlugins.end()) {
 		auto &plugins = got->second; 
         plugins.push_back(pluginName);
     }
     else {
 		std::vector<std::string> plugins {pluginName};
-		attachedPlugins[fieldPath] = plugins;
+		boundPlugins[fieldPath] = plugins;
 	}
 }
 
-void LLplugin::detachPlugin(const char* fieldPath, const char* pluginName) {
-    auto got = attachedPlugins.find(std::string(fieldPath));
-    if (got == attachedPlugins.end()) {
-        printf("No plugin attached to field path:%s\n", fieldPath);
+void LLplugin::unbindPlugin(const char* fieldPath, const char* pluginName) {
+    auto got = boundPlugins.find(std::string(fieldPath));
+    if (got == boundPlugins.end()) {
+        printf("No plugin bound to field path:%s\n", fieldPath);
     }
     else {
 		std::vector<std::string> &plugins = got->second;
@@ -120,7 +138,7 @@ void LLplugin::detachPlugin(const char* fieldPath, const char* pluginName) {
         if (itr != plugins.end()) {
             plugins.erase(itr);
             if (plugins.size() == 0)
-			   attachedPlugins.erase(got);
+			   boundPlugins.erase(got);
 		}
     }
 }
@@ -184,15 +202,15 @@ void LLplugin::unregister_plugin(const char* plugin_name) {
         sprintf(error_message, "Plugin %s not registered in the plugins store.\n", plugin_name);
         throw UALLowlevelException(error_message, LOG);
     }
-    //Erasing all paths attached to this plugin from the attachedPlugins map
-    auto it = attachedPlugins.begin();
-    while(it != attachedPlugins.end())
+    //Erasing all paths bound to this plugin from the boundPlugins map
+    auto it = boundPlugins.begin();
+    while(it != boundPlugins.end())
     {
 		std::vector<std::string> &plugins = it->second;
 		auto itr = std::find(plugins.begin(), plugins.end(), plugin_name);
         if (itr != plugins.end()) {
 			const std::string &fieldPath = it->first; 
-			detachPlugin(fieldPath.c_str(), plugin_name);
+			unbindPlugin(fieldPath.c_str(), plugin_name);
 			auto got = llpluginsStore.find(plugin_name);
 			if (got != llpluginsStore.end()) {
 				LLplugin &llp = got->second;
@@ -211,6 +229,12 @@ void LLplugin::unregister_plugin(const char* plugin_name) {
     }
 }
 
+void LLplugin::setvalueParameterPlugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* plugin_name) {
+	LLplugin &llp = llpluginsStore[plugin_name];
+    access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
+    al_plugin->setParameter(parameter_name, datatype, dim, size, data);
+}
+
 void LLplugin::begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
@@ -223,7 +247,7 @@ void LLplugin::begin_slice_action_plugin(const std::string &plugin_name, int pul
   al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
 }
 
-void LLplugin::begin_arraystruct_action_plugins(const std::string &plugin_name, int ctxID, int actxID, const char* fieldPath, const char* timeBasePath, int arraySize) {
+void LLplugin::begin_arraystruct_action_plugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
   al_plugin->begin_arraystruct_action(ctxID, actxID, fieldPath, timeBasePath, arraySize);
@@ -232,20 +256,16 @@ void LLplugin::begin_arraystruct_action_plugins(const std::string &plugin_name, 
 void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
-    void *retData=NULL;
     LLenv lle = Lowlevel::getLLenv(ctxID);
     Context *c= dynamic_cast<Context *>(lle.context);
     std::string fullPath = c->fullPath() + "/" + std::string(field);
     access_layer_plugin* al_plugin = NULL;
     LLplugin &llp = llpluginsStore[plugin_name];
     al_plugin = (access_layer_plugin*) llp.al_plugin;
-    int ret = al_plugin->read_data(ctxID, field, timebase, &retData, datatype, dim, size);
+    int ret = al_plugin->read_data(ctxID, field, timebase, data, datatype, dim, size);
     if (ret == 0) {
         // no data
         Lowlevel::setDefaultValue(datatype, dim, data, size);
-    }
-    else {
-        Lowlevel::setValue(retData, datatype, dim, data);
     }
 }
 
@@ -473,6 +493,18 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
     }
 
   return ctxID;
+}
+
+bool Lowlevel::data_has_non_zero_shape(void *data, int dim , int *size) {
+	if (dim != 0 && size == NULL)
+	   return false;
+	if (dim == 0)
+		return data != NULL;
+	for (int i = 0; i < dim; i++) {
+		if (size[i] == 0)
+		   return false;
+     }
+     return true;
 }
 
 
@@ -1059,8 +1091,8 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int 
     if (status.code != 0)
         return status;
     std::set<std::string> pluginsNames;
-    bool isPluginAttached = LLplugin::getAttachedPlugins(dataobjectname, pluginsNames);
-    if (isPluginAttached) {
+    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
+    if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
            LLplugin::begin_global_action_plugin(pluginName, pctxID, dataobjectname, rwmode, *octxID);
     }
@@ -1091,8 +1123,8 @@ al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int r
     if (status.code != 0)
      return status;
     std::set<std::string> pluginsNames;
-    bool isPluginAttached = LLplugin::getAttachedPlugins(dataobjectname, pluginsNames);
-    if (isPluginAttached) {
+    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
+    if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
 		   LLplugin::begin_slice_action_plugin(pluginName, pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
 	}
@@ -1123,10 +1155,10 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
       if (status.code != 0)
          return status;
     std::vector<std::string> pluginsNames;
-    bool isPluginAttached = LLplugin::getAttachedPlugins(ctxID, path, pluginsNames);
-    if (isPluginAttached) {
+    bool isPluginBound = LLplugin::getBoundPlugins(ctxID, path, pluginsNames);
+    if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-           LLplugin::begin_arraystruct_action_plugins(pluginName, ctxID, *actxID, path, timebase, *size);
+           LLplugin::begin_arraystruct_action_plugin(pluginName, ctxID, actxID, path, timebase, size);
     }
   }
   catch (const UALContextException& e) {
@@ -1157,17 +1189,16 @@ al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,
 
   status.code = 0;
   try {
-  
     std::vector<std::string> pluginsNames;
-    bool isPluginAttached = LLplugin::getAttachedPlugins(ctxID, field, pluginsNames);
-    if (isPluginAttached) {
+    bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
+    if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
            LLplugin::write_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
-        status = ual_write_data(ctxID, field, timebase, data, datatype, dim, size);
-        if (status.code != 0)
-            return status;
+		if (Lowlevel::data_has_non_zero_shape(data, dim, size))
+			status = ual_write_data(ctxID, field, timebase, data, datatype, dim, size);
+        return status;
     }
   }
   catch (const UALContextException& e) {
@@ -1194,8 +1225,8 @@ al_status_t hli_read_data(int ctxID, const char *field, const char *timebase,
   try {
   
     std::vector<std::string> pluginsNames;
-    bool isPluginAttached = LLplugin::getAttachedPlugins(ctxID, field, pluginsNames);
-    if (isPluginAttached) {
+    bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
+    if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
            LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
@@ -1266,11 +1297,11 @@ al_status_t hli_unregister_plugin(const char *plugin_name)
   return status;
 }
 
-al_status_t hli_attach_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t hli_bind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
-        LLplugin::attachPlugin(fieldPath, pluginName);
+        LLplugin::bindPlugin(fieldPath, pluginName);
     }
     catch (const UALContextException& e) {
         status.code = ualerror::context_err;
@@ -1287,11 +1318,80 @@ al_status_t hli_attach_plugin(const char* fieldPath, const char* pluginName) {
     return status;
 }
 
-al_status_t hli_detach_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
-        LLplugin::detachPlugin(fieldPath, pluginName);
+        LLplugin::unbindPlugin(fieldPath, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, size, data, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+		int dim = 0;
+		int datatype = INTEGER_DATA;
+		int *data = &parameter_value;
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+		int dim = 0;
+		int datatype = DOUBLE_DATA;
+		double *data = &parameter_value;
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
     }
     catch (const UALContextException& e) {
         status.code = ualerror::context_err;
