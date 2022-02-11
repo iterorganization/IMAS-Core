@@ -1105,6 +1105,11 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int 
     status.code = ualerror::lowlevel_err;
     UALException::registerStatus(status.message, __func__, e);
   }
+  catch (const UALPluginException& e) {
+	printf("An AL plugin exception has occurred:%s\n", e.what());
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
   catch (const std::exception& e) {
     status.code = ualerror::unknown_err;
     UALException::registerStatus(status.message, __func__, e);
@@ -1134,6 +1139,11 @@ al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int r
     UALException::registerStatus(status.message, __func__, e);
   }
   catch (const UALLowlevelException& e) {
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const UALPluginException& e) {
+	printf("An AL plugin exception has occurred:%s\n", e.what());
     status.code = ualerror::lowlevel_err;
     UALException::registerStatus(status.message, __func__, e);
   }
@@ -1209,6 +1219,11 @@ al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,
     status.code = ualerror::lowlevel_err;
     UALException::registerStatus(status.message, __func__, e);
   }
+  catch (const UALPluginException& e) {
+	printf("An AL plugin exception has occurred:%s\n", e.what());
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
   catch (const std::exception& e) {
     status.code = ualerror::unknown_err;
     UALException::registerStatus(status.message, __func__, e);
@@ -1244,12 +1259,101 @@ al_status_t hli_read_data(int ctxID, const char *field, const char *timebase,
     status.code = ualerror::lowlevel_err;
     UALException::registerStatus(status.message, __func__, e);
   }
+  catch (const UALPluginException& e) {
+	printf("An AL plugin exception has occurred:%s\n", e.what());
+    status.code = ualerror::lowlevel_err;
+    UALException::registerStatus(status.message, __func__, e);
+  }
   catch (const std::exception& e) {
     status.code = ualerror::unknown_err;
     UALException::registerStatus(status.message, __func__, e);
   }
   return status;
    
+}
+
+al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, size, data, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALPluginException& e) {
+		printf("An AL plugin exception has occurred:%s\n", e.what());
+		status.code = ualerror::lowlevel_err;
+		UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+		int dim = 0;
+		int datatype = INTEGER_DATA;
+		int *data = &parameter_value;
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALPluginException& e) {
+		printf("An AL plugin exception has occurred:%s\n", e.what());
+		status.code = ualerror::lowlevel_err;
+		UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
+    al_status_t status;
+    status.code = 0;
+    try {
+		int dim = 0;
+		int datatype = DOUBLE_DATA;
+		double *data = &parameter_value;
+        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
+    }
+    catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const UALPluginException& e) {
+		printf("An AL plugin exception has occurred:%s\n", e.what());
+		status.code = ualerror::lowlevel_err;
+		UALException::registerStatus(status.message, __func__, e);
+    }
+    catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
 }
 
 //HLI wrappers for plugins API
@@ -1323,75 +1427,6 @@ al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName) {
     status.code = 0;
     try {
         LLplugin::unbindPlugin(fieldPath, pluginName);
-    }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    return status;
-}
-
-al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
-    al_status_t status;
-    status.code = 0;
-    try {
-        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, size, data, pluginName);
-    }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    return status;
-}
-
-al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
-    al_status_t status;
-    status.code = 0;
-    try {
-		int dim = 0;
-		int datatype = INTEGER_DATA;
-		int *data = &parameter_value;
-        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
-    }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
-    }
-    return status;
-}
-
-al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
-    al_status_t status;
-    status.code = 0;
-    try {
-		int dim = 0;
-		int datatype = DOUBLE_DATA;
-		double *data = &parameter_value;
-        LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
     }
     catch (const UALContextException& e) {
         status.code = ualerror::context_err;
