@@ -15,6 +15,15 @@
 #define TRUE 1
 #define FALSE 0
 
+int defaultBackend() 
+{
+   int backend = MDSPLUS_BACKEND;
+   char* backend_value;
+   backend_value = getenv("IMAS_AL_BACKEND");
+   if (backend_value != NULL)
+	   backend = atoi(backend_value);
+   return backend;
+}
 
 int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
 {
@@ -233,7 +242,7 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 		int refRun, int *pulseCtx, char *user, char *tokamak,
 		char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
+	al_status_t status_t = ual_begin_pulse_action(defaultBackend(), shot, run,
 			user, tokamak, version, pulseCtx);
 
 	if (*pulseCtx < 0)
@@ -286,7 +295,7 @@ int mtl_ual_create_public(int shot, int run, int *pulseCtx, char *user, char *to
 int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 		char *user, char *tokamak, char *version)
 {
-	al_status_t status_t = ual_begin_pulse_action(MDSPLUS_BACKEND, shot, run,
+	al_status_t status_t = ual_begin_pulse_action(defaultBackend(), shot, run,
 			user, tokamak, version, pulseCtx);
 	if (*pulseCtx < 0)
 		return *pulseCtx;

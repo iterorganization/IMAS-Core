@@ -33,7 +33,7 @@ struct c_complex_struct {
 //void test(struct c_struct**);
 /* management 
 ********************************************************************************/
-
+LIBRARY_API int defaultBackend();
 LIBRARY_API int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,char *user, char *tokamak, char *version);
 LIBRARY_API int mtl_ual_create_env(const char *name, int shot, int run, int refShot, int refRun, int *retIdx, char *user, char *tokamak, char *version);
 LIBRARY_API int mtl_ual_open_public(int shot, int run, int *pulseCtx, char *user, char *tokamak, char *version);
