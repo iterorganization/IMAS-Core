@@ -202,3 +202,49 @@ UALContextException::UALContextException(const std::string &m, const std::string
     mesg = o.str();
   }
 }
+
+/// UALPluginException ///
+
+UALPluginException::UALPluginException(const char *m) 
+  : UALException(m) 
+{
+  std::ostringstream o;
+  o << "[UALPluginException = " << m << "]";
+  mesg = o.str();
+}
+
+UALPluginException::UALPluginException(const std::string &m) 
+  : UALException(m) 
+{
+  std::ostringstream o;
+  o << "[UALPluginException = " << m << "]";
+  mesg = o.str();
+}
+
+UALPluginException::UALPluginException(const char *m, const std::string &f, const int l)
+  : UALException(m,f,l) 
+{
+  std::ostringstream o;
+  if (VERBOSE) {
+    o << "[UALPluginException (" << f << ":" << l << ") = " << m << "]";
+    mesg = o.str();
+  }
+  else {
+    o << "[UALPluginException = " << m << "]";
+    mesg = o.str();
+  }
+}
+
+UALPluginException::UALPluginException(const std::string &m, const std::string &f, const int l) 
+  : UALException(m,f,l) 
+{
+  std::ostringstream o;
+  if (VERBOSE) {
+    o << "[UALPluginException (" << f << ":" << l << ") = " << m << "]";
+    mesg = o.str();
+  }
+  else {
+    o << "[UALPluginException = " << m << "]";
+    mesg = o.str();
+  }
+}

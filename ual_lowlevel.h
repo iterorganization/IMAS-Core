@@ -23,8 +23,59 @@
 #ifdef __cplusplus
 
 #include <vector>
+#include <set>
+#include <map>
 #include <mutex>
 #include <complex>
+
+
+/**
+   Holds a plugin.
+*/
+class LIBRARY_API LLplugin
+{ 
+
+private:
+
+  static void addPluginHandler(const char* name, void *plugin_handler);
+  static void addDestroyPlugin(const char* name, void *destroy_plugin);
+  static void addPlugin(const char* name, void *plugin);
+
+public:
+
+  void* plugin_handler;
+  void* al_plugin;
+  void* destroy_plugin;
+  char* name;
+  static std::map<std::string, LLplugin>  llpluginsStore;                            /**< plugins */
+  static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
+
+  LLplugin()
+  {
+    plugin_handler = NULL;
+    al_plugin = NULL;
+    destroy_plugin = NULL;
+    name = NULL;
+  }
+
+  static void begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, int opCtx);
+  static void begin_slice_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
+  static void begin_arraystruct_action_plugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
+  static void read_data_plugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
+  static void write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
+  //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
+
+  static void register_plugin(const char* plugin_name);
+  static void unregister_plugin(const char* plugin_name);
+  static bool isPluginRegistered(const char* name);
+  static void bindPlugin(const char* fieldPath, const char* name);
+  static void unbindPlugin(const char* fieldPath, const char* name);
+  static bool getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames);
+  static bool getBoundPlugins(const char* dataobjectname, std::set<std::string> &pluginsNames);
+  static void setvalueParameterPlugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
+
+};
 
 /**
    Lowlevel environment structure.
@@ -140,6 +191,10 @@ public:
 			      std::string usr,
 			      std::string tok,
 			      std::string ver);
+			      
+  static bool data_has_non_zero_shape(void *data, int dim , int *size);
+			      
+  
 
 private:
   static std::mutex mutex;                        /**< mutex for thread safe Factory accesses */
@@ -377,6 +432,34 @@ extern "C"
    */
   LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
 						       int step);
+
+
+  LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
+
+  LIBRARY_API al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+
+  LIBRARY_API al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
+
+  LIBRARY_API al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
+  
+  LIBRARY_API al_status_t hli_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+
+  //LIBRARY_API al_status_t hli_close_pulse(int pctxID, int mode, const char *options);
+
+  //HLI wrappers for plugins API
+  LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
+
+  LIBRARY_API al_status_t hli_unregister_plugin(const char *plugin_name);
+
+  LIBRARY_API al_status_t hli_bind_plugin(const char* fieldPath, const char* pluginName);
+
+  LIBRARY_API al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName);
+  
+  LIBRARY_API al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
+  
+  LIBRARY_API al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
+  
+  LIBRARY_API al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
   
 
 #if defined(__cplusplus)
