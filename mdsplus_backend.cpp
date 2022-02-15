@@ -71,7 +71,7 @@ static size_t getMaxApdArrayDim(MDSplus::Apd *inApd)
 	return 0;
     }
     bool isArray = true;
-    if(inApd->getDescAt(0))
+    if(inApd->len() > 0 && inApd->getDescAt(0))
     {
     	inApd->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
 	if(clazz == CLASS_S && dtype == DTYPE_T)
