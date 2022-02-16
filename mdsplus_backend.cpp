@@ -353,7 +353,7 @@ static MDSplus::Apd *mergeApdArrays(std::vector<MDSplus::Data *>apdVect)
 	return  NULL; //Force core dump
     }
     MDSplus::Apd *retApd = new MDSplus::Apd();
-    if(((MDSplus::Apd *)apdVect[0])->getDescAt(0)) //If not empty
+    if(((MDSplus::Apd *)apdVect[0])->len() > 0 && ((MDSplus::Apd *)apdVect[0])->getDescAt(0)) //If not empty
     	((MDSplus::Apd *)apdVect[0])->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
     else
 	clazz = CLASS_APD; //Struct fields always begin with a non APD, so if it is empty we assume it is an Apd array
@@ -422,6 +422,8 @@ static void deflateApd(MDSplus::Apd *inApd)
     char nDims;
     int *dims;
     void *ptr;
+    if (inApd->len() == 0)
+       return; 
     MDSplus::Data *currData = inApd->getDescAt(0);
     if(currData)
     	currData->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
@@ -600,7 +602,7 @@ static std::vector<MDSplus::Apd *> splitApdArrays(MDSplus::Apd *inApd, int numIn
 	retVect.push_back(new MDSplus::Apd());
 
     //An Array may have empty components, in any case a struct starts with the name
-    if(inApd->getDescAt(0))
+    if(inApd->len() > 0 && inApd->getDescAt(0))
     {
 	inApd->getDescAt(0)->getInfo((char *)&clazz, (char *)&dtype, &length, &nDims, &dims, &ptr);
     	if(clazz == CLASS_S && dtype == DTYPE_T) //It is a Struct
@@ -916,7 +918,8 @@ static void dumpArrayStruct(MDSplus::Apd *apd, int tabs)
 static void dumpStruct(MDSplus::Apd *apd, int tabs)
 {
     skipTabs(tabs);
-    std::cout << apd->getDescAt(0) << ":\n";
+    if (apd->len() > 0)
+       std::cout << apd->getDescAt(0) << ":\n";
     for(size_t i = 1; i < apd->len(); i++)
     {
 	
