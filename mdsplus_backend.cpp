@@ -5039,7 +5039,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
     	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 
-std::cout << getenv("ids_path") << std::endl;
 		t = new MDSplus::Tree(szTree, shotNum);
 		resetIdsPath(szTree);
 	    }catch(MDSplus::MdsException &exc)
