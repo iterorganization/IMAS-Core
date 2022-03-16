@@ -192,7 +192,7 @@ public:
 			      std::string tok,
 			      std::string ver);
 			      
-  static bool data_has_non_zero_shape(void *data, int dim , int *size);
+  static bool data_has_non_zero_shape(int datatype, void *data, int dim , int *size);
 			      
   
 

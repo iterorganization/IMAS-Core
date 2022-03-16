@@ -495,11 +495,30 @@ int Lowlevel::beginPulseAction(int backendID, int shot, int run,
   return ctxID;
 }
 
-bool Lowlevel::data_has_non_zero_shape(void *data, int dim , int *size) {
-	if (dim != 0 && size == NULL)
+bool Lowlevel::data_has_non_zero_shape(int datatype, void *data, int dim, int *size) {
+
+	if (dim == 0) {
+		if (data == NULL) return false;
+		if (datatype == INTEGER_DATA) {
+			int *p = (int*) data;
+			if (*p == Lowlevel::EMPTY_INT)
+			   return false;
+		}
+		else if (datatype == DOUBLE_DATA) {
+			double *p = (double*) data;
+			if (*p == Lowlevel::EMPTY_DOUBLE)
+			   return false;
+		}
+		else if (datatype == COMPLEX_DATA) {
+			std::complex<double> *p = (std::complex<double>*) data;
+			if (*p == Lowlevel::EMPTY_COMPLEX)
+			   return false;
+		}
+	}
+		
+	if (dim != 0 && (data == NULL || size == NULL))
 	   return false;
-	if (dim == 0)
-		return data != NULL;
+	   
 	for (int i = 0; i < dim; i++) {
 		if (size[i] == 0)
 		   return false;
@@ -1206,7 +1225,7 @@ al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,
            LLplugin::write_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
-		if (Lowlevel::data_has_non_zero_shape(data, dim, size))
+		if (Lowlevel::data_has_non_zero_shape(datatype, data, dim, size))
 			status = ual_write_data(ctxID, field, timebase, data, datatype, dim, size);
         return status;
     }
