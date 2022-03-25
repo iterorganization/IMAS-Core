@@ -46,7 +46,7 @@ class HDF5Reader {
  				    );
     int readAOSPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector < int > &current_arrctx_indices);
 
-    std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index);
+    std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
     std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
     
