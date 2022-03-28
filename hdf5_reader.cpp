@@ -126,11 +126,6 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
             existing_data_sets[tensorized_path] = 1;
         }
     }
-    
-    if (got == tensorized_paths_per_context.end())
-		tensorized_paths_per_context[ctx] = tensorized_paths;
-
-    tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
 
     int timed_AOS_index = -1;
     std::vector < int > current_arrctx_indices;
@@ -145,7 +140,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 			double linear_interpolation_factor = 0;
 			int slice_sup = -1;
             bool ignore_linear_interpolation = true;
-            std::string time_dataset_name = getTimeVectorDataSetName(ctx, timed_AOS_index);
+            std::string time_dataset_name = getTimeVectorDataSetName(ctx, timed_AOS_index, tensorized_paths);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
             slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
@@ -171,6 +166,14 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     if (slice_mode == SLICE_OP && ctx->getTimed() && *size > 0) {
         *size = 1;
     }
+    
+    if (*size > 0) { 
+		if (got == tensorized_paths_per_context.end())
+			tensorized_paths_per_context[ctx] = tensorized_paths;
+
+		tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
+    }
+
 }
 
 std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index) {
@@ -211,7 +214,7 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::
     return dataset_name;
 }
 
-std::string HDF5Reader::getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index) {
+std::string HDF5Reader::getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths) {
 
     std::string dataset_name;
 
@@ -220,7 +223,6 @@ std::string HDF5Reader::getTimeVectorDataSetName(ArraystructContext * ctx, int t
             return dataset_name;
     }
     assert(timed_AOS_index != -1);
-    auto &tensorized_paths = tensorized_paths_per_context[ctx];
     dataset_name = tensorized_paths[timed_AOS_index] + "&time";
     //printf("getTimeVectorDataSetName::AOS time basis=%s\n", dataset_name.c_str());
     return dataset_name;
