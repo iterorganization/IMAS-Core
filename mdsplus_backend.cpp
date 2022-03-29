@@ -4853,7 +4853,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
  	  MDSplus::Apd *currApd = getApdFromContext(ctx);
 
 //	  dumpArrayStruct(currApd, 0);
-	  
+
+	  if (currApd == NULL)
+	    return;
+	    
 	  removeContextAndApd(ctx, currApd);
 	  if(ctx->getParent() != NULL)  //If the AoS is nested
 	  {
