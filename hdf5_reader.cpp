@@ -166,12 +166,13 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     if (slice_mode == SLICE_OP && ctx->getTimed() && *size > 0) {
         *size = 1;
     }
-    
+   
     if (*size > 0) { 
-		if (got == tensorized_paths_per_context.end())
+		if (got == tensorized_paths_per_context.end()) {
 			tensorized_paths_per_context[ctx] = tensorized_paths;
+		    tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
+		}
 
-		tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
     }
 
 }
@@ -889,7 +890,8 @@ void HDF5Reader::endAction(Context * ctx)
             tensorized_paths_per_op_context.erase(got2);
         else {
             auto &tensorized_paths = got2->second;
-            tensorized_paths.pop_back();
+			if (tensorized_paths.size() > 0)
+				tensorized_paths.pop_back();
         }
     }
    }
