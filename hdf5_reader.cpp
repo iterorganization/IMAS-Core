@@ -890,8 +890,12 @@ void HDF5Reader::endAction(Context * ctx)
             tensorized_paths_per_op_context.erase(got2);
         else {
             auto &tensorized_paths = got2->second;
-			if (tensorized_paths.size() > 0)
+			if (tensorized_paths.size() > 0) {
 				tensorized_paths.pop_back();
+				if (tensorized_paths.size() == 0) {
+					tensorized_paths_per_op_context.erase(got2);
+				}
+			}
         }
     }
    }
