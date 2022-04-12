@@ -4853,7 +4853,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
  	  MDSplus::Apd *currApd = getApdFromContext(ctx);
 
 //	  dumpArrayStruct(currApd, 0);
-	  
+
+	  if (currApd == NULL)
+	    return;
+	    
 	  removeContextAndApd(ctx, currApd);
 	  if(ctx->getParent() != NULL)  //If the AoS is nested
 	  {
@@ -5039,7 +5042,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  	setDataEnv(ctx->getUser().c_str(), ctx->getTokamak().c_str(), ctx->getVersion().c_str()); 
     	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 
-std::cout << getenv("ids_path") << std::endl;
 		t = new MDSplus::Tree(szTree, shotNum);
 		resetIdsPath(szTree);
 	    }catch(MDSplus::MdsException &exc)
