@@ -165,7 +165,7 @@ int HDF5DataSetHandler::getTimeWriteOffset() const {
 }
 
 void HDF5DataSetHandler::open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, 
-int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering) {
+int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering, int AOSRank, int *AOSSize, bool compression_enabled) {
         
 		this->tensorized_path = std::string(dataset_name);
         this->request_dim = dim;
@@ -190,15 +190,18 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBu
         
         if (*dataset_id < 0) {
             char error_message[200];
-			if (slice_mode) {
-				if (H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
-					sprintf(error_message, "Dataset: %s is not present in the pulse file. Have you set this field when calling put() for inserting the first slice ?\n", dataset_name);
-				}
+			if (slice_mode && H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
+					assert(AOSRank != -1);
+					assert(!shape_dataset);
+					assert(AOSSize != NULL);
+					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true));
+					data_set->setNonSliceMode();
+					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache, compression_enabled, useBuffering);
 			}
 			else {
 				sprintf(error_message, "Unable to open HDF5 dataset: %s\n", dataset_name);
+				throw UALBackendException(error_message, LOG);
 			}
-            throw UALBackendException(error_message, LOG);
         }
         this->dataset_id = *dataset_id;
         if (dataspace_id != -1)
@@ -241,7 +244,6 @@ void HDF5DataSetHandler::showDims(std::string context) {
     std::cout << context << "-->showDims::rank=" << dataset_rank <<  std::endl;
     std::cout << context << "-->showDims::AOSRank=" << AOSRank <<  std::endl;
     std::cout << context << "-->showDims::slices_extension=" << slices_extension <<  std::endl;
-    //std::cout << context << "-->showDims::dynamic_AOS_slices_extension" << dynamic_AOS_slices_extension <<  std::endl;
     std::cout << context << "-->showDims::datatype=" << dtype_id <<  std::endl;
     for (int i = 0; i < dataset_rank; i++) {
        std::cout << context << "-->showDims::dims[" << i << "]=" << dims[i] << std::endl;
@@ -447,7 +449,8 @@ int HDF5DataSetHandler::setType() {
     case ualconst::char_data:
         {
             immutable = false;
-            dtype_id = H5Tcreate(H5T_STRING, H5T_VARIABLE);
+            dtype_id = H5Tcopy (H5T_C_S1);
+            H5Tset_size(dtype_id, H5T_VARIABLE);
             type_size = H5Tget_size(dtype_id);
 			
             if (dim == 1) {
@@ -960,6 +963,7 @@ void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelecti
 
 void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     int *v = full_int_data_set_buffer;
+    assert(full_int_data_set_buffer != NULL);
     *data = (void*) malloc(sizeof(int));
     int* data_int = (int*) *data;
     if (hsSelectionReader.getRank() != 0) {
@@ -975,6 +979,7 @@ void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelection
 
 void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     int *v = full_int_data_set_buffer;
+    assert(full_int_data_set_buffer != NULL);
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
@@ -996,6 +1001,7 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
 
 void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     double *v = full_double_data_set_buffer;
+    assert(full_double_data_set_buffer != NULL);
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
@@ -1051,7 +1057,7 @@ void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionR
     }
 }
 
-void HDF5DataSetHandler::readUsingHyperslabs(std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings) {
+void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings) {
     HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
     hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
     hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
@@ -1067,27 +1073,27 @@ void HDF5DataSetHandler::readUsingHyperslabs(std::vector < int >&current_arrctx_
     }
 }
 
-void HDF5DataSetHandler::readData(bool dataSetAlreadyOpened, std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
+void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
     if (useBuffering) {
         HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
         if (datatype != ualconst::char_data) {
             if (dim == 0 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
-                if (!dataSetAlreadyOpened)
+                if (full_int_data_set_buffer==NULL)
                     createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readInt0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
             else if (dim == 0 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
-                if (!dataSetAlreadyOpened)
+                if (full_double_data_set_buffer==NULL)
                     createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readDouble0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
             else if (dim == 1 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
-                if (!dataSetAlreadyOpened)
+                if (full_int_data_set_buffer==NULL)
                     createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readIntNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
             else if (dim == 1 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
-                if (!dataSetAlreadyOpened)
+                if (full_double_data_set_buffer==NULL)
                     createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readDoubleNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
@@ -1096,7 +1102,7 @@ void HDF5DataSetHandler::readData(bool dataSetAlreadyOpened, std::vector < int >
             }
         } else {
             if (dim == 1 && slice_mode != SLICE_OP) {
-                if (!dataSetAlreadyOpened)
+                if (full_data_sets_buffers.size() == 0)
                     create0DStringsBuffer(hsSelectionReader, current_arrctx_indices, data);
                 read0DStringsFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }

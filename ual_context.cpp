@@ -50,12 +50,6 @@ unsigned long int Context::getUid() const
   return uid;
 }
 
-int Context::getType() const 
-{
-  return CTX_TYPE;
-}
-
-
 /// DataEntryContext ///
 
 DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
@@ -113,28 +107,69 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
      }
   }
 
-  if (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty()) {
-      std::string pathFromURI;
-      if(uri::queryParameter("path", pathFromURI, uri_object))
-       throw UALContextException("path should not be specified in the URI since user/database/version parameters are specified",LOG);
+  std::string pathFromURI;
+  if(uri::queryParameter("path", pathFromURI, uri_object))
+      path = pathFromURI;
+      
+  if (!pathFromURI.empty() && (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty())) {
+      throw UALContextException("path should not be specified in the URI since user/database/version parameters are specified",LOG);
+  }
+  
+  std::string pulseFromURI;
+   if(uri::queryParameter("pulse", pulseFromURI, uri_object))
+      pulse = pulseFromURI;
+
+  std::string shotFromURI;
+  if(uri::queryParameter("shot", shotFromURI, uri_object)) {
+	  try {
+          shot = std::stoi(shotFromURI);
+       }
+       catch(std::invalid_argument &exc) {
+		  throw UALContextException(exc.what(),LOG);
+       }
   }
 
-   std::string shotFromURI;
-   if(uri::queryParameter("shot", shotFromURI, uri_object))
-      shot = std::stoi(shotFromURI);
-
   std::string runFromURI;
-  if(uri::queryParameter("run", runFromURI, uri_object))
-      run = std::stoi(runFromURI);
-
-  if ( (!shotFromURI.empty() && runFromURI.empty()) || (shotFromURI.empty() && !runFromURI.empty())) {
-    throw UALContextException("shot/run parameters, only one of these 2 parameters is specified in the URI, however both should be specified in the URI",LOG);
-  } 
-
-  if ( !shotFromURI.empty() && !runFromURI.empty()) {
-    std::string refnameFromURI;
-    if(uri::queryParameter("refname", refnameFromURI, uri_object))
-       throw UALContextException("refname should not be specified in the URI since shot/run parameters are specified in the URI",LOG);
+  if(uri::queryParameter("run", runFromURI, uri_object)) {
+      try {
+          run = std::stoi(runFromURI);
+       }
+       catch(std::invalid_argument &exc) {
+		  throw UALContextException(exc.what(),LOG);
+       }
+  }
+      
+  if ( (!shotFromURI.empty() && !pulseFromURI.empty()) || (!runFromURI.empty() && !pulseFromURI.empty()) ) {
+	  throw UALContextException("ambiguous URI, both shot/run and pulse parameters are specified in the URI",LOG);
+  }  
+  
+  if (!pulseFromURI.empty()) {
+	  char* s = strdup( pulseFromURI.c_str());
+	  char* token = strtok(s, "/");
+	  char* token2 = strtok(NULL, "/");
+	  if (token != NULL && token2 != NULL) { // ID = S/R
+		  //printf("find ID=S/R\n");
+		  try {
+			  shotFromURI = std::string(token);
+			  shot = std::stoi(shotFromURI);
+			  runFromURI = std::string(token2);
+			  run = std::stoi(runFromURI);
+		  }
+	      catch(std::invalid_argument &exc) {
+			  throw UALContextException(exc.what(),LOG);
+		  }
+	   }
+	   else {  // ID = S or keyword ?
+		    //printf("find ID=S or keyword\n");
+		    try {
+			  shotFromURI = std::string(pulseFromURI);
+			  shot = std::stoi(shotFromURI);
+		  }
+	      catch(std::invalid_argument &exc) {
+			  //probably a keyword
+		  }
+	   }
+	   free(s);
   }
 
   std::string optionsFromURI;
@@ -146,26 +181,30 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
 
 std::string DataEntryContext::print() const 
 {
-  std::string s = ((Context)*this).print() +
-    "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
-    "run \t\t\t = " + std::to_string(this->run) + "\n" +
-    "user \t\t\t = \"" + this->user + "\"\n" +
-    "tokamak \t\t = \"" + this->tokamak + "\"\n" +
-    "version \t\t = \"" + this->version + "\"\n" +
-    "backend_id \t\t = " + std::to_string(this->backend_id) + " (" + this->getBackendName() + ")\n" ;
+  std::string s = this->print() +
+   "uri \t\t\t = " + uri + "\n";
   return s;
 }
 
-
 std::string DataEntryContext::fullPath() const
 {
-  std::string s = ((Context)*this).fullPath();
+  std::string s = "";
   return s;
 }
 
 int DataEntryContext::getType() const 
 {
   return CTX_PULSE_TYPE;
+}
+
+int DataEntryContext::getBackendID() const
+{ 
+  return backend_id; 
+}
+
+std::string DataEntryContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
 }
 
 int DataEntryContext::getShot() const
@@ -203,54 +242,62 @@ std::string DataEntryContext::getURI() const
   return uri;
 }
 
-int DataEntryContext::getBackendID() const
-{ 
-  return backend_id; 
-}
-
-std::string DataEntryContext::getBackendName() const 
-{ 
-  return ualconst::backend_id_str.at(backend_id-BACKEND_ID_0); 
-}
-
-std::string DataEntryContext::getLegacyRootPath() {
+std::string DataEntryContext::getPath() {
 
     std::string filePath;
-
-    if (!strcmp(user.c_str(), "public")) {
-        char *home = getenv("IMAS_HOME");
-        if (home == NULL)
-            throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
-        filePath += home;
-        filePath += "/shared/imasdb/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
-    } else if (user.rfind("/", 0) == 0) {
-        filePath += user;
-        filePath += "/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
-    } else {
+    
+    if (path.empty()) {
+		
+		if (!strcmp(user.c_str(), "public")) {
+			char *home = getenv("IMAS_HOME");
+			if (home == NULL)
+				throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
+			filePath += home;
+			filePath += "/shared/imasdb/";
+			filePath += tokamak;
+			filePath += "/";
+			filePath += version;
+		} else if (user.rfind("/", 0) == 0) {
+			filePath += user;
+			filePath += "/";
+			filePath += tokamak;
+			filePath += "/";
+			filePath += version;
+		} else {
 #ifdef WIN32
-        char szHomeDir[256];
-        if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-            filePath += szHomeDir;
+			char szHomeDir[256];
+			if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+				filePath += szHomeDir;
 #else 
-        struct passwd *pw = getpwnam( user.c_str() );
-        if( pw != NULL ) {
-            filePath += pw->pw_dir;
+			struct passwd *pw = getpwnam( user.c_str() );
+			if( pw != NULL ) {
+				filePath += pw->pw_dir;
 #endif
-        }
-        else {
-            throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
-        }
-        filePath += "/public/imasdb/";
-        filePath += tokamak;
-        filePath += "/";
-        filePath += version;
+			}
+			else {
+				throw  UALBackendException("Can't find or access "+std::string(user)+" user's data",LOG);
+			}
+			filePath += "/public/imasdb/";
+			filePath += tokamak;
+			filePath += "/";
+			filePath += version;
     }
+    
+		if (!pulse.empty()) {
+			filePath += "/";
+			filePath += pulse;
+		}
+		else {
+			filePath += "/";
+			filePath += std::to_string(shot);
+			filePath += "/";
+			filePath += std::to_string(run);
+		}
+		
+    }
+    else {
+		filePath = path;
+	}
 
     return filePath;
 }
@@ -273,22 +320,6 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
     }
 }
 
-std::string DataEntryContext::getQueryString() const {
-    auto uri_object = uri::parse_uri(uri);
-    return uri_object.query_string;
-}
-
-bool DataEntryContext::getURIQueryParameter(const std::string &parameter, std::string &value) const {
-    auto uri_object = uri::parse_uri(uri);
-    auto got = uri_object.query.find(parameter);
-    if (got != uri_object.query.end()) {
-        value = got->second;
-        return true;
-    }
-    else {
-        return false;
-    }
-}
 
 void DataEntryContext::addOptionToURIQuery(const std::string &option_name, const std::string &option_value) {
     uri += ";" + option_name + "=" + option_value;
@@ -339,8 +370,8 @@ std::string DataEntryContext::getURIBackend(int backend_id)
 
 /// OperationContext ///
 
-OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject, int access)
-  : DataEntryContext(ctx), dataobjectname(dataobject)
+OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access)
+  : DataEntryContext(ctx->getURI()), pctx(ctx), dataobjectname(dataobject)
 {
   rangemode = ualconst::global_op;
   time = ualconst::undefined_time;
@@ -353,12 +384,13 @@ OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject,
     throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
   }
   accessmode = access;
+  pctx = ctx;
   this->uid = ++SID;
 }
 
-OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject, int access, 
+OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
 				   int range, double t, int interp)
-  : DataEntryContext(ctx), dataobjectname(dataobject), time(t)
+  : DataEntryContext(ctx->getURI()), pctx(ctx), dataobjectname(dataobject), time(t)
 {
   try {
     ualconst::op_range_str.at(range-OP_RANGE_0);
@@ -395,7 +427,7 @@ OperationContext::OperationContext(DataEntryContext ctx, std::string dataobject,
 
 std::string OperationContext::print() const 
 {
-  std::string s = ((DataEntryContext)*this).print() +
+  std::string s = this->pctx->print() +
     "dataobjectname \t\t = " + this->dataobjectname + "\n" +
     "accessmode \t\t = " + std::to_string(this->accessmode) + 
     " (" + ualconst::op_access_str.at(this->accessmode-OP_ACCESS_0) + ")\n" +
@@ -409,13 +441,23 @@ std::string OperationContext::print() const
 
 std::string OperationContext::fullPath() const
 {
-  std::string s = ((DataEntryContext)*this).fullPath() + this->dataobjectname;
+  std::string s = this->pctx->fullPath() + this->dataobjectname;
   return s;
 }
 
 int OperationContext::getType() const 
 {
   return CTX_OPERATION_TYPE;
+}
+
+int OperationContext::getBackendID() const
+{ 
+  return getPulseContext()->getBackendID(); 
+}
+
+std::string OperationContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(getPulseContext()->getBackendID()-BACKEND_ID_0); 
 }
 
 std::string OperationContext::getDataobjectName() const
@@ -443,38 +485,42 @@ int OperationContext::getInterpmode() const
   return interpmode; 
 }
 
+DataEntryContext* OperationContext::getPulseContext() const
+{
+  return pctx;
+}
+
 
 
 
 /// ArraystructContext ///
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb)
-  : OperationContext(ctx), path(p), timebase(tb)
+ArraystructContext::ArraystructContext(OperationContext* ctx, std::string p, std::string tb)
+  : path(p), timebase(tb), opctx(ctx)
 {
   parent = NULL;
-  index = 0;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
-				       ArraystructContext *cont)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont)
+ArraystructContext::ArraystructContext(ArraystructContext* cont, std::string p, std::string tb)
+  : path(p), timebase(tb), parent(cont), opctx(cont->opctx)
 {
-  index = 0;
+  if (cont != NULL)
+    opctx = cont->opctx;
   this->uid = ++SID;
 }
 
-ArraystructContext::ArraystructContext(OperationContext ctx, std::string p, std::string tb,
-				       ArraystructContext *cont, int idx)
-  : OperationContext(ctx), path(p), timebase(tb), parent(cont), index(idx)
+ArraystructContext::ArraystructContext(ArraystructContext* cont, std::string p, std::string tb, int idx)
+  : path(p), timebase(tb), parent(cont), index(idx), opctx(cont->opctx)
 {
-  index = 0;
+  if (cont != NULL)
+    opctx = cont->opctx;
   this->uid = ++SID;
 }
 
 std::string ArraystructContext::print() const
 {
-  std::string s = ((OperationContext)*this).print() +
+  std::string s = this->opctx->print() +
     "path \t\t\t = \"" + this->path + "\"\n" +
     "timebase \t\t = \"" + this->timebase + "\"\n" +
     "timed \t\t\t = " + 
@@ -494,7 +540,7 @@ std::string ArraystructContext::fullPath() const
       ppath = tmp->path + "/" + ppath;
       tmp = tmp->parent;
     }
-  std::string s = ((OperationContext)*this).fullPath() +
+  std::string s = this->opctx->fullPath() +
     "/" + ppath + this->path;
   return s;
 }
@@ -502,6 +548,16 @@ std::string ArraystructContext::fullPath() const
 int ArraystructContext::getType() const
 {
   return CTX_ARRAYSTRUCT_TYPE;
+}
+
+int ArraystructContext::getBackendID() const
+{ 
+  return getOperationContext()->getBackendID(); 
+}
+
+std::string ArraystructContext::getBackendName() const 
+{ 
+  return ualconst::backend_id_str.at(getOperationContext()->getBackendID()-BACKEND_ID_0); 
 }
 
 std::string ArraystructContext::getPath() const
@@ -519,7 +575,7 @@ bool ArraystructContext::getTimed() const
   return !timebase.empty(); 
 }
 
-ArraystructContext * ArraystructContext::getParent() 
+ArraystructContext* ArraystructContext::getParent() 
 { 
   return parent; 
 }
@@ -527,6 +583,11 @@ ArraystructContext * ArraystructContext::getParent()
 int ArraystructContext::getIndex() const
 { 
   return index; 
+}
+
+OperationContext* ArraystructContext::getOperationContext() const
+{ 
+  return opctx; 
 }
 
 void ArraystructContext::nextIndex(int step) 

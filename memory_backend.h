@@ -545,7 +545,7 @@ public:
 				  int* size);
     virtual void beginArraystructAction(ArraystructContext *ctx, int *size)
     {
-	if(ctx->getAccessmode() == READ_OP)
+        if(ctx->getOperationContext()->getAccessmode() == READ_OP)
 	   beginReadArraystruct(ctx, size);
 	else
 	   beginWriteArraystruct(ctx, *size);

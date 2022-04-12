@@ -240,17 +240,17 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 
     try {
         std::string path = array_path(ctx, true);
-
+	OperationContext* octx = ctx->getOperationContext();
         std::stringstream ss;
         ss << this->plugin
            << "::beginArraystructAction("
            << "ctxId=" << ctx_id
            << ", size=" << *size
-           << ", dataObject='" << ctx->getDataobjectName() << "'"
-           << ", access=" << ctx->getAccessmode()
-           << ", range=" << ctx->getRangemode()
-           << ", time=" << ctx->getTime()
-           << ", interp=" << ctx->getInterpmode()
+           << ", dataObject='" << octx->getDataobjectName() << "'"
+           << ", access=" << octx->getAccessmode()
+           << ", range=" << octx->getRangemode()
+           << ", time=" << octx->getTime()
+           << ", interp=" << octx->getInterpmode()
            << ", path='" << path << "'"
            << ", timebase='" << ctx->getTimebasePath() << "'"
            << ")";

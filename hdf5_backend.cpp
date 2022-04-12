@@ -25,8 +25,6 @@ HDF5Backend::~HDF5Backend()
 const int HDF5Backend::HDF5_BACKEND_VERSION_MAJOR = 1;
 const int HDF5Backend::HDF5_BACKEND_VERSION_MINOR = 0;
 
-std::string HDF5Backend::files_directory;
-std::string HDF5Backend::relative_file_path;
 
 void
  HDF5Backend::createBackendComponents(std::string backend_version) {

@@ -16,8 +16,8 @@ class HDF5Backend:public Backend {
     static const int HDF5_BACKEND_VERSION_MAJOR;
     static const int HDF5_BACKEND_VERSION_MINOR;
 
-    static std::string files_directory; //directory containing the pulse files
-    static std::string relative_file_path; 
+    std::string files_directory; //directory containing the pulse files
+    std::string relative_file_path; 
 
     hid_t file_id;
      std::string pulseFilePath;
@@ -122,7 +122,7 @@ class HDF5Backend:public Backend {
     virtual void deleteData(OperationContext * ctx, std::string path);
 
     virtual void beginArraystructAction(ArraystructContext * ctx, int *size) {
-        if (ctx->getAccessmode() == READ_OP)
+        if (ctx->getOperationContext()->getAccessmode() == READ_OP)
             beginReadArraystructAction(ctx, size);
         else
             beginWriteArraystructAction(ctx, size);

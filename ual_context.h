@@ -42,8 +42,8 @@ class LIBRARY_API Context
 {
 public:
   /**
-     Context destructor.
-   */
+    Context destructor.
+  */
   virtual ~Context() {}
 
   /**
@@ -54,23 +54,35 @@ public:
   /**
      Returns simplified pseudo path for the context.
   */
-  virtual std::string fullPath() const; 
+  virtual std::string fullPath() const = 0; 
 
   /**
      Returns object unique id.
      @result uid
   */
-  unsigned long int getUid() const;
+  virtual unsigned long int getUid() const;
 
   /**
      Returns the type of context.
      @result CTX_TYPE
   */
-  virtual int getType() const;
+  virtual int getType() const = 0;
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const = 0;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const = 0;
+
 
   
 protected:
-
   static std::atomic<unsigned long int> SID; /**< a global UID */
   unsigned long int uid;                     /**< a local ID to identify instances */
 };
@@ -112,18 +124,6 @@ public:
   */
   virtual int getType() const; 
 
-   /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const;
-
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const;
-
   /**
      Returns the URI.
      @result URI 
@@ -161,24 +161,22 @@ public:
   std::string getVersion() const;
 
   /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const;
+
+  /**
     Returns options string.
     @result options 
   */
   std::string getOptions() const;
-
-  /**
-     Returns the URI query string.
-     @result query string 
-  */
-  std::string getQueryString() const;
-
-  /**
-     Returns the value of a parameter from the URI query part.
-     @param parameter name of the parameter
-     @param value value of the parameter (value is returned empty if the parameter doesn't exist in the Query string)
-     @result true if 'parameter' exists in the URI Query string, false otherwise
-  */
-  bool getURIQueryParameter(const std::string &parameter, std::string &value) const;
 
   /**
      Add an option to the URI query.
@@ -187,11 +185,11 @@ public:
    */
   void addOptionToURIQuery(const std::string &option_name, const std::string &option_value);
 
-/**
-     Returns the legacy root directory.
-     @result path of the root directory
+  /**
+     Returns the URI path.
+     @result path
   */
-  std::string getLegacyRootPath();
+  std::string getPath();
 
   /**
      Builds the URI backend from the backend ID.
@@ -222,12 +220,14 @@ public:
 
  protected:
   std::string uri;                     /**< URI */
-
+  
   int shot;                             /**< shot number */
   int run;                              /**< run number */
+  std::string pulse;                    /** can be shot, shot/run, keyword */
   std::string user;                     /**< user name */
   std::string tokamak;                  /**< tokamak name */
   std::string version;                  /**< data version */
+  std::string path;                     /**< data path */
   std::string options;                  /**< options */
   int backend_id;                            /**< a backend identifier */
 
@@ -256,7 +256,7 @@ public:
      - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
      "replace last slice"_]
   */
-  OperationContext(DataEntryContext ctx, std::string dataobject, int access);
+  OperationContext(DataEntryContext* ctx, std::string dataobject, int access);
 
   /**
      Operation context constructor.
@@ -278,7 +278,7 @@ public:
      - LINEAR_INTERP: interpolating linearly values at previous and next slices
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
   */
-  OperationContext(DataEntryContext ctx, std::string dataobject, int access, 
+  OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
 		   int range, double t, int interp);
 
   /**
@@ -301,6 +301,18 @@ public:
      @result CTX_OPERATION_TYPE
   */
   virtual int getType() const; 
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const;
 
   /**
      Returns the name of the DATAOBJECT.
@@ -342,62 +354,59 @@ public:
   */
   int getInterpmode() const;
 
+  /**
+     Returns the associated PulseContext.
+     @result opctx
+   */
+  DataEntryContext* getPulseContext() const;
+  
 protected:
+  DataEntryContext* pctx;                   /**< associated DataEntry context */
   std::string dataobjectname;           /**< DATAOBJECT name */
   int accessmode;                       /**< operation access type */
   int rangemode;                        /**< operation range */
   double time;                          /**< operation time */
   int interpmode;                       /**< operation interpolation type */
-
 };
 
 
 
 /**
    Context class for an array of structures.
-   The ArraystructContext is an OperationContext associated to a given array of structure.
+   The ArraystructContext is a Context associated to a given array of structure from a given OperationContext.
 */
-class LIBRARY_API ArraystructContext : public OperationContext 
+class LIBRARY_API ArraystructContext : public Context 
 {
  public:
   /**
      Array of structure context constructor.
      Requires informations for describing usage of stand-alone or top-most arrays of structure in a DATAOBJECT.
      @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, within its container if nested_]
+     @param p path of the array of structure field [_within the DATAOBJECT_]
      @param tb path of the timebase associated with the array of structure
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb);
+  ArraystructContext(OperationContext* ctx, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
      Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, 
-     within its container if nested_]
+     @param parent context of the parent array of structure 
+     @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param cont context of the container array of structure [_optional: only in nested case_]
-     @param idx index of the array of structure within its container [_optional: only in 
-     nested case_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont);
+  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb);
 
   /**
      Array of structure context constructor.
      Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT if standalone, 
-     within its container if nested_]
+     @param parent context of the parent array of structure 
+     @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param cont context of the container array of structure [_optional: only in nested case_]
-     @param idx index of the array of structure within its container [_optional: only in 
-     nested case_]
+     @param idx index of the array of structure within its container [_by default first element_]
      @param timed time dependency of the DATAOBJECT
   */
-  ArraystructContext(OperationContext ctx, std::string p, std::string tb,  
-		     ArraystructContext *cont, int idx);
+  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb, int idx);
 
   /**
      Array of structure context destructor.
@@ -419,6 +428,18 @@ class LIBRARY_API ArraystructContext : public OperationContext
      @result CTX_ARRAYSTRUCT_TYPE
   */
   virtual int getType() const;
+
+  /**
+     Returns the ID of associated backend.
+     @result backend_id
+  */
+  virtual int getBackendID() const;
+
+  /**
+     Returns the name of associated backend.
+     @result name of the backend
+  */
+  virtual std::string getBackendName() const;
 
   /**
      Returns the path of the array of structure.
@@ -444,7 +465,7 @@ class LIBRARY_API ArraystructContext : public OperationContext
      Returns the context of the container array of structure
      @result parent
   */
-  ArraystructContext *getParent();
+  ArraystructContext* getParent();
 
   /**
      Returns the position of the current element of interest within the array of structure.
@@ -458,11 +479,19 @@ class LIBRARY_API ArraystructContext : public OperationContext
   */
   void nextIndex(int step);
 
+  /**
+     Returns the associated OperationContext.
+     @result opctx
+   */
+  OperationContext* getOperationContext() const;
+
+  
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
   ArraystructContext* parent;           /**< container of the array of structure */
-  int index;                            /**< position of the current element of interest within the array of structure */
+  int index = 0;                        /**< position of the current element of interest within the array of structure */
+  OperationContext* opctx;              /**< associated operation context **/
 
 };
 

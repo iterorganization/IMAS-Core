@@ -207,7 +207,7 @@ else
 	{
 	  //First make sure the cache is aligned
 	    //Fake ctx to target backend in order to force global operation
- 	    OperationContext newCtx(*ctx, ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
+	    OperationContext newCtx(ctx->getPulseContext(), ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
  	    if(ualData->getMapState() == UalData::MAPPING::UNMAPPED)
 	    {
 		ualData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
@@ -318,7 +318,7 @@ else
 				     int size)
     {
 //If we are startng a writeArrayStruct for a SLICE_OP and the AoS is NOT mapped, take NO action
-	if(ctx->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
+      if(ctx->getOperationContext()->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
 	{
 	    return;
 	}
@@ -330,9 +330,9 @@ else
 	    try {
 	    	currentAos.deleteData();
 	//prepare empty structure if not existing
-	    	UalStruct *ids = getIds(ctx);	
+	    	UalStruct *ids = getIds(ctx->getOperationContext());	
 	    	UalAoS *aos = ids->getSubAoS(ctx->getPath());
-	    	if(ctx->getRangemode() == GLOBAL_OP) 
+	    	if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP) 
 	    	    aos->deleteData();
 		internalCtx->unlock();
 	    }
@@ -345,7 +345,7 @@ else
 	else
 	{
 //Gabriele May 2021
-	    UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
+	  UalAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
 	    if(size != (int)aos->aos.size())
 	    {
 	    	aos->aos.resize(size);
@@ -387,7 +387,7 @@ else
 */
 	internalCtx->lock();
         try {
-	    if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
+	  if(ctx->getOperationContext()->getRangemode() == SLICE_OP && !ctx->getParent())
 	    {
 	    	prepareSlice(ctx);
 	    	UalAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
@@ -399,7 +399,7 @@ else
 	    else
 	    {
     //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    	    	UalAoS *aos = (ctx->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
+	      UalAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
 	    	*size = aos->aos.size();
 	    }
 	    internalCtx->unlock();
@@ -443,7 +443,7 @@ else
 	    return;
 	}
 	UalData *ualData;
-	if(ctx->getRangemode() == SLICE_OP)
+	if(ctx->getOperationContext()->getRangemode() == SLICE_OP)
 	    ualData = getData(ctx, idx, fieldname, true);  //We are going to write in currentAos
 	else
 	    ualData = getData(ctx, idx, fieldname, false);  //We are going in AoS in main IDS
@@ -485,7 +485,7 @@ else
 	    return 1;
 	}
 //Otherwise data are mapped
-	if(ctx->getRangemode() == SLICE_OP)
+	if(ctx->getOperationContext()->getRangemode() == SLICE_OP)
 	{
 	    if(timebase.size() > 0)  //For timed AoS slices, the dimension must be increased putting 1 as 0D
 	    {
@@ -515,18 +515,18 @@ else
         {
 	    ArraystructContext *ctx = (ArraystructContext *)inCtx;
 //If we are startng a writeArrayStruct for a SLICE_OP and the AoS is NOT mapped, take NO action
-	    if(ctx->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
+	    if(ctx->getOperationContext()->getRangemode() == SLICE_OP && !isMappedAoS(ctx))
 	    {
 		internalCtx->unlock();
 	        return;
 	    }
 	    if(ctx->getParent() == NULL)
 	    {
-	        if(ctx->getAccessmode() == ualconst::write_op)
+	      if(ctx->getOperationContext()->getAccessmode() == ualconst::write_op)
 	        {
 		    UalAoS *aos = getAoS(ctx, false);   //AoS stored in main IDS UalStruct 
 		    UalAoS *currAos = getAoS(ctx, true);  //Current AoS being written
-		    if(ctx->getRangemode() == SLICE_OP)
+		    if(ctx->getOperationContext()->getRangemode() == SLICE_OP)
 		    {
 			if(aos->timebase != ctx->getTimebasePath())
 			    aos->timebase = ctx->getTimebasePath();
@@ -573,7 +573,7 @@ else
 
     void MemoryBackend::flush(DataEntryContext *ctx, std::string dataobjectName)
     {
-	OperationContext newCtx(*ctx, dataobjectName, GLOBAL_OP);
+	OperationContext newCtx(ctx, dataobjectName, GLOBAL_OP);
 	UalStruct *ids = getIds(&newCtx);
 	for(auto &field: ids->dataFields)
 	{
@@ -598,13 +598,12 @@ else
 
     void MemoryBackend::flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos)
     {
-	ArraystructContext arrayStructCtx(*ctx, fieldName, ualAos.timebase);
+	ArraystructContext arrayStructCtx(ctx, fieldName, ualAos.timebase);
 	recFlushAoS(ualAos, ctx, &arrayStructCtx);
     }
 
     void MemoryBackend::recFlushAoS(UalAoS &ualAos, OperationContext *opCtx, ArraystructContext *ctx)
     {
-	int size = ualAos.aos.size();
 	for(size_t idx = 0; idx < ualAos.aos.size(); idx++)
 	{
 	    for(auto &field: ualAos.aos[idx]->dataFields)
@@ -624,7 +623,9 @@ else
 		std::string fieldName = aosField.first;
 		UalAoS *currAos = aosField.second;
 
-		ArraystructContext currCtx(*opCtx, fieldName, currAos->timebase, ctx, idx);
+		// WILD GUESS HERE
+		//ArraystructContext currCtx(opCtx, fieldName, currAos->timebase, ctx, idx);
+		ArraystructContext currCtx(ctx, fieldName, currAos->timebase, idx);
 		recFlushAoS(*currAos, opCtx, &currCtx);
 	    }
 	}
@@ -661,8 +662,9 @@ else
 
     void MemoryBackend::prepareSlice(ArraystructContext *ctx)
     {
-	double time = ctx->getTime();
-	UalStruct *ids = getIds(ctx);
+        OperationContext *opctx = ctx->getOperationContext();
+        double time = opctx->getTime();
+	UalStruct *ids = getIds(opctx);
 	UalAoS *topAos = ids->getSubAoS(ctx->getPath());
 
 	currentAos.deleteData();  //Prapere currentAoS that is going to contain the selected slice
@@ -670,7 +672,7 @@ else
 	if(topAos->aos.size() > 0)
 	{
 	    std::vector<StructPath> ctxV;
-	    StructPath topSp(ids, ctx->getDataobjectName());
+	    StructPath topSp(ids, opctx->getDataobjectName());
 	    ctxV.push_back(topSp);
 	    StructPath sp(topAos->aos[ctx->getIndex()], ctx->getPath());
 	    ctxV.push_back(sp);
@@ -714,7 +716,7 @@ else
 	int timeDatatype;
 	int timeNumDims;
 	int timeDims[16];
-	OperationContext newCtx(*ctx, ctx->getDataobjectName(), READ_OP);
+	OperationContext newCtx(ctx->getOperationContext()->getPulseContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
 	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
@@ -951,12 +953,12 @@ else
       if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
-      int shot = ctx->getShot();
-      int run = ctx->getRun();
+      int shot = ctx->getPulseContext()->getShot();
+      int run = ctx->getPulseContext()->getRun();
       if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
 	return lastIdsPath;
       char buf[512];
-      sprintf(buf, "%d/%d/%s", ctx->getShot(), ctx->getRun(), ctx->getDataobjectName().c_str());
+      sprintf(buf, "%d/%d/%s", ctx->getPulseContext()->getShot(), ctx->getPulseContext()->getRun(), ctx->getDataobjectName().c_str());
       lastIdsPath = std::string(buf);
       lastIdsPathShot = shot;
       lastIdsPathRun = run;
@@ -1019,7 +1021,7 @@ else
 	    topAos = &currentAos;
 	else
 	{
-	    UalStruct *ualStruct = getIds(currCtxV[currCtxV.size() - 1]);
+	    UalStruct *ualStruct = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
 	    topAos = ualStruct->getSubAoS(currCtxV[currCtxV.size() - 1]->getPath());
 	}	
 
@@ -1075,12 +1077,12 @@ else
 	    currCtx = currCtx->getParent();
 	} while(currCtx);
 	//currCtxV[currCtxV.size() - 1] is the context of the topmost AoS, that is also OperationContex
-	std::string idsPath = getIdsPath(currCtxV[currCtxV.size() - 1]);
+	std::string idsPath = getIdsPath(currCtxV[currCtxV.size() - 1]->getOperationContext());
 	//fullAosPath is the composition of the IDS path and the internal path within the IDS of the top AoS
 	std::string fullAosPath = idsPath + "/";
 	fullAosPath += currCtxV[currCtxV.size() - 1]->getPath();
 
-	UalStruct *ids = getIds(currCtxV[currCtxV.size() - 1]);
+	UalStruct *ids = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
 
         bool isMapped = ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
 	if(!isMapped)
