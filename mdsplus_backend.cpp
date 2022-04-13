@@ -3,8 +3,11 @@
 #include <cstring>
 #include <string.h>
 #include <pthread.h>
+#include <boost/filesystem.hpp>
 
 #include "mdsplus_backend.h"
+
+using namespace boost::filesystem;
 
 //Version definition
 #define MDSPLUS_BACKEND_MAJOR 1
@@ -1475,7 +1478,8 @@ void MDSplusBackend::setDataEnv(DataEntryContext * ctx)
       for (i = 0; i < 10; i++) 
 	{
 	  std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
-	  currMdsplusBaseDir += '0'+(char)i;
+	  //currMdsplusBaseDir += '0'+(char)i;
+	  create_directories(currMdsplusBaseDir.c_str());
 	  char env_name[32];
 	  sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
 #ifdef WIN32
