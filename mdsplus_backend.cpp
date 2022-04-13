@@ -1479,7 +1479,6 @@ void MDSplusBackend::setDataEnv(DataEntryContext * ctx)
 	{
 	  std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
 	  //currMdsplusBaseDir += '0'+(char)i;
-	  create_directories(currMdsplusBaseDir.c_str());
 	  char env_name[32];
 	  sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
 #ifdef WIN32
@@ -4228,6 +4227,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 	  }
 	  
+	  std::string mdsplusBaseStr = ctx->getPath();
+	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
+		create_directories(mdsplusBaseStr.c_str());
+		
 	  setDataEnv(ctx); 
     	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 		  
