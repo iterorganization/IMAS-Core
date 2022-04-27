@@ -97,7 +97,8 @@ class LIBRARY_API DataEntryContext : public Context
 {
 public:
 
-/**
+  /**
+     Constructor
      @param uri URI
   */
   DataEntryContext(std::string uri);
@@ -219,17 +220,16 @@ public:
                          char** uri);
 
  protected:
-  std::string uri;                     /**< URI */
-  
+  std::string uri;                      /**< URI */
   int shot;                             /**< shot number */
   int run;                              /**< run number */
-  std::string pulse;                    /** can be shot, shot/run, keyword */
+  std::string pulse;                    /**< can be shot, shot/run, keyword */
   std::string user;                     /**< user name */
   std::string tokamak;                  /**< tokamak name */
   std::string version;                  /**< data version */
   std::string path;                     /**< data path */
   std::string options;                  /**< options */
-  int backend_id;                            /**< a backend identifier */
+  int backend_id;                       /**< a backend identifier */
 
  private:
   void setBackendID(const std::string &path, const std::string &host);
@@ -240,15 +240,15 @@ public:
 
 /**
    Context class for an operation on a DATAOBJECT.
-   The OperationContext is a DataEntryContext associated to a given DATAOBJECT for a given I/O operation.
+   The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given DataEntryContext .
 */
-class LIBRARY_API OperationContext : public DataEntryContext 
+class LIBRARY_API OperationContext : public Context 
 {
 public:
   /**
      Operation context constructor.
      Requires informations for all global put or get operations on a DATAOBJECT.
-     @param ctx pulse context
+     @param ctx data-entry context
      @param dataobject name of the DATAOBJECT
      @param access access type of the operation 
      - READ_OP: read operation
@@ -261,7 +261,7 @@ public:
   /**
      Operation context constructor.
      Requires informations for all possible put or get operations on a DATAOBJECT.
-     @param ctx pulse context
+     @param ctx data-entry context
      @param dataobject name of the DATAOBJECT
      @param access access type of the operation 
      - READ_OP: read operation
@@ -355,13 +355,13 @@ public:
   int getInterpmode() const;
 
   /**
-     Returns the associated PulseContext.
-     @result opctx
+     Returns the associated DataEntryContext.
+     @result ctx
    */
-  DataEntryContext* getPulseContext() const;
+  DataEntryContext* getDataEntryContext() const;
   
 protected:
-  DataEntryContext* pctx;                   /**< associated DataEntry context */
+  DataEntryContext* pctx;               /**< associated DataEntry context */
   std::string dataobjectname;           /**< DATAOBJECT name */
   int accessmode;                       /**< operation access type */
   int rangemode;                        /**< operation range */

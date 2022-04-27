@@ -371,7 +371,7 @@ std::string DataEntryContext::getURIBackend(int backend_id)
 /// OperationContext ///
 
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access)
-  : DataEntryContext(ctx->getURI()), pctx(ctx), dataobjectname(dataobject)
+  : pctx(ctx), dataobjectname(dataobject)
 {
   rangemode = ualconst::global_op;
   time = ualconst::undefined_time;
