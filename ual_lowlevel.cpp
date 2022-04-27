@@ -725,6 +725,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
     if (*size == 0)
       {
 	// no data
+	lle.backend->endAction(actx);
 	delete(actx);
 	*actxID = 0; 
       }
