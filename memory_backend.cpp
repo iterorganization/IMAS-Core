@@ -207,7 +207,7 @@ else
 	{
 	  //First make sure the cache is aligned
 	    //Fake ctx to target backend in order to force global operation
-	    OperationContext newCtx(ctx->getPulseContext(), ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
+	    OperationContext newCtx(ctx->getDataEntryContext(), ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
  	    if(ualData->getMapState() == UalData::MAPPING::UNMAPPED)
 	    {
 		ualData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
@@ -716,7 +716,7 @@ else
 	int timeDatatype;
 	int timeNumDims;
 	int timeDims[16];
-	OperationContext newCtx(ctx->getOperationContext()->getPulseContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
+	OperationContext newCtx(ctx->getOperationContext()->getDataEntryContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
 	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
@@ -953,12 +953,12 @@ else
       if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
-      int shot = ctx->getPulseContext()->getShot();
-      int run = ctx->getPulseContext()->getRun();
+      int shot = ctx->getDataEntryContext()->getShot();
+      int run = ctx->getDataEntryContext()->getRun();
       if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
 	return lastIdsPath;
       char buf[512];
-      sprintf(buf, "%d/%d/%s", ctx->getPulseContext()->getShot(), ctx->getPulseContext()->getRun(), ctx->getDataobjectName().c_str());
+      sprintf(buf, "%d/%d/%s", ctx->getDataEntryContext()->getShot(), ctx->getDataEntryContext()->getRun(), ctx->getDataobjectName().c_str());
       lastIdsPath = std::string(buf);
       lastIdsPathShot = shot;
       lastIdsPathRun = run;

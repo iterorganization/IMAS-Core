@@ -390,7 +390,7 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
 
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
 				   int range, double t, int interp)
-  : DataEntryContext(ctx->getURI()), pctx(ctx), dataobjectname(dataobject), time(t)
+  : pctx(ctx), dataobjectname(dataobject), time(t)
 {
   try {
     ualconst::op_range_str.at(range-OP_RANGE_0);
@@ -452,12 +452,12 @@ int OperationContext::getType() const
 
 int OperationContext::getBackendID() const
 { 
-  return getPulseContext()->getBackendID(); 
+  return getDataEntryContext()->getBackendID(); 
 }
 
 std::string OperationContext::getBackendName() const 
 { 
-  return ualconst::backend_id_str.at(getPulseContext()->getBackendID()-BACKEND_ID_0); 
+  return ualconst::backend_id_str.at(getDataEntryContext()->getBackendID()-BACKEND_ID_0); 
 }
 
 std::string OperationContext::getDataobjectName() const
@@ -485,7 +485,7 @@ int OperationContext::getInterpmode() const
   return interpmode; 
 }
 
-DataEntryContext* OperationContext::getPulseContext() const
+DataEntryContext* OperationContext::getDataEntryContext() const
 {
   return pctx;
 }
