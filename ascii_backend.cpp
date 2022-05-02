@@ -183,7 +183,7 @@ void AsciiBackend::beginAction(OperationContext *ctx)
 	this->suffix + ".ids";
     }
     else {
-      //throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
+      throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
     }
   }
   else
@@ -192,8 +192,7 @@ void AsciiBackend::beginAction(OperationContext *ctx)
 
   if (this->pulsefile.is_open()) {
     std::cerr << "pulsefile already opened!\n";
-    //throw UALBackendException("pulsefile "+this->fname+" is already open",LOG);
-    this->pulsefile.close();
+    throw UALBackendException("pulsefile "+this->fname+" is already open",LOG);
   }
 
   switch(ctx->getAccessmode()) {
