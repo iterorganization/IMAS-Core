@@ -102,8 +102,7 @@ PulseContext::PulseContext(int id, int s, int r, std::string u, std::string t,
 
 std::string PulseContext::print() const 
 {
-  std::string s = ((Context*)this)->print() +
-    "backend_id \t\t = " + 
+  std::string s = "backend_id \t\t = " + 
     std::to_string(this->backend_id) + " (" + 
     this->getBackendName() + ")\n" + 
     "shot \t\t\t = " + std::to_string(this->shot) + "\n" +
