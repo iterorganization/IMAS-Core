@@ -368,9 +368,8 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     
     int time_vector_length = 0;
     if (timed_AOS_index == -1 && dim > 0)
-       time_vector_length = size[0];
+       time_vector_length = size[dim - 1];
     int slices_extension = getDynamic_AOS_slices_extension(ctx, timed_AOS_index, time_vector_length);
-    
     if (slice_mode != SLICE_OP) {
 
 		//std::cout << "WRITER NOT IN SLICE MODE!!! " << std::endl;
