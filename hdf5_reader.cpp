@@ -413,6 +413,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         //OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
         bool search_slice_index = is_dynamic || isTimed;
         if (opctx->getRangemode() == SLICE_OP && search_slice_index) {
+			auto got = tensorized_paths_per_op_context.find(opctx);
+			if (timed_AOS_index != -1 && got == tensorized_paths_per_op_context.end())
+			   return 0;
             std::string time_dataset_name = getTimeVectorDataSetName(opctx, timebasename, timed_AOS_index);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
