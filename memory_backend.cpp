@@ -437,6 +437,12 @@ else
 				int* size)
 
     {
+
+std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<std::endl;
+
+
+
+
 //If the AoS is NOT mapped, take NO action
 	if(!isMappedAoS(ctx))
 	{
@@ -700,6 +706,8 @@ else
 	    }
 	    for(size_t i = 0; i < topAos->aos.size(); i++)
 	    {
+	   	StructPath currSp(topAos->aos[i], ctx->getPath()); //Gabriele May 2022
+		ctxV[ctxV.size() - 1] = currSp;
 	        currentAos.aos.push_back(prepareSliceRec(ctx, *topAos->aos[i], *ids, time, ctxV, topAos));
 	    }
 	}
