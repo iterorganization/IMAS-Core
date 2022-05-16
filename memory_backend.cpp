@@ -437,12 +437,6 @@ else
 				int* size)
 
     {
-
-std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<std::endl;
-
-
-
-
 //If the AoS is NOT mapped, take NO action
 	if(!isMappedAoS(ctx))
 	{
