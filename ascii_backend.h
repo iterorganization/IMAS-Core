@@ -37,6 +37,7 @@ private:
   bool writemode;
   std::string idsname;
   std::stringstream curcontent;
+  std::map<std::string, std::streampos> curcontent_map;
   std::string curline;
   
   std::string getArraystructPath(ArraystructContext *aosctx);
