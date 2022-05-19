@@ -437,9 +437,6 @@ else
 				int* size)
 
     {
-
-
-
 //If the AoS is NOT mapped, take NO action
 	if(!isMappedAoS(ctx))
 	{
