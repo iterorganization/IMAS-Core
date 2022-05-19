@@ -438,9 +438,6 @@ else
 
     {
 
-std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<std::endl;
-
-
 
 
 //If the AoS is NOT mapped, take NO action
@@ -694,10 +691,28 @@ std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<st
 	    	    currTimebase = topAos->timebase;
 
  	        getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
- 	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
-//For the moment only PREVIOUS SAMPLE is supported
 
-	        currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		{
+		     currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		}
+		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		{
+		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
+		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
+		    {
+		     	currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		    }
+		    else
+		    {
+		     	currentAos.aos.push_back(topAos->aos[sliceIdx2]->clone());
+		    }
+		}
+		else //ualconst::linear_interp not yet supported
+		{
+	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		}
+ 	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //std::cout << "******************************************************" <<std::endl;
 //currentAos.dump(0);
 //std::cout << "******************************************************" <<std::endl;
@@ -727,7 +742,8 @@ std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<st
 	OperationContext newCtx(ctx->getOperationContext()->getPulseContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
-	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	free((char *)timeData);
@@ -741,7 +757,8 @@ std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<st
 	int numDims;
 	int dims[16];
 	
-	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	return retData;
@@ -779,9 +796,30 @@ std::cout<<"PUT IN ARRAY STRUCT " << fieldname <<"   "<<timebase<<"   "<<idx<<st
 		newCtxV.push_back(sp);
 
 	        getSliceIdxs(currAos->timebase, time, newCtxV, sliceIdx1, sliceIdx2, currAos);
-//For the moment only PREVIOUS SAMPLE is supported
+
 		newAos = new UalAoS;
-		newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		{
+		     newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		}
+		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		{
+		    std::vector<double> timesV = getTimebaseVect(currAos->timebase, newCtxV, currAos);
+		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
+		    {
+		     	newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		    }
+		    else
+		    {
+		     	newAos->aos.push_back(currAos->aos[sliceIdx2]->clone());
+		    }
+		}
+		else //ualconst::linear_interp not yet supported
+		{
+	            newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		}
+//For the moment only PREVIOUS SAMPLE is supported
+		//newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
 	    }
 	    else
 	    {
