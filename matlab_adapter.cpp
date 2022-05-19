@@ -218,7 +218,7 @@ int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *timebasePath,
 }
 
 
-/*Low level function prtotypes*/
+/*Low level function prototypes*/
 
 /**
    Closes an entry in the MDSPlus database.
