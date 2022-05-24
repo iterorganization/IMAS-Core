@@ -28,6 +28,7 @@ class HDF5Writer {
     int readTimedAOSShape(ArraystructContext * ctx, hid_t loc_id, const std::vector < int > &current_arrctx_indices);
     int readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, const std::vector < int > &current_arrctx_indices);
     int getDynamic_AOS_slices_extension(Context *ctx);
+    int getDynamic_slices_extension(Context *ctx, int timed_AOS_index, int time_vector_length);
  
   public:
 

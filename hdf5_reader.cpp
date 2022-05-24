@@ -110,6 +110,12 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
        tensorized_path = tensorized_paths.back() + "&AOS_SHAPE";
     }
     
+    if (got == tensorized_paths_per_context.end()) {
+			//printf("updating tensorized_paths_per_context\n");
+			tensorized_paths_per_context[ctx] = tensorized_paths;
+		    tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
+	}
+    
     if (existing_data_sets.find(tensorized_path) != existing_data_sets.end())   //optimization
     {
         if (existing_data_sets[tensorized_path] == 0) {
@@ -167,21 +173,11 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         *size = 1;
     }
    
-    if (*size > 0) { 
-		if (got == tensorized_paths_per_context.end()) {
-			tensorized_paths_per_context[ctx] = tensorized_paths;
-		    tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
-		}
-
-    }
-
 }
 
 std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index) {
 
     std::string dataset_name;
-
-    //printf("getTimeVectorDataSetName::timebasename=%s\n", timebasename.c_str());
 
      if (homogeneous_time == 1) {
             dataset_name = "time";
@@ -878,6 +874,7 @@ void HDF5Reader::endAction(Context * ctx)
 {   
   if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
     ArraystructContext *arrctxt = static_cast<ArraystructContext*> (ctx);
+    //printf("calling endAction for path=%s\n", arrctxt->getPath().c_str());
     auto arrctx_shapes_got = arrctx_shapes_per_context.find(arrctxt);
     if (arrctx_shapes_got != arrctx_shapes_per_context.end())
       arrctx_shapes_per_context.erase(arrctx_shapes_got);
@@ -886,8 +883,9 @@ void HDF5Reader::endAction(Context * ctx)
       tensorized_paths_per_context.erase(got);
     auto got2 = tensorized_paths_per_op_context.find(arrctxt->getOperationContext());
     if (got2 != tensorized_paths_per_op_context.end()) {
-        if (arrctxt->getParent() == NULL)
+        if (arrctxt->getParent() == NULL) {
             tensorized_paths_per_op_context.erase(got2);
+		}
         else {
             auto &tensorized_paths = got2->second;
 			if (tensorized_paths.size() > 0) {
