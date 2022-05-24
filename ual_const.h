@@ -77,6 +77,7 @@ namespace ualconst {
   const int complex_data = COMPLEX_DATA;
 
   const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
+  const int default_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
 
   const std::array<std::string,6> backend_id_str = {{"NO_BACKEND","ASCII_BACKEND","MDSPLUS_BACKEND","HDF5_BACKEND","MEMORY_BACKEND","UDA_BACKEND"}};
   const std::array<std::string,2> op_range_str = {{"GLOBAL_OP","SLICE_OP"}};
