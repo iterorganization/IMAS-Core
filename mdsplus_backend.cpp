@@ -1434,8 +1434,9 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 #endif // WIN32
 	    }
 	}
-	int retShot =  (shot * 10000) + (run%10000);
-	return retShot;
+//	int retShot =  (shot * 10000) + (run%10000);
+//	return retShot;
+	return 1;  //Gabriele June 2022: now only shot number 1 is used since every different experiment resides on a different directory
     }
  
 
