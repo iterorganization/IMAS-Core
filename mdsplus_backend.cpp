@@ -4200,8 +4200,10 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   {  return new MDSplusBackend; }
 
   void MDSplusBackend::openPulse(DataEntryContext *ctx,
-			 int mode, std::string options)
+			 int mode)
     {
+      std::string options = ctx != nullptr ? ctx->getOptions() : "";
+
  	  // Extract MDSplus options
 	  char szOption[256] = { 0 };
 	  char szTree[256] = { 0 };
@@ -4271,8 +4273,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
       
   void MDSplusBackend::closePulse(DataEntryContext *ctx,
-			  int mode,
-			  std::string options) 
+			  int mode)
   {
     if(tree)
     {

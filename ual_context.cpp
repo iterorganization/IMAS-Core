@@ -326,6 +326,11 @@ void DataEntryContext::addOptionToURIQuery(const std::string &option_name, const
 }
 
 
+void DataEntryContext::addOptions(const std::string &options_) {
+    options += ";" + options_;
+}
+
+
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
                          const int run, 

@@ -6,16 +6,14 @@ NoBackend::NoBackend(bool verb) : verbose(verb)
 }
 
 void NoBackend::openPulse(DataEntryContext *ctx,
-			  int mode,
-			  std::string options) 
+			  int mode)
 {
   if (verbose)
     std::cout << "NoBackend openPulse\n";
 }
 
 void NoBackend::closePulse(DataEntryContext *ctx,
-			   int mode,
-			   std::string options) 
+			   int mode)
 {
   if (verbose)
     std::cout << "NoBackend closePulse\n";

@@ -64,12 +64,10 @@ public:
   virtual ~AsciiBackend() {};
 
   virtual void openPulse(DataEntryContext *ctx,
-			 int mode,
-			 std::string options);
+			 int mode);
 
   virtual void closePulse(DataEntryContext *ctx,
-			  int mode,
-			  std::string options);
+			  int mode);
 
   virtual void beginAction(OperationContext *ctx);
 

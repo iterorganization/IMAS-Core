@@ -105,9 +105,9 @@ AsciiBackend::AsciiBackend()
 
 
 void AsciiBackend::openPulse(DataEntryContext *ctx,
-			int mode, 
-			std::string options) 
+			int mode)
 {
+  std::string options = ctx != nullptr ? ctx->getOptions() : "";
   size_t n;
   this->dbname = ctx->getTokamak() + "_" 
     + std::to_string(ctx->getShot()) + "_" 
@@ -138,8 +138,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
 
 
 void AsciiBackend::closePulse(DataEntryContext *ctx,
-			 int mode, 
-			 std::string options)
+			 int mode)
 {
   this->pulsefile.close();
   this->prefix = "";

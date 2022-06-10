@@ -60,13 +60,10 @@ public:
      - FORCE_OPEN_PULSE = open a pulse (create it if not exist)
      - CREATE_PULSE = create a new pulse (do not overwrite if already exist)
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
-     @param[in] options additional options, ex: "name=treename refShot=1 refRun=2"
-     (possibly backend specific)
      @throw BackendException
   */
   virtual void openPulse(DataEntryContext *ctx,
-			 int mode,
-			 std::string options) = 0;
+			 int mode) = 0;
 
   /**
      Closes a database entry.
@@ -74,13 +71,11 @@ public:
      @param[in] ctx pointer on pulse context
      @param[in] mode closing option:
      - CLOSE_PULSE = close the pulse
-     - ERASE_PULSE = close and remove the pulse 
-     @param[in] options additional options (possibly backend specific)
+     - ERASE_PULSE = close and remove the pulse
      @throw BackendException
   */
   virtual void closePulse(DataEntryContext *ctx,
-			  int mode,
-			  std::string options) = 0;
+			  int mode) = 0;
 
   /**
      Starts an I/O action on a DATAOBJECT.

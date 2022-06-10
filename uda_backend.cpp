@@ -28,18 +28,16 @@ std::string array_path(ArraystructContext* ctx, bool for_dim = false)
 std::pair<int,int> UDABackend::getVersion(DataEntryContext *ctx)
 {
   std::pair<int,int> version;
-  if(ctx==NULL)
-    version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
-  else
-    {
+  if (ctx == nullptr) {
+      version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
+  } else {
       version = {0,0}; // temporary placeholder
-    }
+  }
   return version;
 }
 
 void UDABackend::openPulse(DataEntryContext* ctx,
-                           int mode,
-                           std::string options)
+                           int mode)
 {
     if (verbose) {
         std::cout << "UDABackend openPulse\n";
@@ -80,13 +78,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     ss << this->plugin
        << "::openPulse("
        << "backend_id=" << ualconst::mdsplus_backend
-       << ", shot=" << ctx->getShot()
-       << ", run=" << ctx->getRun()
-       << ", user=" << ctx->getUser()
-       << ", tokamak=" << ctx->getTokamak()
-       << ", version=" << ctx->getVersion()
+       << ", uri=" << ctx->getURI()
        << ", mode=" << mode
-       << ", options='" << options << "'"
        << ")";
 
     std::string directive = ss.str();
@@ -112,8 +105,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
 }
 
 void UDABackend::closePulse(DataEntryContext* ctx,
-                            int mode,
-                            std::string options)
+                            int mode)
 {
     if (verbose) {
         std::cout << "UDABackend closePulse\n";
@@ -129,7 +121,6 @@ void UDABackend::closePulse(DataEntryContext* ctx,
        << "::closePulse("
        << "ctxId=" << ctx_id
        << ", mode=" << mode
-       << ", options='" << options << "'"
        << ")";
 
     std::string directive = ss.str();

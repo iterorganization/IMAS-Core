@@ -29,12 +29,10 @@ public:
   ~NoBackend() {};
 
   void openPulse(DataEntryContext *ctx,
-		 int mode,
-		 std::string options);
+		 int mode);
 
   void closePulse(DataEntryContext *ctx,
-		  int mode,
-		  std::string options);
+		  int mode);
 
   void beginAction(OperationContext *ctx);
 

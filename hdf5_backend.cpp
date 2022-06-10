@@ -36,13 +36,13 @@ void
 
 std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
 {
+  std::string options = ctx != nullptr ? ctx->getOptions() : "";
   std::pair<int,int> version;
   if(ctx==NULL)
     version = {HDF5_BACKEND_VERSION_MAJOR, HDF5_BACKEND_VERSION_MINOR};
   else
     {
       std::string backend_version;
-      std::string options;
       files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
       bool masterFileAlreadyOpened = (this->file_id != -1);
       //we call openPulse() which reads the backend version from the master file (no attempt for opening the master file will be performed if it is already opened) 
@@ -73,7 +73,7 @@ std::string HDF5Backend::getVersion() {
 }
 
 void
- HDF5Backend::openPulse(DataEntryContext * ctx, int mode, std::string options)
+ HDF5Backend::openPulse(DataEntryContext * ctx, int mode)
 {
     access_mode = mode;
     /*hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
@@ -82,6 +82,7 @@ void
     std::string backend_version;
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
+    std::string options = ctx != nullptr ? ctx->getOptions() : "";
 
     if (!options.empty() && options.find("-no_compression") != std::string::npos)
         HDF5Writer::compression_enabled = false;
@@ -114,8 +115,9 @@ void
     createBackendComponents(backend_version);
 }
 
-void HDF5Backend::closePulse(DataEntryContext * ctx, int mode, std::string options)
+void HDF5Backend::closePulse(DataEntryContext * ctx, int mode)
 {
+    std::string options = ctx != nullptr ? ctx->getOptions() : "";
     if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
         hdf5Writer->close_datasets();
         hdf5Reader->closePulse(ctx, mode, options, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);

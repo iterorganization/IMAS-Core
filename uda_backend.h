@@ -136,9 +136,9 @@ public:
         }
     }
 
-    void openPulse(DataEntryContext *ctx, int mode, std::string options) override;
+    void openPulse(DataEntryContext *ctx, int mode) override;
 
-    void closePulse(DataEntryContext *ctx, int mode, std::string options) override;
+    void closePulse(DataEntryContext *ctx, int mode) override;
 
     void beginAction(OperationContext *ctx) override;
 

@@ -142,12 +142,10 @@ class LIBRARY_API MDSplusBackend:public Backend
     static Backend* initBackend(int id);
 
     virtual void openPulse(DataEntryContext *ctx,
-			   int mode, 
-			   std::string options);
+			   int mode);
       
     virtual void closePulse(DataEntryContext *ctx,
-			    int mode,
-			    std::string options);
+			    int mode);
 
     virtual void beginAction(OperationContext *ctx);
 

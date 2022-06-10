@@ -187,6 +187,12 @@ public:
   void addOptionToURIQuery(const std::string &option_name, const std::string &option_value);
 
   /**
+     Add options to the URI query.
+     @param[in] options options to add
+  */
+  void addOptions(const std::string &options);
+
+  /**
      Returns the URI path.
      @result path
   */
