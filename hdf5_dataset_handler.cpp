@@ -380,7 +380,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 
 		if (!shape_dataset) {
 			if (datatype == ualconst::integer_data) {
-				int default_value = 999999999;
+				int default_value = -999999999;
 				H5Pset_fill_value(dcpl_id, dtype_id, &default_value);
 			} else if (datatype == ualconst::double_data) {
 				double default_value = -9.0E40;
