@@ -604,9 +604,8 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                     second_slice_shape[i] = size[i];
 
                 if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, hsSelectionReader.getDim()) != 0) {
-                    char error_message[200];
-                    sprintf(error_message, "Unable to make the linear interpolation. Field %s has different shape at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
-                    throw UALBackendException(error_message, LOG);
+                    printf("Linear interpolation couldn't be made for node '%s' because it's size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
+                    return 0;
                 }
             }
         }
