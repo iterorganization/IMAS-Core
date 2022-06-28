@@ -900,6 +900,7 @@ static void skipTabs(int tabs)
 static void dumpStruct(MDSplus::Apd *apd, int tabs);
 static void dumpArrayStruct(MDSplus::Apd *apd, int tabs)
 {
+    if(!apd) return;
     for(size_t i = 0; i < apd->len(); i++)
     {
         skipTabs(tabs);
@@ -915,6 +916,7 @@ static void dumpArrayStruct(MDSplus::Apd *apd, int tabs)
 }
 static void dumpStruct(MDSplus::Apd *apd, int tabs)
 {
+    if(!apd) return;
     skipTabs(tabs);
     std::cout << apd->getDescAt(0) << ":\n";
     for(size_t i = 1; i < apd->len(); i++)
@@ -3441,12 +3443,14 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    	    {
 			for(sliceIdx = 0; sliceIdx < timebaseLen-1; sliceIdx++)
 			{
-		    	    if(timebase[sliceIdx] < time && timebase[sliceIdx+1] >= time)
+		    	    if(timebase[sliceIdx] <= time && timebase[sliceIdx+1] > time)
 			    {
 				sliceIdx1 = sliceIdx+1;
 				break;
 			    }
 			}
+			if(sliceIdx == timebaseLen - 1)
+			    sliceIdx1 = sliceIdx;
 	    	    }
 		    if(sliceIdx == sliceIdx1)
 		    {
@@ -3458,20 +3462,22 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		    {
 	    	    	MDSplus::Apd *apd = getApdSliceAt(inNode, sliceIdx);
 	    	    	MDSplus::Apd *apd1 = getApdSliceAt(inNode, sliceIdx1);
+
 			if(!apd || ! apd1) return NULL;
-			if(checkStruct(apd, apd1))
+			//if(checkStruct(apd, apd1)) //Gabriele June 2022: let check be performed during interpolation itself
 			{
-    			    MDSplus::Apd *retApd = MDSplusBackend::interpolateStruct(apd, apd1, time, timebase[sliceIdx], timebase[sliceIdx1]);
+   			    MDSplus::Apd *retApd = MDSplusBackend::interpolateStruct(apd, apd1, time, timebase[sliceIdx], timebase[sliceIdx1]);
 	    	    	    free((char *)timebase);
 			    MDSplus::deleteData(apd);
 			    MDSplus::deleteData(apd1);
-			    return retApd;
+
+		    	    return retApd; //Already an array of structures
 			}
-			else  //AoS are not compatible (should ever happen)
+		/*	else  //AoS are not compatible (should ever happen)
 			{
 			    MDSplus::deleteData(apd1);
 			    return apd;
-			}
+			} */
 		    }
 		}
 		default:
@@ -3563,7 +3569,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		    if(isLast)
 		    {
 		        MDSplus::Data *retData = newApd->getDescAt(1);
-			if(ctx && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
+			if(ctx && retData && (retData->clazz == CLASS_S && retData->dtype == DTYPE_NID))
 			{
 			    resolveApdField(newApd, ctx);
 			    retData = newApd->getDescAt(1);
@@ -3674,11 +3680,24 @@ std::cout<<"FINSCE INFLATE" << std::endl;
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
           int len = apd1->len();
+          int len1 = apd2->len();
+	  if(len != len1)
+	  {
+	      std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	      return interpApd;
+	  }
 	  if(len == 0) 
 	      return interpApd;
 
 	  if(apd1->getDescAt(0) != NULL && apd1->getDescAt(0)->clazz != CLASS_APD)
+	  {
+	      if(!(apd2->getDescAt(0) != NULL && apd2->getDescAt(0)->clazz != CLASS_APD))
+	      {
+	          std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		  return interpApd;
+	      }
 	      return interpolateStructRec(apd1, apd2, t, t1, t2);
+	  }
 	  for(int idx = 0; idx < len; idx++)
 	  {
 	      interpApd->appendDesc(interpolateStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd2->getDescAt(idx), t, t1,t2));
@@ -3688,13 +3707,20 @@ std::cout<<"FINSCE INFLATE" << std::endl;
     
     MDSplus::Apd *MDSplusBackend::interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2)
     {
-        if(!apd1)  //CheckStruct ensures that in this case both are null
-	  return NULL;
-        MDSplus::Apd *interpApd = new MDSplus::Apd();
+	if(!apd1 || !apd2)
+	    return  NULL;
 	int len1 = apd1->len(); //already checked
+	int len2 = apd2->len(); //already checked
+        MDSplus::Apd *interpApd = new MDSplus::Apd();
+	if(len1 != len2)
+	{
+	    std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	    return interpApd;
+	}
 	MDSplus::Data *name = apd1->getDescAt(0);
-	interpApd->appendDesc(name);
-	name->incRefCount();
+	char *nameStr = name->getString();
+	interpApd->appendDesc(new MDSplus::String(nameStr));
+	delete[] nameStr;
  	for(int idx1 = 1; idx1 < len1; idx1++)
 	{
 	    interpApd->appendDesc(interpolateStructItem(apd1->getDescAt(idx1), apd2->getDescAt(idx1), t, t1, t2));
@@ -3707,10 +3733,25 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 //Note: items have already been checked for compatibility
          if(item1->clazz == CLASS_APD)
 	 {
+	     if(item2->clazz != CLASS_APD)
+	     {
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		 return NULL;
+	     }
 	     return interpolateStruct((MDSplus::Apd *)item1, (MDSplus::Apd *)item2, t, t1, t2);
 	 }
 	 else if(item1->clazz == CLASS_S)
 	 {
+	     if(item2->clazz != CLASS_S)
+	     {
+	      	std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		return NULL;
+	     }
+	     if(item1->dtype != item2->dtype)
+	     {	
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		 return NULL;
+	     }
 	     switch(item1->dtype)  {
 	       case DTYPE_L: 
 	       {
@@ -3740,9 +3781,38 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 }
 	 else if(item1->clazz == CLASS_A)
 	 {
+	     if(item2->clazz != CLASS_A)
+	     {
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		 return NULL;
+	     }
+	     if(item1->dtype != item2->dtype)
+	     {
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		 return NULL;
+	     }
 	     int len;
 	     int nDims, *dims;
+	     int nDims1, *dims1;
 	     dims = ((MDSplus::Array *)item1)->getShape(&nDims);
+	     dims1 = ((MDSplus::Array *)item2)->getShape(&nDims1);
+	     if(nDims != nDims1)
+	     {
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	     	 delete [] dims;
+	     	 delete [] dims1;
+		 return NULL;
+	     }
+	     for(int i = 0; i < nDims; i++)
+	     {
+		if (dims[i] != dims1[i])
+	     	{
+	             std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	     	     delete [] dims;
+	     	     delete [] dims1;
+		     return NULL;
+	     	}
+	     }
 	     MDSplus::Data *interpData;
 	     switch(item1->dtype)  {
 	       case DTYPE_L: 
@@ -3812,6 +3882,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		 return NULL;
 	     }
 	     delete [] dims;
+	     delete [] dims1;
 	     return interpData;
 	 }	
 	 std::cout << "INTERNAL ERROR: Unexpected class in interpolation" << std::endl;
@@ -4620,7 +4691,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 }
 
 
-
   MDSplus::Apd *MDSplusBackend::resolveApdTimedFields(MDSplus::Apd *apd)
   {
       //MDSplus::setActiveTree(tree);
@@ -4725,6 +4795,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 		  MDSplus::Data *currData = assembleData(data, datatype, numDims, dims);
 		  free((char *)data);
+		  currData->incRefCount();
 		  retApd->appendDesc(currData);
 	      }
 	  }
@@ -4849,7 +4920,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
 	  ArraystructContext *ctx = (ArraystructContext *)inCtx;
-//std::cout << "END ACTION  " << ctx->getPath() << std::endl;
  	  MDSplus::Apd *currApd = getApdFromContext(ctx);
 
 //	  dumpArrayStruct(currApd, 0);
@@ -4980,7 +5050,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 //Gabriele Oct 2021: 	end of a AoS write: clear segmentIdxMap used for caching segment idx and slice idx mapping info
 		  segmentIdxMap.clear();
 	      }
-//dumpArrayStruct(currApd, 0);
 	      MDSplus::deleteData(currApd);
 	  }
       }
