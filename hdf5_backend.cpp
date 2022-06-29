@@ -117,12 +117,12 @@ void
 void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
 {
     if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
-        hdf5Writer->close_datasets();
         hdf5Reader->closePulse(ctx, mode, options, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     } else if (access_mode == CREATE_PULSE || access_mode == FORCE_CREATE_PULSE) {
-        hdf5Reader->close_datasets();
         hdf5Writer->closePulse(ctx, mode, options, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }
+    hdf5Writer->close_datasets();
+    hdf5Reader->close_datasets();
 }
 
 void HDF5Backend::writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size)

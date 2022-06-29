@@ -635,26 +635,20 @@ void HDF5DataSetHandler::close()
         switch(datatype) {
             case ualconst::integer_data:
             {
-                if (writing_mode && full_int_data_set_buffer != NULL)
+                if (full_int_data_set_buffer != NULL)
                     free(full_int_data_set_buffer);
                 int_data_set_buffer.clear();
                 break;
             }
             case ualconst::double_data:
             {
-                if (writing_mode && full_double_data_set_buffer != NULL)
+                if (full_double_data_set_buffer != NULL)
                     free(full_double_data_set_buffer);
                 double_data_set_buffer.clear();
                 break;
             }
             case ualconst::char_data:
             {
-                if (writing_mode) {
-                    for (int i = 0; i < (int) full_data_sets_buffers.size(); i++) {
-                        if (full_data_sets_buffers[i] != NULL)
-                            free(full_data_sets_buffers[i]);
-                    }
-                }
                 full_data_sets_buffers.clear();
                 data_sets_buffers.clear();
                 break;
