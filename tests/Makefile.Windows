@@ -20,9 +20,9 @@ CXXFLAGS+= -DWIN32
 
 INCDIR= -I$(UAL)/lowlevel
 LIBS= -L$(UAL)/lowlevel
-LIBS+= $(UAL)/lowlevel/libimas.lib
+LIBS+= $(UAL)/lowlevel/libal.lib
 
-ifneq ("no","$(strip $(IMAS_MDSPLUS))")
+ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 LIBS+= -L$(MDSPLUS_DIR)/lib
 LIBS+= $(MDSPLUS_DIR)/lib/XTreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsObjectsCppShr.a
@@ -33,8 +33,8 @@ LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
 endif
 
-ifneq ("no","$(strip $(IMAS_UDA))")
-ifeq ("fat","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDA))")
+ifeq ("yes","$(strip $(IMAS_UDAFAT))")
 LIBS+= -L$(UDA_HOME)/lib
 LIBS+= $(UDA_HOME)/lib/libfatuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
@@ -48,7 +48,7 @@ LIBS+= -lws2_32 -lssl -lcrypto
 endif
 endif
 
-ifneq ("no","$(strip $(IMAS_HDF5))")
+ifeq ("yes","$(strip $(IMAS_HDF5))")
 LIBS+= -L$(HDF5_HOME)/lib
 LIBS+= $(HDF5_HOME)/lib/libhdf5.a -lboost_filesystem-mt -lboost_system-mt
 LIBS+= -ldl -lz

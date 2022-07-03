@@ -15,6 +15,25 @@
 #define TRUE 1
 #define FALSE 0
 
+int defaultBackend() 
+{
+   int backend = MDSPLUS_BACKEND;
+   char* backend_value;
+   backend_value = getenv("IMAS_AL_DEFAULT_BACKEND");
+   if (backend_value != NULL)
+	   backend = atoi(backend_value);
+   return backend;
+}
+
+int fallbackBackend() 
+{
+   int backend = NO_BACKEND;
+   char* backend_value;
+   backend_value = getenv("IMAS_AL_FALLBACK_BACKEND");
+   if (backend_value != NULL)
+	   backend = atoi(backend_value);
+   return backend;
+}
 
 int mtl_ual_iterate_over_arraystruct(int aosctx, int step)
 {
@@ -199,7 +218,7 @@ int mtl_putCPX_ND(int opCtx, const char *fieldPath, const char *timebasePath,
 }
 
 
-/*Low level function prototypes*/
+/*Low level function prtotypes*/
 
 /**
    Closes an entry in the MDSPlus database.
@@ -234,7 +253,7 @@ int mtl_ual_create_env(const char *name, int shot, int run, int refShot,
 		char *version)
 {
     char* uri;
-    ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, "", &uri);
+    ual_build_uri_from_legacy_parameters(defaultBackend(), shot, run, user, tokamak, version, "", &uri);
     al_status_t status_t = ual_begin_dataentry_action(uri, FORCE_CREATE_PULSE, pulseCtx);
 
 	if (*pulseCtx < 0)
@@ -283,7 +302,7 @@ int mtl_ual_open(const char *uri, int mode)
     int pulseCtx;
     al_status_t status_t = ual_begin_dataentry_action(uri, mode, &pulseCtx);
     if (pulseCtx < 0)
-        return pulseCtx;
+        return pulseCtx; // to be checked 
     else {
         return status_t.code;
     }
@@ -306,14 +325,19 @@ int mtl_ual_open_env(const char *name, int shot, int run, int *pulseCtx,
 		char *user, char *tokamak, char *version)
 {
     char* uri;
-    ual_build_uri_from_legacy_parameters(MDSPLUS_BACKEND, shot, run, user, tokamak, version, "", &uri);
+    int default_backend = defaultBackend();
+    ual_build_uri_from_legacy_parameters(default_backend, shot, run, user, tokamak, version, "", &uri);
     al_status_t status_t = ual_begin_dataentry_action(uri, OPEN_PULSE, pulseCtx);
-	if (*pulseCtx < 0)
-		return *pulseCtx;
-	else {
-		return status_t.code;
+    if (status_t.code != 0) {
+        int fallback_backend = fallbackBackend();
+	if (fallback_backend != NO_BACKEND) {
+	    printf("WARNING: the pulse file is not available with the backend %d, now attempting to access it with the fallback backend %d\n",default_backend,fallback_backend);
+	    char *fallbackuri;
+	    ual_build_uri_from_legacy_parameters(fallback_backend, shot, run, user, tokamak, version, "", &fallbackuri);
+	    status_t = ual_begin_dataentry_action(uri, OPEN_PULSE, pulseCtx);
 	}
-
+    }
+    return status_t.code;
 }
 
 /**

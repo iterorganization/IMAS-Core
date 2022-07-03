@@ -246,36 +246,35 @@ int Lowlevel::beginUriAction(const std::string &uri)
 al_status_t ual_context_info(int ctxID, char **info)
 {
   al_status_t status;
-  std::stringstream desc;
+  std::string str;
 
   status.code = 0;
   if (ctxID==0)
     {
-      const char *nullctx = "NULL context";
-      int nullctxsize = strlen(nullctx)+1;
-      *info = (char *)malloc(nullctxsize);
-      mempcpy(*info, nullctx, strlen(nullctx));
-      (*info)[strlen(nullctx)] = '\0';
+      str = "NULL context";
     }
   else
     {
+      std::stringstream desc;
       try {
 	LLenv lle = Lowlevel::getLLenv(ctxID);
 	desc << "Context type = " 
 	     << lle.context->getType() << "\n";
 	desc << "Backend @ = " << lle.backend << "\n";
 	desc << lle.context->print();
-	const std::string& tmp = desc.str();
-	int size = tmp.length()+1;
-	*info = (char *)malloc(size);
-	mempcpy(*info, tmp.c_str(), tmp.length());
-    (*info)[tmp.length()] = '\0';
+	str = desc.str();
       }
       catch (const UALLowlevelException& e) {
 	status.code = ualerror::lowlevel_err;
 	UALException::registerStatus(status.message, __func__, e);
       }
     }
+
+  const char* cstr = str.c_str();
+  size_t size = strlen(cstr);
+  *info = (char *)malloc(size+1);
+  mempcpy(*info, cstr, size);
+  (*info)[size] = '\0';
 
   return status;
 }

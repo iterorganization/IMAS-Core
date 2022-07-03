@@ -181,8 +181,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
 
 std::string DataEntryContext::print() const 
 {
-  std::string s = this->print() +
-   "uri \t\t\t = " + uri + "\n";
+  std::string s = "uri \t\t\t = " + uri + "\n";
   return s;
 }
 

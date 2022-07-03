@@ -38,7 +38,7 @@ CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC ${OPTFLAG} -fno-inline-functions ${DBG
 LDF=gfortran -lc -lstdc++
 endif
 
-CXXINCLUDES= -DASCII ${INCLUDES}
+CXXINCLUDES= -DASCII ${INCLUDES} -I.
 
 CPPSRC= ual_utilities.cpp ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp \
@@ -114,7 +114,7 @@ ual_defs.h: ual_defs.h.in
 	$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
 
 # add pkgconfig pkgconfig_install targets
-PC_FILES = imas-lowlevel.pc
+PC_FILES = al-lowlevel.pc
 
 #----------------------- pkgconfig ---------------------
 include ../Makefile.pkgconfig
