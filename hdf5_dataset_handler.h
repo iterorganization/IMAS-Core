@@ -95,7 +95,7 @@ class HDF5DataSetHandler {
 	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
 
 	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache, bool compression_enabled, bool useBuffering);
-	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering, int AOSRank=-1, int *AOSSize = NULL, bool compression_enabled=true);
+	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, size_t chunk_cache_size, bool useBuffering, int AOSRank=-1, int *AOSSize = NULL, bool compression_enabled=true);
 	void setCurrentShapesAndExtend(int *size, int *AOSShapes);
 	void setCurrentShapes(int *size, int *AOSShapes);
 	void setExtent();

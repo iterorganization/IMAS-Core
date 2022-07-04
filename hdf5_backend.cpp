@@ -83,14 +83,9 @@ void
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
 
-    if (!options.empty() && options.find("-no_compression") != std::string::npos)
-        HDF5Writer::compression_enabled = false;
-    if (!options.empty() && options.find("-no_read_buffering") != std::string::npos)
-        HDF5Reader::useBuffering = false;
-    if (!options.empty() && options.find("-no_write_buffering") != std::string::npos)
-        HDF5Writer::useBuffering = false;
-    if (!options.empty() && options.find("-debug") != std::string::npos)
-        HDF5Utils::debug = true;
+    HDF5Utils hdf5_utils;
+    hdf5_utils.readOptions(options, &HDF5Writer::compression_enabled, &HDF5Reader::useBuffering, &HDF5Reader::chunk_cache_size, &HDF5Writer::useBuffering, &HDF5Writer::write_chunk_cache_size, &HDF5Utils::debug);
+    HDF5Writer::read_chunk_cache_size = HDF5Reader::chunk_cache_size;
 
     switch (mode) {
     case OPEN_PULSE:

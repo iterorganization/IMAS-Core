@@ -49,6 +49,7 @@ class HDF5Reader {
     std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
     std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
+    int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     
 
   public:
@@ -57,6 +58,7 @@ class HDF5Reader {
     ~HDF5Reader();
 
     static bool useBuffering;
+    static size_t chunk_cache_size;
     int slice_mode;
 
     virtual void closePulse(PulseContext * ctx, int mode, std::string & options, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);

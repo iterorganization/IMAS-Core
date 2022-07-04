@@ -820,3 +820,59 @@ void HDF5Utils::removeLinkFromMasterPulseFile(hid_t &file_id, const std::string 
         throw UALBackendException(error_message, LOG);
     }
 }
+
+void HDF5Utils::readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug) {
+
+    char str[1024];
+    strcpy(str, options.c_str());
+    const char * separator = ",";
+    //printf ( "options=%s\n", options.c_str() );
+    char * strToken = strtok ( str, separator );
+    char option[100];
+    while ( strToken != NULL ) {
+        //printf ( "%s\n", strToken );
+        std::string opt(strToken);
+        strcpy(option, strToken);
+        if (strcmp(strToken, "-no_compression") == 0) {
+			 *compression_enabled = false;
+		}
+		else if (strcmp(strToken, "-no_read_buffering") == 0) {
+			 *readBuffering = false;
+		}
+		else if (strcmp(strToken, "-no_write_buffering") == 0) {
+			 *writeBuffering = false;
+		}
+		else if (strcmp(strToken, "-debug") == 0) {
+			 *debug = true;
+		}
+        else if (opt.find("read_cache") != std::string::npos) {
+			getOptionCacheValue(strToken, read_cache);
+		}
+		else if (opt.find("write_cache") != std::string::npos) {
+			getOptionCacheValue(strToken, write_cache);
+		}
+		strToken = strtok ( NULL, separator );
+    }
+}
+
+void HDF5Utils::getOptionCacheValue(char* option, size_t *value) {
+	char tmp[100];
+	strcpy(tmp, option);
+	const char * equal_separator = "=";
+	char * strToken = strtok ( tmp, equal_separator );
+	if ( strToken != NULL ) {
+        strToken = strtok ( NULL, equal_separator );
+        if (strToken != NULL ) {
+			*value = (size_t) atoi(strToken) * 1024 * 1024;
+			//printf ( "value=%d\n", *value);
+		}
+		else {
+			//throw exception
+		}
+    }
+    else {
+		//throw exception
+	}
+}
+
+

@@ -37,6 +37,8 @@ class HDF5Writer {
 
     static bool compression_enabled;
     static bool useBuffering;
+    static size_t read_chunk_cache_size;
+    static size_t write_chunk_cache_size;
 
     int slice_mode;
 

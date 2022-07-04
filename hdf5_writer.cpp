@@ -10,6 +10,9 @@
 #include "ual_backend.h"
 #include <boost/filesystem.hpp>
 
+#define READ_CHUNK_CACHE_SIZE 5*1024*1024
+#define WRITE_CHUNK_CACHE_SIZE 5*1024*1024
+
 using namespace boost::filesystem;
 
 HDF5Writer::HDF5Writer(std::string backend_version_)
@@ -24,6 +27,8 @@ HDF5Writer::~HDF5Writer()
 
 bool HDF5Writer::compression_enabled = true;
 bool HDF5Writer::useBuffering = true;
+size_t HDF5Writer::read_chunk_cache_size = READ_CHUNK_CACHE_SIZE;
+size_t HDF5Writer::write_chunk_cache_size = WRITE_CHUNK_CACHE_SIZE;
 
 void HDF5Writer::closePulse(PulseContext * ctx, int mode, std::string & options, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path)
 {
@@ -228,7 +233,7 @@ int HDF5Writer::readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, co
     int shape = 0;
     hid_t dataset_id = -1;
     std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false));
-    new_data_set-> open(tensorized_path.c_str(), loc_id, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, false);
+    new_data_set-> open(tensorized_path.c_str(), loc_id, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, read_chunk_cache_size, false);
     dataset_id = new_data_set->dataset_id;
     int dim = -1;
     int *AOS_shapes = nullptr;
@@ -394,7 +399,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler(true));
             dataSetHandler->setSliceMode(ctx);
             bool create_chunk_cache = true;
-	        dataSetHandler->open(tensorized_path.c_str(), gid, &dataset_id, dim, size, datatype, shapes_dataset, create_chunk_cache, useBuffering, AOSRank, arrctx_shapes.data(), compression_enabled);
+	        dataSetHandler->open(tensorized_path.c_str(), gid, &dataset_id, dim, size, datatype, shapes_dataset, create_chunk_cache, read_chunk_cache_size, useBuffering, AOSRank, arrctx_shapes.data(), compression_enabled);
             dataSetHandler->storeInitialDims(); //store the dims into initial_dims at beginning of the put_slice
 	        dataSetHandler->extendDataSpaceForTimeSlices(size, arrctx_shapes.data(), slices_extension);
 	        dataSetHandler->setTimeAxisOffset(current_arrctx_indices, slices_extension);
@@ -537,7 +542,7 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
         if (slice_mode == SLICE_OP) {
             data_set->setSliceMode(ctx);
             bool create_chunk_cache = true;
-	    data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, useBuffering);
+	    data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, read_chunk_cache_size, useBuffering);
             data_set->storeInitialDims();
 	    data_set->extendDataSpaceForTimeSlices(size, aos_shapes.data(), slices_extension);
 	    data_set->setTimeAxisOffset(current_arrctx_indices, slices_extension);
@@ -640,12 +645,12 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
                     dataSetHandler->setTimedAOSShape(timedAOS_shape);
                     shapes[0] = timedAOS_shape + slices_extension;
                 }
-				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, useBuffering); //dataset extension occurs
+				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, read_chunk_cache_size, useBuffering); //dataset extension occurs
 				dataSetHandler->extendDataSpaceForTimeSlicesForAOSDataSet(size, aos_shapes.data(), slices_extension);
 				dataSetHandler->setTimeAxisOffsetForAOSDataSet();
 			} else {
 				dataSetHandler->setNonSliceMode();
-				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, useBuffering);
+				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, read_chunk_cache_size, useBuffering);
 				dataSetHandler->setCurrentShapesAndExtendForAOSDataSet(size, aos_shapes.data());
 			}
 			
