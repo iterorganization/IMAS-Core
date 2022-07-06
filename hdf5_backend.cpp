@@ -84,6 +84,7 @@ void
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
 
     HDF5Utils hdf5_utils;
+    hdf5_utils.setDefaultOptions(&HDF5Reader::chunk_cache_size, &HDF5Writer::write_chunk_cache_size);
     hdf5_utils.readOptions(options, &HDF5Writer::compression_enabled, &HDF5Reader::useBuffering, &HDF5Reader::chunk_cache_size, &HDF5Writer::useBuffering, &HDF5Writer::write_chunk_cache_size, &HDF5Utils::debug);
     HDF5Writer::read_chunk_cache_size = HDF5Reader::chunk_cache_size;
 
