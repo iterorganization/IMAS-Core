@@ -78,6 +78,89 @@ public:
     int readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     void readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation);
     UalData *clone();
+    bool isCompatible(UalData *ualData)
+    {
+	if(type != ualData->type)
+	    return  false;
+	if(dimensionV.size() != ualData->dimensionV.size())
+	    return false;
+	for(size_t i = 0; i < dimensionV.size(); i++)
+	{
+	    if(dimensionV[i] != ualData->dimensionV[i])
+	    	return false;
+	}
+	return true;
+    }
+
+//Interpolation method valid only for timed AoS and therefore where dimensionV.size() == 1 
+    UalData *linearInterpol(UalData *ualData, double t, double t1, double t2)
+    {
+	UalData *retData = new UalData();
+	if(bufV.size() != 1)
+	{
+	    std::cout << "INTERNAL ERROR: unexpected number of slices > 1 when interpolating AoS\n";
+	    return retData;
+	}
+	double delta = (t - t1)/(t2 - t1);
+	int numItems = 1;
+	retData->type = type;
+	retData->timed = timed;
+	retData->mapState = mapState;
+	retData->timebase = timebase;
+
+	for (size_t i = 0; i < dimensionV.size(); i++)
+	{
+	    retData->dimensionV.push_back(dimensionV[i]);
+	    numItems *= dimensionV[i];
+	}
+	switch (type)  {
+	    case CHAR_DATA:
+	    {
+		char *data1 = (char *)bufV[0].get();
+		char *data2 = (char *)ualData->bufV[0].get();
+	    	char *currBuf = new char[numItems];
+		for(int i = 0; i < numItems; i++)
+		    currBuf[i] = ((char *)data1)[i] + delta * (((char *)data2)[i] - ((char *)data1)[i]);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		retData->bufV.push_back(sp);
+		break;
+	    }
+	    case INTEGER_DATA:
+	    {
+		int *data1 = (int *)bufV[0].get();
+		int *data2 = (int *)ualData->bufV[0].get();
+	    	int *currBuf = new int[numItems];
+		for(int i = 0; i < numItems; i++)
+		    currBuf[i] = ((int *)data1)[i] + delta * (((int *)data2)[i] - ((int *)data1)[i]);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		retData->bufV.push_back(sp);
+		break;
+	    }
+	    case DOUBLE_DATA:
+	    {
+		double *data1 = (double *)bufV[0].get();
+		double *data2 = (double *)ualData->bufV[0].get();
+	    	double *currBuf = new double[numItems];
+		for(int i = 0; i < numItems; i++)
+		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		retData->bufV.push_back(sp);
+		break;
+	    }
+	    case COMPLEX_DATA:
+	    {
+		double *data1 = (double *)bufV[0].get();
+		double *data2 = (double *)ualData->bufV[0].get();
+	    	double *currBuf = new double[2*numItems];
+		for(int i = 0; i < 2*numItems; i++)
+		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		retData->bufV.push_back(sp);
+		break;
+	    }
+	}
+	return retData;
+    }
     std::string toString()
     {
 	if(mapState != MAPPED)
@@ -155,6 +238,7 @@ public:
     UalAoS *clone();
     void dump(int tabs);
     ~UalAoS();
+    UalAoS * linearInterpol(UalAoS *ualAos, double t, double t1, double t2); 
 };
 
 class LIBRARY_API UalStruct
@@ -206,6 +290,8 @@ public:
 	    it->second->dump(tabs + 1);
 	}
     }
+    UalStruct *linearInterpol(UalStruct *ualStruct, double t, double t1, double t2);
+	
 };
 
 class LIBRARY_API StructPath
