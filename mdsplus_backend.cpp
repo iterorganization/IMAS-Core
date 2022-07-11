@@ -3676,6 +3676,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 return true;
     }
     
+//AoS or Struct interpolation
     MDSplus::Apd *MDSplusBackend::interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2) //The two AoS are already checked
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
@@ -3696,16 +3697,126 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	          std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
 		  return interpApd;
 	      }
+//At this point it is a Struct
 	      return interpolateStructRec(apd1, apd2, t, t1, t2);
 	  }
+//At this point it is an AoS
 	  for(int idx = 0; idx < len; idx++)
 	  {
 	      interpApd->appendDesc(interpolateStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd2->getDescAt(idx), t, t1,t2));
 	  }
 	  return interpApd;
     }
-    
+    //This will handle APDs where the first element is the item name, i.e. Struct
     MDSplus::Apd *MDSplusBackend::interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2)
+    {
+	if(!apd1 || !apd2)
+	    return  NULL;
+	int len1 = apd1->len(); //already checked
+	int len2 = apd2->len(); //already checked
+	if(apd1->len() < 2 || apd2->len() < 2)
+	{
+	    std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	    return NULL;
+	}
+	MDSplus::Data *name1 = apd1->getDescAt(0);
+	MDSplus::Data *name2 = apd1->getDescAt(0);
+	if(name1->clazz != CLASS_S || name2->clazz != CLASS_S)
+	{
+	    std::cout << "INTERNAL ERROR: inconsistent AoS structure 1" << std::endl;
+	    return NULL;
+	}
+	char *nameStr1 = name1->getString();
+	char *nameStr2 = name2->getString();
+	if(strcmp(nameStr1, nameStr2))
+	{
+	    std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+	    delete [] nameStr1;
+	    delete[] nameStr2;
+	    return NULL;
+	}
+//At this point the names match
+        MDSplus::Apd *interpApd = new MDSplus::Apd();
+	interpApd->appendDesc(new MDSplus::String(nameStr1));
+	delete [] nameStr1;
+	delete[] nameStr2;
+	if(apd1->getDescAt(1)->clazz != CLASS_APD) //It is not a directory but contains a datum
+	{
+	    if(apd2->getDescAt(1)->clazz == CLASS_APD) //The other one is a directory or an AoS, inconsistent
+	    {
+	    	std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		MDSplus::deleteData(interpApd);
+		return NULL;
+	    }
+	    interpApd->appendDesc(interpolateStructItem(apd1->getDescAt(1), apd2->getDescAt(1), t, t1, t2));
+	    return interpApd;
+	}
+	//At this point it may be either a subdirectory or an AoS
+	MDSplus::Apd *currItem1 = (MDSplus::Apd* )apd1->getDescAt(1);
+	if(currItem1->len() > 0 && currItem1->getDescAt(0)->clazz == CLASS_APD) //If the field is an AoS
+	{
+	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
+	    if(!(currItem2->len() > 0 && currItem2->getDescAt(0)->clazz == CLASS_APD)) //If the field is NOT an AoS, inconsistent
+	    {
+	    	std::cout << "WARNING: interpolation requested for inconsistent AoS" << std::endl;
+		MDSplus::deleteData(interpApd);
+		return NULL;
+	    }
+//At this point both are AoS
+	    interpApd->appendDesc(interpolateStruct((MDSplus::Apd *)apd1->getDescAt(1), (MDSplus::Apd *)apd2->getDescAt(1), t, t1, t2));
+	    return interpApd;
+	}
+
+//At this point we are handling a subdirectory
+	for(int idx1 = 1; idx1 < len1; idx1++)
+	{
+	    if(!apd1->getDescAt(idx1))
+	    	continue;
+	    MDSplus::Apd *currApd1 = (MDSplus::Apd *)apd1->getDescAt(idx1);
+	    if(currApd1->len() < 2 || !currApd1->getDescAt(1))
+		continue;
+	    if(currApd1->getDescAt(0)->clazz != CLASS_S)
+	    {
+	    	std::cout << "INTERNAL ERROR: inconsistent AoS structure 2.1" << std::endl;
+		return NULL;
+	    }
+	    MDSplus::Data *currName1 = currApd1->getDescAt(0);
+	    char *currNameStr1 = currName1->getString();
+	    int idx2 ;
+	    for(idx2 = 1 ; idx2 < len2; idx2++)
+	    {
+	    	if(!apd2->getDescAt(idx2))
+	    	    continue;
+		if(apd2->getDescAt(idx2)->clazz != CLASS_APD)
+		{
+			std::cout << "INTERNAL ERROR: inconsistent AoS structure 3" << std::endl;
+			return NULL;
+		}
+		MDSplus::Apd *currApd2 = (MDSplus::Apd *)apd2->getDescAt(idx2);
+		if(currApd2->len() < 2 || !currApd2->getDescAt(1))
+		{
+		    continue;
+		}
+	    	MDSplus::Data *currName2 = currApd2->getDescAt(0);
+		if(currName2->clazz != CLASS_S)
+		{
+			std::cout << "WARING: inconsistent AoS structure in interpolation"  << std::endl;
+			return NULL;
+		}
+	    	char *currNameStr2 = currName2->getString();
+		if(!strcmp(currNameStr1, currNameStr2))
+		{
+		    interpApd->appendDesc(interpolateStructRec(currApd1, currApd2, t, t1, t2));
+		    delete [] currNameStr2;
+		    break;
+		}
+		delete [] currNameStr2;
+	    }
+	    delete [] currNameStr1;
+	}
+	return interpApd; 
+    }
+/*    MDSplus::Apd *MDSplusBackend::interpolateStructRecOLD(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2)
     {
 	if(!apd1 || !apd2)
 	    return  NULL;
@@ -3727,7 +3838,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	}
 	return interpApd; 
     }
-	
+*/	
     MDSplus::Data *MDSplusBackend::interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2)
     {
 //Note: items have already been checked for compatibility
