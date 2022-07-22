@@ -85,7 +85,7 @@ class HDF5Utils {
     void setTensorizedPaths(ArraystructContext * ctx, std::vector < std::string > &tensorized_paths);
     void showStatus(hid_t file_id);
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
-    void setDefaultOptions(size_t *read_cache, size_t *write_cache);
+    void setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering);
     void readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug);
 
 };

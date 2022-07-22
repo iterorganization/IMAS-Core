@@ -14,9 +14,9 @@ dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useB
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
     HDF5Utils hdf5_utils;
-	hdf5_utils.setDefaultOptions(&chunk_cache_size, &write_chunk_cache_size);
-	bool readBuffering;
+    bool readBuffering;
 	bool writeBuffering;
+	hdf5_utils.setDefaultOptions(&chunk_cache_size, &write_chunk_cache_size, &readBuffering, &writeBuffering);
 	hdf5_utils.readOptions(options_, &compression_enabled, &readBuffering, &chunk_cache_size,  &writeBuffering,  &write_chunk_cache_size, &HDF5Utils::debug);
 	if (writing_mode_) {
 		useBuffering = writeBuffering;

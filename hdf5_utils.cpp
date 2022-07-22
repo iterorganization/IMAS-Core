@@ -821,13 +821,15 @@ void HDF5Utils::removeLinkFromMasterPulseFile(hid_t &file_id, const std::string 
     }
 }
 
-void HDF5Utils::setDefaultOptions(size_t *read_cache, size_t *write_cache) {
+void HDF5Utils::setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering) {
 	char* read_cache_value_str = getenv("HDF5_BACKEND_READ_CACHE");
     if (read_cache_value_str != NULL)
 	   *read_cache = (size_t) (atof(read_cache_value_str) * 1024 * 1024);
 	char* write_cache_value_str = getenv("HDF5_BACKEND_WRITE_CACHE");
     if (write_cache_value_str != NULL)
 	   *write_cache = (size_t) (atof(write_cache_value_str) * 1024 * 1024);
+	*readBuffering = true;
+	*writeBuffering = true;
 }
 
 void HDF5Utils::readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug) {
