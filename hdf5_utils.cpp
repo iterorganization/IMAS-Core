@@ -22,7 +22,7 @@ HDF5Utils::~HDF5Utils()
 bool HDF5Utils::debug = false;
 
 int
- HDF5Utils::openPulse(PulseContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::openPulse(PulseContext * ctx, int mode, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -102,7 +102,7 @@ int
 }
 
 void
- HDF5Utils::createPulse(PulseContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::createPulse(PulseContext * ctx, int mode, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -832,7 +832,6 @@ void HDF5Utils::setDefaultOptions(size_t *read_cache, size_t *write_cache) {
 
 void HDF5Utils::readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug) {
 
-	
     char str[1024];
     strcpy(str, options.c_str());
     const char * separator = ",";

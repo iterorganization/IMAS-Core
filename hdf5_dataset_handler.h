@@ -12,6 +12,9 @@
 
 #define UINT_DATA   61
 
+#define READ_CHUNK_CACHE_SIZE 5*1024*1024
+#define WRITE_CHUNK_CACHE_SIZE 100*1024*1024
+
 typedef struct {
    double re;   /*real part */
    double im;   /*imaginary part */
@@ -19,7 +22,7 @@ typedef struct {
 
 class HDF5DataSetHandler {
   private:
-    bool writing_mode;
+
     std::string tensorized_path;        //full tensorized path
 
     int dataset_rank;
@@ -63,7 +66,7 @@ class HDF5DataSetHandler {
 
   public:
 
-     HDF5DataSetHandler(bool writing_mode_);
+     HDF5DataSetHandler(bool writing_mode_, const std::string &options_);
     ~HDF5DataSetHandler();
 
     int datatype;
@@ -74,7 +77,10 @@ class HDF5DataSetHandler {
     hid_t IDS_group_id;
     void *buffer;
     int buffer_length;
+    bool compression_enabled;
     bool useBuffering;
+    size_t chunk_cache_size;
+    size_t write_chunk_cache_size;
     std::vector <std::vector<int> > requests_arrctx_indices;
     std::vector <std::vector<int> > requests_shapes;
 
@@ -94,8 +100,8 @@ class HDF5DataSetHandler {
 	void showAOSIndices(std::string context, std::vector<int> &AOS_indices);
 	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
 
-	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache, bool compression_enabled, bool useBuffering);
-	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, size_t chunk_cache_size, bool useBuffering, int AOSRank=-1, int *AOSSize = NULL, bool compression_enabled=true);
+	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache);
+	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, const std::string &options, int AOSRank=-1, int *AOSSize = NULL);
 	void setCurrentShapesAndExtend(int *size, int *AOSShapes);
 	void setCurrentShapes(int *size, int *AOSShapes);
 	void setExtent();
@@ -134,6 +140,7 @@ class HDF5DataSetHandler {
         tensorized_path = p;
     }
     void close();
+    bool isRequestInExtent(const std::vector < int >&current_arrctx_indices);
     void write_buffers();
     void fillFullBuffers() ;
 

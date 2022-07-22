@@ -10,7 +10,7 @@ HDF5Backend::HDF5Backend()
 :  file_id(-1), pulseFilePath(""), opened_IDS_files()
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-    createBackendComponents(getVersion());
+    createBackendComponents(getVersion(), "");
 }
 
 HDF5Backend::HDF5Backend(Backend * targetB)
@@ -27,10 +27,10 @@ const int HDF5Backend::HDF5_BACKEND_VERSION_MINOR = 0;
 
 
 void
- HDF5Backend::createBackendComponents(std::string backend_version) {
+ HDF5Backend::createBackendComponents(std::string backend_version, const std::string &options) {
     HDF5BackendFactory backendFactory(backend_version);
-    hdf5Writer = backendFactory.createWriter();
-    hdf5Reader = backendFactory.createReader();
+    hdf5Writer = backendFactory.createWriter(options);
+    hdf5Reader = backendFactory.createReader(options);
     eventsHandler = backendFactory.createEventsHandler();
 }
 
@@ -46,7 +46,7 @@ std::pair<int,int> HDF5Backend::getVersion(PulseContext *ctx)
       files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
       bool masterFileAlreadyOpened = (this->file_id != -1);
       //we call openPulse() which reads the backend version from the master file (no attempt for opening the master file will be performed if it is already opened) 
-      HDF5Utils::openPulse(ctx, OPEN_PULSE, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+      HDF5Utils::openPulse(ctx, OPEN_PULSE, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
       std::string::size_type pos = backend_version.find_first_of('.');
       std::string version_major = backend_version.substr(0, pos);
       std::string version_minor = backend_version.substr(pos+1, std::string::npos);
@@ -60,9 +60,9 @@ std::pair<int,int> HDF5Backend::getVersion(PulseContext *ctx)
       }
       
       HDF5BackendFactory backendFactory(backend_version);
-      hdf5Reader = backendFactory.createReader();
+      auto hdf5Reader_version = backendFactory.createReader("");
       if (!masterFileAlreadyOpened) //the master pulse file is closed only if it was already closed before to call the getVersion() method
-        hdf5Reader->closePulse(ctx, OPEN_PULSE, options, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        hdf5Reader_version->closePulse(ctx, OPEN_PULSE, options, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }
   return version;
 }
@@ -83,31 +83,26 @@ void
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
 
-    HDF5Utils hdf5_utils;
-    hdf5_utils.setDefaultOptions(&HDF5Reader::chunk_cache_size, &HDF5Writer::write_chunk_cache_size);
-    hdf5_utils.readOptions(options, &HDF5Writer::compression_enabled, &HDF5Reader::useBuffering, &HDF5Reader::chunk_cache_size, &HDF5Writer::useBuffering, &HDF5Writer::write_chunk_cache_size, &HDF5Utils::debug);
-    HDF5Writer::read_chunk_cache_size = HDF5Reader::chunk_cache_size;
-
     switch (mode) {
     case OPEN_PULSE:
     case FORCE_OPEN_PULSE: 
         {
-        int status = HDF5Utils::openPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+        int status = HDF5Utils::openPulse(ctx, mode, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
         if (status == -1) { //master file doesn't exist
             backend_version = getVersion();
-            HDF5Utils::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+            HDF5Utils::createPulse(ctx, mode, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
         }
         break;
         }
     case CREATE_PULSE:
     case FORCE_CREATE_PULSE:
         backend_version = getVersion();
-        HDF5Utils::createPulse(ctx, mode, options, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
+        HDF5Utils::createPulse(ctx, mode, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
         break;
     default:
         throw UALBackendException("Mode not yet supported", LOG);
     }
-    createBackendComponents(backend_version);
+    createBackendComponents(backend_version, options);
 }
 
 void HDF5Backend::closePulse(PulseContext * ctx, int mode, std::string options)
