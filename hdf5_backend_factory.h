@@ -22,12 +22,12 @@ class HDF5BackendFactory {
   /**
    Creates a writer instance according to the backend version passed to the factory.
    **/
-    std::unique_ptr < HDF5Writer > createWriter();
+    std::unique_ptr < HDF5Writer > createWriter(const std::string &options);
 
   /**
    Creates a reader instance according to the backend version passed to the factory.
    **/
-    std::unique_ptr < HDF5Reader > createReader();
+    std::unique_ptr < HDF5Reader > createReader(const std::string &options);
 
   /**
    Creates a events handler instance according to the backend version passed to the factory.

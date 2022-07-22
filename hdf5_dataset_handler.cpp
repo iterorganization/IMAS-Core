@@ -8,10 +8,22 @@
 #include <math.h>
 
 
-HDF5DataSetHandler::HDF5DataSetHandler(bool writing_mode_):writing_mode(writing_mode_), dataset_rank(-1), AOSRank(0), immutable(true), 
-shape_dataset(false), slice_mode(false), slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), datatype(-1), dataset_id(-1), dtype_id(-1), request_dim(-1), dataspace_id(-1), useBuffering(false), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(NULL), full_double_data_set_buffer(NULL)
+HDF5DataSetHandler::HDF5DataSetHandler(bool writing_mode_, const std::string &options_):dataset_rank(-1), AOSRank(0), immutable(true), 
+shape_dataset(false), slice_mode(false), slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), datatype(-1), dataset_id(-1), 
+dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useBuffering(true), chunk_cache_size(READ_CHUNK_CACHE_SIZE), write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(NULL), full_double_data_set_buffer(NULL)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+    HDF5Utils hdf5_utils;
+	hdf5_utils.setDefaultOptions(&chunk_cache_size, &write_chunk_cache_size);
+	bool readBuffering;
+	bool writeBuffering;
+	hdf5_utils.readOptions(options_, &compression_enabled, &readBuffering, &chunk_cache_size,  &writeBuffering,  &write_chunk_cache_size, &HDF5Utils::debug);
+	if (writing_mode_) {
+		useBuffering = writeBuffering;
+	}
+	else {
+		useBuffering = readBuffering;
+	}
 }
 
 HDF5DataSetHandler::~HDF5DataSetHandler()
@@ -165,7 +177,7 @@ int HDF5DataSetHandler::getTimeWriteOffset() const {
 }
 
 void HDF5DataSetHandler::open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, 
-int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBuffering, int AOSRank, int *AOSSize, bool compression_enabled) {
+int *size, int datatype, bool shape_dataset, bool create_chunk_cache, const std::string &options, int AOSRank, int *AOSSize) {
         
 		this->tensorized_path = std::string(dataset_name);
         this->request_dim = dim;
@@ -178,13 +190,15 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBu
         
         if (create_chunk_cache) {
             hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
-            size_t rdcc_nbytes = 5*1024*1024;
+            size_t rdcc_nbytes = chunk_cache_size;
             size_t rdcc_nslots = H5D_CHUNK_CACHE_NSLOTS_DEFAULT;
             H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
+            //printf("opening %s with chunk cache size = %d\n", dataset_name, (int) rdcc_nbytes);
 		    *dataset_id = H5Dopen2(loc_id, dataset_name, dapl);
             H5Pclose(dapl);
         }
         else {
+			//printf("opening %s without chunk cache size\n", dataset_name);
             *dataset_id = H5Dopen2(loc_id, dataset_name, H5P_DEFAULT);
         }
         
@@ -194,9 +208,9 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBu
 					assert(AOSRank != -1);
 					assert(!shape_dataset);
 					assert(AOSSize != NULL);
-					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true));
+					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true, options));
 					data_set->setNonSliceMode();
-					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache, compression_enabled, useBuffering);
+					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache);
 			}
 			else {
 				sprintf(error_message, "Unable to open HDF5 dataset: %s\n", dataset_name);
@@ -236,7 +250,6 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, bool useBu
 		this->datatype = datatype;
 		setType();
 		this->shape_dataset = shape_dataset;
-        setBuffering(useBuffering);
 }
 
 void HDF5DataSetHandler::showDims(std::string context) {
@@ -265,7 +278,7 @@ void HDF5DataSetHandler::showAOSShapes(std::string context, std::vector<int> &AO
 	}
 }
 
-void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache, bool compression_enabled, bool useBuffering) {
+void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache) {
 	
 	assert(!slice_mode);
 
@@ -275,7 +288,6 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 	this->datatype = datatype;
 	this->shape_dataset = shape_dataset;
     this->request_dim = dim;
-    setBuffering(useBuffering);
 
 	for (int i = 0; i < AOSRank; i++) { //AOS axis creation
 			dims[i] = (hsize_t) AOSSize[i];
@@ -309,12 +321,15 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 
 	if (dataset_rank > 0) {
-        size_t rdcc_nbytes = 50*1024*1024;
+        size_t rdcc_nbytes = write_chunk_cache_size;
 		size_t rdcc_nslots = H5D_CHUNK_CACHE_NSLOTS_DEFAULT;
 		size_t vp = 1;
 		size_t vn = 1; //volume of the chunk, product of chunk size in each dimension
 		hsize_t chunk_dims_min[H5S_MAX_RANK];
         float M = 2. * 1024. * 1024.; //in MBytes
+        
+        float Mmin = 0.1 * 1024.; //1 KByte
+		size_t vmin = (size_t) floor(Mmin / type_size);
 
         size_t vmax = (size_t) floor(M / type_size);
 
@@ -371,12 +386,24 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 				}
 			}
 		}
-        
-		//size_t cs = vp*vn;
+		
+		size_t v  = vp*vn;
+		//printf("dataset_name=%s, volume=%d\n", dataset_name, v);
+		if (v < vmin) {
+			vn = (size_t) vmin/vp;
+			for (int i = AOSRank; i < dataset_rank; i++) {
+				float cs = pow((float) vn, 1./((float)dataset_rank - AOSRank));
+				chunk_dims[i] = (int) cs;
+			}
+			
+		}
+		
 		hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
 		H5Pset_chunk(dcpl_id, dataset_rank, chunk_dims);
-		if (compression_enabled)
+		if (compression_enabled) {
+			H5Pset_shuffle(dcpl_id);
 			H5Pset_deflate (dcpl_id, 1);
+		}
 
 		if (!shape_dataset) {
 			if (datatype == ualconst::integer_data) {
@@ -396,6 +423,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
             rdcc_nbytes = 0;
         }
 		hid_t dapl = H5Pcreate(H5P_DATASET_ACCESS);
+		//printf("using rdcc_nbytes=%d for dataset=%s\n", (int) rdcc_nbytes, getName().c_str());
 		H5Pset_chunk_cache(dapl, rdcc_nslots, rdcc_nbytes, H5D_CHUNK_CACHE_W0_DEFAULT);
 
 		*dataset_id = H5Dcreate2(loc_id, dataset_name, dtype_id, dataspace_id, H5P_DEFAULT, dcpl_id, dapl);
@@ -1042,6 +1070,7 @@ void HDF5DataSetHandler::readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelect
 
 void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     size_t s = hsSelectionReader.getSize2();
+    //printf("calling createDoubleBuffer for %s, id=%d, size(MB)=%f\n", getName().c_str(), (int) dataset_id, (double) ((s * sizeof(double))/1024./1024.));
     full_double_data_set_buffer = (double*) malloc(s* sizeof(double));
     herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_double_data_set_buffer);
     if (status < 0) {
@@ -1108,4 +1137,16 @@ void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indic
     else {
         readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == ualconst::char_data);
     }
+}
+
+bool HDF5DataSetHandler::isRequestInExtent(const std::vector < int >&current_arrctx_indices)
+{
+    if (current_arrctx_indices.size() == 0)
+        return true;
+    for (int i = 0; i < AOSRank; i++) {
+        if (current_arrctx_indices[i] > int (largest_dims[i] - 1)) {
+            return false;
+		}
+    }
+    return true;
 }
