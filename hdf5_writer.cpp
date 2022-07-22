@@ -10,8 +10,6 @@
 #include "ual_backend.h"
 #include <boost/filesystem.hpp>
 
-#define READ_CHUNK_CACHE_SIZE 5*1024*1024
-#define WRITE_CHUNK_CACHE_SIZE 5*1024*1024
 
 using namespace boost::filesystem;
 
