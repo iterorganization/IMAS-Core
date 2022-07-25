@@ -181,6 +181,8 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, const std:
         
 		this->tensorized_path = std::string(dataset_name);
         this->request_dim = dim;
+        
+        disableBufferingIfNotSupported(datatype, dim);
 		
 		if (datatype != ualconst::char_data) {
 			if (dim > 0 && !isTimed && timed_AOS_index == -1 && size) {
@@ -278,6 +280,11 @@ void HDF5DataSetHandler::showAOSShapes(std::string context, std::vector<int> &AO
 	}
 }
 
+void HDF5DataSetHandler::disableBufferingIfNotSupported(int datatype, int dim) {
+	if (dim > 1)
+	   useBuffering = false;
+}
+
 void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache) {
 	
 	assert(!slice_mode);
@@ -288,6 +295,8 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 	this->datatype = datatype;
 	this->shape_dataset = shape_dataset;
     this->request_dim = dim;
+    
+    disableBufferingIfNotSupported(datatype, dim);
 
 	for (int i = 0; i < AOSRank; i++) { //AOS axis creation
 			dims[i] = (hsize_t) AOSSize[i];

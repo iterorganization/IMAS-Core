@@ -47,6 +47,7 @@ class HDF5DataSetHandler {
     int setType();
 	void writeBuffer();
     void setBuffering(bool useBufferingOption);
+    void disableBufferingIfNotSupported(int datatype, int dim);
     void appendStringToBuffer(const std::vector < int >&current_arrctx_indices, char **data);
     void appendInt0DToBuffer(const std::vector < int >&current_arrctx_indices, void *data);
     void appendIntNDToBuffer(const std::vector < int >&current_arrctx_indices, void *data, int dim);
