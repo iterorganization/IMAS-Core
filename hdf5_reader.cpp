@@ -616,7 +616,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
         if (status < 0) {
-            printf("WARNING: Linear interpolation: unable to read data from the neighbor node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
+            printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             return exit_request(data_set, 0);
         }
         size_t N =  buffer / hsSelectionReader.dtype_size;
