@@ -10,6 +10,7 @@ LIBS+= $(MDSPLUS_DIR)/lib/TreeShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsIpShr.a
 LIBS+= $(MDSPLUS_DIR)/lib/MdsShr.a
 LIBS+= -lxml2 -lws2_32 -ldl -liphlpapi
+LIBS+= -lboost_filesystem-mt -lboost_system-mt
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
 endif # IMAS_MDSPLUS
