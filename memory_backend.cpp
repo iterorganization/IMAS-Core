@@ -707,7 +707,9 @@ else
 		}
 		else //ualconst::linear_interp not yet supported
 		{
-	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
+//	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->linearInterpol(topAos->aos[sliceIdx2], time, timesV[sliceIdx1], timesV[sliceIdx2]));
 		}
  	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //std::cout << "******************************************************" <<std::endl;
@@ -1615,4 +1617,40 @@ else
         for(size_t i = 0; i < aos.size(); i++)
 	    delete aos[i];
     }
+
+    UalAoS * UalAoS::linearInterpol(UalAoS *ualAos, double t, double t1, double t2) 
+    {
+	UalAoS *retAos = new UalAoS();
+	if(aos.size() != ualAos->aos.size())
+	    return retAos;
+	for( size_t i = 0; i < aos.size(); i++)
+	    retAos->aos.push_back(aos[i]->linearInterpol(ualAos->aos[i], t, t1, t2));
+	return retAos;
+    }
+    UalStruct *UalStruct::linearInterpol(UalStruct *ualStruct, double t, double t1, double t2)
+    {
+	UalStruct *retStruct = new UalStruct();
+	for(auto &field: dataFields)
+	{
+	    auto search = ualStruct->dataFields.find(field.first);
+      	    if (search!= ualStruct->dataFields.end()) //If an element with that path has been found 
+	    {
+		UalData *thisData = field.second;
+		UalData *thatData = ualStruct->dataFields.at(field.first);
+		if(thisData->isCompatible(thatData))
+		    retStruct->dataFields[field.first] = thisData->linearInterpol(thatData, t, t1, t2);
+	    }
+	}
+	for(auto &field: aosFields)
+	{
+	    auto search = ualStruct->aosFields.find(field.first);
+      	    if (search!= ualStruct->aosFields.end()) //If an element with that path has been found 
+	    {
+		UalAoS *thisAos = field.second;
+		UalAoS *thatAos = ualStruct->aosFields.at(field.first);
+		retStruct->aosFields[field.first] = thisAos->linearInterpol(thatAos, t, t1, t2);
+	    }
+	}
+	return retStruct;
+    } 
 
