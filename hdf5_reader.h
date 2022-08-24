@@ -26,6 +26,9 @@ class HDF5Reader {
     
     int homogeneous_time;
     std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
+    
+    int slice_mode;
+    std::string options;
 
     int getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, int *slice_sup, 
                       double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation);
@@ -49,15 +52,16 @@ class HDF5Reader {
     std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
     std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
+    int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     
 
   public:
 
-     HDF5Reader(std::string backend_version_);
+     HDF5Reader(std::string backend_version_, const std::string &options_);
     ~HDF5Reader();
 
-    static bool useBuffering;
-    int slice_mode;
+    
+    
 
     virtual void closePulse(PulseContext * ctx, int mode, std::string & options, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual int read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size);
@@ -68,6 +72,7 @@ class HDF5Reader {
     void close_datasets();
     void close_group(OperationContext *ctx);
     void endAction(Context * ctx);
+    void setSliceMode(int slice_mode);
 };
 
 #endif

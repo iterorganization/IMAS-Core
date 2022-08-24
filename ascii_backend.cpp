@@ -202,6 +202,18 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     if (this->pulsefile.fail())
       throw UALBackendException("Failed to open file "+this->fname+" in read mode",LOG);
     this->curcontent << this->pulsefile.rdbuf();
+    this->curcontent_map.clear();
+    while (std::getline(this->curcontent, this->curline)) {
+      if (this->curline.find('/') != std::string::npos)
+      {
+        // all fields contain a forward slash on their line, assume that other lines don't
+        // though this may match string field values, this shouldn't matter
+        // (unless the string field value masks a field name, but that's already a problem)
+        // alternative is to completely parse the file now
+        this->curcontent_map[this->curline] = this->curcontent.tellg();
+      }
+    }
+    this->curcontent.clear(); // clear eof bit
     break;
   case WRITE_OP: 
     this->writemode = true; 
@@ -451,26 +463,14 @@ int AsciiBackend::readData(Context *ctx,
     pathname = this->idsname + this->getArraystructPath(aosctx) + "/" + fieldname;
   }
 
-  std::streampos backup_pos = this->curcontent.tellg();
-  if (this->curline == "") {
-    std::getline(this->curcontent, this->curline);
+  auto seekpos = this->curcontent_map.find(pathname);
+  if(seekpos == this->curcontent_map.end()) {
+    // not found
+    return 0;
   }
 
-  if (this->curline != pathname) { // not found, try to find it further in file
-    bool found = false;
-    while (std::getline(this->curcontent, this->curline)) {
-      if (this->curline == pathname) {
-	found = true;
-	break;
-      }
-    }
-    if (!found) {
-      this->curcontent.clear();
-      this->curcontent.seekg(backup_pos, std::ios::beg);
-      this->curline = "";
-      return 0;
-    }
-  }
+  this->curcontent.seekg((*seekpos).second);
+  this->curline = pathname;
 
   if (this->curline == pathname) { // found, process the content
     std::getline(this->curcontent,this->curline,':'); 

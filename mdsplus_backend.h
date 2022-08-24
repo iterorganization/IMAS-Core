@@ -92,7 +92,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     MDSplus::Apd *readApd(MDSplus::Tree *tree, std::string dataobjectPath, std::string path);
     MDSplus::Apd *readDynamicApd(std::string dataobjectPath, std::string path);
     MDSplus::Apd *readDynamicLazyApd(MDSplus::TreeNode *node);
-    MDSplus::Apd *readSliceApd(MDSplus::TreeNode *inNode, std::string timebase, double time, int interpolation);
+    MDSplus::Apd *readSliceApd(MDSplus::TreeNode *inNode, std::string timebase, double time, int interpolation, std::string currPath);
     MDSplus::Apd *getApdSliceAt(MDSplus::TreeNode *node, int idx);
     MDSplus::Data *getFromApd(MDSplus::Apd *apd, int idx, std::string path, ArraystructContext *ctx = NULL);
     void fillApdSlicesAroundIdx(MDSplus::Apd *apd, int sliceIdx);
@@ -100,9 +100,9 @@ class LIBRARY_API MDSplusBackend:public Backend
     bool checkStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2);
     bool checkStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2);
     bool checkStructItem(MDSplus::Data *item1, MDSplus::Data *item2);
-    MDSplus::Apd *interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2);
-    MDSplus::Apd *interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2);
-    MDSplus::Data *interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2);
+    MDSplus::Apd *interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath);
+    MDSplus::Apd *interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath, bool firstRec);
+    MDSplus::Data *interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2, std::string currPath);
     MDSplus::Apd *resolveApdSliceFields(MDSplus::Apd *apd, double time, int interplolation, std::string timebasePath, std::string dataobjectPath);
     MDSplus::Apd *resolveApdTimedFields(MDSplus::Apd *apd);
     void resolveApdField(MDSplus::Apd *apd, ArraystructContext *ctx);

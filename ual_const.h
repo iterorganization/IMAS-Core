@@ -76,12 +76,16 @@ namespace ualconst {
   const int double_data = DOUBLE_DATA;
   const int complex_data = COMPLEX_DATA;
 
+  const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
+  const int default_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
+
   const std::array<std::string,6> backend_id_str = {{"NO_BACKEND","ASCII_BACKEND","MDSPLUS_BACKEND","HDF5_BACKEND","MEMORY_BACKEND","UDA_BACKEND"}};
   const std::array<std::string,2> op_range_str = {{"GLOBAL_OP","SLICE_OP"}};
   const std::array<std::string,3> op_access_str = {{"READ_OP","WRITE_OP","REPLACE_OP"}};
   const std::array<std::string,4> op_interp_str = {{"UNDEFINED_INTERP","CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP"}};
   const std::array<std::string,6> access_pulse_str = {{"OPEN_PULSE","FORCE_OPEN_PULSE","CREATE_PULSE","FORCE_CREATE_PULSE","CLOSE_PULSE","ERASE_PULSE"}};
   const std::array<std::string,4> data_type_str = {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};
+  const std::array<std::string,1> serializer_protocol_str = {{"ASCII_SERIALIZER_PROTOCOL"}};
 }
 
 namespace ualerror {
