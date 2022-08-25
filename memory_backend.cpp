@@ -688,10 +688,30 @@ else
 	    	    currTimebase = topAos->timebase;
 
  	        getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
- 	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
-//For the moment only PREVIOUS SAMPLE is supported
 
-	        currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		{
+		     currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		}
+		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		{
+		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
+		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
+		    {
+		     	currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+		    }
+		    else
+		    {
+		     	currentAos.aos.push_back(topAos->aos[sliceIdx2]->clone());
+		    }
+		}
+		else //ualconst::linear_interp not yet supported
+		{
+		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
+//	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
+	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->linearInterpol(topAos->aos[sliceIdx2], time, timesV[sliceIdx1], timesV[sliceIdx2]));
+		}
+ 	    //getSliceIdxs(topAos->timebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 //std::cout << "******************************************************" <<std::endl;
 //currentAos.dump(0);
 //std::cout << "******************************************************" <<std::endl;
@@ -700,6 +720,8 @@ else
 	    }
 	    for(size_t i = 0; i < topAos->aos.size(); i++)
 	    {
+	   	StructPath currSp(topAos->aos[i], ctx->getPath()); //Gabriele May 2022
+		ctxV[ctxV.size() - 1] = currSp;
 	        currentAos.aos.push_back(prepareSliceRec(ctx, *topAos->aos[i], *ids, time, ctxV, topAos));
 	    }
 	}
@@ -719,7 +741,8 @@ else
 	OperationContext newCtx(ctx->getOperationContext()->getDataEntryContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
-	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	free((char *)timeData);
@@ -733,7 +756,8 @@ else
 	int numDims;
 	int dims[16];
 	
-	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	return retData;
@@ -771,9 +795,30 @@ else
 		newCtxV.push_back(sp);
 
 	        getSliceIdxs(currAos->timebase, time, newCtxV, sliceIdx1, sliceIdx2, currAos);
-//For the moment only PREVIOUS SAMPLE is supported
+
 		newAos = new UalAoS;
-		newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		{
+		     newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		}
+		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		{
+		    std::vector<double> timesV = getTimebaseVect(currAos->timebase, newCtxV, currAos);
+		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
+		    {
+		     	newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		    }
+		    else
+		    {
+		     	newAos->aos.push_back(currAos->aos[sliceIdx2]->clone());
+		    }
+		}
+		else //ualconst::linear_interp not yet supported
+		{
+	            newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
+		}
+//For the moment only PREVIOUS SAMPLE is supported
+		//newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
 	    }
 	    else
 	    {
@@ -1572,4 +1617,40 @@ else
         for(size_t i = 0; i < aos.size(); i++)
 	    delete aos[i];
     }
+
+    UalAoS * UalAoS::linearInterpol(UalAoS *ualAos, double t, double t1, double t2) 
+    {
+	UalAoS *retAos = new UalAoS();
+	if(aos.size() != ualAos->aos.size())
+	    return retAos;
+	for( size_t i = 0; i < aos.size(); i++)
+	    retAos->aos.push_back(aos[i]->linearInterpol(ualAos->aos[i], t, t1, t2));
+	return retAos;
+    }
+    UalStruct *UalStruct::linearInterpol(UalStruct *ualStruct, double t, double t1, double t2)
+    {
+	UalStruct *retStruct = new UalStruct();
+	for(auto &field: dataFields)
+	{
+	    auto search = ualStruct->dataFields.find(field.first);
+      	    if (search!= ualStruct->dataFields.end()) //If an element with that path has been found 
+	    {
+		UalData *thisData = field.second;
+		UalData *thatData = ualStruct->dataFields.at(field.first);
+		if(thisData->isCompatible(thatData))
+		    retStruct->dataFields[field.first] = thisData->linearInterpol(thatData, t, t1, t2);
+	    }
+	}
+	for(auto &field: aosFields)
+	{
+	    auto search = ualStruct->aosFields.find(field.first);
+      	    if (search!= ualStruct->aosFields.end()) //If an element with that path has been found 
+	    {
+		UalAoS *thisAos = field.second;
+		UalAoS *thatAos = ualStruct->aosFields.at(field.first);
+		retStruct->aosFields[field.first] = thisAos->linearInterpol(thatAos, t, t1, t2);
+	    }
+	}
+	return retStruct;
+    } 
 

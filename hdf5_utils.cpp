@@ -24,7 +24,7 @@ HDF5Utils::~HDF5Utils()
 bool HDF5Utils::debug = false;
 
 int
- HDF5Utils::openPulse(DataEntryContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::openPulse(DataEntryContext * ctx, int mode, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -104,7 +104,7 @@ int
 }
 
 void
- HDF5Utils::createPulse(DataEntryContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
+ HDF5Utils::createPulse(DataEntryContext * ctx, int mode, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
 {
     HDF5Utils hdf5_utils;
     pulseFilePath = hdf5_utils.pulseFilePathFactory(ctx, mode, files_paths_strategy, files_directory, relative_file_path);
@@ -760,3 +760,68 @@ void HDF5Utils::removeLinkFromMasterPulseFile(hid_t &file_id, const std::string 
         throw UALBackendException(error_message, LOG);
     }
 }
+
+void HDF5Utils::setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering) {
+	char* read_cache_value_str = getenv("HDF5_BACKEND_READ_CACHE");
+    if (read_cache_value_str != NULL)
+	   *read_cache = (size_t) (atof(read_cache_value_str) * 1024 * 1024);
+	char* write_cache_value_str = getenv("HDF5_BACKEND_WRITE_CACHE");
+    if (write_cache_value_str != NULL)
+	   *write_cache = (size_t) (atof(write_cache_value_str) * 1024 * 1024);
+	*readBuffering = true;
+	*writeBuffering = true;
+}
+
+void HDF5Utils::readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug) {
+
+    char str[1024];
+    strcpy(str, options.c_str());
+    const char * separator = ",";
+    char * strToken = strtok ( str, separator );
+    char option[100];
+    while ( strToken != NULL ) {
+        std::string opt(strToken);
+        strcpy(option, strToken);
+        if (strcmp(strToken, "-no_compression") == 0) {
+			 *compression_enabled = false;
+		}
+		else if (strcmp(strToken, "-no_read_buffering") == 0) {
+			 *readBuffering = false;
+		}
+		else if (strcmp(strToken, "-no_write_buffering") == 0) {
+			 *writeBuffering = false;
+		}
+		else if (strcmp(strToken, "-debug") == 0) {
+			 *debug = true;
+		}
+        else if (opt.find("read_cache") != std::string::npos) {
+			getOptionCacheValue(strToken, read_cache);
+		}
+		else if (opt.find("write_cache") != std::string::npos) {
+			getOptionCacheValue(strToken, write_cache);
+		}
+		strToken = strtok ( NULL, separator );
+    }
+}
+
+void HDF5Utils::getOptionCacheValue(char* option, size_t *value) {
+	char tmp[100];
+	strcpy(tmp, option);
+	const char * equal_separator = "=";
+	char * strToken = strtok ( tmp, equal_separator );
+	if ( strToken != NULL ) {
+        strToken = strtok ( NULL, equal_separator );
+        if (strToken != NULL ) {
+			*value = (size_t) (atof(strToken) * 1024 * 1024);
+		}
+		else {
+			std::string error = "Expected value for option: " + std::string(strToken);
+			throw UALBackendException(error.c_str(), LOG);
+		}
+    }
+    else {
+		throw UALBackendException("Unexpected error in HDF5Utils::getOptionCacheValue()", LOG);
+	}
+}
+
+

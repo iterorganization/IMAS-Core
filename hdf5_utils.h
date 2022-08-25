@@ -40,6 +40,8 @@ class HDF5Utils {
     void createMasterFile(DataEntryContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
     void openMasterFile(hid_t *file_id, const std::string &filePath);
     void initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
+    
+    void getOptionCacheValue(char* option, size_t *value);
 
   public:
 
@@ -48,9 +50,9 @@ class HDF5Utils {
 
     static bool debug;
 
-    static int openPulse(DataEntryContext * ctx, int mode, std::string & options, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
+    static int openPulse(DataEntryContext * ctx, int mode, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
 
-    static void createPulse(DataEntryContext * ctx, int mode, std::string & options, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
+    static void createPulse(DataEntryContext * ctx, int mode, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
 
      std::string pulseFilePathFactory(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
      std::string getShotNumber(DataEntryContext * ctx);
@@ -83,6 +85,8 @@ class HDF5Utils {
     void setTensorizedPaths(ArraystructContext * ctx, std::vector < std::string > &tensorized_paths);
     void showStatus(hid_t file_id);
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
+    void setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering);
+    void readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug);
 
 };
 
