@@ -7,6 +7,7 @@
 #include "hdf5_dataset_handler.h"
 #include <math.h>
 #include <stdlib.h>
+#include <limits>
 
 HDF5Reader::HDF5Reader(std::string backend_version_, const std::string &options_)
 :  backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), 
