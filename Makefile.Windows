@@ -31,8 +31,8 @@ LIBS+= $(UDA_HOME)/lib/libuda_cpp.a
 LIBS+= $(UDA_HOME)/lib/libportablexdr.a
 LIBS+= -lws2_32 -lssl -lcrypto
 endif
-COMMON_OBJECTS+= uda_backend.o
-CPPSRC+=uda_backend.cpp
+COMMON_OBJECTS+=uda_backend.o uda_cache.o uda_path.o uda_xml.o pugixml.o
+CPPSRC+=uda_backend.cpp uda_cache.cpp uda_path.cpp uda_xml.cpp pugixml.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
