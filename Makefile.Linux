@@ -24,8 +24,8 @@ CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
 endif
 LIBS+= -lssl -lcrypto
-COMMON_OBJECTS+= uda_backend.o
-CPPSRC+=uda_backend.cpp
+COMMON_OBJECTS+=uda_backend.o uda_cache.o uda_path.o uda_xml.o pugixml.o
+CPPSRC+=uda_backend.cpp uda_cache.cpp uda_path.cpp uda_xml.cpp pugixml.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------

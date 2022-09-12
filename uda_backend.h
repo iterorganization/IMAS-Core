@@ -20,6 +20,8 @@
 #include "ual_const.h"
 #include "ual_context.h"
 #include "ual_defs.h"
+#include "uda_xml.hpp"
+#include "uda_cache.hpp"
 
 #define NODENAME_MANGLING  //Use IMAS mangling
 
@@ -34,7 +36,10 @@
 static const int UDA_BACKEND_VERSION_MAJOR = 0;
 static const int UDA_BACKEND_VERSION_MINOR = 0;
 
-class LIBRARY_API MachineMapping
+namespace imas {
+namespace uda {
+
+class MachineMapping
 {
 public:
     MachineMapping() : mappings_{}
@@ -72,7 +77,7 @@ public:
                 boost::split(args, arg_string, boost::is_any_of(","), boost::token_compress_on);
             }
 
-            mappings_[machine] = MappingValue{ plugin, args };
+            mappings_[machine] = MappingValue{plugin, args};
         }
     }
 
@@ -95,7 +100,8 @@ public:
     }
 
 private:
-    struct MappingValue {
+    struct MappingValue
+    {
         std::string plugin;
         std::vector<std::string> args;
     };
@@ -103,35 +109,55 @@ private:
     std::unordered_map<std::string, MappingValue> mappings_;
 };
 
+enum class CacheMode
+{
+    None,
+    IDS,
+    Struct,
+};
+
+}
+}
+
 class LIBRARY_API UDABackend : public Backend
 {
 private:
-    bool verbose = false;
-    std::string plugin = "IMAS_MAPPING";
-    uda::Client uda_client;
-    int ctx_id = -1;
-    MachineMapping machine_mapping;
+    bool verbose_ = false;
+    std::string plugin_ = "IMAS";
+    uda::Client uda_client_;
+    imas::uda::MachineMapping machine_mapping_ = {};
+    std::shared_ptr<pugi::xml_document> doc_ = {};
+    imas::uda::CacheType cache_ = {};
+    imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
+    std::map<std::string, std::string> env_options_ = {};
+
+    void process_option(const std::string& option);
+    void process_options(const std::string& options);
+    void load_env_options();
+    void populate_cache(const std::string& ids, const std::string& path, PulseContext* pulse_ctx, OperationContext* op_ctx);
 
 public:
 
-    explicit UDABackend(bool verb=false) : verbose(verb)
+    explicit UDABackend(bool verb=false) : verbose_(verb)
     {
-        const char* env = getenv("UDA_PLUGIN");
+        const char* env = getenv("IMAS_UDA_PLUGIN");
         if (env != nullptr) {
-            plugin = env;
+            plugin_ = env;
         }
 
-        if (verbose) {
+        doc_ = imas::uda::load_xml();
+
+        if (verbose_) {
             std::cout << "UDABackend constructor\n";
-            std::cout << "UDA Server: " << uda_client.serverHostName() << "\n";
-            std::cout << "UDA Port: " << uda_client.serverPort() << "\n";
-            std::cout << "UDA Plugin: " << plugin << "\n";
+            std::cout << "UDA Server: " << uda_client_.serverHostName() << "\n";
+            std::cout << "UDA Port: " << uda_client_.serverPort() << "\n";
+            std::cout << "UDA Plugin: " << plugin_ << "\n";
         }
     }
 
     ~UDABackend() override
     {
-        if (verbose) {
+        if (verbose_) {
             std::cout << "UDABackend destructor\n";
         }
     }
