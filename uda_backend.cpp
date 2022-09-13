@@ -169,7 +169,8 @@ int UDABackend::readData(Context* ctx,
            << "ctxId=" << ctx_id
            << ", field='" << fieldname << "'"
            << ", timebase='" << timebasename << "'"
-           << ", datatype=" << *datatype;
+           << ", datatype=" << *datatype
+           << ", rank=" << *dim;
         if (arrCtx != nullptr) {
             ss << ", index=" << arrCtx->getIndex() + 1;
         }
