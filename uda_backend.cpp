@@ -121,6 +121,7 @@ void UDABackend::openPulse(PulseContext* ctx,
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
     }
+    open_mode_ = mode;
 
     load_env_options();
     process_options(options);
@@ -198,6 +199,7 @@ void UDABackend::closePulse(PulseContext* ctx,
        << ", user='" << ctx->getUser() << "'"
        << ", tokamak='" << ctx->getTokamak() << "'"
        << ", version='" << ctx->getVersion() << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
        << ")";
 
     std::string directive = ss.str();
@@ -267,6 +269,7 @@ int UDABackend::readData(Context* ctx,
                << ", user='" << pulse_ctx->getUser() << "'"
                << ", tokamak='" << pulse_ctx->getTokamak() << "'"
                << ", version='" << pulse_ctx->getVersion() << "'"
+               << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
                << ", dataObject='" << op_ctx->getDataobjectName() << "'"
                << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
                << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
@@ -346,9 +349,56 @@ int UDABackend::readData(Context* ctx,
     }
 }
 
+bool UDABackend::get_homogeneous_flag(const std::string& ids, PulseContext* pulse_ctx, OperationContext* op_ctx)
+{
+    if (verbose_) {
+        std::cout << "UDABackend getting homogeneous_time\n";
+    }
+
+    std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
+    std::string path = ids + "/ids_properties/homogeneous_time";
+
+    std::stringstream ss;
+    ss << plugin_
+       << "::get(backend='"<< backend << "'"
+       << ", shot=" << pulse_ctx->getShot()
+       << ", run=" << pulse_ctx->getRun()
+       << ", user='" << pulse_ctx->getUser() << "'"
+       << ", tokamak='" << pulse_ctx->getTokamak() << "'"
+       << ", version='" << pulse_ctx->getVersion() << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
+       << ", dataObject='" << ids << "'"
+       << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
+       << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
+       << ", time=-999"
+       << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
+       << ", path='" << path << "'"
+       << ", datatype='integer'"
+       << ", rank=0"
+       << ", is_homogeneous=0"
+       << ", dynamic_flags=0)";
+
+    std::string directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    const uda::Result& result = uda_client_.get(directive, "");
+    uda::Data* uda_data = result.data();
+
+    imas::uda::add_data_to_cache(result, cache_);
+    if (cache_.count(path)) {
+        auto& cache_data = cache_.at(path);
+        return boost::get<std::vector<int>>(cache_data.values).at(0);
+    } else {
+        throw UALBackendException(std::string("Invalid result for ids_properties/homogeneous_time: ") + uda_data->type().name(), LOG);
+    }
+}
+
 void UDABackend::populate_cache(const std::string& ids, const std::string& path, PulseContext* pulse_ctx, OperationContext* op_ctx)
 {
-    bool is_homogeneous = true; // TODO: get this from UDA
+    bool is_homogeneous = get_homogeneous_flag(ids, pulse_ctx, op_ctx);
 
     auto nodes = doc_->child("IDSs");
 
@@ -373,14 +423,16 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         std::stringstream ss;
 
         std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
+        std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
 
         ss << plugin_
-           << "::get(backend='mdsplus'"
+           << "::get(backend='"<< backend << "'"
            << ", shot=" << pulse_ctx->getShot()
            << ", run=" << pulse_ctx->getRun()
            << ", user='" << pulse_ctx->getUser() << "'"
            << ", tokamak='" << pulse_ctx->getTokamak() << "'"
            << ", version='" << pulse_ctx->getVersion() << "'"
+           << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
            << ", dataObject='" << ids << "'"
            << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
            << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"

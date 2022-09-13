@@ -130,11 +130,13 @@ private:
     imas::uda::CacheType cache_ = {};
     imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
     std::map<std::string, std::string> env_options_ = {};
+    int open_mode_ = 0;
 
     void process_option(const std::string& option);
     void process_options(const std::string& options);
     void load_env_options();
     void populate_cache(const std::string& ids, const std::string& path, PulseContext* pulse_ctx, OperationContext* op_ctx);
+    bool get_homogeneous_flag(const std::string& ids, PulseContext* pulse_ctx, OperationContext* op_ctx);
 
 public:
 
