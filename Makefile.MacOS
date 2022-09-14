@@ -6,7 +6,7 @@ LIBS+= -lpthread
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
+LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lboost_filesystem
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
 endif # IMAS_MDSPLUS
@@ -72,7 +72,7 @@ libal.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(LN_S) $< $(libdir)/$*.so
 
 # Additional executable
-printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS)
 
 # Static library

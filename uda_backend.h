@@ -135,8 +135,8 @@ private:
     void process_option(const std::string& option);
     void process_options(const std::string& options);
     void load_env_options();
-    void populate_cache(const std::string& ids, const std::string& path, PulseContext* pulse_ctx, OperationContext* op_ctx);
-    bool get_homogeneous_flag(const std::string& ids, PulseContext* pulse_ctx, OperationContext* op_ctx);
+    void populate_cache(const std::string& ids, const std::string& path, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
+    bool get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
 
 public:
 
