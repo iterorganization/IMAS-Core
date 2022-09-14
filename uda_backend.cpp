@@ -44,7 +44,7 @@ std::string array_path(Context* ctx, bool for_dim = false)
 
 }
 
-std::pair<int, int> UDABackend::getVersion(PulseContext* ctx)
+std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
 {
     std::pair<int, int> version;
     if (ctx == NULL) {
@@ -114,9 +114,8 @@ void UDABackend::load_env_options()
     }
 }
 
-void UDABackend::openPulse(PulseContext* ctx,
-                           int mode,
-                           std::string options)
+void UDABackend::openPulse(DataEntryContext* ctx,
+                           int mode)
 {
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
@@ -124,7 +123,7 @@ void UDABackend::openPulse(PulseContext* ctx,
     open_mode_ = mode;
 
     load_env_options();
-    process_options(options);
+    process_options(ctx->getOptions());
 
     std::vector<std::string> init_args = {};
     std::string mapped_plugin = machine_mapping_.plugin(ctx->getTokamak());
@@ -179,9 +178,8 @@ void UDABackend::openPulse(PulseContext* ctx,
     }
 }
 
-void UDABackend::closePulse(PulseContext* ctx,
-                            int mode,
-                            std::string options)
+void UDABackend::closePulse(DataEntryContext* ctx,
+                            int mode)
 {
     if (verbose_) {
         std::cout << "UDABackend closePulse\n";
@@ -258,7 +256,7 @@ int UDABackend::readData(Context* ctx,
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
-            auto pulse_ctx = op_ctx->getPulseContext();
+            auto pulse_ctx = op_ctx->getDataEntryContext();
 
             std::stringstream ss;
 
@@ -349,7 +347,7 @@ int UDABackend::readData(Context* ctx,
     }
 }
 
-bool UDABackend::get_homogeneous_flag(const std::string& ids, PulseContext* pulse_ctx, OperationContext* op_ctx)
+bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx)
 {
     if (verbose_) {
         std::cout << "UDABackend getting homogeneous_time\n";
@@ -396,7 +394,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, PulseContext* puls
     }
 }
 
-void UDABackend::populate_cache(const std::string& ids, const std::string& path, PulseContext* pulse_ctx, OperationContext* op_ctx)
+void UDABackend::populate_cache(const std::string& ids, const std::string& path, DataEntryContext* pulse_ctx, OperationContext* op_ctx)
 {
     bool is_homogeneous = get_homogeneous_flag(ids, pulse_ctx, op_ctx);
 
@@ -502,7 +500,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
     }
 
     auto op_ctx = ctx->getOperationContext();
-    auto pulse_ctx = op_ctx->getPulseContext();
+    auto pulse_ctx = op_ctx->getDataEntryContext();
 
     auto ids = op_ctx->getDataobjectName();
     auto path = ids + "/" + array_path(ctx, true);
@@ -582,7 +580,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
     }
 
     std::string ids = op_ctx->getDataobjectName();
-    auto pulse_ctx = op_ctx->getPulseContext();
+    auto pulse_ctx = op_ctx->getDataEntryContext();
 
     if (cache_.count(ids)) {
         if (verbose_) {
