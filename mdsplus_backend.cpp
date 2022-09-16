@@ -2460,6 +2460,7 @@ void MDSplusBackend::setDataEnv(const char *user, const char *tokamak, const cha
 		    sprintf(&expr[strlen(expr)], "%d])*%e)", idx-1, (time - times[idx-1])/(times[idx]-times[idx-1]));
                   idxInSegment = -1;
 		  break;
+
 		default:
 		  MDSplus::deleteData(segData);
 		 // MDSplus::deleteData(segDim);
@@ -3470,7 +3471,6 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    	    	    free((char *)timebase);
 			    MDSplus::deleteData(apd);
 			    MDSplus::deleteData(apd1);
-
 		    	    return retApd; //Already an array of structures
 			}
 		/*	else  //AoS are not compatible (should ever happen)
@@ -3754,6 +3754,20 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	}
 	//At this point it may be either a subdirectory or an AoS
 	MDSplus::Apd *currItem1 = (MDSplus::Apd* )apd1->getDescAt(1);
+//Gabriele September 2022: handle the case of interpolating empty AoS
+	if(currItem1->len() == 0)
+	{
+	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
+	    if(currItem2->len() > 0)
+	    {
+	    	std::cout << "WARNING: Linear interpolation node possible for node "+currPath << std::endl;
+		MDSplus::deleteData(interpApd);
+		return NULL;
+	    }
+	    interpApd->appendDesc(new MDSplus::Apd());
+	    return interpApd;
+	}
+//////////////////////
 	if(currItem1->len() > 0 && currItem1->getDescAt(0)->clazz == CLASS_APD) //If the field is an AoS
 	{
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
