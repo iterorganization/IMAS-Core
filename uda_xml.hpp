@@ -4,6 +4,8 @@
 #define IMAS_UDA_PREFETCH_UDA_XML_HPP
 
 #include <map>
+#include <memory>
+#include <vector>
 
 #include "pugixml.hpp"
 

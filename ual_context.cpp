@@ -351,24 +351,24 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
 
 std::string DataEntryContext::getURIBackend(int backend_id)
 {
-    std::string backend;
-
     if (backend_id == MDSPLUS_BACKEND) {
-        backend = "mdsplus";
+        return "mdsplus";
     }
     else if (backend_id == HDF5_BACKEND) {
-        backend = "hdf5";
+        return "hdf5";
     }
     else if (backend_id == ASCII_BACKEND) {
-        backend = "ascii";
+        return "ascii";
     }
     else if (backend_id == MEMORY_BACKEND) {
-        backend = "memory";
+        return "memory";
     }
     else if (backend_id == UDA_BACKEND) {
+        return "uda";
+    }
+    else {
         throw UALContextException("getURIBackend, converting backend ID to backend URI string not yet implemented",LOG);
     }
-    return backend;
 }
 
 
