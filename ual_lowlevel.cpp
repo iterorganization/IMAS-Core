@@ -1051,6 +1051,7 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
         status.code = ualerror::lowlevel_err;
         UALException::registerStatus(status.message, __func__, e);
     }
+    return status;
 }
 
 //HLI Wrappers for calling LL functions - Call plugins if required
