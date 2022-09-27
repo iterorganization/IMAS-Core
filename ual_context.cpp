@@ -63,7 +63,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   setBackendID(uri_object.path, uri_object.authority.host);
 
   std::string userFromURI;
-  if(uri::queryParameter("user", userFromURI, uri_object))
+  if (uri::queryParameter("user", userFromURI, uri_object))
     user = userFromURI;
   else {
     char *usr = std::getenv("USER"); 
@@ -72,7 +72,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
 
   std::string databaseFromURI;
-  if(uri::queryParameter("database", databaseFromURI, uri_object))
+  if (uri::queryParameter("database", databaseFromURI, uri_object))
     tokamak = databaseFromURI;
   else {
     char *tok = std::getenv("TOKAMAKNAME");
@@ -81,7 +81,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
 
   std::string versionFromURI;
-  if(uri::queryParameter("version", versionFromURI, uri_object))
+  if (uri::queryParameter("version", versionFromURI, uri_object))
       version = versionFromURI;
   else {
     char *ver = std::getenv("DATAVERSION");
@@ -108,7 +108,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
 
   std::string pathFromURI;
-  if(uri::queryParameter("path", pathFromURI, uri_object))
+  if (uri::queryParameter("path", pathFromURI, uri_object))
       path = pathFromURI;
       
   if (!pathFromURI.empty() && (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty())) {
@@ -116,11 +116,11 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
   
   std::string pulseFromURI;
-   if(uri::queryParameter("pulse", pulseFromURI, uri_object))
+  if (uri::queryParameter("pulse", pulseFromURI, uri_object))
       pulse = pulseFromURI;
 
   std::string shotFromURI;
-  if(uri::queryParameter("shot", shotFromURI, uri_object)) {
+  if (uri::queryParameter("shot", shotFromURI, uri_object)) {
 	  try {
           shot = std::stoi(shotFromURI);
        }
@@ -130,7 +130,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
 
   std::string runFromURI;
-  if(uri::queryParameter("run", runFromURI, uri_object)) {
+  if (uri::queryParameter("run", runFromURI, uri_object)) {
       try {
           run = std::stoi(runFromURI);
        }
@@ -173,7 +173,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   }
 
   std::string optionsFromURI;
-  if(uri::queryParameter("options", optionsFromURI, uri_object))
+  if (uri::queryParameter("options", optionsFromURI, uri_object))
       options = optionsFromURI;
 
   this->uid = ++SID;
@@ -302,19 +302,17 @@ std::string DataEntryContext::getPath() {
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
-
-    if (path.compare("mdsplus") == 0)
+    if (path == "mdsplus") {
         backend_id = MDSPLUS_BACKEND;
-    else if (path.compare("hdf5") == 0)
+    } else if (path =="hdf5") {
         backend_id = HDF5_BACKEND;
-    else if (path.compare("ascii") == 0)
+    } else if (path =="ascii") {
         backend_id = ASCII_BACKEND;
-    else if (path.compare("memory") == 0)
+    } else if (path =="memory") {
         backend_id = MEMORY_BACKEND;
-    else if (!host.empty()){
-           backend_id = UDA_BACKEND;
-    }
-    else {
+    } else if (path == "uda" || !host.empty()) {
+        backend_id = UDA_BACKEND;
+    } else {
         throw UALContextException("Unable to identify a backend from the URI",LOG);
     }
 }
