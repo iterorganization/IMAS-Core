@@ -78,12 +78,12 @@ int DataEntryContext::getType() const
 
 int DataEntryContext::getBackendID() const
 { 
-  return this->backend_id; 
+  return this->backend_id;
 }
 
 std::string DataEntryContext::getBackendName() const 
 { 
-  return std::string(const2str(this->backend_id)); 
+  return std::string(const2str(this->backend_id));
 }
 
 std::string DataEntryContext::getOptions() const
@@ -171,19 +171,17 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
-
-    if (path.compare("mdsplus") == 0)
+    if (path == "mdsplus") {
         backend_id = MDSPLUS_BACKEND;
-    else if (path.compare("hdf5") == 0)
+    } else if (path =="hdf5") {
         backend_id = HDF5_BACKEND;
-    else if (path.compare("ascii") == 0)
+    } else if (path =="ascii") {
         backend_id = ASCII_BACKEND;
-    else if (path.compare("memory") == 0)
+    } else if (path =="memory") {
         backend_id = MEMORY_BACKEND;
-    else if (!host.empty()){
-           backend_id = UDA_BACKEND;
-    }
-    else {
+    } else if (path == "uda" || !host.empty()) {
+        backend_id = UDA_BACKEND;
+    } else {
         throw UALContextException("Unable to identify a backend from the URI",LOG);
     }
 }
@@ -322,9 +320,9 @@ uri::Uri OperationContext::getURI() const
   return getDataEntryContext()->getURI();
 }
 
-std::string OperationContext::getBackendName() const 
+std::string OperationContext::getBackendName() const
 { 
-  return std::string(const2str(getDataEntryContext()->getBackendID())); 
+  return std::string(const2str(getDataEntryContext()->getBackendID()));
 }
 
 std::string OperationContext::getDataobjectName() const
@@ -413,9 +411,9 @@ uri::Uri ArraystructContext::getURI() const
   return getOperationContext()->getURI();
 }
 
-std::string ArraystructContext::getBackendName() const 
+std::string ArraystructContext::getBackendName() const
 { 
-  return std::string(const2str(getOperationContext()->getBackendID())); 
+  return std::string(const2str(getOperationContext()->getBackendID()));
 }
 
 std::string ArraystructContext::getPath() const
@@ -453,7 +451,7 @@ DataEntryContext* ArraystructContext::getDataEntryContext() const
   return opctx->getDataEntryContext();
 }
 
-void ArraystructContext::nextIndex(int step) 
+void ArraystructContext::nextIndex(int step)
 { 
   this->index += step; 
 }

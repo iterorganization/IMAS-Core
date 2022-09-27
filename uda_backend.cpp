@@ -232,24 +232,42 @@ int UDABackend::readData(Context* ctx,
             std::cout << "UDABackend readData: found " << path << " in cache\n";
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
+        *dim = cache_data.shape.size();
         switch (*datatype) {
             case INTEGER_DATA: {
                 auto& vec = boost::get<std::vector<int>>(cache_data.values);
-                *data = vec.data();
+                if (*dim == 0) {
+                    int* d = (int*)malloc(sizeof(int));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
+                }
                 break;
             }
             case DOUBLE_DATA: {
                 auto& vec = boost::get<std::vector<double>>(cache_data.values);
-                *data = vec.data();
+                if (*dim == 0) {
+                    double* d = (double*)malloc(sizeof(double));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
+                }
                 break;
             }
             case CHAR_DATA: {
                 auto& vec = boost::get<std::vector<char>>(cache_data.values);
-                *data = vec.data();
+                if (*dim == 0) {
+                    char* d = (char*)malloc(sizeof(char));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
+                }
                 break;
             }
         }
-        *dim = cache_data.shape.size();
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
         return 1;
     } else if (cache_mode_ == imas::uda::CacheMode::None) {
@@ -465,7 +483,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 
     std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
 
-    constexpr size_t N = 50;
+    constexpr size_t N = 20;
+    std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
     try {
         size_t n = 0;
         while (n < uda_requests.size()) {
@@ -594,6 +613,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
         cache_.clear();
         populate_cache(ids, ids, pulse_ctx, op_ctx);
+        cache_[ids] = { {}, {} };
     } else {
         std::stringstream ss;
         ss << plugin_
