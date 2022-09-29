@@ -2,7 +2,7 @@
 #include <typeinfo>
 #include <iomanip>
 #include <limits>
-
+#include <boost/filesystem.hpp>
 
 
 // allow to read back "nans"
@@ -107,13 +107,34 @@ AsciiBackend::AsciiBackend()
 void AsciiBackend::openPulse(DataEntryContext *ctx,
 			int mode)
 {
-  std::string options = ctx != nullptr ? ctx->getOptions() : "";
   size_t n;
-  this->dbname = ctx->getTokamak() + "_" 
-    + std::to_string(ctx->getShot()) + "_" 
-    + std::to_string(ctx->getRun()); 
-
+  std::string options = ctx != nullptr ? ctx->getOptions() : "";
+  this->dbname = ctx->getFromURIQuery("path");
   std::stringstream ss;
+  
+  const char* dbfolder = this->dbname.c_str();
+
+  n = options.find("fullpath=");
+  ss.str("");
+  if (n != std::string::npos) {
+    ss << options.substr(n+9,options.length());
+    ss >> this->fullpath;
+    }
+  else {
+    try {
+      if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+	if (!boost::filesystem::exists(dbfolder))
+	  boost::filesystem::create_directories(dbfolder);
+      }
+    }
+    catch(std::exception & e) {
+      std::string message("Unable to create pulse files shot directory: ");
+      message += dbfolder;
+      throw UALBackendException(message, LOG);
+    }
+  }
+
+  /* options not needed anymore?
   n = options.find("-prefix ");
   if (n != std::string::npos) {
     ss << options.substr(n+8,options.length());
@@ -126,24 +147,21 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
     ss << options.substr(n+8,options.length());
     ss >> this->suffix;
   }
+  */
 
-  n = options.find("-fullpath ");
-  ss.str("");
-  if (n != std::string::npos) {
-    ss << options.substr(n+10,options.length());
-    ss >> this->fullpath;
-  }
+  
+  
 }
 
 
 
-void AsciiBackend::closePulse(DataEntryContext *ctx,
-			 int mode)
+  void AsciiBackend::closePulse(DataEntryContext *ctx,
+			      int mode)
 {
   this->pulsefile.close();
-  this->prefix = "";
-  this->suffix = "";
-  this->fullpath = "";
+  //this->prefix = "";
+  //this->suffix = "";
+  //this->fullpath = "";
   this->dbname = "";
 }
 
@@ -176,22 +194,19 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     this->idsname = this->idsname.replace(n,1,"");
   }
 
-  if (this->fullpath.empty()) {
-    if (this->fname.empty()) {
-      this->fname = this->prefix + this->dbname + "_" + this->idsname + 
-	this->suffix + ".ids";
-    }
-    else {
-      throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
-    }
+  if (this->fname.empty()) {
+    if (!this->fullpath.empty())
+      this->fname = this->fullpath;
+    else
+      this->fname = this->dbname+"/"+this->idsname+".ids";
   }
-  else
-    this->fname = this->fullpath;
-
+  else {
+    throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
+  }
 
   if (this->pulsefile.is_open()) {
-    std::cerr << "pulsefile already opened!\n";
-    throw UALBackendException("pulsefile "+this->fname+" is already open",LOG);
+    std::cerr << "IDS pulsefile already opened!\n";
+    throw UALBackendException("IDS pulsefile "+this->fname+" is already open",LOG);
   }
 
   switch(ctx->getAccessmode()) {
@@ -293,7 +308,7 @@ void AsciiBackend::writeData(Context *ctx,
     ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
     this->pulsefile << this->idsname << this->getArraystructPath(aosctx) << "/" << fieldname << "\n";
   }
-  this->pulsefile << "\ttype: " << datatype << " (" << type2str(datatype) << ")\n";
+  this->pulsefile << "\ttype: " << datatype << " (" << std::string(const2str(datatype)) << ")\n";
   this->pulsefile << "\tdim: " << std::to_string(dim) << "\n";
   if (dim>0) {
     this->pulsefile << "\tsize: ";

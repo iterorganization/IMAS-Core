@@ -29,8 +29,8 @@ class LIBRARY_API AsciiBackend : public Backend
 
 private:
   std::fstream pulsefile;
-  std::string prefix;
-  std::string suffix;
+  //std::string prefix;
+  //std::string suffix;
   std::string fullpath;
   std::string dbname;
   std::string fname; 

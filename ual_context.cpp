@@ -51,7 +51,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri_)
   auto uri_object = uri::parse_uri(uri_);
 
   if (uri_object.error != uri::Error::None)
-        throw UALContextException("Unable to parse the URI",LOG);
+        throw UALContextException("Unable to parse the URI: "+uri_,LOG);
 
   setBackendID(uri_object.path, uri_object.authority.host);
 

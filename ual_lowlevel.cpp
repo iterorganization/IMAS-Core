@@ -396,7 +396,6 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
 
     switch (rwmode) {
     case ualconst::write_op:
-    case ualconst::replace_op:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if (ver.second!=sver.second)
@@ -452,7 +451,6 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
 
     switch (rwmode) {
     case ualconst::write_op:
-    case ualconst::replace_op:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if (ver.second!=sver.second)
