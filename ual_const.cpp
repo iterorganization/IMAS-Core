@@ -1,14 +1,22 @@
 #include "ual_const.h"
 
 
-const char * type2str(int type)
+const char * const2str(int id)
 {
-  return (ualconst::data_type_str.at(type-DATA_TYPE_0)).c_str();
+  auto it = ualconst::constmap.find(id);
+  if (it == ualconst::constmap.end())
+    return "";
+  else
+    return it->second.c_str();
 }
 
-const char * err2str(int err)
+const char * err2str(int id)
 {
-  return (ualerror::ual_err_str.at(ERR_0-err)).c_str();
+  auto it = ualerror::errmap.find(id);
+  if (it == ualerror::errmap.end())
+    return "";
+  else
+    return it->second.c_str();
 }
 
 const char * getUALVersion()

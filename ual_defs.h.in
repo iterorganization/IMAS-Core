@@ -12,9 +12,6 @@
 #define SERIALIZER_PROTOCOL_0       60
 #define ERR_0                       -1
 
-#define TIMED                       1
-#define NON_TIMED                   0
-
 #define GLOBAL_OP                   OP_RANGE_0
 #define SLICE_OP                    OP_RANGE_0+1
 

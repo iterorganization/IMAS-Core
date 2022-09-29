@@ -36,6 +36,7 @@ enum BACKEND
 }
 
 #include <array>
+#include <map>
 #include <string>
 
 namespace ualconst {
@@ -47,15 +48,11 @@ namespace ualconst {
   const int memory_backend  = BACKEND::MEMORY_BACKEND;
   const int uda_backend     = BACKEND::UDA_BACKEND;
 
-  const int timed = TIMED;
-  const int non_timed = NON_TIMED;
-  
   const int global_op = GLOBAL_OP;
   const int slice_op = SLICE_OP;
 
   const int read_op = READ_OP;
   const int write_op = WRITE_OP;
-  const int replace_op = REPLACE_OP;
 
   const int closest_interp = CLOSEST_INTERP;
   const int previous_interp = PREVIOUS_INTERP;
@@ -79,13 +76,95 @@ namespace ualconst {
   const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
   const int default_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
 
-  const std::array<std::string,6> backend_id_str = {{"NO_BACKEND","ASCII_BACKEND","MDSPLUS_BACKEND","HDF5_BACKEND","MEMORY_BACKEND","UDA_BACKEND"}};
-  const std::array<std::string,2> op_range_str = {{"GLOBAL_OP","SLICE_OP"}};
-  const std::array<std::string,3> op_access_str = {{"READ_OP","WRITE_OP","REPLACE_OP"}};
-  const std::array<std::string,4> op_interp_str = {{"UNDEFINED_INTERP","CLOSEST_INTERP","PREVIOUS_INTERP","LINEAR_INTERP"}};
-  const std::array<std::string,6> access_pulse_str = {{"OPEN_PULSE","FORCE_OPEN_PULSE","CREATE_PULSE","FORCE_CREATE_PULSE","CLOSE_PULSE","ERASE_PULSE"}};
-  const std::array<std::string,4> data_type_str = {{"CHAR_DATA","INTEGER_DATA","DOUBLE_DATA","COMPLEX_DATA"}};
-  const std::array<std::string,1> serializer_protocol_str = {{"ASCII_SERIALIZER_PROTOCOL"}};
+  const std::array<int,6> backend_id_list =
+    {
+      {
+	NO_BACKEND,
+	ASCII_BACKEND,
+	MDSPLUS_BACKEND,
+	HDF5_BACKEND,
+	MEMORY_BACKEND,
+	UDA_BACKEND
+      }
+    };
+  const std::array<int,2> op_range_list =
+    {
+      {
+	GLOBAL_OP,
+	SLICE_OP
+      }
+    };
+  const std::array<int,3> op_access_list =
+    {
+      {
+	READ_OP,
+	WRITE_OP,
+      }
+    };
+  const std::array<int,4> op_interp_list =
+    {
+      {
+	UNDEFINED_INTERP,
+	CLOSEST_INTERP,
+	PREVIOUS_INTERP,
+	LINEAR_INTERP
+      }
+    };
+  const std::array<int,6> access_pulse_list =
+    {
+      {
+	OPEN_PULSE,
+	FORCE_OPEN_PULSE,
+	CREATE_PULSE,
+	FORCE_CREATE_PULSE,
+	CLOSE_PULSE,ERASE_PULSE
+      }
+    };
+  const std::array<int,4> data_type_list =
+    {
+      {CHAR_DATA,
+       INTEGER_DATA,
+       DOUBLE_DATA,
+       COMPLEX_DATA
+      }
+    };
+  const std::array<int,1> serializer_protocol_list =
+    {
+      {
+	ASCII_SERIALIZER_PROTOCOL
+      }
+    };
+  
+  const std::map<int,std::string> constmap =
+    {
+      {NO_BACKEND, "NO_BACKEND"},
+      {ASCII_BACKEND, "ASCII_BACKEND"},
+      {MDSPLUS_BACKEND, "MDSPLUS_BACKEND"},
+      {HDF5_BACKEND, "HDF5_BACKEND"},
+      {MEMORY_BACKEND, "MEMORY_BACKEND"},
+      {UDA_BACKEND, "UDA_BACKEND"},
+      {GLOBAL_OP, "GLOBAL_OP"},
+      {SLICE_OP, "SLICE_OP"},
+      {READ_OP, "READ_OP"},
+      {WRITE_OP, "WRITE_OP"},
+      {REPLACE_OP, "REPLACE_OP"},
+      {UNDEFINED_INTERP, "UNDEFINED_INTERP"},
+      {CLOSEST_INTERP, "CLOSEST_INTERP"},
+      {PREVIOUS_INTERP, "PREVIOUS_INTERP"},
+      {LINEAR_INTERP, "LINEAR_INTERP"},
+      {UNDEFINED_TIME, "UNDEFINED_TIME"},
+      {OPEN_PULSE, "OPEN_PULSE"},
+      {FORCE_OPEN_PULSE, "FORCE_OPEN_PULSE"},
+      {CREATE_PULSE, "CREATE_PULSE"},
+      {FORCE_CREATE_PULSE, "FORCE_CREATE_PULSE"},
+      {CLOSE_PULSE, "CLOSE_PULSE"},
+      {ERASE_PULSE, "ERASE_PULSE"},
+      {CHAR_DATA, "CHAR_DATA"},
+      {INTEGER_DATA, "INTEGER_DATA"},
+      {DOUBLE_DATA, "DOUBLE_DATA"},
+      {COMPLEX_DATA, "COMPLEX_DATA"},
+      {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"}
+    };
 }
 
 namespace ualerror {
@@ -95,7 +174,13 @@ namespace ualerror {
   const int backend_err = BACKEND_ERR;
   const int lowlevel_err = LOWLEVEL_ERR;
 
-  const std::array<std::string,4> ual_err_str = {{"UNKNOWN_ERR","CONTEXT_ERR","BACKEND_ERR","LOWLEVEL_ERR"}};
+  const std::map<int,std::string> errmap =
+    {
+      {UNKNOWN_ERR, "UNKNOWN_ERR"},
+      {CONTEXT_ERR, "CONTEXT_ERR"},
+      {BACKEND_ERR, "BACKEND_ERR"},
+      {LOWLEVEL_ERR, "LOWLEVEL_ERR"}
+    };
 }
 
 #endif
@@ -105,29 +190,33 @@ extern "C" {
 #endif
 
 
-/**
-   Returns the String of the passed integer type.
-   @result String of the type
-*/
-LIBRARY_API const char * type2str(int type);
-/**
-   Returns the String of the passed integer error.
-   @result String of the error
-*/
-LIBRARY_API const char * err2str(int err);
-
-/**
-   Returns the String of the UAL version.
-   @result String of the UAL version
-*/
-LIBRARY_API const char * getUALVersion();
-/**
-   Returns the String of Data Dictionary version.
-   @result String of the Data Dictionary version
-*/
-LIBRARY_API const char * getDDVersion();
-
-
+  /**
+     Returns the String of the passed constant identifier.
+     @param[in] id constant ID
+     @result String associated with the constant ID
+  */
+  LIBRARY_API const char * const2str(int id);
+  
+  /**
+     Returns the String of the passed integer error.
+     @param[in] id error ID
+     @result String associated with the error ID
+  */
+  LIBRARY_API const char * err2str(int id);
+  
+  /**
+     Returns the String of the UAL version.
+     @result String of the UAL version
+  */
+  LIBRARY_API const char * getUALVersion();
+  
+  /**
+     Returns the String of Data Dictionary version.
+     @result String of the Data Dictionary version
+  */
+  LIBRARY_API const char * getDDVersion();
+  
+  
 #if defined(__cplusplus)
 }
 #endif
