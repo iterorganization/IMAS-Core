@@ -106,7 +106,7 @@ public:
      @tparam From type of the data
      @param[in] data source data value
      @param[in] size total size of the data
-     @param[in] destination type ID for the converted data
+     @param[in] desttype type ID for the converted data
      @result converted data (returned as void*)
    */
   template <typename From>
@@ -174,7 +174,7 @@ extern "C"
   /**
      Opens a database entry.
      This function opens an IMAS data entry.
-     @param[in] URI of the IMAS data entry
+     @param[in] uri URI of the IMAS data entry
      @param[in] mode opening option:
      - OPEN_PULSE = open an existing pulse (only if exist)
      - FORCE_OPEN_PULSE = open a pulse (create it if not exist)
@@ -347,9 +347,10 @@ extern "C"
      @param[in] backendID name/ID of the back-end
      @param[in] shot shot number
      @param[in] run run number
-     @param[in] user username [_optional, "" for default_]
-     @param[in] tokamak tokamak name [_optional, "" for default_]
-     @param[in] version data version [_optional, "" for default_]
+     @param[in] user username 
+     @param[in] tokamak tokamak name 
+     @param[in] version data version 
+     @param[in] options additional options (possibly backend specific)
      @param[out] uri string
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */

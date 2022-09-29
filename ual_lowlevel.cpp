@@ -581,20 +581,20 @@ al_status_t ual_read_data(int ctxID, const char *field, const char *timebase,
 	if (retDim!=dim)
 	  {
 	    throw UALLowlevelException("Wrong dimension of Data returned by backend: expected "+
-				       ualconst::data_type_str.at(datatype-DATA_TYPE_0)+" in "+
+				       std::string(const2str(datatype))+" in "+
 				       std::to_string(dim)+"D but got "+
-				       ualconst::data_type_str.at(retType-DATA_TYPE_0)+" in "+
+				       std::string(const2str(retType))+" in "+
 				       std::to_string(retDim)+"D",LOG);
 	  }
 	else if (retType!=datatype)
 	  {
 	    Lowlevel::setConvertedValue(retData, retType, retDim, size, datatype, data);
 	    UALException::registerStatus(status.message, __func__,
-					 UALLowlevelException("Warning: "+lle.context->fullPath()+
+					 UALLowlevelException("Warning: "+lle.context->getURI()+
 							      "/"+field+" returned with type "+
-							      ualconst::data_type_str.at(retType-DATA_TYPE_0)+
+							      std::string(const2str(retType))+
 							      " while we expect type "+
-							      ualconst::data_type_str.at(datatype-DATA_TYPE_0)+"\n"));
+							      std::string(const2str(datatype))+"\n"));
 	  }
 	else 
 	  Lowlevel::setValue(retData, datatype, dim, data);
