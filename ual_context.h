@@ -52,11 +52,6 @@ public:
   virtual std::string print() const; 
 
   /**
-     Returns simplified pseudo path for the context.
-  */
-  virtual std::string fullPath() const = 0; 
-
-  /**
      Returns object unique id.
      @result uid
   */
@@ -67,6 +62,12 @@ public:
      @result CTX_TYPE
   */
   virtual int getType() const = 0;
+
+  /**
+     Returns the URI.
+     @result URI string
+  */
+  virtual std::string getURI() const = 0;
 
   /**
      Returns the ID of associated backend.
@@ -99,7 +100,7 @@ public:
 
   /**
      Constructor
-     @param uri URI
+     @param uri URI string
   */
   DataEntryContext(std::string uri);
 
@@ -115,11 +116,6 @@ public:
   virtual std::string print() const; 
 
   /**
-     Returns simplified pseudo path for the context.
-  */
-  virtual std::string fullPath() const; 
-
-  /**
      Returns the type of context.
      @result CTX_PULSE_TYPE
   */
@@ -127,39 +123,9 @@ public:
 
   /**
      Returns the URI.
-     @result URI 
+     @result URI string
   */
-  std::string getURI() const;
-
-  /**
-     Returns the shot number.
-     @result shot 
-  */
-  int getShot() const;
-
-  /**
-     Returns the run number.
-     @result run
-  */
-  int getRun() const;
-
-  /**
-     Returns the user name.
-     @result user 
-  */
-  std::string getUser() const;
-
-  /**
-     Returns the tokamak name.
-     @result tokamak 
-  */
-  std::string getTokamak() const;
-
-  /**
-     Returns the version.
-     @result version 
-  */
-  std::string getVersion() const;
+  virtual std::string getURI() const;
 
   /**
      Returns the ID of associated backend.
@@ -172,6 +138,20 @@ public:
      @result name of the backend
   */
   virtual std::string getBackendName() const;
+ 
+  /**
+     Builds the URI backend from the backend ID.
+     @param[in] backend_id ID of the backend
+     @return backend string from URI
+  */
+  static std::string getURIBackend(int backend_id);
+
+  /**
+     Returns the value associated with the given key in URI query.
+     @param[in] queryKey name of the key in the URI query
+     @result value of the key
+  */
+  std::string getFromURIQuery(std::string queryKey) const;
 
   /**
     Returns options string.
@@ -193,19 +173,6 @@ public:
   void addOptions(const std::string &options);
 
   /**
-     Returns the URI path.
-     @result path
-  */
-  std::string getPath();
-
-  /**
-     Builds the URI backend from the backend ID.
-     @param[in] backend ID
-     @return URI backend string
-  */
-  static std::string getURIBackend(int backend_id);
-
-  /**
      Builds an URI string using legacy parameters.
      @param[in] backendID name/ID of the back-end
      @param[in] shot shot number
@@ -214,7 +181,7 @@ public:
      @param[in] tokamak tokamak name
      @param[in] version data version
      @param[in] options options
-     @result uri string
+     @param[out] uri URI string
    */
   static void build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
@@ -227,18 +194,13 @@ public:
 
  protected:
   std::string uri;                      /**< URI */
-  int shot;                             /**< shot number */
-  int run;                              /**< run number */
-  std::string pulse;                    /**< can be shot, shot/run, keyword */
-  std::string user;                     /**< user name */
-  std::string tokamak;                  /**< tokamak name */
-  std::string version;                  /**< data version */
   std::string path;                     /**< data path */
   std::string options;                  /**< options */
   int backend_id;                       /**< a backend identifier */
 
  private:
   void setBackendID(const std::string &path, const std::string &host);
+  std::string getPathFromLegacy();
 
 };
 
@@ -298,15 +260,16 @@ public:
   virtual std::string print() const; 
 
   /**
-     Returns simplified pseudo path for this context.
-  */
-  virtual std::string fullPath() const; 
-
-  /**
      Returns the type of context.
      @result CTX_OPERATION_TYPE
   */
   virtual int getType() const; 
+
+  /**
+     Returns the URI.
+     @result URI 
+  */
+  virtual std::string getURI() const;
 
   /**
      Returns the ID of associated backend.
@@ -399,7 +362,6 @@ class LIBRARY_API ArraystructContext : public Context
      @param parent context of the parent array of structure 
      @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param timed time dependency of the DATAOBJECT
   */
   explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb);
 
@@ -409,8 +371,7 @@ class LIBRARY_API ArraystructContext : public Context
      @param parent context of the parent array of structure 
      @param p path of the array of structure field [_within its parent container_]
      @param tb path of the timebase associated with the array of structure
-     @param idx index of the array of structure within its container [_by default first element_]
-     @param timed time dependency of the DATAOBJECT
+     @param idx index of current element for this new ArraystructContext
   */
   explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb, int idx);
 
@@ -425,15 +386,16 @@ class LIBRARY_API ArraystructContext : public Context
   virtual std::string print() const;
 
   /**
-     Returns simplified pseudo path for this context.
-  */
-  virtual std::string fullPath() const; 
-
-  /**
      Returns the type of context.
      @result CTX_ARRAYSTRUCT_TYPE
   */
   virtual int getType() const;
+
+  /**
+     Returns the URI.
+     @result URI 
+  */
+  virtual std::string getURI() const;
 
   /**
      Returns the ID of associated backend.
@@ -491,7 +453,12 @@ class LIBRARY_API ArraystructContext : public Context
    */
   OperationContext* getOperationContext() const;
 
-  
+  /**
+     Returns the associated DataEntryContext.
+     @result ctx
+   */
+  DataEntryContext* getDataEntryContext() const;
+
 protected:
   std::string path;                     /**< path of the array of structure */
   std::string timebase;			/**< path of the timebase associated with the array of structure */
