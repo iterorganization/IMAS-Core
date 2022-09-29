@@ -388,8 +388,7 @@ class LIBRARY_API MemoryBackend:public Backend
 
 
 //Optimization info
-    int lastIdsPathShot, lastIdsPathRun;
-    std::string lastIdsPath,lastIdsPathDataobjectName;
+    std::string lastIdsPath; 
 
 
 
@@ -400,8 +399,6 @@ public:
   // virtual desctructor
     MemoryBackend() 
     {
-	lastIdsPathShot = lastIdsPathRun = 0;
-//	internalCtx = new InternalCtx;
 	internalCtx = NULL;
     }
     ~MemoryBackend()
@@ -447,7 +444,7 @@ public:
     {
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
 
-	std::string  fullName = ctx->getUser()+" " + ctx->getTokamak()+ " " + ctx->getVersion() + " " + std::to_string(ctx->getShot())+ " " + std::to_string(ctx->getRun());
+	std::string fullName = ctx->getFromURIQuery("path");
 	
 	lock();  //Global Lock
 	try {

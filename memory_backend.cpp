@@ -998,16 +998,7 @@ else
       if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
-      int shot = ctx->getDataEntryContext()->getShot();
-      int run = ctx->getDataEntryContext()->getRun();
-      if(lastIdsPathShot == shot && lastIdsPathRun == run && ctx->getDataobjectName() == lastIdsPathDataobjectName)
-	return lastIdsPath;
-      char buf[512];
-      sprintf(buf, "%d/%d/%s", ctx->getDataEntryContext()->getShot(), ctx->getDataEntryContext()->getRun(), ctx->getDataobjectName().c_str());
-      lastIdsPath = std::string(buf);
-      lastIdsPathShot = shot;
-      lastIdsPathRun = run;
-      lastIdsPathDataobjectName = ctx->getDataobjectName();
+      lastIdsPath = ctx->getDataEntryContext()->getFromURIQuery("path");
       return lastIdsPath;
     }
 

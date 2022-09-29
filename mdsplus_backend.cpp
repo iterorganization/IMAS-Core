@@ -13,7 +13,7 @@ using namespace boost::filesystem;
 #define MDSPLUS_BACKEND_MAJOR 1
 #define MDSPLUS_BACKEND_MINOR 1
 
-
+#define MDSPLUS_SHOTNUM 1
 
 //#define MDSPLUS_SEGMENT_SIZE 4192
 #define MDSPLUS_SEGMENT_SIZE 67072
@@ -1388,7 +1388,8 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 	treeNodeMap.clear();
     }
 
-    int MDSplusBackend::getMdsShot(int shot, int run, bool translate, std::string strTree)
+// DEPRECATED ?
+   int MDSplusBackend::getMdsShot(int shot, int run, bool translate, std::string strTree)
     {
 	if(run > 99999)
 	    throw  UALBackendException("Maximum run number allowed by MDSplus Backend is 99999",LOG);
@@ -1475,7 +1476,7 @@ void MDSplusBackend::setDataEnv(DataEntryContext * ctx)
 {
   int i;
 
-  std::string mdsplusBaseStr = ctx->getPath();
+  std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
 
       // set every MDSPLUS_TREE_BASE_n env. variable
       for (i = 0; i < 10; i++) 
@@ -4413,13 +4414,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 	  }
 	  
-	  std::string mdsplusBaseStr = ctx->getPath();
+	  std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
 	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
 		create_directories(mdsplusBaseStr.c_str());
 		
 	  setDataEnv(ctx); 
-    	  int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
-		  
+    	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+	  
 	  switch(mode) {
 	    case ualconst::open_pulse:
 	    case ualconst::force_open_pulse:
@@ -5149,7 +5150,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
                          &uri);
     DataEntryContext *pctx = new DataEntryContext(uri);
     be->setDataEnv(pctx); 
-    int shotNum = be->getMdsShot(shot, run, true, DEF_TREENAME);
+    int shotNum = MDSPLUS_SHOTNUM; //be->getMdsShot(shot, run, true, DEF_TREENAME);
     try {
       be->tree = new MDSplus::Tree(DEF_TREENAME, shotNum); 
     }
@@ -5199,7 +5200,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    MDSplus::Tree *t;
 	    try {
 	  	setDataEnv(ctx); 
-    	  	int shotNum = getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+    	  	int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 
 		t = new MDSplus::Tree(szTree, shotNum);
 		resetIdsPath(szTree);

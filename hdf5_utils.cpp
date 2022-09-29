@@ -406,16 +406,18 @@ struct ShotRun {
     char shot_run[200];
 };
 
+// WHAT SHALL WE STORE IN USERBLOCK W.R.T URI WHERE SHOT AND RUN ARE NOT MANDATORY ?
 void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * ctx)
 {
     std::ofstream file(filePath, std::ifstream::binary);
     file.seekp(0, std::ios::beg);
     ShotRun sr;
-    strcpy(sr.shot_run, "shot=");
+    /*strcpy(sr.shot_run, "shot=");
     strcat(sr.shot_run, std::to_string(ctx->getShot()).c_str());
     strcat(sr.shot_run, ";run=");
     strcat(sr.shot_run, std::to_string(ctx->getRun()).c_str());
-    strcat(sr.shot_run, ";");
+    strcat(sr.shot_run, ";");*/
+    strcpy(sr.shot_run, (ctx->getFromURIQuery("path")).c_str());
     file.write((char *) &sr, sizeof(ShotRun));
     file.close();
 }
@@ -467,7 +469,7 @@ std::string HDF5Utils::pulseFilePathFactory(DataEntryContext * ctx, int mode, in
 
 std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
-    std::string path = ctx->getPath();
+    std::string path = ctx->getFromURIQuery("path");
     files_directory = path;
     relative_file_path = MASTER_FILE_NAME;
 
@@ -485,19 +487,22 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
     return files_directory + "/" + relative_file_path;
 }
 
+[[deprecated("shot number may not be relevant with URI/path approach")]]
 std::string HDF5Utils::getShotNumber(DataEntryContext * ctx)
 {
-    return std::to_string(ctx->getShot());
+  return "0"; //std::to_string(ctx->getShot());
 }
 
+[[deprecated("run number may not be relevant with URI/path approach")]]
 std::string HDF5Utils::getRunNumber(DataEntryContext * ctx)
 {
-    return std::to_string(ctx->getRun());
+  return "0"; //std::to_string(ctx->getRun());
 }
 
+[[deprecated("shot/run number may not be relevant with URI/path approach")]]
 std::string HDF5Utils::getFullShotNumber(DataEntryContext * ctx)
 {
-    return std::to_string(ctx->getShot()) + std::to_string(ctx->getRun());
+  return "0"; //std::to_string(ctx->getShot()) + std::to_string(ctx->getRun());
 }
 
 std::string HDF5Utils::getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name)
