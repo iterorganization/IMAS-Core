@@ -430,23 +430,6 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
     return files_directory + "/" + relative_file_path;
 }
 
-[[deprecated("shot number may not be relevant with URI/path approach")]]
-std::string HDF5Utils::getShotNumber(DataEntryContext * ctx)
-{
-  return "0"; //std::to_string(ctx->getShot());
-}
-
-[[deprecated("run number may not be relevant with URI/path approach")]]
-std::string HDF5Utils::getRunNumber(DataEntryContext * ctx)
-{
-  return "0"; //std::to_string(ctx->getRun());
-}
-
-[[deprecated("shot/run number may not be relevant with URI/path approach")]]
-std::string HDF5Utils::getFullShotNumber(DataEntryContext * ctx)
-{
-  return "0"; //std::to_string(ctx->getShot()) + std::to_string(ctx->getRun());
-}
 
 std::string HDF5Utils::getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name)
 {
