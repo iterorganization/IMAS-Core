@@ -55,9 +55,6 @@ class HDF5Utils {
     static void createPulse(DataEntryContext * ctx, int mode, std::string backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath);
 
      std::string pulseFilePathFactory(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
-     std::string getShotNumber(DataEntryContext * ctx);
-     std::string getFullShotNumber(DataEntryContext * ctx);
-     std::string getRunNumber(DataEntryContext * ctx);
      std::string getIDSPulseFilePath(const std::string & files_directory, const std::string & relative_file_name, const std::string & ids_name);
     bool pulseFileExists(const std::string &IDS_pulse_file);
     void closeMasterFile(hid_t *file_id);
