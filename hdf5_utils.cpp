@@ -347,78 +347,21 @@ void HDF5Utils::writeHeader(DataEntryContext * ctx, hid_t file_id, std::string &
         throw UALBackendException(error_message, LOG);
     }
 
-    const char *shot = "SHOT";
-    H5Aclose(att_id);
-
-    att_id = H5Acreate2(file_id, shot, H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    if (att_id < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to create attribute: %s\n", shot);
-        throw UALBackendException(error_message, LOG);
-    }
-    
-    int shotNumber = -1;
-    try {
-        shotNumber = std::stoi(getShotNumber(ctx));
-    }
-    catch (std::exception &e) {
-        char error_message[200];
-        sprintf(error_message, "Unable to convert shot number: %s\n", e.what());
-        throw UALBackendException(error_message, LOG);
-    }
-    status = H5Awrite(att_id, H5T_NATIVE_INT, &shotNumber);
-    if (status < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to write attribute: %s\n", shot);
-        throw UALBackendException(error_message, LOG);
-    }
-    const char *run = "RUN";
-    H5Aclose(att_id);
-    att_id = H5Acreate2(file_id, run, H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-
-    if (att_id < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to create attribute: %s\n", run);
-        throw UALBackendException(error_message, LOG);
-    }
-    int runNumber = -1;
-    try {
-        runNumber = std::stoi(getRunNumber(ctx));
-    }
-    catch (std::exception &e) {
-        char error_message[200];
-        sprintf(error_message, "Unable to convert run number: %s\n", e.what());
-        throw UALBackendException(error_message, LOG);
-    }
-    status = H5Awrite(att_id, H5T_NATIVE_INT, &runNumber);
-    if (status < 0) {
-        char error_message[200];
-        sprintf(error_message, "Unable to write attribute: %s\n", run);
-        throw UALBackendException(error_message, LOG);
-    }
     writeUserBlock(filePath.c_str(), ctx);
     H5Sclose(dataspace_id);
     H5Tclose(dtype_id);
     H5Aclose(att_id);
 }
 
-struct ShotRun {
-    char shot_run[200];
-};
-
 // WHAT SHALL WE STORE IN USERBLOCK W.R.T URI WHERE SHOT AND RUN ARE NOT MANDATORY ?
 void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * ctx)
 {
     std::ofstream file(filePath, std::ifstream::binary);
     file.seekp(0, std::ios::beg);
-    ShotRun sr;
-    /*strcpy(sr.shot_run, "shot=");
-    strcat(sr.shot_run, std::to_string(ctx->getShot()).c_str());
-    strcat(sr.shot_run, ";run=");
-    strcat(sr.shot_run, std::to_string(ctx->getRun()).c_str());
-    strcat(sr.shot_run, ";");*/
-    strcpy(sr.shot_run, (ctx->getFromURIQuery("path")).c_str());
-    file.write((char *) &sr, sizeof(ShotRun));
+
+    char path[200];
+    strcpy(path, (ctx->getFromURIQuery("path")).c_str());
+    file.write((char *) path, sizeof(path));
     file.close();
 }
 
