@@ -62,7 +62,7 @@ bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std
     pluginsNames = got->second;
     return true;
   }
-  else {
+    
 	OperationContext *opctx = nullptr;
     if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) {
         opctx = (static_cast<ArraystructContext*> (lle.context))->getOperationContext();
@@ -70,40 +70,83 @@ bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std
     else {
         opctx = static_cast<OperationContext*> (lle.context);
     }
-    const std::string &dataObjectName = opctx->getDataobjectName();
-    //printf("ids name = %s\n", dataObjectName.c_str());
+
+    std::string dataObjectName = opctx->getDataobjectName();
+    
+    //we are searching now path like :"ids_name/1/*" where 1 is the occurrence and * is representing all nodes
     fullPath = dataObjectName + "/*";
-    //printf("fullPath = %s\n", fullPath.c_str());
-    auto got2 = boundPlugins.find(fullPath);
-    if (got2 != boundPlugins.end()) {
-		//printf("found fullPath = %s\n", fullPath.c_str());
-		pluginsNames = got2->second;
+    got = boundPlugins.find(fullPath);
+    if (got != boundPlugins.end()) {
+		pluginsNames = got->second;
 		return true;
     }
-  }
+    
+     //Setting format to 'idsname/0' for occurrence 0, searching again
+     size_t found = dataObjectName.find("/");
+     if (found == std::string::npos) {
+         dataObjectName += "/0";
+
+         fullPath = dataObjectName + "/" + std::string(fieldPath);
+         got = boundPlugins.find(fullPath);
+         if (got != boundPlugins.end()) {
+            pluginsNames = got->second;
+            return true;
+         }
+         fullPath = dataObjectName + "/*";
+         got = boundPlugins.find(fullPath);
+         if (got != boundPlugins.end()) {
+            pluginsNames = got->second;
+            return true;
+         }
+     }
+         
+    //we are now searching now path like :"ids_name/*/*" where latest * is representing all nodes
+    fullPath = dataObjectName.substr(0, dataObjectName.length() - 2)  + "/*/*";
+    got = boundPlugins.find(fullPath);
+    if (got != boundPlugins.end()) {
+        pluginsNames = got->second;
+        return true;
+     }
+
   return false;
 }
 
 bool LLplugin::getBoundPlugins(const char* dataobjectname, std::set<std::string> &pluginsNames) {
-  std::string ids_name = std::string(dataobjectname);
-  char *copy = strdup(dataobjectname);
-  char* ids_name_cstr = strtok(copy, "/");
-  if (ids_name_cstr != NULL) {
-     ids_name = std::string(ids_name_cstr);
-     free(ids_name_cstr);
-  }
+
+  std::string dataObjectName(dataobjectname);
+  std::string fullDataObjectName(dataobjectname);
+  size_t found = dataObjectName.find("/");
+  if (found == std::string::npos)
+    fullDataObjectName += "/0";
+
   for(auto it = boundPlugins.begin(); it != boundPlugins.end(); ++it) {
-	  char* key = strdup(it->first.c_str());
-	  char *token = strtok(key, "/");
-	  if (token != NULL) {
-		  std::string path = std::string(token);
-		  if (path.compare(ids_name) == 0) {
-			  std::vector<std::string> &plugins = it->second; 
-			  for (auto &pluginName:plugins) 
-			     pluginsNames.insert(pluginName);
-		  }
-	  }
-	  free(key);
+      const std::string &key = it->first;
+      //we are searching first "dataobjectname/path_to_node" where path_to_node represents a specific path
+      std::size_t found = key.find(dataObjectName, 0);
+      if (found != std::string::npos) {
+          std::vector<std::string> &plugins = it->second; 
+          for (auto &pluginName:plugins) 
+            pluginsNames.insert(pluginName);
+      }
+      else if (fullDataObjectName != dataObjectName) {
+          found = key.find(fullDataObjectName, 0);
+          if (found != std::string::npos) {
+              std::vector<std::string> &plugins = it->second; 
+              for (auto &pluginName:plugins) 
+                pluginsNames.insert(pluginName);
+          }
+      }
+      else {
+          //we are searching now "idsname/*" where * is representing any occurrence
+          dataObjectName = fullDataObjectName.substr(0, dataObjectName.length() - 1) + "*";
+          found = key.find(dataObjectName, 0);
+           if (found != std::string::npos) {
+              std::vector<std::string> &plugins = it->second; 
+              for (auto &pluginName:plugins) 
+                pluginsNames.insert(pluginName);
+          }
+      }
+      
   }
   if (pluginsNames.size() > 0)
      return true;
@@ -116,10 +159,34 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
         sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be bound.\n", pluginName);
         throw UALLowlevelException(error_message, LOG);
     }
+    char *tmp = strdup(fieldPath);
+    char* token = strtok(tmp, "/");
+    bool badFormat = false;
+    int i = 0;
+    while (token != NULL) {
+        token = strtok(NULL, "/");
+        i++;
+    }
+    free(tmp);
+    if (i < 3)
+        badFormat = true;
+    if (badFormat) {
+        char error_message[200];
+        sprintf(error_message, "bindPlugin: bad format specified: (%s) should contain at least two '/' separators --> IDSNAME/Occurrence/field_path \n", fieldPath);
+        throw UALLowlevelException(error_message, LOG);
+    }
+    
     auto got = boundPlugins.find(std::string(fieldPath));
     if (got != boundPlugins.end()) {
-		auto &plugins = got->second; 
-        plugins.push_back(pluginName);
+		auto &plugins = got->second;
+        auto got2 = std::find(plugins.begin(), plugins.end(), pluginName);
+        if ( got2 != plugins.end()) {
+            char error_message[200];
+            sprintf(error_message, "Plugin %s is already bound to path: %s.\n", pluginName, fieldPath);
+            throw UALLowlevelException(error_message, LOG);
+        }
+        else
+           plugins.push_back(pluginName);
     }
     else {
 		std::vector<std::string> plugins {pluginName};
@@ -253,6 +320,35 @@ void LLplugin::begin_arraystruct_action_plugin(const std::string &plugin_name, i
   al_plugin->begin_arraystruct_action(ctxID, actxID, fieldPath, timeBasePath, arraySize);
 }
 
+void LLplugin::end_action_plugin(int ctxID)
+{
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    OperationContext* octx = NULL;
+    if (lle.context->getType() == CTX_OPERATION_TYPE) {
+        octx = dynamic_cast<OperationContext*>(lle.context);
+    }
+    else if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) {
+        ArraystructContext* actx = dynamic_cast<ArraystructContext*>(lle.context);
+        octx = actx->getOperationContext();
+    }
+    if (octx == NULL) 
+       return;
+    const std::string &dataObjectName = octx->getDataobjectName();
+    std::set<std::string> pluginsNames;
+    bool isPluginBound = getBoundPlugins(dataObjectName.c_str(), pluginsNames);
+    if (!isPluginBound)
+       return;
+    
+    access_layer_plugin* al_plugin = NULL;
+    for (auto it = pluginsNames.begin(); it != pluginsNames.end(); it++) {  
+      const std::string &pluginName = *it;
+      //printf("Found plugin %s, for dataobject %s\n", pluginName.c_str(), dataObjectName.c_str());
+      LLplugin &llp = llpluginsStore[pluginName];   
+      al_plugin = (access_layer_plugin*) llp.al_plugin;
+      al_plugin->end_action(ctxID);
+    }
+}
+
 void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
@@ -332,6 +428,28 @@ LLenv Lowlevel::delLLenv(int idx)
     Lowlevel::curStoreElt--;
 
   return lle;
+}
+
+ArraystructContext* LLenv::create(const char* path, const char* timebase) {
+    ArraystructContext* actx;
+    ArraystructContext* parent = NULL;
+    if (context->getType() == CTX_ARRAYSTRUCT_TYPE)
+        parent = dynamic_cast<ArraystructContext*>(context);
+    
+    if (parent!=NULL)
+      {
+	actx = new ArraystructContext(parent,
+				      std::string(path),
+				      std::string(timebase));
+      }
+    else
+      {
+	OperationContext* octx = dynamic_cast<OperationContext*>(context);
+	actx = new ArraystructContext(octx,
+				      std::string(path),
+				      std::string(timebase));
+      }
+    return actx;
 }
 
 void Lowlevel::setValue(void *data, int type, int dim, void **var)
@@ -666,7 +784,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID); 
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
-    if (pctx==NULL) 
+    if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
   
     octx = new OperationContext(pctx, 
@@ -932,28 +1050,12 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
 					 int *actxID)
 {
   al_status_t status;
-  ArraystructContext* actx=NULL;
-
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(ctxID);
-
-    ArraystructContext* parent = dynamic_cast<ArraystructContext*>(lle.context);
-    if (parent!=NULL)
-      {
-	actx = new ArraystructContext(parent,
-				      std::string(path),
-				      std::string(timebase));
-      }
-    else
-      {
-	OperationContext* octx = dynamic_cast<OperationContext*>(lle.context);
-	actx = new ArraystructContext(octx,
-				      std::string(path),
-				      std::string(timebase));
-      }
+    ArraystructContext* actx = lle.create(path, timebase);
     lle.backend->beginArraystructAction(actx, size);
-
+    *actxID = Lowlevel::addLLenv(lle.backend, actx); 
     if (*size == 0)
       {
 	// no data
@@ -963,7 +1065,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
       }
     else
       {
-	*actxID = Lowlevel::addLLenv(lle.backend, actx); 
+	
 	if (*size < 0)
 	  {
 	    throw UALLowlevelException("Returned size for array of structure is negative! ("+
@@ -1138,15 +1240,61 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
   al_status_t status;
   status.code = 0;
   try {
-    status = ual_begin_arraystruct_action(ctxID, path, timebase, size, actxID);
-      if (status.code != 0)
-         return status;
+    *actxID = 0; //no default AOS context, plugin has to manage the creation of this object
+
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, path, pluginsNames);
+    //printf("hli_begin_arraystruct_action::isPluginBound=%d\n", isPluginBound);
     if (isPluginBound) {
-		for (const auto& pluginName : pluginsNames)
+        int actxID_default = *actxID;
+        int actxID_user = 0;
+        std::vector<std::string> plugins;
+		for (const auto& pluginName : pluginsNames) {
            LLplugin::begin_arraystruct_action_plugin(pluginName, ctxID, actxID, path, timebase, size);
+           if ( (actxID_user == 0) && (actxID_default != *actxID) ) {//plugin has created another AOS context
+               actxID_user = *actxID;
+               plugins.push_back(pluginName);
+           }
+           else if (actxID_user != 0 && *actxID != 0) { //at least 2 plugins have created an AOS context, it's an error
+              plugins.push_back(pluginName);
+              std::string message = "Error calling hli_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
+              message += "AOS context path: " + std::string(path) + "\n";
+              for (size_t i = 0; i < plugins.size(); i++)
+                  message += "--> Plugin: " + plugins[i] + "\n";
+              throw UALLowlevelException(message.c_str());
+           }
+        }
+        if (*actxID == 0) { //no AOS context, unexpected error
+            char message[200];
+            sprintf(message, "One plugin has removed the AOS context at path:%s.\n", path);
+            throw UALLowlevelException(message);
+        }
     }
+    else {
+        LLenv lle = Lowlevel::getLLenv(ctxID);
+        ArraystructContext* actx = lle.create(path, timebase);
+        lle.backend->beginArraystructAction(actx, size); //TO DISCUSS
+        *actxID = Lowlevel::addLLenv(lle.backend, actx);
+    }
+
+    if (*size == 0) {
+        if (isPluginBound)
+           LLplugin::end_action_plugin(*actxID);
+        assert(actxID != 0);
+        LLenv lle_aos = Lowlevel::getLLenv(*actxID);
+        assert(lle_aos.context != NULL);
+        ArraystructContext* actx = dynamic_cast<ArraystructContext *>(lle_aos.context);
+        LLenv lle = Lowlevel::getLLenv(ctxID);
+        lle.backend->endAction(actx);
+        delete(actx);
+        *actxID = 0;
+    }
+    
+    if (*size < 0)
+          {
+            throw UALLowlevelException("Returned size for array of structure is negative! ("+
+                           std::to_string(*size)+")",LOG);
+          }
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
@@ -1166,6 +1314,44 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
     UALException::registerStatus(status.message, __func__, e);
   }
   
+  return status;
+}
+
+al_status_t hli_end_action(int ctxID)
+{
+  al_status_t status;
+  status.code = 0;
+  if (ctxID!=0)
+    {
+      try {
+        LLplugin::end_action_plugin(ctxID);
+        LLenv lle = Lowlevel::delLLenv(ctxID);
+        lle.backend->endAction(lle.context);
+
+        if (lle.context->getType() == CTX_PULSE_TYPE) 
+          delete(lle.backend);
+        
+        delete(lle.context);
+        
+      }
+      catch (const UALContextException& e) {
+        status.code = ualerror::context_err;
+        UALException::registerStatus(status.message, __func__, e);
+      }
+      catch (const UALLowlevelException& e) {
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+      }
+      catch (const UALPluginException& e) {
+        printf("An AL plugin exception has occurred:%s\n", e.what());
+        status.code = ualerror::lowlevel_err;
+        UALException::registerStatus(status.message, __func__, e);
+      }
+      catch (const std::exception& e) {
+        status.code = ualerror::unknown_err;
+        UALException::registerStatus(status.message, __func__, e);
+      }
+  }
   return status;
 }
 

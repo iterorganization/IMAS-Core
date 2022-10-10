@@ -61,6 +61,7 @@ public:
   static void begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, int opCtx);
   static void begin_slice_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
   static void begin_arraystruct_action_plugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
+  static void end_action_plugin(int ctxID);
   static void read_data_plugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
   static void write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
   //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
@@ -97,6 +98,8 @@ public:
     backend = be;
     context = ctx;
   }
+  
+  ArraystructContext* create(const char* path, const char* timebase); 
 };
 
 
@@ -182,6 +185,7 @@ public:
   static int beginUriAction(const std::string &uri);
 
   static bool data_has_non_zero_shape(int datatype, void *data, int dim , int *size);
+  
 
 private:
   static std::mutex mutex;                        /**< mutex for thread safe Factory accesses */
@@ -418,6 +422,8 @@ extern "C"
   LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
 
   LIBRARY_API al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+  
+  LIBRARY_API al_status_t hli_end_action(int ctxID);
 
   LIBRARY_API al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
 
@@ -426,7 +432,7 @@ extern "C"
   LIBRARY_API al_status_t hli_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
 
   //LIBRARY_API al_status_t hli_close_pulse(int pctxID, int mode, const char *options);
-
+  
   //HLI wrappers for plugins API
   LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
 

@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
 						printf("Wrting string data in global ctx %d OK!\n", iGetOpCtx);
 					}
 					
-					alStatus = ual_end_action(iGetOpCtx);
+					alStatus = hli_end_action(iGetOpCtx);
 				}
 			}
 			
@@ -378,7 +378,7 @@ int main(int argc, char *argv[])
 					char* szTemp = NULL;
 					int retSize[MAXDIM] = { 0 };
 					
-					alStatus = ual_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
+					alStatus = hli_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
 					if (alStatus.code != 0)
 					{
 						printf("Error reading integer imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 						printf("Reading integer imas global ctx %d OK! -> %d\n", iGetOpCtx, iTemp);
 					}
 					
-					alStatus = ual_read_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void**)&szTemp, CHAR_DATA, 1, &retSize[0]);
+					alStatus = hli_read_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void**)&szTemp, CHAR_DATA, 1, &retSize[0]);
 					if (alStatus.code != 0)
 					{
 						printf("Error reading string imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
@@ -401,7 +401,7 @@ int main(int argc, char *argv[])
 						free(szTemp);
 					}
 					
-					alStatus = ual_end_action(iGetOpCtx);
+					alStatus = hli_end_action(iGetOpCtx);
 				}
 			}
 			
