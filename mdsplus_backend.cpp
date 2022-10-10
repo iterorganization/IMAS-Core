@@ -1472,27 +1472,31 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 }
 
  #define PATH_MAX  2048
-void MDSplusBackend::setDataEnv(DataEntryContext * ctx) 
-{
-  int i;
-
-  std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
-
-      // set every MDSPLUS_TREE_BASE_n env. variable
-      for (i = 0; i < 10; i++) 
+    void MDSplusBackend::setDataEnv(DataEntryContext * ctx) 
+    {
+	//directory where to store tree ids, shot 1
+	std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
+	//we must set env variable ids_path to the content of mdsplusBaseStr.
+	//We check first if ids_path is already set, in which case  the original content of ids_path 
+	//will be set again after opening the tree bt resetIdsPath
+	char szPath[256];
+	sprintf(szPath, "%s_path", DEF_TREENAME);
+	
+	
+	if(originalIdsPath == "")  //Do it only once in case it is defined
 	{
-	  std::string currMdsplusBaseDir = mdsplusBaseStr+"/";
-	  //currMdsplusBaseDir += '0'+(char)i;
-	  char env_name[32];
-	  sprintf(env_name, "MDSPLUS_TREE_BASE_%d", i);
+	    char *origPath = getenv(szPath);
+	    if(origPath)
+	    	originalIdsPath = origPath; 
+	}
+	
 #ifdef WIN32
-	  char szEnv[256] = { 0 };
-	  sprintf(szEnv, "%s=%s", env_name, currMdsplusBaseDir.c_str());
-	  putenv(szEnv);
+	char szEnv[256] = { 0 };
+	sprintf(szEnv, "%s=%s", szPath, mdsplusBaseStr.c_str());
+	putenv(szEnv);
 #else // WIN32
-	  setenv(env_name, currMdsplusBaseDir.c_str(), 1);
+	setenv(szPath, mdsplusBaseStr.c_str(), 1);
 #endif // WIN32
-    	}
     }  
   
 
@@ -4419,7 +4423,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		create_directories(mdsplusBaseStr.c_str());
 		
 	  setDataEnv(ctx); 
-    	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
+    	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, 		if(originalIdsPath == "")
 	  
 	  switch(mode) {
 	    case ualconst::open_pulse:
