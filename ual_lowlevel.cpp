@@ -588,11 +588,11 @@ al_status_t ual_read_data(int ctxID, const char *field, const char *timebase,
 	  {
 	    Lowlevel::setConvertedValue(retData, retType, retDim, size, datatype, data);
 	    UALException::registerStatus(status.message, __func__,
-					 UALLowlevelException("Warning: "+lle.context->getURI()+
-							      "/"+field+" returned with type "+
-							      std::string(const2str(retType))+
-							      " while we expect type "+
-							      std::string(const2str(datatype))+"\n"));
+					 UALLowlevelException("Warning: " + lle.context->getURI().to_string() +
+							      "/" + field + " returned with type " +
+							      std::string(const2str(retType)) +
+							      " while we expect type " +
+							      std::string(const2str(datatype)) + "\n"));
 	  }
 	else 
 	  Lowlevel::setValue(retData, datatype, dim, data);

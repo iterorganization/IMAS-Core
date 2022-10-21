@@ -72,7 +72,7 @@ libal.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(LN_S) $< $(libdir)/$*.so
 
 # Additional executable
-printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS)
 
 # Static library

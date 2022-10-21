@@ -998,7 +998,7 @@ else
       if (search!=internalCtx->idsInfoMap.end()) 
 	return search->second->idsPath;
 
-      lastIdsPath = ctx->getDataEntryContext()->getFromURIQuery("path");
+      lastIdsPath = ctx->getURI().queryParameter("path").value();
       return lastIdsPath;
     }
 

@@ -11,6 +11,7 @@
 #include "ual_utilities.h"
 #include "ual_exception.h"
 #include "ual_const.h"
+#include "uri_parser.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -67,7 +68,7 @@ public:
      Returns the URI.
      @result URI string
   */
-  virtual std::string getURI() const = 0;
+  virtual uri::Uri getURI() const = 0;
 
   /**
      Returns the ID of associated backend.
@@ -125,7 +126,7 @@ public:
      Returns the URI.
      @result URI string
   */
-  virtual std::string getURI() const;
+  virtual uri::Uri getURI() const;
 
   /**
      Returns the ID of associated backend.
@@ -147,24 +148,10 @@ public:
   static std::string getURIBackend(int backend_id);
 
   /**
-     Returns the value associated with the given key in URI query.
-     @param[in] queryKey name of the key in the URI query
-     @result value of the key
-  */
-  std::string getFromURIQuery(std::string queryKey) const;
-
-  /**
     Returns options string.
     @result options 
   */
   std::string getOptions() const;
-
-  /**
-     Add an option to the URI query.
-     @param[in] option_name name of the option
-     @param[in] option_value value of the option
-   */
-  void addOptionToURIQuery(const std::string &option_name, const std::string &option_value);
 
   /**
      Add options to the URI query.
@@ -193,7 +180,7 @@ public:
                          char** uri);
 
  protected:
-  std::string uri;                      /**< URI */
+  uri::Uri uri;                         /**< URI */
   std::string path;                     /**< data path */
   std::string options;                  /**< options */
   int backend_id;                       /**< a backend identifier */
@@ -269,7 +256,7 @@ public:
      Returns the URI.
      @result URI 
   */
-  virtual std::string getURI() const;
+  virtual uri::Uri getURI() const;
 
   /**
      Returns the ID of associated backend.
@@ -395,7 +382,7 @@ class LIBRARY_API ArraystructContext : public Context
      Returns the URI.
      @result URI 
   */
-  virtual std::string getURI() const;
+  virtual uri::Uri getURI() const;
 
   /**
      Returns the ID of associated backend.

@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cctype>
+#include <sstream>
 
 #ifndef simple_uri_CPLUSPLUS
 # if defined(_MSVC_LANG ) && !defined(__clang__)
@@ -43,6 +44,41 @@ struct Authority {
     std::string userinfo;
     std::string host;
     long port = 0;
+
+    std::string to_string() const {
+        std::ostringstream ss;
+        if (!userinfo.empty()) {
+            ss << userinfo << "@";
+        }
+        ss << authority;
+        return ss.str();\
+    }
+};
+
+class OptionalValue {
+public:
+    explicit OptionalValue(std::string param)
+        : param_{std::move(param)}
+        , value_{}
+        , found_{false}
+    {}
+    OptionalValue(std::string param, std::string value)
+        : param_{std::move(param)}
+        , value_{std::move(value)}
+        , found_{true}
+    {}
+
+    explicit operator bool() const { return found_; }
+    const std::string& value() const {
+        if (!found_) {
+            throw UALBackendException("query parameter" + param_ + "not found", LOG);
+        }
+        return value_;
+    }
+private:
+    std::string param_;
+    std::string value_;
+    bool found_;
 };
 
 struct Uri {
@@ -64,6 +100,37 @@ struct Uri {
         , query_string(std::move(query_string))
         , fragment(std::move(fragment))
         {}
+
+    OptionalValue queryParameter(const std::string &parameter) const {
+        auto got = query.find(parameter);
+        if (got != query.end()) {
+            return OptionalValue(parameter, got->second);
+        }
+        else {
+            return OptionalValue(parameter);
+        }
+    }
+
+    std::string to_string() const {
+        std::ostringstream ss;
+        if (error != Error::None) {
+            ss << "invalid uri";
+        } else {
+            std::string authority_string = authority.to_string();
+            if (!authority_string.empty()) {
+                ss << scheme << "://" << authority.to_string() << path;
+            } else {
+                ss << scheme << ":" << path;
+            }
+            if (!query_string.empty()) {
+                ss << "?" << query_string;
+            }
+            if (!fragment.empty()) {
+                ss << "#" << fragment;
+            }
+        }
+        return ss.str();
+    }
 };
 
 }
@@ -211,17 +278,6 @@ inline Uri parse_uri(uri::string_arg_type uri_in) {
     }
 
     return Uri(scheme, authority, path, query, query_string, fragment);
-}
-
-bool queryParameter(const std::string &parameter, std::string &value, Uri &uri_object) {
-    auto got = uri_object.query.find(parameter);
-    if (got != uri_object.query.end()) {
-        value = got->second;
-        return true;
-    }
-    else {
-        return false;
-    }
 }
 
 } // namespace uri

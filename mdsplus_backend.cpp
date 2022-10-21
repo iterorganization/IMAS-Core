@@ -1475,7 +1475,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
     void MDSplusBackend::setDataEnv(DataEntryContext * ctx) 
     {
 	//directory where to store tree ids, shot 1
-	std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
+	std::string mdsplusBaseStr = ctx->getURI().queryParameter("path").value();
 	//we must set env variable ids_path to the content of mdsplusBaseStr.
 	//We check first if ids_path is already set, in which case  the original content of ids_path 
 	//will be set again after opening the tree bt resetIdsPath
@@ -3900,7 +3900,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 		     return NULL;
 	     	}
 	     }
-	     MDSplus::Data *interpData;
+	     MDSplus::Data *interpData = NULL;
 	     switch(item1->dtype)  {
 	       case DTYPE_L: 
 	       {
@@ -4425,7 +4425,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }
 	  }
 	  
-	  std::string mdsplusBaseStr = ctx->getFromURIQuery("path");
+	  std::string mdsplusBaseStr = ctx->getURI().queryParameter("path").value();
 	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
 		create_directories(mdsplusBaseStr.c_str());
 		

@@ -109,7 +109,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
 {
   size_t n;
   std::string options = ctx != nullptr ? ctx->getOptions() : "";
-  this->dbname = ctx->getFromURIQuery("path");
+  this->dbname = ctx->getURI().queryParameter("path").value();
   std::stringstream ss;
   
   const char* dbfolder = this->dbname.c_str();

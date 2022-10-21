@@ -43,14 +43,16 @@ void UDABackend::openPulse(DataEntryContext* ctx,
         std::cout << "UDABackend openPulse\n";
     }
 
-    std::string mapped_plugin = machine_mapping.plugin(ctx->getTokamak());
+    auto maybe_database = ctx->getURI().queryParameter("database");
+
+    std::string mapped_plugin = machine_mapping.plugin(maybe_database.value());
     if (!mapped_plugin.empty()) {
         this->plugin = mapped_plugin;
         std::stringstream ss;
 
         ss << plugin << "::init(";
 
-        auto args = machine_mapping.args(ctx->getTokamak());
+        auto args = machine_mapping.args(maybe_database.value());
         std::string delim;
         for (const auto& arg : args) {
             ss << delim << arg;
@@ -78,7 +80,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     ss << this->plugin
        << "::openPulse("
        << "backend_id=" << ualconst::mdsplus_backend
-       << ", uri=" << ctx->getURI()
+       << ", uri=" << ctx->getURI().to_string()
        << ", mode=" << mode
        << ")";
 
