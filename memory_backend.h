@@ -444,7 +444,7 @@ public:
     {
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
 
-    std::string fullName = ctx->getURI().queryParameter("path").value();
+    std::string fullName = ctx->getURI().query.get("path").value();
 	
 	lock();  //Global Lock
 	try {

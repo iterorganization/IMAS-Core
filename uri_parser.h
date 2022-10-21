@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cctype>
 #include <sstream>
+#include <unordered_set>
 
 #ifndef simple_uri_CPLUSPLUS
 # if defined(_MSVC_LANG ) && !defined(__clang__)
@@ -31,7 +32,7 @@ namespace uri {
   constexpr auto npos = std::string::npos;
 #endif
 
-using query_type = std::unordered_map<std::string, std::string>;
+using query_type = std::unordered_map<std::string, std::vector<std::string>>;
 
 enum class Error {
     None,
@@ -84,35 +85,77 @@ private:
     bool found_;
 };
 
+inline std::string join(const std::unordered_set<std::string>& set) {
+    std::ostringstream ss;
+    const char* delim = "";
+    for (const auto& el : set) {
+        ss << delim << el;
+        delim = ";";
+    }
+    return ss.str();
+}
+
+class QueryDict {
+public:
+    bool empty() const {
+        return map_.empty();
+    }
+    OptionalValue get(const std::string& name) const {
+        auto got = map_.find(name);
+        if (got != map_.end()) {
+            return {name, join(got->second) };
+        }
+        else {
+            return OptionalValue(name);
+        }
+    }
+    void insert(const std::string& name, const std::string& value) {
+        auto got = map_.find(name);
+        if (got != map_.end()) {
+            if (!value.empty()) {
+                got->second.insert(value);
+            }
+        } else if (!value.empty()) {
+            map_[name] = {value};
+        } else {
+            map_[name] = {};
+        }
+    }
+    std::string to_string() const {
+        std::ostringstream ss;
+        const char* delim = "";
+        for (const auto& el : map_) {
+            if (el.second.empty()) {
+                ss << delim << el.first;
+            } else {
+                ss << delim << el.first << "=" << join(el.second);
+            }
+            delim = "&";
+        }
+        return ss.str();
+    }
+
+private:
+    std::unordered_map<std::string, std::unordered_set<std::string>> map_;
+};
+
 struct Uri {
     Error error;
     std::string scheme;
     Authority authority = {};
     std::string path;
-    query_type query = {};
-    std::string query_string;
+    QueryDict query = {};
     std::string fragment;
 
     explicit Uri(Error error) : error(error) {}
-    Uri(std::string scheme, Authority authority, std::string path, query_type query, std::string query_string, std::string fragment)
+    Uri(std::string scheme, Authority authority, std::string path, QueryDict query, std::string fragment)
         : error(Error::None)
         , scheme(std::move(scheme))
         , authority(std::move(authority))
         , path(std::move(path))
         , query(std::move(query))
-        , query_string(std::move(query_string))
         , fragment(std::move(fragment))
         {}
-
-    OptionalValue queryParameter(const std::string &parameter) const {
-        auto got = query.find(parameter);
-        if (got != query.end()) {
-            return OptionalValue(parameter, got->second);
-        }
-        else {
-            return OptionalValue(parameter);
-        }
-    }
 
     std::string to_string() const {
         std::ostringstream ss;
@@ -125,8 +168,8 @@ struct Uri {
             } else {
                 ss << scheme << ":" << path;
             }
-            if (!query_string.empty()) {
-                ss << "?" << query_string;
+            if (!query.empty()) {
+                ss << "?" << query.to_string();
             }
             if (!fragment.empty()) {
                 ss << "#" << fragment;
@@ -213,20 +256,23 @@ std::tuple<std::string, uri::Error, uri::string_view_type> parse_path(uri::strin
     }
 }
 
-std::tuple<uri::query_type, std::string, uri::Error, uri::string_view_type> parse_query(uri::string_arg_type uri) {
+std::tuple<uri::QueryDict, uri::Error, uri::string_view_type> parse_query(uri::string_arg_type uri) {
     auto hash_pos = uri.find('#');
     auto query_substring = uri.substr(0, hash_pos);
-    auto query_string = std::string(query_substring);
-    uri::query_type query;
+    uri::QueryDict query;
     while (!query_substring.empty()) {
         auto delim_pos = query_substring.find_first_of("&;?", 0);
         auto arg = query_substring.substr(0, delim_pos);
         auto equals_pos = arg.find('=');
+        std::string name;
+        std::string value;
         if (equals_pos == uri::npos) {
-            query[std::string(arg)] = "";
+            name = std::string(arg);
         } else {
-            query[std::string(arg.substr(0, equals_pos))] = arg.substr(equals_pos + 1);
+            name = std::string(arg.substr(0, equals_pos));
+            value = arg.substr(equals_pos + 1);
         }
+        query.insert(name, value);
         if (delim_pos == uri::npos) {
             query_substring = "";
         } else {
@@ -234,7 +280,7 @@ std::tuple<uri::query_type, std::string, uri::Error, uri::string_view_type> pars
         }
     }
 
-    return {query, query_string, uri::Error::None, uri.substr(hash_pos + 1) };
+    return {query, uri::Error::None, uri.substr(hash_pos + 1) };
 }
 
 std::tuple<std::string, uri::Error, uri::string_view_type> parse_fragment(uri::string_arg_type uri) {
@@ -267,9 +313,8 @@ inline Uri parse_uri(uri::string_arg_type uri_in) {
         return Uri(error);
     }
 
-    query_type query;
-    std::string query_string;
-    std::tie(query, query_string, error, uri) = ::parse_query(uri);
+    uri::QueryDict query;
+    std::tie(query, error, uri) = ::parse_query(uri);
     if (error != Error::None) {
         return Uri(error);
     }
@@ -280,7 +325,7 @@ inline Uri parse_uri(uri::string_arg_type uri_in) {
         return Uri(error);
     }
 
-    return Uri(scheme, authority, path, query, query_string, fragment);
+    return { scheme, authority, path, query, fragment };
 }
 
 } // namespace uri

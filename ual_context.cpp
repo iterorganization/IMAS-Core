@@ -52,7 +52,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri::parse_uri(uri_))
 
   setBackendID(uri.path, uri.authority.host);
 
-  auto maybe_path = uri.queryParameter("path");
+  auto maybe_path = uri.query.get("path");
   if (!maybe_path) {
     uri = buildURIFromLegacy();
   }
@@ -88,7 +88,7 @@ std::string DataEntryContext::getBackendName() const
 
 std::string DataEntryContext::getOptions() const
 { 
-  return this->uri.queryParameter("options").value_or("");
+  return this->uri.query.get("options").value_or("");
 }
 
 uri::Uri DataEntryContext::getURI() const
@@ -99,28 +99,28 @@ uri::Uri DataEntryContext::getURI() const
 uri::Uri DataEntryContext::buildURIFromLegacy() {
   std::string filePath;
 
-  auto maybe_user = uri.queryParameter("user");
+  auto maybe_user = uri.query.get("user");
   if (!maybe_user) {
     throw UALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   std::string databaseFromURI;
-  if (!uri.queryParameter("database")) {
+  if (!uri.query.get("database")) {
     throw UALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   std::string versionFromURI;
-  if (!uri.queryParameter("version")) {
+  if (!uri.query.get("version")) {
     throw UALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   std::string shotFromURI;
-  if (!uri.queryParameter("shot")) {
+  if (!uri.query.get("shot")) {
     throw UALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   std::string runFromURI;
-  if (!uri.queryParameter("run")) {
+  if (!uri.query.get("run")) {
     throw UALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
@@ -165,9 +165,9 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
   filePath += "/";
   filePath += runFromURI;
 
-  uri::query_type query = {};
-  query["path"] = filePath;
-  return { uri.scheme, uri.authority, uri.path, query, "path=" + filePath, uri.fragment };
+  uri::QueryDict query = {};
+  query.insert("path", filePath);
+  return { uri.scheme, uri.authority, uri.path, query, uri.fragment };
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
@@ -189,12 +189,7 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
 }
 
 void DataEntryContext::addOptions(const std::string &options_) {
-    std::string options = getOptions();
-    if (options.empty()) {
-        uri.query["options"] = options_;
-    } else {
-        uri.query["options"] = options + ";" + options_;
-    }
+    uri.query.insert("options", options_);
 }
 
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 

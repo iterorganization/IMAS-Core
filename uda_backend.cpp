@@ -43,7 +43,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
         std::cout << "UDABackend openPulse\n";
     }
 
-    auto maybe_database = ctx->getURI().queryParameter("database");
+    auto maybe_database = ctx->getURI().query.get("database");
 
     std::string mapped_plugin = machine_mapping.plugin(maybe_database.value());
     if (!mapped_plugin.empty()) {
