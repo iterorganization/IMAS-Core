@@ -360,7 +360,7 @@ void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * 
     file.seekp(0, std::ios::beg);
 
     char path[200];
-    strcpy(path, (ctx->getFromURIQuery("path")).c_str());
+    strcpy(path, (ctx->getURI().queryParameter("path").value()).c_str());
     file.write((char *) path, sizeof(path));
     file.close();
 }
@@ -412,7 +412,7 @@ std::string HDF5Utils::pulseFilePathFactory(DataEntryContext * ctx, int mode, in
 
 std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path)
 {
-    std::string path = ctx->getFromURIQuery("path");
+    std::string path = ctx->getURI().queryParameter("path").value();
     files_directory = path;
     relative_file_path = MASTER_FILE_NAME;
 
