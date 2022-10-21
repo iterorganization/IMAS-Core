@@ -11,7 +11,6 @@
 #include "ual_utilities.h"
 #include "ual_exception.h"
 #include "ual_const.h"
-#include "uri_parser.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -25,6 +24,7 @@
 
 #ifdef __cplusplus
 
+#include "uri_parser.h"
 #include <iostream>
 #include <cstdlib>
 #include <atomic>
