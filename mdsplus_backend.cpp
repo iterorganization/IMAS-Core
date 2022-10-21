@@ -1489,13 +1489,20 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	    if(origPath)
 	    	originalIdsPath = origPath; 
 	}
-	
+	//append the new path in front of the original one, if the latter is defined
+	std::string newPathStr = mdsplusBaseStr;
+	if(originalIdsPath != "")
+	{
+	    newPathStr += ";"+originalIdsPath;
+	}
 #ifdef WIN32
 	char szEnv[256] = { 0 };
-	sprintf(szEnv, "%s=%s", szPath, mdsplusBaseStr.c_str());
+//	sprintf(szEnv, "%s=%s", szPath, mdsplusBaseStr.c_str());
+	sprintf(szEnv, "%s=%s", szPath, newPathStr.c_str());
 	putenv(szEnv);
 #else // WIN32
-	setenv(szPath, mdsplusBaseStr.c_str(), 1);
+//	setenv(szPath, mdsplusBaseStr.c_str(), 1);
+	setenv(szPath, newPathStr.c_str(), 1);
 #endif // WIN32
     }  
   
