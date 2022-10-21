@@ -53,21 +53,14 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(uri::parse_uri(uri_))
   setBackendID(uri.path, uri.authority.host);
 
   auto maybe_path = uri.queryParameter("path");
-  if (maybe_path) {
-    path = maybe_path.value();
-  } else {
-    path = getPathFromLegacy();
+  if (!maybe_path) {
+    uri = buildURIFromLegacy();
   }
 
   /* too soon to decide conflicting query options? */
   /*if (!pathFromURI.empty() && (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty())) {
       throw UALContextException("path should not be specified in the URI since user/database/version parameters are specified",LOG);
       }*/
-
-  auto maybe_options = uri.queryParameter("options");
-  if (maybe_options) {
-    options = maybe_options.value();
-  }
 
   this->uid = ++SID;
 }
@@ -95,7 +88,7 @@ std::string DataEntryContext::getBackendName() const
 
 std::string DataEntryContext::getOptions() const
 { 
-  return this->options;
+  return this->uri.queryParameter("options").value_or("");
 }
 
 uri::Uri DataEntryContext::getURI() const
@@ -103,78 +96,78 @@ uri::Uri DataEntryContext::getURI() const
   return this->uri;
 }
 
-std::string DataEntryContext::getPathFromLegacy() {
+uri::Uri DataEntryContext::buildURIFromLegacy() {
   std::string filePath;
 
-  if (path.empty()) {;
-    auto maybe_user = uri.queryParameter("user");
-    if (!maybe_user) {
-      throw UALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
-    }
-
-    std::string databaseFromURI;
-    if (!uri.queryParameter("database")) {
-      throw UALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
-    }
-
-    std::string versionFromURI;
-    if (!uri.queryParameter("version")) {
-      throw UALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
-    }
-
-    std::string shotFromURI;
-    if (!uri.queryParameter("shot")) {
-      throw UALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
-    }
-
-    std::string runFromURI;
-    if (!uri.queryParameter("run")) {
-      throw UALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
-    }
-
-    // using legacy to build standard paths
-    std::string user = maybe_user.value();
-    if (user == "public") {
-      char *home = getenv("IMAS_HOME");
-      if (home == NULL) {
-        throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
-      }
-      filePath += home;
-      filePath += "/shared/imasdb/";
-      filePath += databaseFromURI;
-      filePath += "/";
-      filePath += versionFromURI;
-    } else if (user.rfind('/', 0) == 0) {
-      filePath += user;
-      filePath += "/";
-      filePath += databaseFromURI;
-      filePath += "/";
-      filePath += versionFromURI;
-    } else {
-#ifdef WIN32
-      char szHomeDir[256];
-      if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
-	    filePath += szHomeDir;
-#else 
-      struct passwd *pw = getpwnam(user.c_str());
-      if (pw != NULL) {
-	    filePath += pw->pw_dir;
-#endif
-      }
-      else {
-	    throw  UALBackendException("Can't find or access " + user + " user's data",LOG);
-      }
-      filePath += "/public/imasdb/";
-      filePath += databaseFromURI;
-      filePath += "/";
-      filePath += versionFromURI;
-    }   
-    filePath += "/";
-    filePath += shotFromURI;
-    filePath += "/";
-    filePath += runFromURI;
+  auto maybe_user = uri.queryParameter("user");
+  if (!maybe_user) {
+    throw UALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
-  return filePath;
+
+  std::string databaseFromURI;
+  if (!uri.queryParameter("database")) {
+    throw UALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+  }
+
+  std::string versionFromURI;
+  if (!uri.queryParameter("version")) {
+    throw UALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+  }
+
+  std::string shotFromURI;
+  if (!uri.queryParameter("shot")) {
+    throw UALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+  }
+
+  std::string runFromURI;
+  if (!uri.queryParameter("run")) {
+    throw UALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+  }
+
+  // using legacy to build standard paths
+  std::string user = maybe_user.value();
+  if (user == "public") {
+    char *home = getenv("IMAS_HOME");
+    if (home == NULL) {
+      throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
+    }
+    filePath += home;
+    filePath += "/shared/imasdb/";
+    filePath += databaseFromURI;
+    filePath += "/";
+    filePath += versionFromURI;
+  } else if (user.rfind('/', 0) == 0) {
+    filePath += user;
+    filePath += "/";
+    filePath += databaseFromURI;
+    filePath += "/";
+    filePath += versionFromURI;
+  } else {
+#ifdef WIN32
+    char szHomeDir[256];
+    if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, 0, szHomeDir))) {
+      filePath += szHomeDir;
+#else
+    struct passwd *pw = getpwnam(user.c_str());
+    if (pw != NULL) {
+      filePath += pw->pw_dir;
+#endif
+    } else {
+      throw  UALBackendException("Can't find or access " + user + " user's data",LOG);
+    }
+    filePath += "/public/imasdb/";
+    filePath += databaseFromURI;
+    filePath += "/";
+    filePath += versionFromURI;
+  }
+  filePath += "/";
+  filePath += shotFromURI;
+  filePath += "/";
+  filePath += runFromURI;
+
+  uri::query_type query = {};
+  query["path"] = filePath;
+  return { uri.scheme, uri.authority, uri.path, query, "path=" + filePath, uri.fragment };
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
@@ -196,7 +189,12 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
 }
 
 void DataEntryContext::addOptions(const std::string &options_) {
-    options += ";" + options_;
+    std::string options = getOptions();
+    if (options.empty()) {
+        uri.query["options"] = options_;
+    } else {
+        uri.query["options"] = options + ";" + options_;
+    }
 }
 
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 

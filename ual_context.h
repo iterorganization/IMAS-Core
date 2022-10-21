@@ -181,13 +181,11 @@ public:
 
  protected:
   uri::Uri uri;                         /**< URI */
-  std::string path;                     /**< data path */
-  std::string options;                  /**< options */
   int backend_id;                       /**< a backend identifier */
 
  private:
   void setBackendID(const std::string &path, const std::string &host);
-  std::string getPathFromLegacy();
+  uri::Uri buildURIFromLegacy();
 
 };
 

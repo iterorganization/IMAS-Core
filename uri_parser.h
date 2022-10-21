@@ -75,6 +75,9 @@ public:
         }
         return value_;
     }
+    const std::string& value_or(const std::string& other) const {
+        return found_ ? value_ : other;
+    }
 private:
     std::string param_;
     std::string value_;
