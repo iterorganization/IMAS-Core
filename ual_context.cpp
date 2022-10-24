@@ -104,23 +104,23 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
     throw UALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
-  std::string databaseFromURI;
-  if (!uri.query.get("database")) {
+  auto maybe_database = uri.query.get("database");
+  if (!maybe_database) {
     throw UALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
-  std::string versionFromURI;
-  if (!uri.query.get("version")) {
+  auto maybe_version = uri.query.get("version");
+  if (!maybe_version) {
     throw UALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
-  std::string shotFromURI;
-  if (!uri.query.get("shot")) {
+  auto maybe_shot = uri.query.get("shot");
+  if (!maybe_shot) {
     throw UALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
-  std::string runFromURI;
-  if (!uri.query.get("run")) {
+  auto maybe_run = uri.query.get("run");
+  if (!maybe_run) {
     throw UALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
@@ -133,15 +133,15 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
     }
     filePath += home;
     filePath += "/shared/imasdb/";
-    filePath += databaseFromURI;
+    filePath += maybe_database.value();
     filePath += "/";
-    filePath += versionFromURI;
+    filePath += maybe_version.value();
   } else if (user.rfind('/', 0) == 0) {
     filePath += user;
     filePath += "/";
-    filePath += databaseFromURI;
+    filePath += maybe_database.value();
     filePath += "/";
-    filePath += versionFromURI;
+    filePath += maybe_version.value();
   } else {
 #ifdef WIN32
     char szHomeDir[256];
@@ -156,18 +156,18 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
       throw  UALBackendException("Can't find or access " + user + " user's data",LOG);
     }
     filePath += "/public/imasdb/";
-    filePath += databaseFromURI;
+    filePath += maybe_database.value();
     filePath += "/";
-    filePath += versionFromURI;
+    filePath += maybe_version.value();
   }
   filePath += "/";
-  filePath += shotFromURI;
+  filePath += maybe_shot.value();
   filePath += "/";
-  filePath += runFromURI;
+  filePath += maybe_run.value();
 
   uri::QueryDict query = {};
   query.insert("path", filePath);
-  return { uri.scheme, uri.authority, uri.path, query, uri.fragment };
+  return { uri.scheme, uri.authority, uri.path, query, "" };
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {
