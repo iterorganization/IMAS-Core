@@ -125,23 +125,21 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     load_env_options();
     process_options(ctx->getOptions());
 
-    std::vector<std::string> init_args = {};
-    std::string mapped_plugin = machine_mapping_.plugin(ctx->getTokamak());
-    if (!mapped_plugin.empty()) {
-        plugin_ = mapped_plugin;
-        init_args = machine_mapping_.args(ctx->getTokamak());
+    auto maybe_plugin = ctx->getURI().query.get("plugin");
+    if (maybe_plugin) {
+        plugin_ = maybe_plugin.value();
+    }
+
+    auto maybe_args = ctx->getURI().query.get("init_args");
+
+    std::string args;
+    if (maybe_args) {
+        args = maybe_args.value();
+        std::replace(args.begin(), args.end(), ';', ',');
     }
 
     std::stringstream ss;
-    ss << plugin_ << "::init(";
-
-    std::string delim;
-    for (const auto& arg: init_args) {
-        ss << delim << arg;
-        delim = ", ";
-    }
-
-    ss << ")";
+    ss << plugin_ << "::init(" << args << ")";
 
     std::string directive = ss.str();
     if (verbose_) {
@@ -158,7 +156,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
 
     std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
 
-    ss << this->plugin
+    ss << plugin_
        << "::openPulse("
        << "backend_id=" << ualconst::mdsplus_backend
        << ", uri=" << ctx->getURI().to_string()
@@ -192,11 +190,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
 
     ss << plugin_
        << "::close("
-       << "shot=" << ctx->getShot()
-       << ", run=" << ctx->getRun()
-       << ", user='" << ctx->getUser() << "'"
-       << ", tokamak='" << ctx->getTokamak() << "'"
-       << ", version='" << ctx->getVersion() << "'"
+       << "uri='" << ctx->getURI().to_string() << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
        << ")";
 
@@ -210,7 +204,6 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
-    idamFreeAll();
 }
 
 int UDABackend::readData(Context* ctx,
@@ -280,11 +273,7 @@ int UDABackend::readData(Context* ctx,
 
             ss << plugin_
                << "::get(backend_id='mdsplus'"
-               << ", shot=" << pulse_ctx->getShot()
-               << ", run=" << pulse_ctx->getRun()
-               << ", user='" << pulse_ctx->getUser() << "'"
-               << ", tokamak='" << pulse_ctx->getTokamak() << "'"
-               << ", version='" << pulse_ctx->getVersion() << "'"
+               << ", uri='" << pulse_ctx->getURI().to_string() << "'"
                << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
                << ", dataObject='" << op_ctx->getDataobjectName() << "'"
                << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -377,11 +366,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     std::stringstream ss;
     ss << plugin_
        << "::get(backend='"<< backend << "'"
-       << ", shot=" << pulse_ctx->getShot()
-       << ", run=" << pulse_ctx->getRun()
-       << ", user='" << pulse_ctx->getUser() << "'"
-       << ", tokamak='" << pulse_ctx->getTokamak() << "'"
-       << ", version='" << pulse_ctx->getVersion() << "'"
+       << ", uri='" << pulse_ctx->getURI().to_string() << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
        << ", dataObject='" << ids << "'"
        << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -443,11 +428,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 
         ss << plugin_
            << "::get(backend='"<< backend << "'"
-           << ", shot=" << pulse_ctx->getShot()
-           << ", run=" << pulse_ctx->getRun()
-           << ", user='" << pulse_ctx->getUser() << "'"
-           << ", tokamak='" << pulse_ctx->getTokamak() << "'"
-           << ", version='" << pulse_ctx->getVersion() << "'"
+           << ", uri='" << pulse_ctx->getURI().to_string() << "'"
            << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
            << ", dataObject='" << ids << "'"
            << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -498,7 +479,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
                 imas::uda::add_data_to_cache(result, cache_);
             }
 
-            for (int i = 0; i < acc_getCurrentDataBlockIndex(); ++i) {
+            ClientFlags flags = {};
+            for (int i = 0; i < acc_getCurrentDataBlockIndex(&flags); ++i) {
                 freeDataBlock(getIdamDataBlock(i));
             }
             acc_freeDataBlocks();
