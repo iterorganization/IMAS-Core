@@ -68,9 +68,11 @@ clean-src: clean clean-doc
 	$(RM) -r $(INSTALL)/documentation/dev
 
 test: $(TARGETS)
-	$(MAKE) -C tests
+	@echo "Do nothing"
+#	$(MAKE) -C tests
 test_clean:
-	$(MAKE) -C tests clean
+	@echo "Do nothing"
+#	$(MAKE) -C tests clean
 
 # Create embedded documentation
 doc: latex/files.tex html/files.html
