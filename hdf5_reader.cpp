@@ -615,8 +615,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
-        status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
-        if (status < 0) {
+	if (datatype != ualconst::char_data)
+           status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+	else
+	   status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
+	if (status < 0) {
             printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             return exit_request(data_set, 0);
         }
@@ -645,9 +648,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             }
         case ualconst::char_data:
             {
-                char error_message[200];
-                sprintf(error_message, "Linear interpolation of char data not supported, dataset: %s\n", tensorized_path.c_str());
-                throw UALBackendException(error_message, LOG);
+		char* data_str = (char*) *data;
+		char* next_data_str = (char*) next_slice_data;
+		if (strcmp(data_str, next_data_str) != 0)
+		   strcpy(data_str, ""); //returning an empty string since values from neighboring slices are different
+	        free(next_slice_data);
                 break;
             }
         }
