@@ -37,6 +37,16 @@ struct OpenMode {
     }
 };
 
+struct CloseMode {
+    std::string operator()(int i) {
+        switch (i) {
+            case CLOSE_PULSE: return "close";
+            case ERASE_PULSE: return "erase";
+            default: throw std::runtime_error{"unknown close mode: " + std::to_string(i)};
+        }
+    }
+};
+
 struct AccessMode {
     std::string operator()(int i) {
         switch (i) {

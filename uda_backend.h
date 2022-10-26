@@ -58,7 +58,6 @@ private:
     std::shared_ptr<pugi::xml_document> doc_ = {};
     imas::uda::CacheType cache_ = {};
     imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
-    std::map<std::string, std::string> env_options_ = {};
     int open_mode_ = 0;
 
     void process_option(const std::string& option);
@@ -80,9 +79,7 @@ public:
 
         if (verbose_) {
             std::cout << "UDABackend constructor\n";
-            std::cout << "UDA Server: " << uda_client_.serverHostName() << "\n";
-            std::cout << "UDA Port: " << uda_client_.serverPort() << "\n";
-            std::cout << "UDA Plugin: " << plugin_ << "\n";
+            std::cout << "UDA default plugin: " << plugin_ << "\n";
         }
     }
 

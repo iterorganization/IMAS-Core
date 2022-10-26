@@ -84,8 +84,6 @@ void UDABackend::process_option(const std::string& option)
         } else {
             throw UALException("invalid cache mode", LOG);
         }
-    } else if (boost::starts_with(name, "uda_")) {
-        env_options_[name] = value;
     } else {
         throw UALException("invalid option (option name not recognised)", LOG);
     }
@@ -101,19 +99,6 @@ void UDABackend::process_options(const std::string& options)
     }
 }
 
-void UDABackend::load_env_options()
-{
-    constexpr const char* option_names[] = {"UDA_PPF_USER", "UDA_PPF_SEQUENCE", "UDA_PPF_DDA"};
-
-    for (auto name : option_names) {
-        char* value = getenv(name);
-        if (value != nullptr) {
-            std::string lower_name = boost::to_lower_copy(std::string{name});
-            env_options_[lower_name] = value;
-        }
-    }
-}
-
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
@@ -122,12 +107,23 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     }
     open_mode_ = mode;
 
-    load_env_options();
     process_options(ctx->getOptions());
 
     auto maybe_plugin = ctx->getURI().query.get("plugin");
     if (maybe_plugin) {
         plugin_ = maybe_plugin.value();
+    }
+
+    std::string host = ctx->getURI().authority.host;
+    int port = ctx->getURI().authority.port;
+
+    uda::Client::setServerHostName(host);
+    uda::Client::setServerPort(port);
+
+    if (verbose_) {
+        std::cout << "UDA server: " << host << "\n";
+        std::cout << "UDA port: " << port << "\n";
+        std::cout << "UDA plugin: " << plugin_ << "\n";
     }
 
     auto maybe_args = ctx->getURI().query.get("init_args");
@@ -154,11 +150,11 @@ void UDABackend::openPulse(DataEntryContext* ctx,
         }
     }
 
-    std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
+    std::string backend = ctx->getURI().query.get("backend").value_or("mdsplus");
 
     ss << plugin_
        << "::openPulse("
-       << "backend_id=" << ualconst::mdsplus_backend
+       << "backend=" << backend
        << ", uri=" << ctx->getURI().to_string()
        << ", mode=" << mode
        << ")";
@@ -191,7 +187,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     ss << plugin_
        << "::close("
        << "uri='" << ctx->getURI().to_string() << "'"
-       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::CloseMode>(mode) << "'"
        << ")";
 
     std::string directive = ss.str();
@@ -267,13 +263,15 @@ int UDABackend::readData(Context* ctx,
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
-            auto pulse_ctx = op_ctx->getDataEntryContext();
+            auto entry_ctx = op_ctx->getDataEntryContext();
+
+            std::string backend = ctx->getURI().query.get("backend").value_or("mdsplus");
 
             std::stringstream ss;
 
             ss << plugin_
-               << "::get(backend_id='mdsplus'"
-               << ", uri='" << pulse_ctx->getURI().to_string() << "'"
+               << "::get(backend='" << backend << "'"
+               << ", uri='" << entry_ctx->getURI().to_string() << "'"
                << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
                << ", dataObject='" << op_ctx->getDataobjectName() << "'"
                << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -286,14 +284,17 @@ int UDABackend::readData(Context* ctx,
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
 
-            if (env_options_.count("uda_ppf_user")) {
-                ss << ", ppfUser='" << env_options_.at("uda_ppf_user") << "'";
+            auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+            if (maybe_pff_user) {
+                ss << ", ppfUser='" << maybe_pff_user.value() << "'";
             }
-            if (env_options_.count("uda_ppf_sequence")) {
-                ss << ", ppfSequence='" << env_options_.at("uda_ppf_sequence") << "'";
+            auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+            if (maybe_pff_sequence) {
+                ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
             }
-            if (env_options_.count("uda_ppf_dda")) {
-                ss << ", ppfDDA='" << env_options_.at("uda_ppf_dda") << "'";
+            auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+            if (maybe_pff_dda) {
+                ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
             }
             ss << ")";
 
@@ -354,19 +355,19 @@ int UDABackend::readData(Context* ctx,
     }
 }
 
-bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx)
+bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* entry_ctx, OperationContext* op_ctx)
 {
     if (verbose_) {
         std::cout << "UDABackend getting homogeneous_time\n";
     }
 
-    std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
+    std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
     std::string path = ids + "/ids_properties/homogeneous_time";
 
     std::stringstream ss;
     ss << plugin_
        << "::get(backend='"<< backend << "'"
-       << ", uri='" << pulse_ctx->getURI().to_string() << "'"
+       << ", uri='" << entry_ctx->getURI().to_string() << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
        << ", dataObject='" << ids << "'"
        << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -397,9 +398,9 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     }
 }
 
-void UDABackend::populate_cache(const std::string& ids, const std::string& path, DataEntryContext* pulse_ctx, OperationContext* op_ctx)
+void UDABackend::populate_cache(const std::string& ids, const std::string& path, DataEntryContext* entry_ctx, OperationContext* op_ctx)
 {
-    bool is_homogeneous = get_homogeneous_flag(ids, pulse_ctx, op_ctx);
+    bool is_homogeneous = get_homogeneous_flag(ids, entry_ctx, op_ctx);
 
     auto nodes = doc_->child("IDSs");
 
@@ -424,11 +425,11 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         std::stringstream ss;
 
         std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
-        std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
+        std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
 
         ss << plugin_
            << "::get(backend='"<< backend << "'"
-           << ", uri='" << pulse_ctx->getURI().to_string() << "'"
+           << ", uri='" << entry_ctx->getURI().to_string() << "'"
            << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
            << ", dataObject='" << ids << "'"
            << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -441,14 +442,17 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", is_homogeneous=" << is_homogeneous
            << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
 
-        if (env_options_.count("uda_ppf_user")) {
-            ss << ", ppfUser='" << env_options_.at("uda_ppf_user") << "'";
+        auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+        if (maybe_pff_user) {
+            ss << ", ppfUser='" << maybe_pff_user.value() << "'";
         }
-        if (env_options_.count("uda_ppf_sequence")) {
-            ss << ", ppfSequence='" << env_options_.at("uda_ppf_sequence") << "'";
+        auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+        if (maybe_pff_sequence) {
+            ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
         }
-        if (env_options_.count("uda_ppf_dda")) {
-            ss << ", ppfDDA='" << env_options_.at("uda_ppf_dda") << "'";
+        auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+        if (maybe_pff_dda) {
+            ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
         }
 
         ss << ")";
@@ -465,7 +469,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
     std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
 
     constexpr size_t N = 20;
-    std::string backend = env_options_.count("uda_backend") ? env_options_.at("uda_backend") : "mdsplus";
+    std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
     try {
         size_t n = 0;
         while (n < uda_requests.size()) {
@@ -501,7 +505,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
     }
 
     auto op_ctx = ctx->getOperationContext();
-    auto pulse_ctx = op_ctx->getDataEntryContext();
+    auto entry_ctx = op_ctx->getDataEntryContext();
 
     auto ids = op_ctx->getDataobjectName();
     auto path = ids + "/" + array_path(ctx, true);
@@ -525,7 +529,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         }
 
         cache_.clear();
-        populate_cache(ids, path, pulse_ctx, op_ctx);
+        populate_cache(ids, path, entry_ctx, op_ctx);
 
         if (cache_.count(path)) {
             auto& data = cache_.at(path);
@@ -581,7 +585,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
     }
 
     std::string ids = op_ctx->getDataobjectName();
-    auto pulse_ctx = op_ctx->getDataEntryContext();
+    auto entry_ctx = op_ctx->getDataEntryContext();
 
     if (cache_.count(ids)) {
         if (verbose_) {
@@ -594,7 +598,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         }
 
         cache_.clear();
-        populate_cache(ids, ids, pulse_ctx, op_ctx);
+        populate_cache(ids, ids, entry_ctx, op_ctx);
         cache_[ids] = { {}, {} };
     } else {
         std::stringstream ss;
@@ -606,14 +610,17 @@ void UDABackend::beginAction(OperationContext* op_ctx)
            << ", time=" << op_ctx->getTime()
            << ", interp=" << op_ctx->getInterpmode();
 
-        if (env_options_.count("uda_ppf_user")) {
-            ss << ", ppfUser='" << env_options_.at("uda_ppf_user") << "'";
+        auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+        if (maybe_pff_user) {
+            ss << ", ppfUser='" << maybe_pff_user.value() << "'";
         }
-        if (env_options_.count("uda_ppf_sequence")) {
-            ss << ", ppfSequence='" << env_options_.at("uda_ppf_sequence") << "'";
+        auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+        if (maybe_pff_sequence) {
+            ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
         }
-        if (env_options_.count("uda_ppf_dda")) {
-            ss << ", ppfDDA='" << env_options_.at("uda_ppf_dda") << "'";
+        auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+        if (maybe_pff_dda) {
+            ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
         }
 
         ss << ")";
