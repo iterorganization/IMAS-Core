@@ -995,10 +995,10 @@ else
 //      auto search = idsInfoMap.find(ctx->getUid()); 
       auto search = internalCtx->idsInfoMap.find(ctx->getUid()); 
 //      if (search!=idsInfoMap.end()) 
-      if (search!=internalCtx->idsInfoMap.end()) 
-	return search->second->idsPath;
+      if (search!=internalCtx->idsInfoMap.end())
+	  return search->second->idsPath;
 
-      lastIdsPath = ctx->getURI().query.get("path").value();
+      lastIdsPath = ctx->getURI().query.get("path").value() + "#" + ctx->getDataobjectName();
       return lastIdsPath;
     }
 
@@ -1011,7 +1011,7 @@ else
       if (search!=internalCtx->idsInfoMap.end())
 	return search->second->ids;
 
-//std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
+      //      std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
 	UalStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
