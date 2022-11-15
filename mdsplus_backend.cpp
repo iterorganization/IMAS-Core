@@ -3760,7 +3760,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
 	    if(currItem2->len() > 0)
 	    {
-	    	std::cout << "WARNING: Linear interpolation node possible for node "+currPath << std::endl;
+	    	std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
@@ -3773,7 +3773,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
 	    if(!(currItem2->len() > 0 && currItem2->getDescAt(0)->clazz == CLASS_APD)) //If the field is NOT an AoS, inconsistent
 	    {
-	    	std::cout << "WARNING: Linear interpolation node possible for node "+currPath << std::endl;
+	    	std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
