@@ -44,9 +44,9 @@ LIBRARY_API int mtl_ual_close(int pulseCtx);
 
 LIBRARY_API int mtl_deleteData(int opCtx, const char *fieldPath);
 
-LIBRARY_API int mtl_ual_begin_global_action(int pulseCtx, const char *path);
-LIBRARY_API int mtl_ual_end_action(int pulseCtx);
-LIBRARY_API int mtl_ual_begin_global_action_write(int pulseCtx, const char *path);
+LIBRARY_API int mtl_hli_begin_global_action(int pulseCtx, const char *path);
+LIBRARY_API int mtl_hli_end_action(int pulseCtx);
+LIBRARY_API int mtl_hli_begin_global_action_write(int pulseCtx, const char *path);
 LIBRARY_API int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time, int interpolMode);
 LIBRARY_API int mtl_ual_begin_put_slice_action(int pulseCtx, const char *path, double time);
 LIBRARY_API int mtl_ual_iterate_over_arraystruct(int aosctx, int step);

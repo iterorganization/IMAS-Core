@@ -71,7 +71,7 @@ double *mtl_getVectNDDouble(int ctx, const char *fieldPath,
 {
 	double *array=(double *)malloc(sizeof(double*));
 	int retSize[MAXDIM];
-	al_status_t status_t = ual_read_data(ctx, fieldPath, timebasePath, (void **)&array,
+	al_status_t status_t = hli_read_data(ctx, fieldPath, timebasePath, (void **)&array,
 				DOUBLE_DATA, dim, &retSize[0]);
 	*status = status_t.code;
 	if (*status==0)
@@ -87,7 +87,7 @@ int *mtl_getVectNDInt(int ctx, const char *fieldPath,
 {
 	int *array=(int *)malloc(sizeof(int*));
 	int retSize[MAXDIM];
-	al_status_t status_t = ual_read_data(ctx, fieldPath, timebasePath, (void **)&array,
+	al_status_t status_t = hli_read_data(ctx, fieldPath, timebasePath, (void **)&array,
 				INTEGER_DATA, dim, &retSize[0]);
 	*status = status_t.code;
 	if (*status==0)
@@ -117,7 +117,7 @@ void mtl_getCPX_ND(int ctx, const char *fieldPath, const char *timebasePath,
 
 	void* ptrData = NULL;
 	int* shapes = (int *)malloc(MAXDIM*sizeof(int));
-	al_status_t status_t = ual_read_data(ctx, fieldPath, timebasePath, &ptrData,
+	al_status_t status_t = hli_read_data(ctx, fieldPath, timebasePath, &ptrData,
 			COMPLEX_DATA, ndim, shapes);
 	*status = status_t.code;
 	std::complex<double> *array = (std::complex<double>*) ptrData;
@@ -163,7 +163,7 @@ int mtl_getCPX_0D(int ctx, const char *fieldPath, const char *timebasePath, doub
 	int status;
 	int retSize[MAXDIM];
 	std::complex<double> *data = (std::complex<double> *)malloc(sizeof(std::complex<double>*));
-	al_status_t status_t = ual_read_data(ctx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
+	al_status_t status_t = hli_read_data(ctx, fieldPath, timebasePath, (void **)&data, COMPLEX_DATA, 0, &retSize[0]);
 	status = status_t.code;
 	*cpx_real = std::real(data[0]);
 	*cpx_imag = std::imag(data[0]);
@@ -372,10 +372,10 @@ int mtl_ual_open_public(int shot, int run, int *pulseCtx,
    @param[in] path name of the DATAOBJECT
    @result operation context ID [_errror if < 0_]
  */
-int mtl_ual_begin_global_action(int pulseCtx, const char *path) 
+int mtl_hli_begin_global_action(int pulseCtx, const char *path) 
 {
 	int octxID;
-	al_status_t status = ual_begin_global_action(pulseCtx, path, READ_OP, &octxID);
+	al_status_t status = hli_begin_global_action(pulseCtx, path, READ_OP, &octxID);
 	if (status.code==0)
 	    return octxID;
 	 else
@@ -386,13 +386,13 @@ int mtl_ual_begin_global_action(int pulseCtx, const char *path)
 /**
    Terminates a read action on a DATAOBJECT.
    This function marks the end of a get operation initiated by a call to 
-   mtl_ual_begin_global_action().
-   @param[in] opCtx operation context ID (from mtl_ual_begin_global_action())
+   mtl_hli_begin_global_action().
+   @param[in] opCtx operation context ID (from mtl_hli_begin_global_action())
    @result error status
  */
-int mtl_ual_end_action(int opCtx)
+int mtl_hli_end_action(int opCtx)
 {
-	al_status_t status_t = ual_end_action(opCtx);
+	al_status_t status_t = hli_end_action(opCtx);
 	return status_t.code;
 }
 
@@ -446,10 +446,10 @@ int mtl_ual_begin_slice_action(int pulseCtx, const char *path, double time,
    @param[in] path name of the DATAOBJECT
    @result operation context [_error if < 0_]
  */
-int mtl_ual_begin_global_action_write(int pulseCtx, const char *path)
+int mtl_hli_begin_global_action_write(int pulseCtx, const char *path)
 {
 	int octxID;
-	al_status_t status = ual_begin_global_action(pulseCtx, path, WRITE_OP, &octxID);
+	al_status_t status = hli_begin_global_action(pulseCtx, path, WRITE_OP, &octxID);
 	if (status.code==0)
 		return octxID;
 	else
@@ -520,8 +520,8 @@ int mtl_getVect1DChar(int opCtx, const char *fieldPath, const char *timebasePath
 	int status;
 	int retSize[MAXDIM];
 	char* szTemp = NULL;
-	//  status = ual_read_data(opCtx, fieldPath, timebasePath, (void **)data,
-	al_status_t status_t = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp,
+
+	al_status_t status_t = hli_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp,
 			CHAR_DATA, 1, &retSize[0]);
 	status = status_t.code;
 	if (status==0)
@@ -556,7 +556,7 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
 	int status;
 	int retSize[MAXDIM];
 	char* szTemp = NULL;
-	al_status_t status_t = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
+	al_status_t status_t = hli_read_data(opCtx, fieldPath, timebasePath, (void **)&szTemp, CHAR_DATA, 2, &retSize[0]);
 	status = status_t.code;
 	if (status==0)
 	{
@@ -585,7 +585,7 @@ int mtl_getVect2DChar(int opCtx, const char *fieldPath, const char *timebasePath
 int mtl_getInt(int opCtx, const char *fieldPath, const char *timebasePath, int *data)
 {
 	int retSize[MAXDIM];
-	al_status_t status_t = ual_read_data(opCtx, fieldPath, timebasePath, (void **)&data,
+	al_status_t status_t = hli_read_data(opCtx, fieldPath, timebasePath, (void **)&data,
 			INTEGER_DATA, 0, &retSize[0]);
 	return status_t.code;
 }
@@ -603,7 +603,7 @@ int mtl_getDouble(int opCtx, const char *fieldPath, const char *timebasePath,
 		double *data)
 {
 	int retSize[MAXDIM];
-	al_status_t status_t = ual_read_data(opCtx, fieldPath, timebasePath, (void**)&data,
+	al_status_t status_t = hli_read_data(opCtx, fieldPath, timebasePath, (void**)&data,
 			DOUBLE_DATA, 0, &retSize[0]);
 	return status_t.code;
 }
