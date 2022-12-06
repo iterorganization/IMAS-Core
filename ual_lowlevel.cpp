@@ -56,21 +56,33 @@ void LLplugin::addPlugin(const char* name, void *plugin) {
 
 bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames) {
   LLenv lle = Lowlevel::getLLenv(ctxID);
-  std::string fullPath = lle.context->fullPath() + "/" + std::string(fieldPath);
+  std::string path = "";
+  OperationContext *opctx = nullptr;
+  if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) {
+    opctx = (static_cast<ArraystructContext*> (lle.context))->getOperationContext();
+    path = (static_cast<ArraystructContext*> (lle.context))->getPath();
+    std::string path_prefix = opctx->getDataobjectName();
+    size_t found_sep = path_prefix.find("/");
+    if (found_sep == std::string::npos) 
+         path_prefix += "/0";
+    path = path_prefix + "/" + path;
+  }
+  else {
+    opctx = static_cast<OperationContext*> (lle.context);
+    path = opctx->getDataobjectName();
+    size_t found_sep = path.find("/");
+    if (found_sep == std::string::npos) 
+         path += "/0";
+  }
+  
+  std::string fullPath = path + "/" + std::string(fieldPath);
+  
   auto got = boundPlugins.find(fullPath);
   if (got != boundPlugins.end()) {
     pluginsNames = got->second;
     return true;
   }
     
-	OperationContext *opctx = nullptr;
-    if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) {
-        opctx = (static_cast<ArraystructContext*> (lle.context))->getOperationContext();
-    }
-    else {
-        opctx = static_cast<OperationContext*> (lle.context);
-    }
-
     std::string dataObjectName = opctx->getDataobjectName();
     
     //we are searching now path like :"ids_name/1/*" where 1 is the occurrence and * is representing all nodes
@@ -85,7 +97,6 @@ bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std
      size_t found = dataObjectName.find("/");
      if (found == std::string::npos) {
          dataObjectName += "/0";
-
          fullPath = dataObjectName + "/" + std::string(fieldPath);
          got = boundPlugins.find(fullPath);
          if (got != boundPlugins.end()) {
@@ -159,20 +170,16 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
         sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be bound.\n", pluginName);
         throw UALLowlevelException(error_message, LOG);
     }
-    char *tmp = strdup(fieldPath);
-    char* token = strtok(tmp, "/");
-    bool badFormat = false;
-    int i = 0;
-    while (token != NULL) {
-        token = strtok(NULL, "/");
-        i++;
-    }
-    free(tmp);
-    if (i < 3)
-        badFormat = true;
-    if (badFormat) {
+    std::string fieldPath_str(fieldPath);
+    if (fieldPath_str.rfind("/", 0) == 0) {
         char error_message[200];
-        sprintf(error_message, "bindPlugin: bad format specified: (%s) should contain at least two '/' separators --> IDSNAME/Occurrence/field_path \n", fieldPath);
+        sprintf(error_message, "bindPlugin: bad format: (%s) should not start with '/' separator.\n", fieldPath);
+        throw UALLowlevelException(error_message, LOG);
+    }
+    std::string::difference_type n = std::count(fieldPath_str.begin(), fieldPath_str.end(), '/');
+    if (n < 2) {
+        char error_message[200];
+        sprintf(error_message, "bindPlugin: bad format: (%s) should contain at least two '/' separators --> IDSNAME/Occurrence/field_path \n", fieldPath);
         throw UALLowlevelException(error_message, LOG);
     }
     
@@ -352,9 +359,6 @@ void LLplugin::end_action_plugin(int ctxID)
 void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
-    LLenv lle = Lowlevel::getLLenv(ctxID);
-    Context *c= dynamic_cast<Context *>(lle.context);
-    std::string fullPath = c->fullPath() + "/" + std::string(field);
     access_layer_plugin* al_plugin = NULL;
     LLplugin &llp = llpluginsStore[plugin_name];
     al_plugin = (access_layer_plugin*) llp.al_plugin;
@@ -368,9 +372,6 @@ void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const
 void LLplugin::write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void *data, int datatype, int dim, int *size)
 {
-    LLenv lle = Lowlevel::getLLenv(ctxID);
-    Context *c= dynamic_cast<Context *>(lle.context);
-    std::string fullPath = c->fullPath() + "/" + std::string(field);
     access_layer_plugin* al_plugin = NULL;
     LLplugin &llp = llpluginsStore[plugin_name];
     al_plugin = (access_layer_plugin*) llp.al_plugin;
@@ -1242,7 +1243,7 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
 
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, path, pluginsNames);
-    //printf("hli_begin_arraystruct_action::isPluginBound=%d\n", isPluginBound);
+    //printf("hli_begin_arraystruct_action::isPluginBound=%d for path=%s\n", isPluginBound, path);
     if (isPluginBound) {
         int actxID_default = *actxID;
         int actxID_user = 0;
