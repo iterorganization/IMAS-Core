@@ -154,9 +154,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
 
     ss << plugin_
        << "::openPulse("
-       << "backend=" << backend
-       << ", uri=" << ctx->getURI().to_string()
-       << ", mode=" << mode
+       << "uri=" << ctx->getURI().to_string()
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(mode) << "'"
        << ")";
 
     directive = ss.str();
@@ -598,7 +597,14 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         }
 
         cache_.clear();
-        populate_cache(ids, ids, entry_ctx, op_ctx);
+        std::string path = op_ctx->getDatapath();
+        if (path.empty()) {
+            path = ids;
+        } else {
+            path = ids + "/" + path;
+        }
+
+        populate_cache(ids, path, entry_ctx, op_ctx);
         cache_[ids] = { {}, {} };
     } else {
         std::stringstream ss;

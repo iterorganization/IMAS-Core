@@ -211,6 +211,20 @@ public:
   */
   OperationContext(DataEntryContext* ctx, std::string dataobject, int access);
 
+   /**
+     Operation context constructor.
+     Requires informations for all global put or get operations on a DATAOBJECT.
+     @param ctx data-entry context
+     @param dataobject name of the DATAOBJECT
+     @param datapath path to data node for partial get operation
+     @param access access type of the operation
+     - READ_OP: read operation
+     - WRITE_OP: write operation
+     - REPLACE_OP: replace operation [_for the moment only in sliced mode for
+     "replace last slice"_]
+  */
+  OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access);
+
   /**
      Operation context constructor.
      Requires informations for all possible put or get operations on a DATAOBJECT.
@@ -275,6 +289,12 @@ public:
   std::string getDataobjectName() const;
 
   /**
+     Returns the path of the requested data for a partial get operation. Will be empty for non-partial gets.
+     @result datapath
+  */
+  std::string getDatapath() const;
+
+  /**
      Returns access type of the operation.
      @result accessmode
      - READ_OP: read operation
@@ -321,6 +341,7 @@ protected:
   int rangemode;                        /**< operation range */
   double time;                          /**< operation time */
   int interpmode;                       /**< operation interpolation type */
+  std::string datapath;                 /**< path to data node for partial get operations */
 };
 
 

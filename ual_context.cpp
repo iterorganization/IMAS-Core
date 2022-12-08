@@ -237,21 +237,26 @@ std::string DataEntryContext::getURIBackend(int backend_id)
 /// OperationContext ///
 
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access)
-  : pctx(ctx), dataobjectname(dataobject)
+  : OperationContext(ctx, dataobject, "", access)
 {
-  rangemode = ualconst::global_op;
-  time = ualconst::undefined_time;
-  interpmode = ualconst::undefined_interp;
+}
 
-  try {
-    ualconst::op_access_list.at(access-OP_ACCESS_0);
-  } 
-  catch (const std::out_of_range& e) {
-    throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
-  }
-  accessmode = access;
-  pctx = ctx;
-  this->uid = ++SID;
+OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access)
+        : pctx(ctx), dataobjectname(dataobject), datapath(datapath)
+{
+    rangemode = ualconst::global_op;
+    time = ualconst::undefined_time;
+    interpmode = ualconst::undefined_interp;
+
+    try {
+        ualconst::op_access_list.at(access-OP_ACCESS_0);
+    }
+    catch (const std::out_of_range& e) {
+        throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
+    }
+    accessmode = access;
+    pctx = ctx;
+    this->uid = ++SID;
 }
 
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
@@ -328,6 +333,11 @@ std::string OperationContext::getBackendName() const
 std::string OperationContext::getDataobjectName() const
 { 
   return dataobjectname; 
+}
+
+std::string OperationContext::getDatapath() const
+{
+    return datapath;
 }
 
 int OperationContext::getAccessmode() const
