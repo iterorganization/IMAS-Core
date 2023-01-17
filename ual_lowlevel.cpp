@@ -376,12 +376,6 @@ al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
 }
 
 al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
-                                    int *octxID)
-{
-    return ual_begin_partial_global_action(pctxID, dataobjectname, "", rwmode, octxID);
-}
-
-al_status_t ual_begin_partial_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                                             int *octxID)
 {
   al_status_t status;

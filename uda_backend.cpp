@@ -151,6 +151,10 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     }
 
     std::string backend = ctx->getURI().query.get("backend").value_or("mdsplus");
+    // TODO:
+    // - remove host and port from URI
+    // - set path to backend
+    // - remove backend from query
 
     ss << plugin_
        << "::openPulse("
@@ -182,6 +186,9 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     cache_mode_ = imas::uda::CacheMode::None;
 
     std::stringstream ss;
+    // TODO:
+    // - remove host and port from URI
+    // - set path to backend
 
     ss << plugin_
        << "::close("

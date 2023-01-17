@@ -204,22 +204,6 @@ extern "C"
      This function gives a new operation context for the duration of an action on a DATAOBJECT.
      @param[in] ctx pulse context id (from ual_begin_dataentry_action())
      @param[in] dataobjectname name of the DATAOBJECT
-     @param[in] rwmode mode for this operation:
-     - READ_OP = read operation
-     - WRITE_OP = write operation
-     @param[out] opctx operation context id [_null context if = 0_]
-     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
-  */
-  LIBRARY_API al_status_t ual_begin_global_action(int ctx,
-						  const char *dataobjectname,
-						  int rwmode,
-						  int *opctx);
-
-  /**
-     Starts an I/O action on a DATAOBJECT.
-     This function gives a new operation context for the duration of an action on a DATAOBJECT.
-     @param[in] ctx pulse context id (from ual_begin_dataentry_action())
-     @param[in] dataobjectname name of the DATAOBJECT
      @param[in] datapath path to data node for partial get operation
      @param[in] rwmode mode for this operation:
      - READ_OP = read operation
@@ -227,7 +211,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_begin_partial_global_action(int ctx,
+  LIBRARY_API al_status_t ual_begin_global_action(int ctx,
                           const char *dataobjectname,
                           const char* datapath,
                           int rwmode,

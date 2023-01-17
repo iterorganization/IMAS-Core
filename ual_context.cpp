@@ -236,11 +236,6 @@ std::string DataEntryContext::getURIBackend(int backend_id)
 
 /// OperationContext ///
 
-OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access)
-  : OperationContext(ctx, dataobject, "", access)
-{
-}
-
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access)
         : pctx(ctx), dataobjectname(dataobject), datapath(datapath)
 {

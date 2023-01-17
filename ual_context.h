@@ -198,19 +198,6 @@ public:
 class LIBRARY_API OperationContext : public Context 
 {
 public:
-  /**
-     Operation context constructor.
-     Requires informations for all global put or get operations on a DATAOBJECT.
-     @param ctx data-entry context
-     @param dataobject name of the DATAOBJECT
-     @param access access type of the operation 
-     - READ_OP: read operation
-     - WRITE_OP: write operation
-     - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
-     "replace last slice"_]
-  */
-  OperationContext(DataEntryContext* ctx, std::string dataobject, int access);
-
    /**
      Operation context constructor.
      Requires informations for all global put or get operations on a DATAOBJECT.
