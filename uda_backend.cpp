@@ -150,15 +150,17 @@ void UDABackend::openPulse(DataEntryContext* ctx,
         }
     }
 
-    std::string backend = ctx->getURI().query.get("backend").value_or("mdsplus");
-    // TODO:
-    // - remove host and port from URI
-    // - set path to backend
-    // - remove backend from query
+    auto query = ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
+
+    ss.str("");
+    ss.clear();
 
     ss << plugin_
        << "::openPulse("
-       << "uri=" << ctx->getURI().to_string()
+       << "uri='" << uri << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(mode) << "'"
        << ")";
 
@@ -185,14 +187,15 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     cache_.clear();
     cache_mode_ = imas::uda::CacheMode::None;
 
-    std::stringstream ss;
-    // TODO:
-    // - remove host and port from URI
-    // - set path to backend
+    auto query = ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
 
+    std::stringstream ss;
     ss << plugin_
        << "::close("
-       << "uri='" << ctx->getURI().to_string() << "'"
+       << "uri='" << uri << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::CloseMode>(mode) << "'"
        << ")";
 
@@ -271,13 +274,15 @@ int UDABackend::readData(Context* ctx,
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
             auto entry_ctx = op_ctx->getDataEntryContext();
 
-            std::string backend = ctx->getURI().query.get("backend").value_or("mdsplus");
+            auto query = ctx->getURI().query;
+            std::string backend = query.get("backend").value_or("mdsplus");
+            query.remove("backend");
+            std::string uri = "imas:" + backend + "?" + query.to_string();
 
             std::stringstream ss;
-
             ss << plugin_
-               << "::get(backend='" << backend << "'"
-               << ", uri='" << entry_ctx->getURI().to_string() << "'"
+               << "::get("
+               << "uri='" << uri << "'"
                << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
                << ", dataObject='" << op_ctx->getDataobjectName() << "'"
                << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -367,13 +372,17 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
         std::cout << "UDABackend getting homogeneous_time\n";
     }
 
-    std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
     std::string path = ids + "/ids_properties/homogeneous_time";
+
+    auto query = entry_ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
     ss << plugin_
-       << "::get(backend='"<< backend << "'"
-       << ", uri='" << entry_ctx->getURI().to_string() << "'"
+       << "::get("
+       << "uri='" << uri << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
        << ", dataObject='" << ids << "'"
        << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
@@ -428,14 +437,17 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
     for (const auto& request: requests) {
         auto attr = attributes.at(request);
 
-        std::stringstream ss;
-
         std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
-        std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
 
+        auto query = entry_ctx->getURI().query;
+        std::string backend = query.get("backend").value_or("mdsplus");
+        query.remove("backend");
+        std::string uri = "imas:" + backend + "?" + query.to_string();
+
+        std::stringstream ss;
         ss << plugin_
-           << "::get(backend='"<< backend << "'"
-           << ", uri='" << entry_ctx->getURI().to_string() << "'"
+           << "::get("
+           << "uri='" << uri << "'"
            << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
            << ", dataObject='" << ids << "'"
            << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"

@@ -121,6 +121,14 @@ public:
             map_[name] = {};
         }
     }
+    bool remove(const std::string& name) {
+        auto got = map_.find(name);
+        if (got != map_.end()) {
+            map_.erase(got);
+            return true;
+        }
+        return false;
+    }
     std::string to_string() const {
         std::ostringstream ss;
         const char* delim = "";

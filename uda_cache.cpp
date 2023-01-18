@@ -20,15 +20,19 @@ void imas::uda::add_node_to_cache(NodeReader* node, CacheType& cache)
 
     switch (type) {
         case CHAR_DATA:
+        case UDA_TYPE_STRING:
             add_value_to_cache<char>(name, node, shape, cache);
             break;
         case INTEGER_DATA:
+        case UDA_TYPE_INT:
             add_value_to_cache<int>(name, node, shape, cache);
             break;
         case DOUBLE_DATA:
+        case UDA_TYPE_DOUBLE:
             add_value_to_cache<double>(name, node, shape, cache);
             break;
         case COMPLEX_DATA:
+        case UDA_TYPE_COMPLEX:
             add_value_to_cache<double _Complex>(name, node, shape, cache);
             break;
         case 0:
