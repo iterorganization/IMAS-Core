@@ -765,32 +765,14 @@ int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, in
     return 0; //shapes are the same
 }
 
-void HDF5Utils::getDataIndex(int dataset_rank, const hsize_t *dataspace_dims, std::vector < int >current_arrctx_indices, std::vector < int >&index)
-{
-    int n = dataspace_dims[dataset_rank - 1];   //n is the length of the vector of shapes
-    std::vector < int >basis_tmp;
-    basis_tmp.reserve(dataset_rank);
-    basis_tmp.push_back(1);
-
-    for (int i = 1; i < dataset_rank; i++) {
-        basis_tmp[i] = basis_tmp[i - 1] * dataspace_dims[dataset_rank - i];
+int HDF5Utils::indices_to_flat_index(const std::vector<int>& indices, const hsize_t* shapes) {
+    int flat_index = 0;
+    for (int i = 0; i < indices.size(); ++i) {
+        flat_index = flat_index * shapes[i] + indices[i];
     }
-    std::vector < int >basis;
-    basis.reserve(dataset_rank);
-    for (int i = 0; i < dataset_rank; i++) {
-        basis[i] = basis_tmp[dataset_rank - i - 1];
-    }
-    current_arrctx_indices.push_back(0);        //adding the shapes axis; v targets to the first component of the shape vector
-    index.reserve(n);           //index[i] is the index of the ith component of the shapes vector in the linearized buffer
-
-    for (size_t j = 0; j < (size_t) n; j++) {
-        index[j] = 0;
-        for (size_t i = 0; i < (size_t) dataset_rank; i++) {
-            index[j] += current_arrctx_indices[i] * basis[i];
-        }
-        current_arrctx_indices.back() += 1;     //increasing component along shapes axis
-    }
+    return flat_index;
 }
+
 
 void HDF5Utils::closeIDSFile(hid_t pulse_file_id, const std::string &external_link_name) {
     if (pulse_file_id != -1) {
