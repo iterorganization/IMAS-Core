@@ -767,7 +767,7 @@ int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, in
 
 int HDF5Utils::indices_to_flat_index(const std::vector<int>& indices, const hsize_t* shapes) {
     int flat_index = 0;
-    for (int i = 0; i < indices.size(); ++i) {
+    for (size_t i = 0; i < indices.size(); ++i) {
         flat_index = flat_index * shapes[i] + indices[i];
     }
     return flat_index;
