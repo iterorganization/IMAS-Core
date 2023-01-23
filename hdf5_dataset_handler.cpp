@@ -1030,17 +1030,16 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
     for (int i = 0; i < dim; i++)
         shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(int));
-    int* data_int = (int*) *data;
     if (rank != dim) {
         HDF5Utils hdf5_utils;
         std::vector < int > indices = current_arrctx_indices;
         indices.push_back(0);
         int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
-        for (size_t i = 0; i < shape; i++)
-            data_int[i] = v[index + i];
+        memcpy(*data, v+index, shape*sizeof(int));
+        
     }
     else {
-        memcpy(data_int, v, shape*sizeof(int));
+        memcpy(*data, v, shape*sizeof(int));
     }
 }
 
@@ -1053,17 +1052,15 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
     for (int i = 0; i < dim; i++)
         shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(double));
-    double* data_double = (double*) *data;
     if (rank != dim) {
         HDF5Utils hdf5_utils;
         std::vector < int > indices = current_arrctx_indices;
         indices.push_back(0);
         int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
-        for (size_t i = 0; i < shape; i++) 
-            data_double[i] = v[index + i];
-    }
+        memcpy(*data, v+index, shape*sizeof(double));
+    } 
     else {
-        memcpy(data_double, v, shape*sizeof(double));
+        memcpy(*data, v, shape*sizeof(double));
     }
 }
 
