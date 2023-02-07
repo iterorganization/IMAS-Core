@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <client/accAPI.h>
 #include <client/udaClient.h>
+#include <clientserver/udaTypes.h>
 
 #include "uda_utilities.hpp"
 #include "uda_xml.hpp"
@@ -16,13 +17,13 @@ std::string array_path(ArraystructContext* ctx, bool for_dim = false)
     if (for_dim) {
         path = ctx->getPath();
     } else {
-        path = ctx->getPath() + "[" + std::to_string(ctx->getIndex() + 1) + "]";
+        path = ctx->getPath() + "[" + std::to_string(ctx->getIndex()) + "]";
     }
     while (ctx->getParent() != nullptr) {
         ctx = ctx->getParent();
         path = ctx->getPath()
                 .append("[")
-                .append(std::to_string(ctx->getIndex() + 1))
+                .append(std::to_string(ctx->getIndex()))
                 .append("]/")
                 .append(path);
     }
@@ -159,7 +160,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     ss.clear();
 
     ss << plugin_
-       << "::openPulse("
+       << "::open("
        << "uri='" << uri << "'"
        << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(mode) << "'"
        << ")";
@@ -211,6 +212,73 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     }
 }
 
+template <typename T>
+void unpack_data(NodeReader* node,
+                 const std::vector<size_t>& shape,
+                 void** data,
+                 int* dim,
+                 int* size)
+{
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    *data = malloc(count * sizeof(T));
+    auto buffer = reinterpret_cast<char*>(*data);
+
+    uda_capnp_read_data(node, buffer);
+
+    *dim = static_cast<int>(shape.size());
+    for (int i = 0; i < *dim; ++i) {
+        size[i] = static_cast<int>(shape[i]);
+    }
+}
+
+void unpack_node(const std::string& path,
+                 NodeReader* node,
+                 void** data,
+                 int* datatype,
+                 int* dim,
+                 int* size)
+{
+    const char* name = uda_capnp_read_name(node);
+
+    if (name != path) {
+        throw UALBackendException("Invalid node returned: " + std::string(name));
+    }
+
+    int type = uda_capnp_read_type(node);
+    size_t rank = uda_capnp_read_rank(node).value;
+
+    std::vector<size_t> shape(rank);
+    uda_capnp_read_shape(node, shape.data());
+
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    std::vector<char> bytes(count);
+
+    switch (type) {
+        case CHAR_DATA:
+        case UDA_TYPE_STRING:
+            *datatype = CHAR_DATA;
+            unpack_data<char>(node, shape, data, dim, size);
+            break;
+        case INTEGER_DATA:
+        case UDA_TYPE_INT:
+            *datatype = INTEGER_DATA;
+            unpack_data<int>(node, shape, data, dim, size);
+            break;
+        case DOUBLE_DATA:
+        case UDA_TYPE_DOUBLE:
+            *datatype = DOUBLE_DATA;
+            unpack_data<double>(node, shape, data, dim, size);
+            break;
+        case COMPLEX_DATA:
+        case UDA_TYPE_COMPLEX:
+            *datatype = COMPLEX_DATA;
+            unpack_data<double _Complex>(node, shape, data, dim, size);
+            break;
+        default: throw UALBackendException("Unknown data type: " + std::to_string(type));
+    }
+}
+
 int UDABackend::readData(Context* ctx,
                          std::string fieldname,
                          std::string timebasename,
@@ -219,15 +287,15 @@ int UDABackend::readData(Context* ctx,
                          int* dim,
                          int* size)
 {
-    if (verbose_) {
-        std::cout << "UDABackend readData\n";
-    }
-
     auto path = array_path(ctx) + "/" + fieldname;
+
+    if (verbose_) {
+        std::cout << "UDABackend readData:" << path << "\n";
+    }
 
     if (cache_.count(path)) {
         if (verbose_) {
-            std::cout << "UDABackend readData: found " << path << " in cache\n";
+            std::cout << "UDABackend readData: found in cache\n";
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
         *dim = cache_data.shape.size();
@@ -268,7 +336,9 @@ int UDABackend::readData(Context* ctx,
         }
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
         return 1;
-    } else if (cache_mode_ == imas::uda::CacheMode::None) {
+    } else if (fieldname == "ids_properties/homogeneous_time"
+            || fieldname == "ids_properties/version_put/data_dictionary"
+            || cache_mode_ == imas::uda::CacheMode::None) {
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
@@ -289,9 +359,11 @@ int UDABackend::readData(Context* ctx,
                << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
                << ", time=" << op_ctx->getTime()
                << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
-               << ", path='" << fieldname
+               << ", path='" << path << "'"
                << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(*datatype) << "'"
-               << ", rank=" << *dim;
+               << ", rank=" << *dim
+               << ", is_homogeneous=" << 0
+               << ", dynamic_flags=" << 0;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
 
@@ -316,45 +388,20 @@ int UDABackend::readData(Context* ctx,
             }
 
             const uda::Result& result = uda_client_.get(directive, "");
-            uda::Data* uda_data = result.data();
-            if (uda_data->type() == typeid(double)) {
-                *datatype = DOUBLE_DATA;
-                *data = malloc(uda_data->byte_length());
-                memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-            } else if (uda_data->type() == typeid(int)) {
-                *datatype = INTEGER_DATA;
-                *data = malloc(uda_data->byte_length());
-                memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-            } else if (uda_data->type() == typeid(float)) {
-                *datatype = DOUBLE_DATA;
-                auto fdata = reinterpret_cast<const float*>(uda_data->byte_data());
-                if (uda_data->size() == 0) {
-                    *data = malloc(sizeof(double));
-                    auto ddata = reinterpret_cast<double*>(*data);
-                    *ddata = *fdata;
-                } else {
-                    *data = malloc(uda_data->size() * sizeof(double));
-                    auto ddata = reinterpret_cast<double*>(*data);
-                    for (int i = 0; i < (int)uda_data->size(); ++i) {
-                        ddata[i] = fdata[i];
-                    }
-                }
-            } else if (uda_data->type() == typeid(char*)) {
-                *datatype = CHAR_DATA;
-                *data = malloc(uda_data->byte_length() + 1);
-                memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-                char n = '\0';
-                memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
-            } else if (uda_data->type() == typeid(void)) {
-                return 0;
-            } else {
-                throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
-            }
 
-            std::vector<size_t> shape = result.shape();
-            *dim = static_cast<int>(shape.size());
-            for (int i = 0; i < *dim; ++i) {
-                size[i] = static_cast<int>(shape[i]);
+            if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
+                const char* bytes = result.raw_data();
+                size_t num_bytes = result.size();
+                auto tree = uda_capnp_deserialise(bytes, num_bytes);
+
+                auto root = uda_capnp_read_root(tree);
+                size_t num_children = uda_capnp_num_children(root);
+                if (num_children != 1) {
+                    throw UALBackendException(std::string("Too many tree elements returned"), LOG);
+                }
+
+                auto node = uda_capnp_read_child_n(tree, root, 0);
+                unpack_node(path, node, data, datatype, dim, size);
             }
 
             return 1;
@@ -611,20 +658,24 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         }
         return;
     } else if (cache_mode_ == imas::uda::CacheMode::IDS) {
-        if (verbose_) {
-            std::cout << "UDABackend populating cache\n";
-        }
-
-        cache_.clear();
         std::string path = op_ctx->getDatapath();
-        if (path.empty()) {
-            path = ids;
-        } else {
-            path = ids + "/" + path;
-        }
+        if (path != "ids_properties/homogeneous_time" && path != "ids_properties/version_put/data_dictionary") {
+            if (verbose_) {
+                std::cout << "UDABackend populating cache\n";
+            }
 
-        populate_cache(ids, path, entry_ctx, op_ctx);
-        cache_[ids] = { {}, {} };
+            cache_.clear();
+
+            if (path.empty()) {
+                path = ids;
+            } else {
+                path = ids + "/" + path;
+            }
+
+            populate_cache(ids, path, entry_ctx, op_ctx);
+
+            cache_[ids] = {{}, {}};
+        }
     } else {
         std::stringstream ss;
         ss << plugin_

@@ -19,11 +19,17 @@ bool imas::is_integer(char chr)
 
 bool imas::is_index(const std::string& string)
 {
-    if (string.back() != ']') {
+    if (string.back() != ']' && string.back() != ')') {
         return false;
     }
 
-    auto pos = string.find('[');
+    auto pos = std::string::npos;
+    if (string.back() == ']') {
+        pos = string.find('[');
+    } else {
+        pos = string.find('(');
+    }
+
     if (pos == std::string::npos || pos == 0) {
         return false;
     }
@@ -56,11 +62,17 @@ bool imas::is_index(const std::string& string)
 
 std::pair<std::string, imas::Range> imas::parse_index(const std::string& string)
 {
-    if (string.back() != ']') {
+    if (string.back() != ']' && string.back() != ')') {
         throw std::runtime_error{ "invalid string " + string };
     }
 
-    auto pos = string.find('[');
+    auto pos = std::string::npos;
+    if (string.back() == ']') {
+        pos = string.find('[');
+    } else {
+        pos = string.find('(');
+    }
+
     if (pos == std::string::npos || pos == 0) {
         throw std::runtime_error{ "invalid string " + string };
     }
