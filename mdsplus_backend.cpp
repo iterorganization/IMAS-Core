@@ -3714,10 +3714,14 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    return  NULL;
 	int len1 = apd1->len(); //already checked
 	int len2 = apd2->len(); //already checked
-	if(apd1->len() < 2 || apd2->len() < 2)
-	{
+	if(apd1->len() != apd2->len())
+	{  
 	    std::cout << "WARNING: Linear interpolation not possible (different length: " << len1 << ", " << len2<<") for "+currPath << std::endl;
 	    return NULL;
+	}
+	if(apd1->len() == 0)
+	{  
+	    return NULL; //Empty APD
 	}
 	MDSplus::Data *name1 = apd1->getDescAt(0);
 	MDSplus::Data *name2 = apd2->getDescAt(0);
@@ -3738,6 +3742,10 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 //At this point the names match
         MDSplus::Apd *interpApd = new MDSplus::Apd();
 	interpApd->appendDesc(new MDSplus::String(nameStr1));
+	if(apd1->len() < 2) //only name, nothing else
+	{
+	    return interpApd;
+	}
 	if(!firstRec) currPath += "."+std::string(nameStr1); //Just to avoid field name duplications
 	delete [] nameStr1;
 	delete[] nameStr2;
