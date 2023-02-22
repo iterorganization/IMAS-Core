@@ -266,14 +266,14 @@ void HDF5DataSetHandler::showDims(std::string context) {
     }		
 }
 
-void HDF5DataSetHandler::showAOSIndices(std::string context, std::vector<int> &AOS_indices) {
+void HDF5DataSetHandler::showAOSIndices(std::string context, const std::vector<int> &AOS_indices) {
 	std::cout << context << "-->showAOSIndices::dataset=" << getName() <<  std::endl;
 	for (int i = 0; i < AOSRank; i++) {
 		std::cout << context << "-->showAOSIndices::AOS_indices[" << i << "]=" << AOS_indices[i] << std::endl;
 	}
 }
 
-void HDF5DataSetHandler::showAOSShapes(std::string context, std::vector<int> &AOS_shapes) {
+void HDF5DataSetHandler::showAOSShapes(std::string context, const std::vector<hsize_t> &AOS_shapes) {
 	std::cout << context << "-->showAOSShapes::dataset=" << getName() <<  std::endl;
 	for (int i = 0; i < AOSRank; i++) {
 		std::cout << context << "-->showAOSShapes::AOS_shapes[" << i << "]=" << AOS_shapes[i] << std::endl;
@@ -777,7 +777,6 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 sprintf(error_message, "Unable to create full buffer for HDF5 dataset: %s\n", getName().c_str());
                 throw UALBackendException(error_message, LOG);
             }
-
             auto it = requests_arrctx_indices.begin();
             int request = 0;
             HDF5Utils hdf5_utils;
@@ -787,10 +786,19 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 int* buffer = buffers[request];
                 int shape = computeShapeFromDimsVector(requests_shapes[request]);
                 if (getRank() != request_dim) {
-                    std::vector < int >index;
-                    hdf5_utils.getDataIndex(getRank(), getLargestDims(), request_arrctx_indices, index);
-                    for (int i = 0; i < shape; i++) 
-                        v[index[i]] = buffer[i];
+                    int index;
+                    if (request_dim != 0){ 
+                        std::vector<int> indices = request_arrctx_indices;
+                        indices.push_back(0);
+                        index = hdf5_utils.indices_to_flat_index(indices, getLargestDims());
+                    }
+                    else{
+                        index = hdf5_utils.indices_to_flat_index(request_arrctx_indices, getLargestDims());
+                    } 
+                    for (int i = 0; i < shape; i++){
+                        v[index] = buffer[i];
+                        index++;
+                    }
                 }
                 else {
                     if (request_dim == 0)
@@ -821,7 +829,6 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 sprintf(error_message, "Unable to create full buffer for HDF5 dataset: %s\n", getName().c_str());
                 throw UALBackendException(error_message, LOG);
             }
-
             auto it = requests_arrctx_indices.begin();
             int request = 0;
             HDF5Utils hdf5_utils;
@@ -830,10 +837,19 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 double* buffer = buffers[request];
                 int shape = computeShapeFromDimsVector(requests_shapes[request]);
                 if (getRank() != request_dim) {
-                    std::vector < int >index;
-                    hdf5_utils.getDataIndex(getRank(), getLargestDims(), request_arrctx_indices, index);
-                    for (int i = 0; i < shape; i++) 
-                        v[index[i]] = buffer[i];
+                    int index;
+                    if (request_dim != 0){ 
+                        std::vector<int> indices = request_arrctx_indices;
+                        indices.push_back(0);
+                        index = hdf5_utils.indices_to_flat_index(indices, getLargestDims());
+                    }
+                    else{
+                        index = hdf5_utils.indices_to_flat_index(request_arrctx_indices, getLargestDims());
+                    } 
+                    for (int i = 0; i < shape; i++){
+                        v[index] = buffer[i];
+                        index++;
+                    } 
                 }
                 else {
                     if (request_dim == 0) {
@@ -870,9 +886,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 char* buffer = buffers[request];
                 assert(buffer != NULL);
                 if (getRank() != 0) {
-                    std::vector < int >index;
-                    hdf5_utils.getDataIndex(getRank(), getLargestDims(), request_arrctx_indices, index);
-                    v[index[0]] = buffer;
+                    int index = hdf5_utils.indices_to_flat_index(request_arrctx_indices, getLargestDims());
+                    v[index] = buffer;
                 }
                 else {
                     v[0] = buffer;
@@ -968,28 +983,24 @@ void HDF5DataSetHandler::appendToBuffer(const std::vector < int >&current_arrctx
 
 void HDF5DataSetHandler::read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     if (hsSelectionReader.getRank() != 0) {
-        std::vector < int >index;
         HDF5Utils hdf5_utils;
-        hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        *data = full_data_sets_buffers[index[0]];
+        int index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        *data = strdup(full_data_sets_buffers[index]);
     }
     else {
-        *data = full_data_sets_buffers[0];
+        *data = strdup(full_data_sets_buffers[0]);
     }
 }
 
 void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     size_t s = hsSelectionReader.getSize2();
-    std::vector<char *> values;
-    values.resize(s);
-    char** v = &values[0];
-    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
+    full_data_sets_buffers.resize(s);
+    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, &full_data_sets_buffers[0]);
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
         throw UALBackendException(error_message, LOG);
     }
-    full_data_sets_buffers = values;
 }
 
 void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
@@ -998,10 +1009,9 @@ void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelection
     *data = (void*) malloc(sizeof(int));
     int* data_int = (int*) *data;
     if (hsSelectionReader.getRank() != 0) {
-        std::vector < int >index;
         HDF5Utils hdf5_utils;
-        hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        *data_int = v[index[0]];
+        int index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        *data_int = v[index];
     }
     else {
         *data_int = *v;
@@ -1017,16 +1027,16 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
     for (int i = 0; i < dim; i++)
         shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(int));
-    int* data_int = (int*) *data;
     if (rank != dim) {
-        std::vector < int >index;
         HDF5Utils hdf5_utils;
-        hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        for (size_t i = 0; i < shape; i++) 
-            data_int[i] = v[index[i]];
+        std::vector < int > indices = current_arrctx_indices;
+        indices.push_back(0);
+        int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        memcpy(*data, v+index, shape*sizeof(int));
+        
     }
     else {
-        memcpy(data_int, v, shape*sizeof(int));
+        memcpy(*data, v, shape*sizeof(int));
     }
 }
 
@@ -1039,16 +1049,15 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
     for (int i = 0; i < dim; i++)
         shape *= (size_t) hsSelectionReader.getShape(rank - i - 1);
     *data = (void*) malloc(shape*sizeof(double));
-    double* data_double = (double*) *data;
     if (rank != dim) {
-        std::vector < int >index;
         HDF5Utils hdf5_utils;
-        hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        for (size_t i = 0; i < shape; i++) 
-            data_double[i] = v[index[i]];
-    }
+        std::vector < int > indices = current_arrctx_indices;
+        indices.push_back(0);
+        int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        memcpy(*data, v+index, shape*sizeof(double));
+    } 
     else {
-        memcpy(data_double, v, shape*sizeof(double));
+        memcpy(*data, v, shape*sizeof(double));
     }
 }
 
@@ -1067,10 +1076,9 @@ void HDF5DataSetHandler::readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelect
     *data = (void*) malloc(sizeof(double));
     double* data_double = (double*) *data;
     if (hsSelectionReader.getRank() != 0) {
-        std::vector < int >index;
         HDF5Utils hdf5_utils;
-        hdf5_utils.getDataIndex(hsSelectionReader.getRank(), hsSelectionReader.getDataSpaceDims(), current_arrctx_indices, index);
-        *data_double = full_double_data_set_buffer[index[0]];
+        int index= hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        *data_double = full_double_data_set_buffer[index];
     }
     else {
         *data_double = *full_double_data_set_buffer;

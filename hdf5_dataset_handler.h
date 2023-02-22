@@ -98,8 +98,8 @@ class HDF5DataSetHandler {
     bool operator==(const HDF5DataSetHandler &other) const;
 
 	void showDims(std::string context);
-	void showAOSIndices(std::string context, std::vector<int> &AOS_indices);
-	void showAOSShapes(std::string context, std::vector<int> &AOS_shapes);
+	void showAOSIndices(std::string context, const std::vector<int> &AOS_indices);
+	void showAOSShapes(std::string context, const std::vector<hsize_t> &AOS_shapes);
 
 	void create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache);
 	void open(const char *dataset_name, hid_t loc_id, hid_t * dataset_id, int dim, int *size, int datatype, bool shape_dataset, bool create_chunk_cache, const std::string &options, int AOSRank=-1, int *AOSSize = NULL);

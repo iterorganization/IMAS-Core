@@ -75,7 +75,7 @@ class HDF5Utils {
     int max(int num1, int num2);
 	int min(int num1, int num2);
     int compareShapes(int *first_slice_shape, int *second_slice_shape, int dim);
-    void getDataIndex(int dataset_rank, const hsize_t *dataspace_dims, std::vector < int >current_arrctx_indices, std::vector < int >&index);
+    int indices_to_flat_index(const std::vector<int>& indices, const hsize_t* shapes);
     bool isTimed(Context * ctx, int *timed_AOS_index);
     void getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index);
     int getAOSIndicesSize(Context * ctx);
