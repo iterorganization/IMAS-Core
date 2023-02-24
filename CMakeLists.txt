@@ -45,6 +45,7 @@ set( SRC_FILES
   no_backend.cpp
   memory_backend.cpp
   ascii_backend.cpp
+  access_layer_plugin_manager.cpp
 )
 
 set( HEADER_FILES
@@ -58,6 +59,7 @@ set( HEADER_FILES
   ual_exception.h
   ual_lowlevel.h
   ual_utilities.h
+  access_layer_plugin_manager.h
 )
 
 include_directories(

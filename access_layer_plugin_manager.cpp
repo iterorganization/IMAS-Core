@@ -1,223 +1,347 @@
 #include "access_layer_plugin_manager.h"
 
 #include <string>
+#include <algorithm>
 #include "access_layer_plugin.h"
+
 
 #define PLUGIN_MANAGER_NAME "AccessLayerPluginManager"
 #define PLUGIN_MANAGER_VERSION "1.0.0"
 #define PLUGIN_MANAGER_REPOSITORY "ssh://git@git.iter.org/imas/access-layer.git"
 
+AccessLayerPluginManager::AccessLayerPluginManager() {}
+AccessLayerPluginManager::~AccessLayerPluginManager() {}
 
-   AccessLayerPluginManager::AccessLayerPluginManager() {}
-   AccessLayerPluginManager::~AccessLayerPluginManager() {}
+std::string AccessLayerPluginManager::getName()
+{
+    return std::string(PLUGIN_MANAGER_NAME);
+}
 
-    std::string AccessLayerPluginManager::getName()
-    {
-        return std::string(PLUGIN_MANAGER_NAME);
-    }
+std::string AccessLayerPluginManager::getCommit()
+{
+    return "0";
+}
 
-    std::string AccessLayerPluginManager::getCommit()
-    {
-        return "0";
-    }
+std::string AccessLayerPluginManager::getVersion()
+{
+    return std::string(PLUGIN_MANAGER_VERSION);
+}
 
-    std::string AccessLayerPluginManager::getVersion()
-    {
-        return std::string(PLUGIN_MANAGER_VERSION);
-    }
+std::string AccessLayerPluginManager::getRepository()
+{
+    return std::string(PLUGIN_MANAGER_REPOSITORY);
+}
 
-    std::string AccessLayerPluginManager::getRepository()
-    {
-        return std::string(PLUGIN_MANAGER_REPOSITORY);
-    }
+std::string AccessLayerPluginManager::getParameters()
+{
+    return "";
+}
 
-    std::string AccessLayerPluginManager::getParameters()
-    {
-        return "";
-    }
-
-    void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function called before a get()
-    { 
-        int actxID = -1;
-        printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
-        int size = 0; // number of nodes bound to a plugin
-        ual_begin_arraystruct_action(ctxID, "ids_properties/plugins/node", "", &size, &actxID);
-        assert(actxID >= 0);
-        al_status_t status;
-        //std::map<std::string, std::set<std::string>> plugins; // key = readback plugin name, value = set of nodes path
-        int data_shape[MAXDIM];
-        void *ptrData = NULL;
-        for (int i = 0; i < size; i++)
-        {
-            status = ual_read_data(actxID, "path", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
-            assert(status.code == 0);
-            std::string path = std::string((char *)ptrData, data_shape[0]);
-            int plugins_count = 0;
-            int nested_actxID = -1;
-            ual_begin_arraystruct_action(actxID, "readback", "", &plugins_count, &nested_actxID);
-            assert(nested_actxID >= 0);
-
-            std::vector<std::string> applied_plugins;
-            std::vector<std::string> plugins_parameters;
-            
-            //getting the readback plugins
-            for (int j = 0; j < plugins_count; j++)
-            {
-                status = ual_read_data(nested_actxID, "name", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
-                assert(status.code == 0);
-                std::string plugin_name = std::string((char *)ptrData, data_shape[0]);
-
-                if (plugin_name.empty())
-                   continue;
-
-                status = ual_read_data(nested_actxID, "parameters", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
-                assert(status.code == 0);
-                std::string parameters = std::string((char *)ptrData, data_shape[0]);
-
-                applied_plugins.push_back(plugin_name);
-                plugins_parameters.push_back(parameters);
-                ual_iterate_over_arraystruct(nested_actxID, 1);
-            }
-
-            //binding the readback plugins
-            for (int j = applied_plugins.size() - 1; j>=0; j--) //order of application
-            {
-                const std::string &plugin_name = applied_plugins[j];
-                printf("applied plugin = %s\n ", plugin_name.c_str());
-                if (!LLplugin::isPluginRegistered(plugin_name.c_str()))
-                   LLplugin::register_plugin(plugin_name.c_str());
-
-                if (!LLplugin::isPluginBound(path.c_str(), plugin_name.c_str()))
-                   LLplugin::bindPlugin(path.c_str(), plugin_name.c_str());
-
-                LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
-                access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
-
-                const std::string &parameters = plugins_parameters[j]; 
-                al_plugin->setParameters(parameters);
-            }
-
-            ual_end_action(nested_actxID);
-            ual_iterate_over_arraystruct(actxID, 1);
-        }
-        ual_end_action(actxID);
-
-
-        //binding all plugins to the the AOS 'ids_properties/plugins/node' and the nodes below
-        std::string aos_path_node;
-        LLplugin::getFullPath(ctxID, "ids_properties/plugins/node",  aos_path_node);
-
-        //std::string aos_path_node = "ids_properties/plugins/node";
-        std::string aos_path_get;
-        LLplugin::getFullPath(ctxID, "ids_properties/plugins/node/get_operation",  aos_path_get);
-
-        std::string path_get_name = aos_path_get + "/name";
-        std::string path_get_commit = aos_path_get + "/commit";
-        std::string path_get_version = aos_path_get + "/version";
-        std::string path_get_repository = aos_path_get + "/repository";
-        std::string path_get_parameters = aos_path_get + "/parameters";
-
-        for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++)
-        {
-            std::string path = it->first;
-            std::vector<std::string> &plugins = it->second;
-            for (int i = (int) plugins.size() - 1; i >= 0; i--) //reverse order of application
-            {
-                std::string &plugin_name = plugins[i];
-                
-                if (!LLplugin::isPluginBound(aos_path_node.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(aos_path_node.c_str(), plugin_name.c_str());
-
-                printf("binding plugin %s to %s\n ",  plugin_name.c_str(), aos_path_get.c_str());
-
-                if (!LLplugin::isPluginBound(aos_path_get.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(aos_path_get.c_str(), plugin_name.c_str());
-
-                if (!LLplugin::isPluginBound(path_get_name.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(path_get_name.c_str(), plugin_name.c_str());
-
-                if (!LLplugin::isPluginBound(path_get_version.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(path_get_version.c_str(), plugin_name.c_str());
-
-                if (!LLplugin::isPluginBound(path_get_repository.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(path_get_repository.c_str(), plugin_name.c_str());
-
-                if (!LLplugin::isPluginBound(path_get_parameters.c_str(), plugin_name.c_str()))
-                    hli_bind_plugin(path_get_parameters.c_str(), plugin_name.c_str());
-
-            } 
-        } 
-
-        
-    }
-
-
-void AccessLayerPluginManager::write_plugins_metadata(int ctxID) { //function called at the end of a put()
-
-    printf("AccessLayerPluginManager::write_plugins_metadata is called\n");
+void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function called before a get()
+{
     int actxID = -1;
-    int size = LLplugin::boundPlugins.size(); //number of nodes bound to plugins
-    if (size == 0){
-       return;
-    } 
+    // printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
+    int size = 0; // number of nodes bound to a plugin
+    ual_begin_arraystruct_action(ctxID, "ids_properties/plugins/node", "", &size, &actxID);
+    assert(actxID >= 0);
+    al_status_t status;
+    int data_shape[MAXDIM];
+    void *ptrData = NULL;
+    for (int i = 0; i < size; i++)
+    {
+        status = ual_read_data(actxID, "path", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
+        assert(status.code == 0);
+        std::string path = std::string((char *)ptrData, data_shape[0]);
+        int plugins_count = 0;
+        int nested_actxID = -1;
+        ual_begin_arraystruct_action(actxID, "readback", "", &plugins_count, &nested_actxID);
+        assert(nested_actxID >= 0);
+
+        std::vector<std::string> applied_plugins;
+        std::vector<std::string> plugins_parameters;
+
+        // getting the readback plugins
+        for (int j = 0; j < plugins_count; j++)
+        {
+            status = ual_read_data(nested_actxID, "name", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
+            assert(status.code == 0);
+            std::string plugin_name = std::string((char *)ptrData, data_shape[0]);
+
+            if (plugin_name.empty())
+                continue;
+
+            status = ual_read_data(nested_actxID, "parameters", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
+            assert(status.code == 0);
+            std::string parameters = std::string((char *)ptrData, data_shape[0]);
+
+            applied_plugins.push_back(plugin_name);
+            plugins_parameters.push_back(parameters);
+            ual_iterate_over_arraystruct(nested_actxID, 1);
+        }
+
+        // binding the readback plugins
+        for (int j = applied_plugins.size() - 1; j >= 0; j--) // order of application
+        {
+            const std::string &plugin_name = applied_plugins[j];
+            // printf("applied plugin = %s\n ", plugin_name.c_str());
+            if (!LLplugin::isPluginRegistered(plugin_name.c_str()))
+            {
+                LLplugin::register_plugin(plugin_name.c_str());
+                LLplugin::readbackPlugins.push_back(plugin_name);
+            }
+
+            std::string full_path;
+            std::string dataObjectName;
+            LLplugin::getFullPath(ctxID, path.c_str(), full_path, dataObjectName);
+
+            // printf("binding readback plugin %s to %s\n ",  plugin_name.c_str(), full_path.c_str());
+
+            if (!LLplugin::isPluginBound(full_path.c_str(), plugin_name.c_str()))
+            {
+                LLplugin::bindPlugin(full_path.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, full_path);
+            }
+
+            LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+            access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+
+            const std::string &parameters = plugins_parameters[j];
+            al_plugin->setParameters(parameters);
+        }
+
+        ual_end_action(nested_actxID);
+        ual_iterate_over_arraystruct(actxID, 1);
+    }
+    ual_end_action(actxID);
+
+    // binding all plugins to the the AOS 'ids_properties/plugins/node' and the nodes below
+    std::string aos_path_node;
+    LLplugin::getFullPath(ctxID, "ids_properties/plugins/node", aos_path_node);
+
+    // std::string aos_path_node = "ids_properties/plugins/node";
+    std::string aos_path_get;
+    LLplugin::getFullPath(ctxID, "ids_properties/plugins/node/get_operation", aos_path_get);
+
+    std::string path_get_name = aos_path_get + "/name";
+    std::string path_get_commit = aos_path_get + "/commit";
+    std::string path_get_version = aos_path_get + "/version";
+    std::string path_get_repository = aos_path_get + "/repository";
+    std::string path_get_parameters = aos_path_get + "/parameters";
+
+    for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++)
+    {
+        std::string path = it->first;
+        std::vector<std::string> &plugins = it->second;
+        for (int i = (int)plugins.size() - 1; i >= 0; i--) // reverse order of application
+        {
+            std::string &plugin_name = plugins[i];
+
+            if (!LLplugin::isPluginBound(aos_path_node.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(aos_path_node.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            // printf("binding plugin %s to %s\n ",  plugin_name.c_str(), aos_path_get.c_str());
+
+            if (!LLplugin::isPluginBound(aos_path_get.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(aos_path_get.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            if (!LLplugin::isPluginBound(path_get_name.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(path_get_name.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            if (!LLplugin::isPluginBound(path_get_commit.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(path_get_commit.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            if (!LLplugin::isPluginBound(path_get_version.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(path_get_version.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            if (!LLplugin::isPluginBound(path_get_repository.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(path_get_repository.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+
+            if (!LLplugin::isPluginBound(path_get_parameters.c_str(), plugin_name.c_str()))
+            {
+                hli_bind_plugin(path_get_parameters.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, aos_path_node);
+            }
+        }
+    }
+}
+
+void AccessLayerPluginManager::addReadbackPlugin(const std::string &plugin_name, const std::string &path)
+{
+    auto got = LLplugin::boundReadbackPlugins.find(path);
+    if (got != LLplugin::boundReadbackPlugins.end())
+    {
+        auto &plugin_names = got->second;
+        plugin_names.push_back(plugin_name);
+    }
+    else
+    {
+        std::vector<std::string> plugin_names = std::vector<std::string>();
+        plugin_names.push_back(plugin_name);
+        LLplugin::boundReadbackPlugins[path] = plugin_names;
+    }
+}
+
+void AccessLayerPluginManager::unbind_readback_plugins(int ctxID) // function called after a get() to unbind the readback plugins
+{
+    for (auto it = LLplugin::boundReadbackPlugins.begin(); it != LLplugin::boundReadbackPlugins.end(); it++)
+    {
+        std::string path = it->first;
+        std::vector<std::string> &plugins = it->second;
+        for (int i = 0; i < (int)plugins.size(); i++)
+        {
+            std::string &plugin_name = plugins[i];
+            LLplugin::unbindPlugin(path.c_str(), plugin_name.c_str(), LLplugin::boundReadbackPlugins);
+        }
+    }
+    for (int i = 0; i < (int)LLplugin::readbackPlugins.size(); i++)
+    {
+        LLplugin::unregister_plugin(LLplugin::readbackPlugins[i].c_str());
+    }
+    LLplugin::readbackPlugins.clear();
+    LLplugin::boundReadbackPlugins.clear();
+}
+
+bool AccessLayerPluginManager::sortPlugins (const plugin_info &p, const plugin_info &q) { return (p.application_index > q.application_index); }
+
+void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function called at the end of a put()
+{
+
+    // printf("AccessLayerPluginManager::write_plugins_metadata is called\n");
+    int actxID = -1;
+    int size = LLplugin::boundPlugins.size(); // number of nodes bound to plugins
+    if (size == 0)
+    {
+        return;
+    }
 
     ual_begin_arraystruct_action(ctxID, "ids_properties/plugins/node", "", &size, &actxID);
-    assert(actxID >=0);
+    assert(actxID >= 0);
 
-    for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++){
-      std::string path = it->first;
-      //remove dataObjectName from the path
-      std::size_t found = path.find("/" , 0);
-      assert(found != std::string::npos);
-      path = path.substr(found + 1, std::string::npos);
-     
-      printf("write_plugins_metadata::path = %s\n ", path.c_str());
-      std::string name = "path";
-      write_field(actxID, name, path);
-      int nested_actxID = -1;
-      std::vector<std::string> &plugins = it->second;
-      size = plugins.size();
-      ual_begin_arraystruct_action(actxID, "put_operation", "", &size, &nested_actxID);
-      assert(nested_actxID >=0);
+    for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++)
+    {
+        std::string path = it->first;
+        // remove dataObjectName from the path
+        std::size_t found = path.find("/", 0);
+        assert(found != std::string::npos);
+        path = path.substr(found + 1, std::string::npos);
 
-      for (int i = 0; i < size; i++){ //stored in order of application
-          std::string &plugin_name = plugins[i];
-          LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
-          access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
-          write_field(nested_actxID, std::string("name"), al_plugin->getName());
-	      write_field(nested_actxID, std::string("commit"), al_plugin->getCommit());
-	      write_field(nested_actxID, std::string("version"), al_plugin->getVersion());
-	      write_field(nested_actxID, std::string("repository"), al_plugin->getRepository());
-	      write_field(nested_actxID, std::string("parameters"), al_plugin->getParameters());
+        // printf("write_plugins_metadata::path = %s\n ", path.c_str());
+        std::string name = "path";
+        write_field(actxID, name, path);
+        int nested_actxID = -1;
+        std::vector<std::string> &plugins = it->second;
+        size = plugins.size();
+        ual_begin_arraystruct_action(actxID, "put_operation", "", &size, &nested_actxID);
+        assert(nested_actxID >= 0);
 
-          ual_iterate_over_arraystruct(nested_actxID, 1);
-      } 
-      ual_end_action(nested_actxID);
-      nested_actxID = -1;
-      ual_begin_arraystruct_action(actxID, "readback", "", &size, &nested_actxID);
-      assert(nested_actxID >=0);
+        for (int i = 0; i < size; i++)
+        { // stored in order of application
+            std::string &plugin_name = plugins[i];
+            LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+            access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+            write_field(nested_actxID, std::string("name"), al_plugin->getName());
+            write_field(nested_actxID, std::string("commit"), al_plugin->getCommit());
+            write_field(nested_actxID, std::string("version"), al_plugin->getVersion());
+            write_field(nested_actxID, std::string("repository"), al_plugin->getRepository());
+            write_field(nested_actxID, std::string("parameters"), al_plugin->getParameters());
 
-      for (int i = size - 1; i >= 0; i--){ //stored in reverse order of application
-          std::string &plugin_name = plugins[i];
-          LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
-          access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
-          write_field(nested_actxID, std::string("name"), al_plugin->getReadbackName(path));
-          write_field(nested_actxID, std::string("commit"), al_plugin->getReadbackCommit(path));
-          write_field(nested_actxID, std::string("version"), al_plugin->getReadbackVersion(path));
-          write_field(nested_actxID, std::string("repository"), al_plugin->getReadbackRepository(path));
-	      write_field(nested_actxID, std::string("parameters"), al_plugin->getReadbackParameters(path));
+            ual_iterate_over_arraystruct(nested_actxID, 1);
+        }
+        ual_end_action(nested_actxID);
 
-          ual_iterate_over_arraystruct(nested_actxID, 1);
-      }
-      ual_end_action(nested_actxID);
-      ual_iterate_over_arraystruct(actxID, 1);
+        //we first collect all readback plugins and the positions at which they must be applied to the data
+        std::vector<struct plugin_info> plugins_to_apply;
+        //plugins_to_apply.resize(size);
+        
+        for (int i = 0; i < size; i++)
+        { 
+            std::string &plugin_name = plugins[i];
+            LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+            access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+            struct plugin_info p_info;
+            int application_index;
+            p_info.name =  al_plugin->getReadbackName(path, &application_index);
+            if (p_info.name != "") { 
+                p_info.commit = al_plugin->getReadbackCommit(path);
+                p_info.version = al_plugin->getReadbackVersion(path);
+                p_info.repository = al_plugin->getReadbackRepository(path);
+                p_info.parameters = al_plugin->getReadbackParameters(path);
+		p_info.application_index = application_index;
+		plugins_to_apply.push_back(p_info);
+            }
+            else{
+                //no readback plugin defined
+            }  
+        } 
+	//Checking application index of each plugin
+        int nb_applications = (int) plugins_to_apply.size();
+        std::set<int> application_indices;
+        for (int i = 0; i < nb_applications; i++)
+        { 
+	    struct plugin_info &p_info = plugins_to_apply[i]; 
+            int application_index = p_info.application_index;		
+		
+	    //check if index is valid
+            //An index of application equals to 0 means that the plugin should be first to be apply to the data
+            if (application_index >= size ||  application_index < 0){
+                    char error_message[200];
+                    sprintf(error_message, "Plugin index (%d) is out of bounds (must be < %d and >=0) for plugin %s at node path=%s.\n", 
+                    application_index, nb_applications, p_info.name.c_str(), path.c_str());
+                    throw UALBackendException(error_message, LOG);
+             } 
+             if (application_indices.find(application_index) != application_indices.end()){
+                    char error_message[200];
+                    sprintf(error_message, "Plugin index (%d) is already defined for plugin %s at node path=%s.\n", application_index, p_info.name.c_str(), path.c_str());
+                    throw UALBackendException(error_message, LOG);
+             } 
+             application_indices.insert(application_index);
+        }
+
+        std::sort(plugins_to_apply.begin(), plugins_to_apply.end(), sortPlugins); // sorted in reverse order of application
+
+	nested_actxID = -1;
+        ual_begin_arraystruct_action(actxID, "readback", "", &nb_applications, &nested_actxID);
+        assert(nested_actxID >= 0);
+
+        for (int i = 0; i < nb_applications ; i++)
+        { 
+            struct plugin_info &p_info = plugins_to_apply[i];
+            write_field(nested_actxID, std::string("name"), p_info.name);
+            write_field(nested_actxID, std::string("commit"), p_info.commit);
+            write_field(nested_actxID, std::string("version"), p_info.version);
+            write_field(nested_actxID, std::string("repository"), p_info.repository);
+            write_field(nested_actxID, std::string("parameters"), p_info.parameters);
+
+            ual_iterate_over_arraystruct(nested_actxID, 1);
+        }
+        ual_end_action(nested_actxID);
+        ual_iterate_over_arraystruct(actxID, 1);
     }
 
     write_plugins_infrastructure_infos(ctxID);
 }
 
-void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID) {
-    //printf("calling write_plugins_infrastructure_infos...\n");
+void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID)
+{
+    // printf("calling write_plugins_infrastructure_infos...\n");
     std::string name_put = "ids_properties/plugins/infrastructure_put/name";
     write_field(ctxID, name_put, getName());
     std::string commit_put = "ids_properties/plugins/infrastructure_put/commit";
@@ -236,15 +360,182 @@ void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID) {
     write_field(ctxID, repository_get, getRepository());
 }
 
-
-void AccessLayerPluginManager::write_field(int ctxID, const std::string &field, const std::string &value) {
+void AccessLayerPluginManager::write_field(int ctxID, const std::string &field, const std::string &value)
+{
     void *ptrData = malloc(value.size() + 1);
-    strcpy((char*) ptrData, value.c_str());
+    strcpy((char *)ptrData, value.c_str());
     int field_shape[1] = {(int)value.size()};
     al_status_t status = ual_write_data(ctxID, field.c_str(), "", ptrData, CHAR_DATA, 1, field_shape);
     free(ptrData);
     assert(status.code == 0);
 }
 
+bool AccessLayerPluginManager::skipWriteAccess(int ctxID, const char *fieldPath)
+{
+    std::string field = fieldPath;
+    if (field == "get_operation" && getAccessmode(ctxID) == WRITE_OP)
+        return true;
+    return false;
+}
 
+int AccessLayerPluginManager::getAccessmode(int ctxID)
+{
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    OperationContext *ctx = NULL;
+    if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE)
+    {
+        ArraystructContext *arctx = dynamic_cast<ArraystructContext *>(lle.context);
+        ctx = arctx->getOperationContext();
+    }
+    else if (lle.context->getType() == CTX_OPERATION_TYPE)
+    {
+        ctx = dynamic_cast<OperationContext *>(lle.context);
+    }
+    else
+    {
+        throw UALLowlevelException("Unexpected context in access_layer_plugin::begin_arraystruct_action_handler");
+    }
+    return ctx->getAccessmode();
+}
 
+void AccessLayerPluginManager::begin_arraystruct_action_handler(const std::string &plugin_name, int ctxID, int *actxID,
+                                                                const char *fieldPath, const char *timeBasePath, int *arraySize)
+{
+    LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+    access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    OperationContext *ctx = NULL;
+    if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE)
+    {
+        ArraystructContext *arctx = dynamic_cast<ArraystructContext *>(lle.context);
+        ctx = arctx->getOperationContext();
+    }
+    else if (lle.context->getType() == CTX_OPERATION_TYPE)
+    {
+        ctx = dynamic_cast<OperationContext *>(lle.context);
+    }
+    else
+    {
+        throw UALLowlevelException("Unexpected context in access_layer_plugin::begin_arraystruct_action_handler");
+    }
+
+    al_plugin->begin_arraystruct_action(ctxID, actxID, fieldPath, timeBasePath, arraySize);
+
+    if (ctx->getAccessmode() == READ_OP)
+    {
+        std::string p = fieldPath;
+        if (p == "ids_properties/plugins/node")
+        {
+            LLplugin::actxID_current_node_path = *actxID;
+            LLplugin::pluginsNames.clear();
+        }
+        else if (p == "get_operation")
+        {
+            void *ptrData = NULL;
+            int data_shape[MAXDIM];
+            al_status_t status = ual_read_data(LLplugin::actxID_current_node_path, "path", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
+            assert(status.code == 0);
+            std::string path((char *)ptrData, data_shape[0]); // path attribute of the node 'ids_properties/plugins/node'
+            std::string full_path;
+            LLplugin::getFullPathFromOperationContext(ctx, path.c_str(), full_path);
+            // printf("full_path = %s\n ", full_path.c_str());
+            LLplugin::getBoundPlugins(full_path.c_str(), LLplugin::pluginsNames);
+            *arraySize = LLplugin::pluginsNames.size();
+            // printf("pluginsNames.size()=%d\n ", LLplugin::pluginsNames.size());
+        }
+    }
+}
+
+int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin_name, int ctxID, const char *fieldPath, const char *timeBasePath,
+                                                       void **data, int datatype, int dim, int *size)
+{
+    // printf("read_data_handler is called...\n");
+    LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+    access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    if ((lle.context->getType() == CTX_ARRAYSTRUCT_TYPE) && datatype == CHAR_DATA && dim == 1)
+    {
+        ArraystructContext *arctx = dynamic_cast<ArraystructContext *>(lle.context);
+        // printf("updating get_operation nodes ?\n");
+        if (arctx->getPath() == "get_operation")
+        {
+            // printf("updating get_operation nodes..\n");
+            const std::string &plugin_name = LLplugin::pluginsNames[arctx->getIndex()];
+            if (plugin_name == al_plugin->getName())
+            {
+                std::string field = fieldPath;
+                if (field == "name")
+                {
+                    *data = strdup(al_plugin->getName().data());
+                    *size = al_plugin->getName().length();
+                }
+                else if (field == "commit")
+                {
+                    *data = strdup(al_plugin->getCommit().data());
+                    *size = al_plugin->getCommit().length();
+                }
+                else if (field == "version")
+                {
+                    *data = strdup(al_plugin->getVersion().data());
+                    *size = al_plugin->getVersion().length();
+                }
+                else if (field == "repository")
+                {
+                    *data = strdup(al_plugin->getRepository().data());
+                    *size = al_plugin->getRepository().length();
+                }
+                else if (field == "parameters")
+                {
+                    *data = strdup(al_plugin->getParameters().data());
+                    *size = al_plugin->getParameters().length();
+                }
+                return 1;
+            }
+            else
+                return 0;
+        }
+    }
+
+    return al_plugin->read_data(ctxID, fieldPath, timeBasePath, data, datatype, dim, size);
+}
+
+void AccessLayerPluginManager::write_data_plugin_handler(const std::string &plugin_name, int ctxID, const char *field, const char *timebase,
+                                                         void *data, int datatype, int dim, int *size)
+{
+    access_layer_plugin *al_plugin = NULL;
+    LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+    al_plugin = (access_layer_plugin *)llp.al_plugin;
+    al_plugin->write_data(ctxID, field, timebase, data, datatype, dim, size);
+}
+
+void AccessLayerPluginManager::end_action_plugin_handler(int ctxID)
+{
+    LLenv lle = Lowlevel::getLLenv(ctxID);
+    OperationContext *octx = NULL;
+    if (lle.context->getType() == CTX_OPERATION_TYPE)
+    {
+        octx = dynamic_cast<OperationContext *>(lle.context);
+    }
+    else if (lle.context->getType() == CTX_ARRAYSTRUCT_TYPE)
+    {
+        ArraystructContext *actx = dynamic_cast<ArraystructContext *>(lle.context);
+        octx = actx->getOperationContext();
+    }
+    if (octx == NULL)
+        return;
+    const std::string &dataObjectName = octx->getDataobjectName();
+    std::set<std::string> pluginsNames;
+    bool isPluginBound = LLplugin::getBoundPlugins(dataObjectName.c_str(), pluginsNames);
+    if (!isPluginBound)
+        return;
+
+    access_layer_plugin *al_plugin = NULL;
+    for (auto it = pluginsNames.begin(); it != pluginsNames.end(); it++)
+    {
+        const std::string &pluginName = *it;
+        // printf("Found plugin %s, for dataobject %s\n", pluginName.c_str(), dataObjectName.c_str());
+        LLplugin &llp = LLplugin::llpluginsStore[pluginName];
+        al_plugin = (access_layer_plugin *)llp.al_plugin;
+        al_plugin->end_action(ctxID);
+    }
+}

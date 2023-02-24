@@ -49,6 +49,16 @@ public:
   char* name;
   static std::map<std::string, LLplugin>  llpluginsStore;                            /**< plugins */
   static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
+  static std::map<std::string, std::vector<std::string>>  boundReadbackPlugins;
+  static std::vector<std::string> readbackPlugins;
+  static int actxID_current_node_path; //AOS context of ids_properties/plugins/node'
+  static std::vector<std::string> pluginsNames;
+
+  static void getFullPath(int ctxID, const char* fieldPath,  std::string &full_path, std::string &fullDataObjectName);
+  static void getFullPath(int opctxID, const char* fieldPath,  std::string &full_path);
+  static void getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path);
+  static bool pluginsFrameworkEnabled();
+  static void checkIfPluginsFrameworkIsEnabled();
 
   LLplugin()
   {
@@ -64,16 +74,21 @@ public:
   static void end_action_plugin(int ctxID);
   static void read_data_plugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
   static void write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  static void write_plugins_metadata(int ctxID);
+  static void bind_readback_plugins(int ctxID); 
+  static void unbind_readback_plugins(int ctxID); 
   //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
   //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
-
   static void register_plugin(const char* plugin_name);
   static void unregister_plugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
   static void bindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* name);
+  static void unbindPlugin(const char* fieldPath, const char* pluginName, std::map<std::string, std::vector<std::string>> &boundPlugins_);
+  static bool getBoundPlugins(const std::string &fullPath, std::vector<std::string> &pluginsNames);
   static bool getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames);
   static bool getBoundPlugins(const char* dataobjectname, std::set<std::string> &pluginsNames);
+  static bool isPluginBound(const char* path, const char* pluginName);
   static void setvalueParameterPlugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
 
 };
@@ -136,6 +151,16 @@ public:
      @result LLenv structure (not stored anymore)
   */
   static LLenv delLLenv(int idx);
+
+  /**
+     Create an array of structure for the context ctxID.
+     @param[in] ctxID current context
+     @param[in] fieldPath path of the current node
+     @param[in] timeBasePath time base path of the current node
+     @param[out] actxID pointer to the new AOS context
+     @param[out] size pointer to the size of the new AOS
+  */
+  static void createAOS(int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *size);
   
   /**
      Sets a variable to its value.
@@ -435,6 +460,9 @@ extern "C"
   //LIBRARY_API al_status_t hli_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API
+
+  LIBRARY_API al_status_t hli_is_plugin_registered(const char* pluginName, bool &is_registered);
+
   LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
 
   LIBRARY_API al_status_t hli_unregister_plugin(const char *plugin_name);
@@ -448,6 +476,12 @@ extern "C"
   LIBRARY_API al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
   
   LIBRARY_API al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
+
+  LIBRARY_API al_status_t hli_write_plugins_metadata(int ctxid);
+
+  LIBRARY_API al_status_t hli_bind_readback_plugins(int ctxid);
+
+  LIBRARY_API al_status_t hli_unbind_readback_plugins(int ctxID);
 
 #if defined(__cplusplus)
 }

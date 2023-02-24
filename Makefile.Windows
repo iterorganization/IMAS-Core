@@ -119,6 +119,7 @@ endif # IMAS_HDF5
 	$(CP) ual_context.h $(packagedir)/lowlevel/include
 	$(CP) ual_exception.h $(packagedir)/lowlevel/include
 	$(CP) ual_const.h $(packagedir)/lowlevel/include
+	$(CP) access_layer_plugin_manager.h $(packagedir)/lowlevel/include
 	# Copy documentation
 	$(mkdir_p) $(packagedir)/doc/lowlevel
 	$(CP) latex html $(packagedir)/doc/lowlevel
