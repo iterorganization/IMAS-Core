@@ -39,6 +39,13 @@ static const int UDA_BACKEND_VERSION_MINOR = 0;
 namespace imas {
 namespace uda {
 
+/**
+ * Cache mode specifying how the backend should behave.
+ *
+ * None   - no caching will be performed
+ * IDS    - pre-caching will be performed for the entire IDS at the start of the request
+ * Struct - pre-caching will be performed for each separate struct_array in the begin_structarray step
+ */
 enum class CacheMode
 {
     None,
@@ -49,6 +56,13 @@ enum class CacheMode
 }
 }
 
+/**
+ * UDA Backend for IMAS access layer.
+ *
+ * This is the backend for passing access layer requests to a UDA server where it can be handled by the IMAS plugin
+ * from the ITER UDA plugins repo (https://git.iter.org/projects/IMAS/repos/uda-plugins/browse/source) to either return
+ * remote IMAS data or mapped data from experimental databases.
+ */
 class LIBRARY_API UDABackend : public Backend
 {
 private:
@@ -60,15 +74,54 @@ private:
     imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
     int open_mode_ = 0;
 
+    /**
+     * Process each option. Each option is expected to be a key=value pair.
+     *
+     * @param option the option as a key=value pair
+     * @throw UALException if the option name is not recognised
+     */
     void process_option(const std::string& option);
+
+    /**
+     * Process the options passed to backend via the getOptions on the context object. The options string is treated as
+     * a comma separated list of options.
+     *
+     * @param options the string containing the comma separated list of options
+     * @throw UALException if any of the passed options are not recognised
+     */
     void process_options(const std::string& options);
-    void load_env_options();
+
+    /**
+     * Generate all requests for the given `ids` starting at the given `path` and send these requests to the UDA server,
+     * storing all returned data responses in a RAM-cache ready to be read in future calls to `readData`.
+     *
+     * @param ids the IDS we are reading
+     * @param path the top level path in the IDS the requests from which the requests are generated
+     * @param pulse_ctx the pulse context
+     * @param op_ctx the operation context
+     */
     void populate_cache(const std::string& ids, const std::string& path, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
+
+    /**
+     * Read the value of the homogeneous flag.
+     *
+     * @param ids the IDS we are reading the flag for
+     * @param pulse_ctx the pulse context
+     * @param op_ctx the operation context
+     * @return
+     */
     bool get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
 
 public:
 
-    explicit UDABackend(bool verb=false) : verbose_(verb)
+    /**
+     * Construct a new UDA backend.
+     *
+     * @param verb flag to set the verbose mode
+     */
+    explicit UDABackend(bool verb=false)
+        : verbose_(verb)
+        , uda_client_{}
     {
         const char* env = getenv("IMAS_UDA_PLUGIN");
         if (env != nullptr) {

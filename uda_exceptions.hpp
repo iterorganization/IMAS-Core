@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef IMAS_UDA_EXCEPTIONS_HPP
+#define IMAS_UDA_EXCEPTIONS_HPP
+
 #include <string>
 
 #include "ual_lowlevel.h"
@@ -31,3 +34,5 @@ public:
 
 }
 } // namespace imas
+
+#endif // IMAS_UDA_EXCEPTIONS_HPP

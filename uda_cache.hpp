@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef IMAS_UDA_PREFETCH_UDA_CACHE_HPP
-#define IMAS_UDA_PREFETCH_UDA_CACHE_HPP
+#ifndef IMAS_UDA_CACHE_HPP
+#define IMAS_UDA_CACHE_HPP
 
 #include <boost/variant.hpp>
 #include <map>
@@ -40,4 +40,4 @@ void add_data_to_cache(const ::uda::Result& result, CacheType& cache);
 
 }
 }
-#endif // IMAS_UDA_PREFETCH_UDA_CACHE_HPP
+#endif // IMAS_UDA_CACHE_HPP

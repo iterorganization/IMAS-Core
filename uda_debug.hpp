@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef IMAS_UDA_PREFETCH_UDA_DEBUG_HPP
-#define IMAS_UDA_PREFETCH_UDA_DEBUG_HPP
+#ifndef IMAS_UDA_DEBUG_HPP
+#define IMAS_UDA_DEBUG_HPP
 
 #include <ostream>
 #include <deque>
@@ -121,4 +121,4 @@ inline std::ostream& operator<<(std::ostream& out, const imas::uda::Attribute& a
     return out;
 }
 
-#endif // IMAS_UDA_PREFETCH_UDA_DEBUG_HPP
+#endif // IMAS_UDA_DEBUG_HPP

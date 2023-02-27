@@ -1,5 +1,7 @@
-#ifndef IMAS_UDA_PREFETCH_UDA_PATH_HPP
-#define IMAS_UDA_PREFETCH_UDA_PATH_HPP
+#pragma once
+
+#ifndef IMAS_UDA_PATH_HPP
+#define IMAS_UDA_PATH_HPP
 
 #include <string>
 
@@ -18,4 +20,4 @@ std::pair<std::string, imas::Range> parse_index(const std::string& string);
 
 }
 
-#endif // IMAS_UDA_PREFETCH_UDA_PATH_HPP
+#endif // IMAS_UDA_PATH_HPP

@@ -11,6 +11,13 @@
 
 namespace {
 
+/**
+ * Generate string path for the given ArraystructContext object.
+ *
+ * @param ctx the context to generate the path for
+ * @param for_dim a flag to specify whether we should include the context index in the path
+ * @return the generated path
+ */
 std::string array_path(ArraystructContext* ctx, bool for_dim = false)
 {
     std::string path;
@@ -30,6 +37,16 @@ std::string array_path(ArraystructContext* ctx, bool for_dim = false)
     return path;
 }
 
+/**
+ * Generate string path for the given Context object.
+ *
+ * If the Context object is an ArraystructContext this forwards the request onto the function above, otherwise for
+ * OperationContext objects it just returns the DataobjectName.
+ *
+ * @param ctx the context to generate the path for
+ * @param for_dim a flag to specify whether we should include the context index in the path
+ * @return the generated path
+ */
 std::string array_path(Context* ctx, bool for_dim = false)
 {
     auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
@@ -43,7 +60,100 @@ std::string array_path(Context* ctx, bool for_dim = false)
     return "";
 }
 
+/**
+ * Unpack the data returned from UDA as a NodeReader object.
+ *
+ * The NodeReader object allows deserialisation of the Capn Proto serialised data using the uda_capnp_read_data
+ * function. This is used to read the data into a newly malloced array buffer returned via the `data` argument.
+ *
+ * @tparam T the type of the data being unpacked
+ * @param node the `NodeReader` from which the data is being unpacked
+ * @param shape the shape of the data being unpacked
+ * @param data [OUT] a pointer to the buffer which is malloced and then populated with the unpacked data
+ * @param dim [OUT] the rank of the data being returned
+ * @param size [OUT] array of dimension sizes
+ */
+template <typename T>
+void unpack_data(NodeReader* node,
+                 const std::vector<size_t>& shape,
+                 void** data,
+                 int* dim,
+                 int* size)
+{
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    *data = malloc(count * sizeof(T));
+    auto buffer = reinterpret_cast<char*>(*data);
+
+    uda_capnp_read_data(node, buffer);
+
+    *dim = static_cast<int>(shape.size());
+    for (int i = 0; i < *dim; ++i) {
+        size[i] = static_cast<int>(shape[i]);
+    }
 }
+
+/**
+ * Unpack the data returned from UDA as a NodeReader object.
+ *
+ * This checks the name of the returned node against the passed path, and then uses the `unpack_data` function,
+ * templated based on the type specified in the node.
+ *
+ * @param path the data path to check against the name of the node
+ * @param node the `NodeReader` from which the data is being unpacked
+ * @param shape the shape of the data being unpacked
+ * @param data [OUT] a pointer to the buffer which is malloced and then populated with the unpacked data
+ * @param dim [OUT] the rank of the data being returned
+ * @param size [OUT] array of dimension sizes
+ */
+void unpack_node(const std::string& path,
+                 NodeReader* node,
+                 void** data,
+                 int* datatype,
+                 int* dim,
+                 int* size)
+{
+    const char* name = uda_capnp_read_name(node);
+
+    if (name != path) {
+        throw UALBackendException("Invalid node returned: " + std::string(name));
+    }
+
+    int type = uda_capnp_read_type(node);
+    size_t rank = uda_capnp_read_rank(node).value;
+
+    std::vector<size_t> shape(rank);
+    uda_capnp_read_shape(node, shape.data());
+
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    std::vector<char> bytes(count);
+
+    switch (type) {
+        case CHAR_DATA:
+        case UDA_TYPE_STRING:
+            *datatype = CHAR_DATA;
+            unpack_data<char>(node, shape, data, dim, size);
+            break;
+        case INTEGER_DATA:
+        case UDA_TYPE_INT:
+            *datatype = INTEGER_DATA;
+            unpack_data<int>(node, shape, data, dim, size);
+            break;
+        case DOUBLE_DATA:
+        case UDA_TYPE_DOUBLE:
+            *datatype = DOUBLE_DATA;
+            unpack_data<double>(node, shape, data, dim, size);
+            break;
+        case COMPLEX_DATA:
+        case UDA_TYPE_COMPLEX:
+            *datatype = COMPLEX_DATA;
+            unpack_data<double _Complex>(node, shape, data, dim, size);
+            break;
+        default: throw UALBackendException("Unknown data type: " + std::to_string(type));
+    }
+}
+
+} // anon namespace
 
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
 {
@@ -209,73 +319,6 @@ void UDABackend::closePulse(DataEntryContext* ctx,
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
-    }
-}
-
-template <typename T>
-void unpack_data(NodeReader* node,
-                 const std::vector<size_t>& shape,
-                 void** data,
-                 int* dim,
-                 int* size)
-{
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-
-    *data = malloc(count * sizeof(T));
-    auto buffer = reinterpret_cast<char*>(*data);
-
-    uda_capnp_read_data(node, buffer);
-
-    *dim = static_cast<int>(shape.size());
-    for (int i = 0; i < *dim; ++i) {
-        size[i] = static_cast<int>(shape[i]);
-    }
-}
-
-void unpack_node(const std::string& path,
-                 NodeReader* node,
-                 void** data,
-                 int* datatype,
-                 int* dim,
-                 int* size)
-{
-    const char* name = uda_capnp_read_name(node);
-
-    if (name != path) {
-        throw UALBackendException("Invalid node returned: " + std::string(name));
-    }
-
-    int type = uda_capnp_read_type(node);
-    size_t rank = uda_capnp_read_rank(node).value;
-
-    std::vector<size_t> shape(rank);
-    uda_capnp_read_shape(node, shape.data());
-
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    std::vector<char> bytes(count);
-
-    switch (type) {
-        case CHAR_DATA:
-        case UDA_TYPE_STRING:
-            *datatype = CHAR_DATA;
-            unpack_data<char>(node, shape, data, dim, size);
-            break;
-        case INTEGER_DATA:
-        case UDA_TYPE_INT:
-            *datatype = INTEGER_DATA;
-            unpack_data<int>(node, shape, data, dim, size);
-            break;
-        case DOUBLE_DATA:
-        case UDA_TYPE_DOUBLE:
-            *datatype = DOUBLE_DATA;
-            unpack_data<double>(node, shape, data, dim, size);
-            break;
-        case COMPLEX_DATA:
-        case UDA_TYPE_COMPLEX:
-            *datatype = COMPLEX_DATA;
-            unpack_data<double _Complex>(node, shape, data, dim, size);
-            break;
-        default: throw UALBackendException("Unknown data type: " + std::to_string(type));
     }
 }
 
