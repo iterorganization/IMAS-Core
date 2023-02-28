@@ -407,14 +407,17 @@ struct ShotRun {
 void HDF5Utils::writeUserBlock(const std::string & filePath, PulseContext * ctx)
 {
     std::ofstream file(filePath, std::ifstream::binary);
+    if (!file.is_open()) {
+        char error_message[200];
+        sprintf(error_message, "Unable to open the file %s for writing the user block.\n", filePath.c_str());
+        throw UALBackendException(error_message, LOG);       
+    }
     file.seekp(0, std::ios::beg);
     ShotRun sr;
-    strcpy(sr.shot_run, "shot=");
-    strcat(sr.shot_run, std::to_string(ctx->getShot()).c_str());
-    strcat(sr.shot_run, ";run=");
-    strcat(sr.shot_run, std::to_string(ctx->getRun()).c_str());
-    strcat(sr.shot_run, ";");
-    file.write((char *) &sr, sizeof(ShotRun));
+    memset(&sr.shot_run[0], 0, sizeof(sr.shot_run));
+    snprintf(sr.shot_run, sizeof(sr.shot_run), "shot=%d;run=%d;", 
+             ctx->getShot(), ctx->getRun());
+    file.write((char *) &sr, sizeof(sr));
     file.close();
 }
 

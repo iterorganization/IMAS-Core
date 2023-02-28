@@ -686,6 +686,8 @@ void HDF5DataSetHandler::close()
             }
             case ualconst::char_data:
             {
+            	for (int i = 0; i < full_data_sets_buffers.size(); i++)
+                    free(full_data_sets_buffers[i]);
                 full_data_sets_buffers.clear();
                 data_sets_buffers.clear();
                 break;
@@ -985,10 +987,10 @@ void HDF5DataSetHandler::read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelec
     if (hsSelectionReader.getRank() != 0) {
         HDF5Utils hdf5_utils;
         int index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
-        *data = full_data_sets_buffers[index];
+        *data = strdup(full_data_sets_buffers[index]);
     }
     else {
-        *data = full_data_sets_buffers[0];
+        *data = strdup(full_data_sets_buffers[0]);
     }
 }
 
