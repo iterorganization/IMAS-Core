@@ -334,6 +334,14 @@ else
 	    	UalAoS *aos = ids->getSubAoS(ctx->getPath());
 	    	if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP) 
 	    	    aos->deleteData();
+
+            if(size != (int)aos->aos.size())
+		       {
+		    	aos->aos.resize(size);
+		    	for(int i = 0; i < size; i++)
+		    	    if(!aos->aos[i]) aos->aos[i] = new UalStruct;
+		       }
+
 		internalCtx->unlock();
 	    }
       	    catch(...)
