@@ -3,6 +3,10 @@
 #ifndef IMAS_UDA_DEBUG_HPP
 #define IMAS_UDA_DEBUG_HPP
 
+/**
+ * Functions for streaming UDA data to iostream for debug purposes.
+ */
+
 #include <ostream>
 #include <deque>
 #include <vector>
@@ -14,6 +18,9 @@
 #include "uda_xml.hpp"
 #include "uda_cache.hpp"
 
+/**
+ * Stream a std::deque<T> to std::ostream as a comma separated list.
+ */
 template <typename T>
 std::ostream& operator<<(std::ostream& out, const std::deque<T>& vec)
 {
@@ -27,6 +34,9 @@ std::ostream& operator<<(std::ostream& out, const std::deque<T>& vec)
     return out;
 }
 
+/**
+ * Stream a std::vector<T> to std::ostream as a comma separated list.
+ */
 template <typename T>
 std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
 {
@@ -51,6 +61,9 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T>& vec)
     return out;
 }
 
+/**
+ * Stream a std::vector<char> to std::ostream, treating it as a standard string.
+ */
 inline std::ostream& operator<<(std::ostream& out, const std::vector<char>& vec)
 {
     std::string s = { vec.data(), vec.size() };
@@ -61,6 +74,9 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<char>& vec)
 namespace imas {
 namespace uda {
 
+/**
+ * Class derived from boost::static_visitor to allow streaming of imas::uda::VariantVector to std::ostream.
+ */
 class stream_visitor : public boost::static_visitor<>
 {
 public:
@@ -76,18 +92,29 @@ private:
 }
 }
 
+/**
+ * Stream a imas::uda::VariantVector to std::ostream by applying the stream_visitor class.
+ */
 inline std::ostream& operator<<(std::ostream& out, const imas::uda::VariantVector& vec)
 {
     boost::apply_visitor(imas::uda::stream_visitor(out), vec);
     return out;
 }
 
+/**
+ * Stream a imas::uda::Cachdata object to std::ostream.
+ */
 inline std::ostream& operator<<(std::ostream& out, const imas::uda::CacheData& data)
 {
     out << "{ shape=" << data.shape << ", values=" << data.values << " }";
     return out;
 }
 
+/**
+ * Stream a std::map<T, U> to std::ostream as a newline separated list of "key: value" pairs.
+ *
+ * T and U will need to be streamable to std::ostream.
+ */
 template <typename T, typename U>
 std::ostream& operator<<(std::ostream& out, const std::map<T, U>& map)
 {
@@ -100,6 +127,11 @@ std::ostream& operator<<(std::ostream& out, const std::map<T, U>& map)
     return out;
 }
 
+/**
+ * Stream a std::unordered_map<T, U> to std::ostream as a newline separated list of "key: value" pairs.
+ *
+ * T and U will need to be streamable to std::ostream.
+ */
 template <typename T, typename U>
 std::ostream& operator<<(std::ostream& out, const std::unordered_map<T, U>& map)
 {
@@ -112,6 +144,9 @@ std::ostream& operator<<(std::ostream& out, const std::unordered_map<T, U>& map)
     return out;
 }
 
+/**
+ * Stream a imas::uda::Attribute object to std::ostream.
+ */
 inline std::ostream& operator<<(std::ostream& out, const imas::uda::Attribute& attr) {
     out << "{ type = " << attr.type << ", "
         << "dtype = " << attr.dtype << ", "

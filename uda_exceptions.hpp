@@ -3,6 +3,10 @@
 #ifndef IMAS_UDA_EXCEPTIONS_HPP
 #define IMAS_UDA_EXCEPTIONS_HPP
 
+/**
+ * Exceptions specific to the UDA backend.
+ */
+
 #include <string>
 
 #include "ual_lowlevel.h"
@@ -12,19 +16,9 @@
 namespace imas {
 namespace uda {
 
-class LowlevelException : public std::runtime_error
-{
-public:
-    LowlevelException(int code, const std::string& message) : std::runtime_error(message), code_(code)
-    {}
-
-    int code() const
-    { return code_; }
-
-private:
-    int code_;
-};
-
+/**
+ * Exception thrown by the UDA caching functions.
+ */
 class CacheException : public std::runtime_error
 {
 public:
