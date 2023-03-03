@@ -1228,7 +1228,7 @@ else
 		sliceSize = 1;
 	    	unsigned char *currBuf = new unsigned char[sliceSize*getItemSize(type)];
 		memcpy(currBuf, buf, sliceSize * getItemSize(type));
-		std::shared_ptr<unsigned char>sp(currBuf);
+		std::shared_ptr<unsigned char>sp(currBuf, [](unsigned char *p) { delete[] p; });
 		bufV.push_back(sp);
 		dimensionV.push_back(1);
 	    }
@@ -1242,7 +1242,7 @@ else
 		{
 			unsigned char *currBuf = new unsigned char[sliceSize*getItemSize(type)];
 			memcpy(currBuf, &buf[i * sliceSize * getItemSize(type)], sliceSize * getItemSize(type));
-			std::shared_ptr<unsigned char>sp(currBuf);
+			std::shared_ptr<unsigned char>sp(currBuf, [](unsigned char *p) { delete[] p; });
 			bufV.push_back(sp);
 		}
 	    }
@@ -1252,7 +1252,7 @@ else
 	    int currSize = totSize * getItemSize(type);
 	    unsigned char *currBuf = new unsigned char[currSize];
 	    memcpy(currBuf, buf, currSize);
-	    bufV.push_back(std::shared_ptr<unsigned char>(currBuf));
+	    bufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
 	}
     }
 
@@ -1277,7 +1277,7 @@ else
 	    int currSize = sliceSize * getItemSize(type);
 	    unsigned char *currBuf = new unsigned char[currSize];
 	    memcpy(currBuf, &buf[i * currSize], currSize);
-	    newBufV.push_back(std::shared_ptr<unsigned char>(currBuf));
+	    newBufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
 	}
 	for(size_t i = 0; i < bufV.size(); i++)
 	    newBufV.push_back(bufV[i]);
@@ -1305,7 +1305,7 @@ else
 	unsigned char *currBuf = new unsigned char[sliceSize*getItemSize(type)];
 	memcpy(currBuf, buf, sliceSize*getItemSize(type));
 	dimensionV[dimensionV.size() - 1]++;
-	bufV.push_back(std::shared_ptr<unsigned char>(currBuf));
+	bufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
     }
     void UalData::addSlice(UalData &slice)
     {
