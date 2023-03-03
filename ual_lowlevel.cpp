@@ -1630,11 +1630,11 @@ al_status_t hli_unregister_plugin(const char *plugin_name)
   return status;
 }
 
-al_status_t hli_is_plugin_registered(const char* pluginName, bool &is_registered) {
+al_status_t hli_is_plugin_registered(const char* pluginName, bool *is_registered) {
     al_status_t status;
     status.code = 0;
     try {
-        is_registered = LLplugin::isPluginRegistered(pluginName);
+        *is_registered = LLplugin::isPluginRegistered(pluginName);
     }
     catch (const UALContextException& e) {
         status.code = ualerror::context_err;

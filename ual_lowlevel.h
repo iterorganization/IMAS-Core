@@ -461,7 +461,7 @@ extern "C"
   
   //HLI wrappers for plugins API
 
-  LIBRARY_API al_status_t hli_is_plugin_registered(const char* pluginName, bool &is_registered);
+  LIBRARY_API al_status_t hli_is_plugin_registered(const char* pluginName, bool *is_registered);
 
   LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
 
