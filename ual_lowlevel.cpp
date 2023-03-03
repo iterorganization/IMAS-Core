@@ -105,9 +105,10 @@ void LLplugin::getFullPath(int opctxID, const char* fieldPath,  std::string &ful
 
 bool LLplugin::pluginsFrameworkEnabled(){
   char *pluginsFrameworkEnabled =  getenv("AL_PLUGINS_FRAMEWORK_ENABLED");
-  if (!pluginsFrameworkEnabled) return false;
-  if (! (*pluginsFrameworkEnabled)) return false;
-  return true; 
+  if (!pluginsFrameworkEnabled) 
+       return false;
+  std::string b = std::string(pluginsFrameworkEnabled);
+  return  (b == "TRUE");
 } 
 
 void LLplugin::checkIfPluginsFrameworkIsEnabled(){
