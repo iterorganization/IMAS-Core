@@ -37,12 +37,7 @@ COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs
 CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
 
-#-------------- Options for Matlab -------------
-ifeq ("yes","$(strip $(IMAS_MATLAB))")
-COMMON_OBJECTS+= matlab_adapter.o
-CPPSRC+= matlab_adapter.cpp
-endif # IMAS_MATLAB
-LIBS+= -lboost_log_setup -lboost_log
+
 TARGETS = libal.so libal.a $(SPECIFIC_TOOLS)
 
 all: $(TARGETS) pkgconfig doc
@@ -53,14 +48,14 @@ sources_uninstall:
 	-rm -rf $(datadir)/src/lowlevel
 
 install: all libal.so_install libal.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel $(bindir)
-	$(INSTALL_DATA) matlab_adapter.h ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h\
+	$(INSTALL_DATA) ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h\
 		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
 	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.)
 
 uninstall: libal.so_uninstall libal.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
-	-rm -rf $(addprefix $(includedir)/,matlab_adapter.h ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h)
+	-rm -rf $(addprefix $(includedir)/,ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h)
 	-rm -f $(addprefix $(libdir)/,libal-$(DD_GIT_DESCRIBE).so.$(SO_NUM) libal-$(DD_GIT_DESCRIBE).so libal.so libal-$(DD_GIT_DESCRIBE).a libal.a)
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir):
