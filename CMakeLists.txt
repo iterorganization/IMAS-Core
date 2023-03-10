@@ -93,11 +93,6 @@ if( IMAS_HDF5 )
   add_definitions( -DHDF5 )
 endif()
 
-if( IMAS_MATLAB )
-  set( SRC_FILES ${SRC_FILES} matlab_adapter.cpp )
-  set( HEADER_FILES ${HEADER_FILES} matlab_adapter.h )
-endif()
-
 
 ########################################################################################################################
 # Targets
