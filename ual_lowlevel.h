@@ -51,8 +51,9 @@ public:
   static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
   static std::map<std::string, std::vector<std::string>>  boundReadbackPlugins;
   static std::vector<std::string> readbackPlugins;
-  static int actxID_current_node_path; //AOS context of ids_properties/plugins/node'
+  static std::string get_operation_path;
   static std::vector<std::string> pluginsNames;
+  static std::map<std::string, std::vector<std::string>> get_plugins;
 
   static void getFullPath(int ctxID, const char* fieldPath,  std::string &full_path, std::string &fullDataObjectName);
   static void getFullPath(int opctxID, const char* fieldPath,  std::string &full_path);

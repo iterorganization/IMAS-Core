@@ -183,6 +183,16 @@ namespace ualerror {
     };
 }
 
+namespace plugin{
+
+  enum OPERATION
+  {
+    PUT_ONLY      = 1,
+    GET_ONLY      = 2,
+    PUT_AND_GET   = 3
+  };
+} 
+
 #endif
 
 #ifdef __cplusplus

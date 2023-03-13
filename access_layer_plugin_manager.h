@@ -2,7 +2,9 @@
 #define AL_PLUGIN_MANAGER_H 1
 
 #include <string>
+#include <vector>
 #include <map>
+#include "ual_const.h"
 
 #include "provenance_plugin_feature.h"
 
@@ -21,6 +23,9 @@ private:
     void write_field(int ctxID, const std::string &field, const std::string &value);
     void addReadbackPlugin(const std::string &plugin_name, const std::string &path);
     static bool sortPlugins (const plugin_info &p, const plugin_info &q);
+    static void findPlugins(const plugin::OPERATION &node_operation, const std::string &path, std::vector<std::string> &plugins);
+    static void findPutOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins);
+    static void findGetOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins);
 
 protected:
     virtual void write_plugins_infrastructure_infos(int ctxID);

@@ -40,8 +40,9 @@ std::map<std::string, LLplugin> LLplugin::llpluginsStore;
 std::map<std::string, std::vector<std::string>>  LLplugin::boundPlugins;
 std::map<std::string, std::vector<std::string>>  LLplugin::boundReadbackPlugins;
 std::vector<std::string> LLplugin::readbackPlugins;
-int LLplugin::actxID_current_node_path;
+std::string LLplugin::get_operation_path;
 std::vector<std::string> LLplugin::pluginsNames;
+std::map<std::string, std::vector<std::string>> LLplugin::get_plugins;
 
 void LLplugin::addPluginHandler(const char* name, void *plugin_handler) {
   llpluginsStore[std::string(name)].plugin_handler = plugin_handler;

@@ -19,6 +19,7 @@ class access_layer_plugin : public access_layer_base_plugin, public readback_plu
     virtual int read_data(int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size) = 0;
     virtual void write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size) = 0;
 
+    virtual plugin::OPERATION node_operation(const std::string &path) = 0;
 };
 
 #endif
