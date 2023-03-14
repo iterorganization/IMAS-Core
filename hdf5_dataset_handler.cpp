@@ -365,7 +365,8 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 						chunk_dims[i] = (int) cs;
 						if (chunk_dims[i] < chunk_dims_min[i]) {
 							chunk_dims[i] = chunk_dims_min[i];
-							break;
+							v *= chunk_dims[i];
+							continue;
 						}
 						v *= chunk_dims[i];
 					}
