@@ -29,6 +29,16 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static void lock() {pthread_mutex_lock(&mutex);}
 static void unlock() {pthread_mutex_unlock(&mutex);}
 
+// custom deleter for [] allocated objects
+template< typename T >
+struct array_deleter
+{
+  void operator ()( T const * p)
+  {
+    delete[] p;
+  }
+};
+
 
 //Support classes for memory mapping
 
@@ -121,7 +131,7 @@ public:
 	    	char *currBuf = new char[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((char *)data1)[i] + delta * (((char *)data2)[i] - ((char *)data1)[i]);
-		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf, array_deleter<unsigned char>());
 		retData->bufV.push_back(sp);
 		break;
 	    }
@@ -132,7 +142,7 @@ public:
 	    	int *currBuf = new int[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((int *)data1)[i] + delta * (((int *)data2)[i] - ((int *)data1)[i]);
-		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf, array_deleter<unsigned char>());
 		retData->bufV.push_back(sp);
 		break;
 	    }
@@ -143,7 +153,7 @@ public:
 	    	double *currBuf = new double[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
-		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf, array_deleter<unsigned char>());
 		retData->bufV.push_back(sp);
 		break;
 	    }
@@ -154,7 +164,7 @@ public:
 	    	double *currBuf = new double[2*numItems];
 		for(int i = 0; i < 2*numItems; i++)
 		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
-		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf);
+		std::shared_ptr<unsigned char>sp((unsigned char *)currBuf, array_deleter<unsigned char>());
 		retData->bufV.push_back(sp);
 		break;
 	    }
