@@ -3731,7 +3731,6 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	{
 	    if(apd2->getDescAt(1)->clazz == CLASS_APD) //The other one is a directory or an AoS, inconsistent
 	    {
-	    	//std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+ctx->fullPath()<< std::endl;
 	    	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
@@ -4753,16 +4752,21 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    }
 	    else
 	    {
-		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') //If it refers to a field which is internal to the AoS (must be time)
+		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') { //If it refers to a field which is internal to the AoS (must be time)
+          std::string full_path = "";
+          fullPath(ctx, full_path);
 		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(),
-		      ctx->fullPath(), ctx);
+		      full_path, ctx);
 //		      ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
+         }
 		else
 		{
 		    std::string timebase = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
 		    timebase = ctx->getOperationContext()->getDataobjectName()+"/"+timebase;
+            std::string full_path = "";
+            fullPath(ctx, full_path);
 		    currApd = readSliceApd(node, timebase, ctx->getOperationContext()->getTime(),
-		    ctx->getOperationContext()->getInterpmode(),ctx->fullPath(), ctx);
+		    ctx->getOperationContext()->getInterpmode(),full_path, ctx);
 //		    ctx->getOperationContext()->getInterpmode(),ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
 		}
 		if(!currApd)
@@ -4809,6 +4813,27 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    addContextAndApd(ctx, currApd);   
 	   // *size = currApd->len();
 	}
+    }
+}
+
+ void MDSplusBackend::fullPath(Context *ctx, std::string &path) {
+   if (ctx->getType() == CTX_PULSE_TYPE) {
+       path = "";
+   }
+   else if (ctx->getType() == CTX_OPERATION_TYPE) {
+       OperationContext *opCtx = dynamic_cast <OperationContext * >(ctx);
+       path = opCtx->getDataobjectName();
+   }
+   else if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+       ArraystructContext *arrCtx = dynamic_cast <ArraystructContext * >(ctx);
+       path = arrCtx->getPath();
+       arrCtx = arrCtx->getParent();
+       while (arrCtx != NULL) {
+	      path = arrCtx->getPath() + "/" + path;
+	      arrCtx = arrCtx->getParent();
+	   }
+	path = arrCtx->getOperationContext()->getDataobjectName() +
+	    "/" + path;
     }
 }
 
@@ -4941,7 +4966,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
       if(!strcmp(dtype, "DTYPE_MISSING"))
       {
-          std::cout << "WARNING: EMPTY APD FIELD in resolveApdField for "+ctx->fullPath() << std::endl;
+          std::string full_path = "";
+          fullPath(ctx, full_path);
+          std::cout << "WARNING: EMPTY APD FIELD in resolveApdField for "+full_path << std::endl;
 	  return;
       }
       if(!strcmp(dtype, "DTYPE_BU") && strcmp(dtype, "DTYPE_MISSING"))  //if it is not a serialized APD (nested dynamic AoS)

@@ -126,7 +126,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     int getTimebaseIdx(std::string timebase, std::string dataobjectPath, double time);
     int getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx);
     double *getSegmentIdxAndDim(MDSplus::TreeNode *node, std::string dataobjectPath, std::string timebase, double time, int &segIdx, int &nDim);
-
+    void fullPath(Context *ctx, std::string &path);
 
 /////Public section - Implementation of Backend interface		
       public:
