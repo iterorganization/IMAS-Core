@@ -689,7 +689,7 @@ void HDF5DataSetHandler::close()
             }
             case ualconst::char_data:
             {
-            	for (int i = 0; i < full_data_sets_buffers.size(); i++)
+            	for (int i = 0; i < (int) full_data_sets_buffers.size(); i++)
                     free(full_data_sets_buffers[i]);
                 full_data_sets_buffers.clear();
                 data_sets_buffers.clear();
