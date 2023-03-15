@@ -337,7 +337,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		hsize_t chunk_dims_min[H5S_MAX_RANK];
         float M = 2. * 1024. * 1024.; //in MBytes
         
-        float Mmin = 0.1 * 1024.; //1 KByte
+        float Mmin = 10 * 1024.; //10 KByte
 		size_t vmin = (size_t) floor(Mmin / type_size);
 
         size_t vmax = (size_t) floor(M / type_size);
@@ -355,7 +355,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 
 		if (vp * vn > vmax) {
-			//std::cout << "vp*vn > vmax"  << std::endl;
+            //printf("dataset_name=%s, vp*vn=%d, vmax=%d\n", dataset_name, vp*vn, vmax);
 			if (vn < vmax) {
 				while (vp > vmax / vn) {
 					size_t v = 1;
@@ -365,7 +365,8 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 						chunk_dims[i] = (int) cs;
 						if (chunk_dims[i] < chunk_dims_min[i]) {
 							chunk_dims[i] = chunk_dims_min[i];
-							break;
+							v *= chunk_dims[i];
+							continue;
 						}
 						v *= chunk_dims[i];
 					}
@@ -385,7 +386,8 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 							chunk_dims[i] = (int) cs;
 							if (chunk_dims[i] < chunk_dims_min[i]) {
 								chunk_dims[i] = chunk_dims_min[i];
-								break;
+                                v *= chunk_dims[i];
+								continue;
 							}
 							v *= chunk_dims[i];
 						}
@@ -397,7 +399,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 		
 		size_t v  = vp*vn;
-		//printf("dataset_name=%s, volume=%d\n", dataset_name, v);
+		
 		if (v < vmin) {
 			vn = (size_t) vmin/vp;
 			for (int i = AOSRank; i < dataset_rank; i++) {
@@ -406,7 +408,8 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 			}
 			
 		}
-		
+        //v = vp*vn;
+        //printf("dataset_name=%s, volume=%d\n", dataset_name, v);
 		hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
 		H5Pset_chunk(dcpl_id, dataset_rank, chunk_dims);
 		if (compression_enabled) {
@@ -686,6 +689,8 @@ void HDF5DataSetHandler::close()
             }
             case ualconst::char_data:
             {
+            	for (int i = 0; i < full_data_sets_buffers.size(); i++)
+                    free(full_data_sets_buffers[i]);
                 full_data_sets_buffers.clear();
                 data_sets_buffers.clear();
                 break;

@@ -357,6 +357,11 @@ void HDF5Utils::writeHeader(DataEntryContext * ctx, hid_t file_id, std::string &
 void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * ctx)
 {
     std::ofstream file(filePath, std::ifstream::binary);
+    if (!file.is_open()) {
+        char error_message[200];
+        sprintf(error_message, "Unable to open the file %s for writing the user block.\n", filePath.c_str());
+        throw UALBackendException(error_message, LOG);       
+    }
     file.seekp(0, std::ios::beg);
 
     char path[200];

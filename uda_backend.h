@@ -8,7 +8,7 @@
 #include <string>
 #include <cstdlib>
 #include <unordered_map>
-#include <mdsobjects.h>
+//#include <mdsobjects.h>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <c++/UDA.hpp>
@@ -59,7 +59,7 @@ public:
 
             std::vector<std::string> words;
             boost::split(words, line, boost::is_any_of(" \t"), boost::token_compress_on);
-            if (words.size() != 4) {
+            if (words.size() < 2) {
                 throw std::runtime_error(std::string("bad line in ") + file_name + ": " + line);
             }
 

@@ -2438,6 +2438,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 		    sprintf(&expr[strlen(expr)], "%d])*%e)", idx-1, (time - times[idx-1])/(times[idx]-times[idx-1]));
                   idxInSegment = -1;
 		  break;
+
 		default:
 		  MDSplus::deleteData(segData);
 		 // MDSplus::deleteData(segDim);
@@ -3338,7 +3339,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	
 
 //Gabriele 2017
-    MDSplus::Apd *MDSplusBackend::readSliceApd(MDSplus::TreeNode *inNode, std::string timebasePath, double time, int interpolation, std::string currPath)
+    MDSplus::Apd *MDSplusBackend::readSliceApd(MDSplus::TreeNode *inNode, std::string timebasePath, double time, int interpolation, std::string currPath, ArraystructContext *ctx)
 //aosPath is the complete path from pulsefile root downto the TIMED_*/ITEM_n npde holding the time dependent serialized APD
     {
      	if(!tree)  throw UALBackendException("Pulse file not open",LOG);
@@ -3444,11 +3445,10 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 			if(!apd || ! apd1) return NULL;
 			//if(checkStruct(apd, apd1)) //Gabriele June 2022: let check be performed during interpolation itself
 			{
-   			    MDSplus::Apd *retApd = MDSplusBackend::interpolateStruct(apd, apd1, time, timebase[sliceIdx], timebase[sliceIdx1], currPath);
+   			    MDSplus::Apd *retApd = MDSplusBackend::interpolateStruct(apd, apd1, time, timebase[sliceIdx], timebase[sliceIdx1], currPath, ctx);
 	    	    	    free((char *)timebase);
 			    MDSplus::deleteData(apd);
 			    MDSplus::deleteData(apd1);
-
 		    	    return retApd; //Already an array of structures
 			}
 		/*	else  //AoS are not compatible (should ever happen)
@@ -3655,14 +3655,14 @@ std::cout<<"FINSCE INFLATE" << std::endl;
     }
     
 //AoS or Struct interpolation
-    MDSplus::Apd *MDSplusBackend::interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath) //The two AoS are already checked
+    MDSplus::Apd *MDSplusBackend::interpolateStruct(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath, ArraystructContext *ctx) //The two AoS are already checked
     {
           MDSplus::Apd *interpApd = new MDSplus::Apd();
           int len = apd1->len();
           int len1 = apd2->len();
 	  if(len != len1)
 	  {
-	      std::cout << "WARNING: Linear interpolation not possible (different number of elements) for node "+currPath << std::endl;
+	      std::cout << "WARNING: Linear interpolation not possible (different number of elements: " << len << ", " << len1 << ") for "+currPath << std::endl;
 	      return interpApd;
 	  }
 	  if(len == 0) 
@@ -3672,33 +3672,37 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	  {
 	      if(!(apd2->getDescAt(0) != NULL && apd2->getDescAt(0)->clazz != CLASS_APD))
 	      {
-	          std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
+	          std::cout << "WARNING: Linear interpolation not possible  (incompatible elements) for  "+currPath << std::endl;
 		  return interpApd;
 	      }
 //At this point it is a Struct
-	      return interpolateStructRec(apd1, apd2, t, t1, t2, currPath, false);
+	      return interpolateStructRec(apd1, apd2, t, t1, t2, currPath, false, ctx);
 	  }
 //At this point it is an AoS
 	  for(int idx = 0; idx < len; idx++)
 	  {
-	      interpApd->appendDesc(interpolateStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd2->getDescAt(idx), t, t1,t2, currPath+"["+std::to_string(idx)+"]", true));
+	      interpApd->appendDesc(interpolateStructRec((MDSplus::Apd*)apd1->getDescAt(idx), (MDSplus::Apd*)apd2->getDescAt(idx), t, t1,t2, currPath+"["+std::to_string(idx)+"]", true, ctx));
 	  }
 	  return interpApd;
     }
     //This will handle APDs where the first element is the item name, i.e. Struct
-    MDSplus::Apd *MDSplusBackend::interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath, bool firstRec)
+    MDSplus::Apd *MDSplusBackend::interpolateStructRec(MDSplus::Apd *apd1, MDSplus::Apd *apd2, double t, double t1, double t2, std::string currPath, bool firstRec, ArraystructContext *ctx)
     {
 	if(!apd1 || !apd2)
 	    return  NULL;
 	int len1 = apd1->len(); //already checked
 	int len2 = apd2->len(); //already checked
-	if(apd1->len() < 2 || apd2->len() < 2)
-	{
-	    std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
+	if(apd1->len() != apd2->len())
+	{  
+	    std::cout << "WARNING: Linear interpolation not possible (different length: " << len1 << ", " << len2<<") for "+currPath << std::endl;
 	    return NULL;
 	}
+	if(apd1->len() == 0)
+	{  
+	    return NULL; //Empty APD
+	}
 	MDSplus::Data *name1 = apd1->getDescAt(0);
-	MDSplus::Data *name2 = apd1->getDescAt(0);
+	MDSplus::Data *name2 = apd2->getDescAt(0);
 	if(name1->clazz != CLASS_S || name2->clazz != CLASS_S)
 	{
 	    std::cout << "INTERNAL ERROR: inconsistent AoS structure 1" << std::endl;
@@ -3708,7 +3712,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	char *nameStr2 = name2->getString();
 	if(strcmp(nameStr1, nameStr2))
 	{
-	    std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
+	    std::cout << "WARNING: Linear interpolation not possible (different names: "<< nameStr1 << ", " << nameStr2 << ") for  "+currPath << std::endl;
 	    delete [] nameStr1;
 	    delete[] nameStr2;
 	    return NULL;
@@ -3716,6 +3720,10 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 //At this point the names match
         MDSplus::Apd *interpApd = new MDSplus::Apd();
 	interpApd->appendDesc(new MDSplus::String(nameStr1));
+	if(apd1->len() < 2) //only name, nothing else
+	{
+	    return interpApd;
+	}
 	if(!firstRec) currPath += "."+std::string(nameStr1); //Just to avoid field name duplications
 	delete [] nameStr1;
 	delete[] nameStr2;
@@ -3723,26 +3731,41 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	{
 	    if(apd2->getDescAt(1)->clazz == CLASS_APD) //The other one is a directory or an AoS, inconsistent
 	    {
-	    	std::cout << "WARNING: Linear interpolation not possible for node " +currPath<< std::endl;
+	    	//std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+ctx->fullPath()<< std::endl;
+	    	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
-	    interpApd->appendDesc(interpolateStructItem(apd1->getDescAt(1), apd2->getDescAt(1), t, t1, t2, currPath));
+	    interpApd->appendDesc(interpolateStructItem(apd1->getDescAt(1), apd2->getDescAt(1), t, t1, t2, currPath, ctx));
 	    return interpApd;
 	}
 	//At this point it may be either a subdirectory or an AoS
 	MDSplus::Apd *currItem1 = (MDSplus::Apd* )apd1->getDescAt(1);
+//Gabriele September 2022: handle the case of interpolating empty AoS
+	if(currItem1->len() == 0)
+	{
+	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
+	    if(currItem2->len() > 0)
+	    {
+	    	std::cout << "WARNING: Linear interpolation not possible (different length: " << currItem1->len() << ", " << currItem2->len() << ") for  "+currPath<< std::endl;
+		MDSplus::deleteData(interpApd);
+		return NULL;
+	    }
+	    interpApd->appendDesc(new MDSplus::Apd());
+	    return interpApd;
+	}
+//////////////////////
 	if(currItem1->len() > 0 && currItem1->getDescAt(0)->clazz == CLASS_APD) //If the field is an AoS
 	{
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
 	    if(!(currItem2->len() > 0 && currItem2->getDescAt(0)->clazz == CLASS_APD)) //If the field is NOT an AoS, inconsistent
 	    {
-	    	std::cout << "WARNING: Linear interpolation node possible for node "+currPath << std::endl;
+	    	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
 //At this point both are AoS
-	    interpApd->appendDesc(interpolateStruct((MDSplus::Apd *)apd1->getDescAt(1), (MDSplus::Apd *)apd2->getDescAt(1), t, t1, t2, currPath));
+	    interpApd->appendDesc(interpolateStruct((MDSplus::Apd *)apd1->getDescAt(1), (MDSplus::Apd *)apd2->getDescAt(1), t, t1, t2, currPath, ctx));
 	    return interpApd;
 	}
 
@@ -3785,7 +3808,7 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    	char *currNameStr2 = currName2->getString();
 		if(!strcmp(currNameStr1, currNameStr2))
 		{
-		    interpApd->appendDesc(interpolateStructRec(currApd1, currApd2, t, t1, t2, currPath, false));
+		    interpApd->appendDesc(interpolateStructRec(currApd1, currApd2, t, t1, t2, currPath, false, ctx));
 		    delete [] currNameStr2;
 		    break;
 		}
@@ -3818,28 +3841,28 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	return interpApd; 
     }
 */	
-    MDSplus::Data *MDSplusBackend::interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2, std::string currPath)
+    MDSplus::Data *MDSplusBackend::interpolateStructItem(MDSplus::Data *item1, MDSplus::Data *item2, double t, double t1, double t2, std::string currPath, ArraystructContext *ctx)
     {
 //Note: items have already been checked for compatibility
          if(item1->clazz == CLASS_APD)
 	 {
 	     if(item2->clazz != CLASS_APD)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible for node "+currPath << std::endl;
+	         std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
 		 return NULL;
 	     }
-	     return interpolateStruct((MDSplus::Apd *)item1, (MDSplus::Apd *)item2, t, t1, t2, currPath);
+	     return interpolateStruct((MDSplus::Apd *)item1, (MDSplus::Apd *)item2, t, t1, t2, currPath, ctx);
 	 }
 	 else if(item1->clazz == CLASS_S)
 	 {
 	     if(item2->clazz != CLASS_S)
 	     {
-	      	std::cout << "WARNING: Linear interpolation not possible for node "+currPath  << std::endl;
+	      	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
 		return NULL;
 	     }
 	     if(item1->dtype != item2->dtype)
 	     {	
-	         std::cout << "WARNING: interpolation requested for inconsistent AoS at "+currPath  << std::endl;
+	         std::cout << "WARNING: interpolation requested for inconsistent AoS at "+currPath << std::endl;
 		 return NULL;
 	     }
 	     switch(item1->dtype)  {
@@ -3873,12 +3896,12 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 {
 	     if(item2->clazz != CLASS_A)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible for node "+currPath  << std::endl;
+	         std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath << std::endl;
 		 return NULL;
 	     }
 	     if(item1->dtype != item2->dtype)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible for node "+currPath  << std::endl;
+	         std::cout << "WARNING: Linear interpolation not possible (incompatible types) for  "+currPath  << std::endl;
 		 return NULL;
 	     }
 	     int len;
@@ -3888,16 +3911,16 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	     dims1 = ((MDSplus::Array *)item2)->getShape(&nDims1);
 	     if(nDims != nDims1)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible for node "+currPath  << std::endl;
+	         std::cout << "WARNING: Linear interpolation not possible (different number of dimensions: << " << nDims << ", " << nDims1 <<") for  "+currPath << std::endl;
 	     	 delete [] dims;
 	     	 delete [] dims1;
 		 return NULL;
 	     }
 	     for(int i = 0; i < nDims; i++)
 	     {
-		if (dims[i] != dims1[i])
+		if (dims[i] != dims1[i] && item1->dtype != DTYPE_B)
 	     	{
-	             std::cout << "WARNING: Linear interpolation not possible for node "+currPath  << std::endl;
+	             std::cout << "WARNING: Linear interpolation not possible (different dimension " << i << ": " << dims[i] << ", " << dims1[i] << ")for  "+currPath  << std::endl;
 	     	     delete [] dims;
 	     	     delete [] dims1;
 		     return NULL;
@@ -4671,9 +4694,9 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 
 //		if(ctx->getTimebasePath().find_first_of("../") == std::string::npos) //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
 		if(ctx->getTimebasePath().find("../") == std::string::npos && ctx->getTimebasePath().at(0) != '/') //If the timebase path refers to a field INTERNAL to the AoS (it mist be time!!)
-		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(), ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath());
+		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(), ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
 		else
-		  currApd = readSliceApd(node, timebasePath, ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(),ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath());
+		  currApd = readSliceApd(node, timebasePath, ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(),ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
 		if(!currApd)
 		{
 		  //delete node;
@@ -4731,12 +4754,16 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    else
 	    {
 		if(!(ctx->getTimebasePath().substr(0,3) == "../") && ctx->getTimebasePath()[0] != '/') //If it refers to a field which is internal to the AoS (must be time)
-		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(), ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath());
+		  currApd = readSliceApd(node, "", ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(),
+		      ctx->fullPath(), ctx);
+//		      ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
 		else
 		{
 		    std::string timebase = relativeToAbsolutePath(ctx, ctx->getTimebasePath());
 		    timebase = ctx->getOperationContext()->getDataobjectName()+"/"+timebase;
-		    currApd = readSliceApd(node, timebase, ctx->getOperationContext()->getTime(), ctx->getOperationContext()->getInterpmode(),ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath());
+		    currApd = readSliceApd(node, timebase, ctx->getOperationContext()->getTime(),
+		    ctx->getOperationContext()->getInterpmode(),ctx->fullPath(), ctx);
+//		    ctx->getOperationContext()->getInterpmode(),ctx->getOperationContext()->getDataobjectName()+"."+ctx->getPath(), ctx);
 		}
 		if(!currApd)
 		{
@@ -4914,7 +4941,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       const char *dtype = ((MDSplus::TreeNode *)currDescr)->getDType();
       if(!strcmp(dtype, "DTYPE_MISSING"))
       {
-          std::cout << "WARNING: EMPTY APD FIELD in resolveApdField" << std::endl;
+          std::cout << "WARNING: EMPTY APD FIELD in resolveApdField for "+ctx->fullPath() << std::endl;
 	  return;
       }
       if(!strcmp(dtype, "DTYPE_BU") && strcmp(dtype, "DTYPE_MISSING"))  //if it is not a serialized APD (nested dynamic AoS)
