@@ -41,13 +41,13 @@ endif
 CXXINCLUDES= -DASCII ${INCLUDES} -I. -I$(BOOST_HOME)/include 
 LIBS+= -lboost_filesystem -lboost_system
 
-CPPSRC= ual_utilities.cpp ual_backend.cpp ual_lowlevel.cpp ual_context.cpp \
+CPPSRC= ual_utilities.cpp ual_backend.cpp ual_lowlevel.cpp ual_context.cpp access_layer_plugin_manager.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp \
 	memory_backend.cpp ascii_backend.cpp
 
 CSRC= 
 
-COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o \
+COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o access_layer_plugin_manager.o \
 		ual_exception.o ual_utilities.o ual_backend.o no_backend.o \
 		memory_backend.o ascii_backend.o
 

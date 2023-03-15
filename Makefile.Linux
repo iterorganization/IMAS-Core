@@ -48,14 +48,14 @@ sources_uninstall:
 	-rm -rf $(datadir)/src/lowlevel
 
 install: all libal.so_install libal.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel $(bindir)
-	$(INSTALL_DATA) ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h uri_parser.h\
+	$(INSTALL_DATA) ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h\
 		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
 	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.)
 
 uninstall: libal.so_uninstall libal.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
-	-rm -rf $(addprefix $(includedir)/, ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h)
+	-rm -rf $(addprefix $(includedir)/,ual_defs.h ual_lowlevel.h ual_utilities.h ual_backend.h ual_context.h ual_exception.h ual_const.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h)
 	-rm -f $(addprefix $(libdir)/,libal-$(DD_GIT_DESCRIBE).so.$(SO_NUM) libal-$(DD_GIT_DESCRIBE).so libal.so libal-$(DD_GIT_DESCRIBE).a libal.a)
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir):
