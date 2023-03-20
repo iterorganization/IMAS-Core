@@ -4826,14 +4826,14 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
    }
    else if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
        ArraystructContext *arrCtx = dynamic_cast <ArraystructContext * >(ctx);
+       OperationContext *opCtx = arrCtx->getOperationContext();
        path = arrCtx->getPath();
        arrCtx = arrCtx->getParent();
        while (arrCtx != NULL) {
 	      path = arrCtx->getPath() + "/" + path;
 	      arrCtx = arrCtx->getParent();
 	   }
-	path = arrCtx->getOperationContext()->getDataobjectName() +
-	    "/" + path;
+	path = opCtx->getDataobjectName() + "/" + path;
     }
 }
 
