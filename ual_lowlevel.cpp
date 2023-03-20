@@ -847,9 +847,8 @@ al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
   return status;
 }
 
-
-al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
-				    int *octxID)
+al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
+                                            int *octxID)
 {
   al_status_t status;
   OperationContext *octx=NULL;
@@ -860,9 +859,10 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, int 
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
-  
-    octx = new OperationContext(pctx, 
+
+    octx = new OperationContext(pctx,
 				std::string(dataobjectname),
+                std::string(datapath),
 				rwmode);
     lle.backend->beginAction(octx);
 

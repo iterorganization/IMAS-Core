@@ -582,7 +582,7 @@ else
 
     void MemoryBackend::flush(DataEntryContext *ctx, std::string dataobjectName)
     {
-	OperationContext newCtx(ctx, dataobjectName, GLOBAL_OP);
+	OperationContext newCtx(ctx, dataobjectName, "", GLOBAL_OP);
 	UalStruct *ids = getIds(&newCtx);
 	for(auto &field: ids->dataFields)
 	{
@@ -747,7 +747,7 @@ else
 	int timeDatatype;
 	int timeNumDims;
 	int timeDims[16];
-	OperationContext newCtx(ctx->getOperationContext()->getDataEntryContext(), ctx->getOperationContext()->getDataobjectName(), READ_OP);
+	OperationContext newCtx(ctx->getOperationContext()->getDataEntryContext(), ctx->getOperationContext()->getDataobjectName(), ctx->getOperationContext()->getDatapath(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
 //	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);

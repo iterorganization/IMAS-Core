@@ -6,7 +6,7 @@ LIBS+= -lpthread
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -DMDSPLUS_PRE_7_49
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
+LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lboost_filesystem
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
 endif # IMAS_MDSPLUS
@@ -21,8 +21,8 @@ CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
 endif
 LIBS+= -lssl -lcrypto -L/usr/local/opt/openssl@1.1/lib
-COMMON_OBJECTS+= uda_backend.o
-CPPSRC+=uda_backend.cpp
+COMMON_OBJECTS+=uda_backend.o uda_cache.o uda_path.o uda_xml.o pugixml.o
+CPPSRC+=uda_backend.cpp uda_cache.cpp uda_path.cpp uda_xml.cpp pugixml.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------

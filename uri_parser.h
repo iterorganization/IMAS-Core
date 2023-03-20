@@ -70,13 +70,13 @@ public:
     {}
 
     explicit operator bool() const { return found_; }
-    const std::string& value() const {
+    std::string value() const {
         if (!found_) {
             throw UALBackendException("query parameter" + param_ + "not found", LOG);
         }
         return value_;
     }
-    const std::string& value_or(const std::string& other) const {
+    std::string value_or(const std::string& other) const {
         return found_ ? value_ : other;
     }
 private:
@@ -120,6 +120,14 @@ public:
         } else {
             map_[name] = {};
         }
+    }
+    bool remove(const std::string& name) {
+        auto got = map_.find(name);
+        if (got != map_.end()) {
+            map_.erase(got);
+            return true;
+        }
+        return false;
     }
     std::string to_string() const {
         std::ostringstream ss;

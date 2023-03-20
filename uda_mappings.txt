@@ -1,4 +1,4 @@
-WEST	WEST_TUNNEL
-JET	IMAS_MAPPING
-MAST	IMAS_UDA
-EXAMPLE	IMAS_FORWARD(host=somehost.org)
+WEST        WEST_TUNNEL                         -   -
+JET         IMAS_MAPPING                        -   -
+MAST        IMAS_UDA                            -   -
+EXAMPLE     IMAS_FORWARD(host=somehost.org)     -   -

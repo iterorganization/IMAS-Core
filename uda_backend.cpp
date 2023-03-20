@@ -1,106 +1,288 @@
 #include "uda_backend.h"
 
 #include <cstdlib>
+#include <client/accAPI.h>
+#include <client/udaClient.h>
+#include <clientserver/udaTypes.h>
+
+#include "uda_utilities.hpp"
+#include "uda_xml.hpp"
+#include "uda_debug.hpp"
 
 namespace {
 
+/**
+ * Generate string path for the given ArraystructContext object.
+ *
+ * @param ctx the context to generate the path for
+ * @param for_dim a flag to specify whether we should include the context index in the path
+ * @return the generated path
+ */
 std::string array_path(ArraystructContext* ctx, bool for_dim = false)
 {
     std::string path;
     if (for_dim) {
         path = ctx->getPath();
     } else {
-        path = ctx->getPath() + "/" + std::to_string(ctx->getIndex() + 1);
+        path = ctx->getPath() + "[" + std::to_string(ctx->getIndex()) + "]";
     }
     while (ctx->getParent() != nullptr) {
         ctx = ctx->getParent();
         path = ctx->getPath()
-                .append("/")
-                .append(std::to_string(ctx->getIndex() + 1))
-                .append("/")
+                .append("[")
+                .append(std::to_string(ctx->getIndex()))
+                .append("]/")
                 .append(path);
     }
     return path;
 }
 
+/**
+ * Generate string path for the given Context object.
+ *
+ * If the Context object is an ArraystructContext this forwards the request onto the function above, otherwise for
+ * OperationContext objects it just returns the DataobjectName.
+ *
+ * @param ctx the context to generate the path for
+ * @param for_dim a flag to specify whether we should include the context index in the path
+ * @return the generated path
+ */
+std::string array_path(Context* ctx, bool for_dim = false)
+{
+    auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
+    if (arr_ctx != nullptr) {
+        return arr_ctx->getOperationContext()->getDataobjectName() + "/" + array_path(arr_ctx, for_dim);
+    }
+    auto op_ctx = dynamic_cast<OperationContext*>(ctx);
+    if (op_ctx != nullptr) {
+        return op_ctx->getDataobjectName();
+    }
+    return "";
 }
 
-std::pair<int,int> UDABackend::getVersion(DataEntryContext *ctx)
+/**
+ * Unpack the data returned from UDA as a NodeReader object.
+ *
+ * The NodeReader object allows deserialisation of the Capn Proto serialised data using the uda_capnp_read_data
+ * function. This is used to read the data into a newly malloced array buffer returned via the `data` argument.
+ *
+ * @tparam T the type of the data being unpacked
+ * @param node the `NodeReader` from which the data is being unpacked
+ * @param shape the shape of the data being unpacked
+ * @param data [OUT] a pointer to the buffer which is malloced and then populated with the unpacked data
+ * @param dim [OUT] the rank of the data being returned
+ * @param size [OUT] array of dimension sizes
+ */
+template <typename T>
+void unpack_data(NodeReader* node,
+                 const std::vector<size_t>& shape,
+                 void** data,
+                 int* dim,
+                 int* size)
 {
-  std::pair<int,int> version;
-  if (ctx == nullptr) {
-      version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
-  } else {
-      version = {0,0}; // temporary placeholder
-  }
-  return version;
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    *data = malloc(count * sizeof(T));
+    auto buffer = reinterpret_cast<char*>(*data);
+
+    uda_capnp_read_data(node, buffer);
+
+    *dim = static_cast<int>(shape.size());
+    for (int i = 0; i < *dim; ++i) {
+        size[i] = static_cast<int>(shape[i]);
+    }
+}
+
+/**
+ * Unpack the data returned from UDA as a NodeReader object.
+ *
+ * This checks the name of the returned node against the passed path, and then uses the `unpack_data` function,
+ * templated based on the type specified in the node.
+ *
+ * @param path the data path to check against the name of the node
+ * @param node the `NodeReader` from which the data is being unpacked
+ * @param shape the shape of the data being unpacked
+ * @param data [OUT] a pointer to the buffer which is malloced and then populated with the unpacked data
+ * @param dim [OUT] the rank of the data being returned
+ * @param size [OUT] array of dimension sizes
+ */
+void unpack_node(const std::string& path,
+                 NodeReader* node,
+                 void** data,
+                 int* datatype,
+                 int* dim,
+                 int* size)
+{
+    const char* name = uda_capnp_read_name(node);
+
+    if (name != path) {
+        throw UALBackendException("Invalid node returned: " + std::string(name));
+    }
+
+    int type = uda_capnp_read_type(node);
+    size_t rank = uda_capnp_read_rank(node).value;
+
+    std::vector<size_t> shape(rank);
+    uda_capnp_read_shape(node, shape.data());
+
+    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    std::vector<char> bytes(count);
+
+    switch (type) {
+        case CHAR_DATA:
+        case UDA_TYPE_STRING:
+            *datatype = CHAR_DATA;
+            unpack_data<char>(node, shape, data, dim, size);
+            break;
+        case INTEGER_DATA:
+        case UDA_TYPE_INT:
+            *datatype = INTEGER_DATA;
+            unpack_data<int>(node, shape, data, dim, size);
+            break;
+        case DOUBLE_DATA:
+        case UDA_TYPE_DOUBLE:
+            *datatype = DOUBLE_DATA;
+            unpack_data<double>(node, shape, data, dim, size);
+            break;
+        case COMPLEX_DATA:
+        case UDA_TYPE_COMPLEX:
+            *datatype = COMPLEX_DATA;
+            unpack_data<double _Complex>(node, shape, data, dim, size);
+            break;
+        default: throw UALBackendException("Unknown data type: " + std::to_string(type));
+    }
+}
+
+} // anon namespace
+
+std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
+{
+    std::pair<int, int> version;
+    if (ctx == NULL) {
+        version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
+    } else {
+        version = {0, 0}; // temporary placeholder
+    }
+    return version;
+}
+
+void UDABackend::process_option(const std::string& option)
+{
+    if (option.empty()) {
+        return;
+    }
+
+    std::vector<std::string> tokens;
+    boost::split(tokens, option, boost::is_any_of("="), boost::token_compress_on);
+
+    if (tokens.size() != 2) {
+        throw UALException("invalid option (option must be name=value)", LOG);
+    }
+
+    std::string name = tokens[0];
+    std::string value = tokens[1];
+
+    boost::to_lower(name);
+    boost::to_lower(value);
+
+    if (name == "cache_mode") {
+        if (value == "none") {
+            cache_mode_ = imas::uda::CacheMode::None;
+        } else if (value == "ids") {
+            cache_mode_ = imas::uda::CacheMode::IDS;
+        } else if (value == "struct") {
+            cache_mode_ = imas::uda::CacheMode::Struct;
+        } else {
+            throw UALException("invalid cache mode", LOG);
+        }
+    } else {
+        throw UALException("invalid option (option name not recognised)", LOG);
+    }
+}
+
+void UDABackend::process_options(const std::string& options)
+{
+    std::vector<std::string> tokens;
+    boost::split(tokens, options, boost::is_any_of(","), boost::token_compress_on);
+
+    for (const auto& token : tokens) {
+        process_option(token);
+    }
 }
 
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend openPulse\n";
     }
+    open_mode_ = mode;
 
-    auto maybe_database = ctx->getURI().query.get("database");
+    process_options(ctx->getOptions());
 
-    std::string mapped_plugin = machine_mapping.plugin(maybe_database.value());
-    if (!mapped_plugin.empty()) {
-        this->plugin = mapped_plugin;
-        std::stringstream ss;
+    auto maybe_plugin = ctx->getURI().query.get("plugin");
+    if (maybe_plugin) {
+        plugin_ = maybe_plugin.value();
+    }
 
-        ss << plugin << "::init(";
+    std::string host = ctx->getURI().authority.host;
+    int port = ctx->getURI().authority.port;
 
-        auto args = machine_mapping.args(maybe_database.value());
-        std::string delim;
-        for (const auto& arg : args) {
-            ss << delim << arg;
-            delim = ", ";
-        }
+    uda::Client::setServerHostName(host);
+    uda::Client::setServerPort(port);
 
-        ss << ")";
+    if (verbose_) {
+        std::cout << "UDA server: " << host << "\n";
+        std::cout << "UDA port: " << port << "\n";
+        std::cout << "UDA plugin: " << plugin_ << "\n";
+    }
 
-        std::string directive = ss.str();
-        if (verbose) {
-            std::cout << "UDA directive: " << directive << "\n";
-        }
+    auto maybe_args = ctx->getURI().query.get("init_args");
 
-        try {
-            uda_client.get(directive, "");
-        } catch (const uda::UDAException& ex) {
-            if (verbose) {
-                std::cout << "UDA error: " << ex.what() << "\n";
-            }
-        }
+    std::string args;
+    if (maybe_args) {
+        args = maybe_args.value();
+        std::replace(args.begin(), args.end(), ';', ',');
     }
 
     std::stringstream ss;
-
-    ss << this->plugin
-       << "::openPulse("
-       << "backend_id=" << ualconst::mdsplus_backend
-       << ", uri=" << ctx->getURI().to_string()
-       << ", mode=" << mode
-       << ")";
+    ss << plugin_ << "::init(" << args << ")";
 
     std::string directive = ss.str();
-
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
     }
 
     try {
-        const uda::Result& result = uda_client.get(directive, "");
-        uda::Data* data = result.data();
-        if (data->type() != typeid(int)) {
-            throw UALBackendException(std::string("Unknown data type returned: ") + data->type().name(), LOG);
+        uda_client_.get(directive, "");
+    } catch (const uda::UDAException& ex) {
+        if (verbose_) {
+            std::cout << "UDA error: " << ex.what() << "\n";
         }
-        auto scalar = dynamic_cast<uda::Scalar*>(data);
-        if (scalar == nullptr) {
-            throw UALBackendException("UDA openPulse did not return scalar data");
-        }
-        ctx_id = scalar->as<int>();
+    }
+
+    auto query = ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
+
+    ss.str("");
+    ss.clear();
+
+    ss << plugin_
+       << "::open("
+       << "uri='" << uri << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(mode) << "'"
+       << ")";
+
+    directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    try {
+        uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
@@ -109,29 +291,32 @@ void UDABackend::openPulse(DataEntryContext* ctx,
 void UDABackend::closePulse(DataEntryContext* ctx,
                             int mode)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend closePulse\n";
     }
 
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
-    }
+    cache_.clear();
+    cache_mode_ = imas::uda::CacheMode::None;
+
+    auto query = ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
-
-    ss << this->plugin
-       << "::closePulse("
-       << "ctxId=" << ctx_id
-       << ", mode=" << mode
+    ss << plugin_
+       << "::close("
+       << "uri='" << uri << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::CloseMode>(mode) << "'"
        << ")";
 
     std::string directive = ss.str();
 
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
     }
     try {
-        uda_client.get(directive, "");
+        uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
@@ -145,100 +330,334 @@ int UDABackend::readData(Context* ctx,
                          int* dim,
                          int* size)
 {
-    if (verbose) {
-        std::cout << "UDABackend readData\n";
+    auto path = array_path(ctx) + "/" + fieldname;
+
+    if (verbose_) {
+        std::cout << "UDABackend readData:" << path << "\n";
     }
 
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
-    }
-
-    try {
-        auto arrCtx = dynamic_cast<ArraystructContext*>(ctx);
-
-        std::stringstream ss;
-        ss << this->plugin
-           << "::readData("
-           << "ctxId=" << ctx_id
-           << ", field='" << fieldname << "'"
-           << ", timebase='" << timebasename << "'"
-           << ", datatype=" << *datatype
-           << ", rank=" << *dim;
-        if (arrCtx != nullptr) {
-            ss << ", index=" << arrCtx->getIndex() + 1;
+    if (cache_.count(path)) {
+        if (verbose_) {
+            std::cout << "UDABackend readData: found in cache\n";
         }
-        ss << ")";
-
-        std::string directive = ss.str();
-
-        if (verbose) {
-            std::cout << "UDA directive: " << directive << "\n";
-        }
-
-        const uda::Result& result = uda_client.get(directive, "");
-        uda::Data* uda_data = result.data();
-        if (uda_data->type() == typeid(double)) {
-            *datatype = DOUBLE_DATA;
-            *data = malloc(uda_data->byte_length());
-            memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-        } else if (uda_data->type() == typeid(int)) {
-            *datatype = INTEGER_DATA;
-            *data = malloc(uda_data->byte_length());
-            memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-        } else if (uda_data->type() == typeid(float)) {
-            *datatype = DOUBLE_DATA;
-            auto fdata = reinterpret_cast<const float*>(uda_data->byte_data());
-            if (uda_data->size() == 0) {
-                *data = malloc(sizeof(double));
-                auto ddata = reinterpret_cast<double*>(*data);
-                *ddata = *fdata;
-            } else {
-                *data = malloc(uda_data->size() * sizeof(double));
-                auto ddata = reinterpret_cast<double*>(*data);
-                for (int i = 0; i < (int)uda_data->size(); ++i) {
-                    ddata[i] = fdata[i];
+        imas::uda::CacheData& cache_data = cache_.at(path);
+        *dim = cache_data.shape.size();
+        switch (*datatype) {
+            case INTEGER_DATA: {
+                auto& vec = boost::get<std::vector<int>>(cache_data.values);
+                if (*dim == 0) {
+                    int* d = (int*)malloc(sizeof(int));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
                 }
+                break;
             }
-        } else if (uda_data->type() == typeid(char*)) {
-            *datatype = CHAR_DATA;
-            *data = malloc(uda_data->byte_length() + 1);
-            memcpy(*data, uda_data->byte_data(), uda_data->byte_length());
-            char n = '\0';
-            memcpy((char*)*data + uda_data->byte_length(), &n, sizeof(char));
-        } else if (uda_data->type() == typeid(void)) {
-            return 0;
-        } else {
-            throw UALBackendException(std::string("Unknown data type returned: ") + uda_data->type().name(), LOG);
+            case DOUBLE_DATA: {
+                auto& vec = boost::get<std::vector<double>>(cache_data.values);
+                if (*dim == 0) {
+                    double* d = (double*)malloc(sizeof(double));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
+                }
+                break;
+            }
+            case CHAR_DATA: {
+                auto& vec = boost::get<std::vector<char>>(cache_data.values);
+                if (*dim == 0) {
+                    char* d = (char*)malloc(sizeof(char));
+                    *d = vec[0];
+                    *data = d;
+                } else {
+                    *data = vec.data();
+                }
+                break;
+            }
         }
+        std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
+        return 1;
+    } else if (fieldname == "ids_properties/homogeneous_time"
+            || fieldname == "ids_properties/version_put/data_dictionary"
+            || cache_mode_ == imas::uda::CacheMode::None) {
+        try {
+            auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
+            auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
+            auto entry_ctx = op_ctx->getDataEntryContext();
 
-        std::vector<size_t> shape = result.shape();
-        *dim = static_cast<int>(shape.size());
-        for (int i = 0; i < *dim; ++i) {
-            size[i] = static_cast<int>(shape[i]);
+            auto query = ctx->getURI().query;
+            std::string backend = query.get("backend").value_or("mdsplus");
+            query.remove("backend");
+            std::string uri = "imas:" + backend + "?" + query.to_string();
+
+            std::stringstream ss;
+            ss << plugin_
+               << "::get("
+               << "uri='" << uri << "'"
+               << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
+               << ", dataObject='" << op_ctx->getDataobjectName() << "'"
+               << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
+               << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
+               << ", time=" << op_ctx->getTime()
+               << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
+               << ", path='" << path << "'"
+               << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(*datatype) << "'"
+               << ", rank=" << *dim
+               << ", is_homogeneous=" << 0
+               << ", dynamic_flags=" << 0;
+//               << ", is_homogeneous=" << is_homogeneous
+//               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
+
+            auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+            if (maybe_pff_user) {
+                ss << ", ppfUser='" << maybe_pff_user.value() << "'";
+            }
+            auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+            if (maybe_pff_sequence) {
+                ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
+            }
+            auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+            if (maybe_pff_dda) {
+                ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
+            }
+            ss << ")";
+
+            std::string directive = ss.str();
+
+            if (verbose_) {
+                std::cout << "UDABackend request: " << directive << "\n";
+            }
+
+            const uda::Result& result = uda_client_.get(directive, "");
+
+            if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
+                const char* bytes = result.raw_data();
+                size_t num_bytes = result.size();
+                auto tree = uda_capnp_deserialise(bytes, num_bytes);
+
+                auto root = uda_capnp_read_root(tree);
+                size_t num_children = uda_capnp_num_children(root);
+                if (num_children != 1) {
+                    throw UALBackendException(std::string("Too many tree elements returned"), LOG);
+                }
+
+                auto node = uda_capnp_read_child_n(tree, root, 0);
+                unpack_node(path, node, data, datatype, dim, size);
+            }
+
+            return 1;
+        } catch (const uda::UDAException& ex) {
+            return 0;
         }
-    } catch (const uda::UDAException& ex) {
+    } else {
         return 0;
     }
-    return 1;
+}
+
+bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* entry_ctx, OperationContext* op_ctx)
+{
+    if (verbose_) {
+        std::cout << "UDABackend getting homogeneous_time\n";
+    }
+
+    std::string path = ids + "/ids_properties/homogeneous_time";
+
+    auto query = entry_ctx->getURI().query;
+    std::string backend = query.get("backend").value_or("mdsplus");
+    query.remove("backend");
+    std::string uri = "imas:" + backend + "?" + query.to_string();
+
+    std::stringstream ss;
+    ss << plugin_
+       << "::get("
+       << "uri='" << uri << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
+       << ", dataObject='" << ids << "'"
+       << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
+       << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
+       << ", time=-999"
+       << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
+       << ", path='" << path << "'"
+       << ", datatype='integer'"
+       << ", rank=0"
+       << ", is_homogeneous=0"
+       << ", dynamic_flags=0)";
+
+    std::string directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    const uda::Result& result = uda_client_.get(directive, "");
+    uda::Data* uda_data = result.data();
+
+    imas::uda::add_data_to_cache(result, cache_);
+    if (cache_.count(path)) {
+        auto& cache_data = cache_.at(path);
+        return boost::get<std::vector<int>>(cache_data.values).at(0);
+    } else {
+        throw UALBackendException(std::string("Invalid result for ids_properties/homogeneous_time: ") + uda_data->type().name(), LOG);
+    }
+}
+
+void UDABackend::populate_cache(const std::string& ids, const std::string& path, DataEntryContext* entry_ctx, OperationContext* op_ctx)
+{
+    bool is_homogeneous = get_homogeneous_flag(ids, entry_ctx, op_ctx);
+
+    auto nodes = doc_->child("IDSs");
+
+    std::vector<std::string> size_requests;
+    std::vector<std::string> ids_paths = imas::uda::generate_ids_paths(path, nodes, size_requests);
+
+    std::vector<std::string> requests;
+    imas::uda::AttributeMap attributes;
+
+    for (const auto& ids_path: ids_paths) {
+        imas::uda::get_requests(requests, attributes, ids_path, nodes);
+    }
+
+    auto node = imas::uda::find_node(doc_->document_element(), ids, true);
+    imas::uda::get_attributes(attributes, ids, node);
+
+    std::vector<std::string> uda_requests = {};
+
+    for (const auto& request: requests) {
+        auto attr = attributes.at(request);
+
+        std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
+
+        auto query = entry_ctx->getURI().query;
+        std::string backend = query.get("backend").value_or("mdsplus");
+        query.remove("backend");
+        std::string uri = "imas:" + backend + "?" + query.to_string();
+
+        std::stringstream ss;
+        ss << plugin_
+           << "::get("
+           << "uri='" << uri << "'"
+           << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(open_mode_) << "'"
+           << ", dataObject='" << ids << "'"
+           << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
+           << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
+           << ", time=" << op_ctx->getTime()
+           << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
+           << ", path='" << request << "'"
+           << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type) << "'"
+           << ", rank=" << attr.rank
+           << ", is_homogeneous=" << is_homogeneous
+           << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
+
+        auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+        if (maybe_pff_user) {
+            ss << ", ppfUser='" << maybe_pff_user.value() << "'";
+        }
+        auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+        if (maybe_pff_sequence) {
+            ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
+        }
+        auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+        if (maybe_pff_dda) {
+            ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
+        }
+
+        ss << ")";
+
+        uda_requests.push_back(ss.str());
+    }
+
+    if (verbose_) {
+        for (const auto& req: uda_requests) {
+            std::cout << "UDABackend cache request: " << req << "\n";
+        }
+    }
+
+    std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
+
+    constexpr size_t N = 20;
+    std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
+    try {
+        size_t n = 0;
+        while (n < uda_requests.size()) {
+            size_t m = std::min(n + N, uda_requests.size());
+            std::vector<std::string> reqs = std::vector<std::string>{ uda_requests.begin() + n, uda_requests.begin() + m };
+
+            std::cout << "UDABackend cache get: " << n << " - " << m << std::endl;
+            uda::ResultList results = uda_client_.get_batch(reqs, "");
+            for (auto handle: results.handles()) {
+                auto& result = results.at(handle);
+                imas::uda::add_data_to_cache(result, cache_);
+            }
+
+            ClientFlags flags = {};
+            for (int i = 0; i < acc_getCurrentDataBlockIndex(&flags); ++i) {
+                freeDataBlock(getIdamDataBlock(i));
+            }
+            acc_freeDataBlocks();
+
+            n = m;
+        }
+    } catch (const uda::UDAException& ex) {
+        throw UALException(ex.what(), LOG);
+    }
+
+    std::cout << cache_ << std::endl;
 }
 
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend beginArraystructAction\n";
     }
 
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
-    }
+    auto op_ctx = ctx->getOperationContext();
+    auto entry_ctx = op_ctx->getDataEntryContext();
 
-    try {
-        std::string path = array_path(ctx, true);
-	OperationContext* octx = ctx->getOperationContext();
+    auto ids = op_ctx->getDataobjectName();
+    auto path = ids + "/" + array_path(ctx, true);
+
+    if (cache_.count(path)) {
+        if (verbose_) {
+            std::cout << "UDABackend beginArraystructAction: found " << path << " in cache\n";
+        }
+        auto data = cache_.at(path);
+        try {
+            *size = boost::get<std::vector<int>>(data.values).at(0);
+        } catch (boost::bad_get& ex) {
+            throw UALException(ex.what(), LOG);
+        } catch (std::out_of_range& ex) {
+            throw UALException(ex.what(), LOG);
+        }
+        return;
+    } else if (cache_mode_ == imas::uda::CacheMode::Struct) {
+        if (verbose_) {
+            std::cout << "UDABackend populating cache\n";
+        }
+
+        cache_.clear();
+        populate_cache(ids, path, entry_ctx, op_ctx);
+
+        if (cache_.count(path)) {
+            auto& data = cache_.at(path);
+            try {
+                *size = boost::get<std::vector<int>>(data.values).at(0);
+            } catch (boost::bad_get& ex) {
+                *size = 0;
+            } catch (std::out_of_range& ex) {
+                *size = 0;
+            }
+        } else {
+            *size = 0;
+        }
+    } else if (cache_mode_ == imas::uda::CacheMode::IDS) {
+        *size = 0;
+    } else {
+        OperationContext* octx = ctx->getOperationContext();
         std::stringstream ss;
-        ss << this->plugin
+        ss << plugin_
            << "::beginArraystructAction("
-           << "ctxId=" << ctx_id
            << ", size=" << *size
            << ", dataObject='" << octx->getDataobjectName() << "'"
            << ", access=" << octx->getAccessmode()
@@ -251,9 +670,10 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 
         std::string directive = ss.str();
 
-        std::cout << "UDA directive: " << directive << "\n";
-        const uda::Result& result = uda_client.get(directive, "");
+        std::cout << "UDABackend request: " << directive << "\n";
+        const uda::Result& result = uda_client_.get(directive, "");
         uda::Data* uda_data = result.data();
+
         if (uda_data->type() == typeid(void)) {
             *size = 0;
             return;
@@ -263,106 +683,115 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
                     LOG);
         }
         *size = *reinterpret_cast<const int*>(uda_data->byte_data());
-    } catch (const uda::UDAException& ex) {
-        *size = 0;
-        return;
     }
 }
 
-void UDABackend::beginAction(OperationContext* ctx)
+void UDABackend::beginAction(OperationContext* op_ctx)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend beginAction\n";
     }
 
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
-    }
+    std::string ids = op_ctx->getDataobjectName();
+    auto entry_ctx = op_ctx->getDataEntryContext();
 
-    std::stringstream ss;
+    if (cache_.count(ids)) {
+        if (verbose_) {
+            std::cout << "UDABackend found value in cache\n";
+        }
+        return;
+    } else if (cache_mode_ == imas::uda::CacheMode::IDS) {
+        std::string path = op_ctx->getDatapath();
+        if (path != "ids_properties/homogeneous_time" && path != "ids_properties/version_put/data_dictionary") {
+            if (verbose_) {
+                std::cout << "UDABackend populating cache\n";
+            }
 
-    ss << this->plugin
-       << "::beginAction("
-       << "ctxId=" << ctx_id
-       << ", dataObject='" << ctx->getDataobjectName() << "'"
-       << ", access=" << ctx->getAccessmode()
-       << ", range=" << ctx->getRangemode()
-       << ", time=" << ctx->getTime()
-       << ", interp=" << ctx->getInterpmode();
+            cache_.clear();
 
-    char* ppf_user = getenv("UDA_PPF_USER");
-    if (ppf_user != nullptr) {
-        ss << ", ppfUser='" << ppf_user << "'";
-    }
-    char* ppf_sequence = getenv("UDA_PPF_SEQUENCE");
-    if (ppf_sequence != nullptr) {
-        ss << ", ppfSequence=" << ppf_sequence;
-    }
-    char* ppf_dda = getenv("UDA_PPF_DDA");
-    if (ppf_dda != nullptr) {
-        ss << ", ppfDDA='" << ppf_dda << "'";
-    }
-    
-    ss << ")";
-    std::string directive = ss.str();
+            if (path.empty()) {
+                path = ids;
+            } else {
+                path = ids + "/" + path;
+            }
 
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
-    }
-    try {
-        uda_client.get(directive, "");
-    } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+            populate_cache(ids, path, entry_ctx, op_ctx);
+
+            cache_[ids] = {{}, {}};
+        }
+    } else {
+        std::stringstream ss;
+        ss << plugin_
+           << "::beginAction("
+           << ", dataObject='" << op_ctx->getDataobjectName() << "'"
+           << ", access=" << op_ctx->getAccessmode()
+           << ", range=" << op_ctx->getRangemode()
+           << ", time=" << op_ctx->getTime()
+           << ", interp=" << op_ctx->getInterpmode();
+
+        auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+        if (maybe_pff_user) {
+            ss << ", ppfUser='" << maybe_pff_user.value() << "'";
+        }
+        auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+        if (maybe_pff_sequence) {
+            ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
+        }
+        auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+        if (maybe_pff_dda) {
+            ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
+        }
+
+        ss << ")";
+        std::string directive = ss.str();
+
+        if (verbose_) {
+            std::cout << "UDABackend request: " << directive << "\n";
+        }
+        try {
+            uda_client_.get(directive, "");
+        } catch (const uda::UDAException& ex) {
+            throw UALException(ex.what(), LOG);
+        }
     }
 }
 
 void UDABackend::endAction(Context* ctx)
 {
-    if (verbose) {
-        std::cout << "UDABackend endAction\n";
+    if (ctx->getType() == CTX_PULSE_TYPE) {
+        cache_.clear();
     }
 
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
-    }
-
-    std::stringstream ss;
-
-    ss << this->plugin
-       << "::endAction("
-       << "ctxId=" << ctx_id
-       << ", type=" << ctx->getType()
-       << ")";
-
-    std::string directive = ss.str();
-
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
-    }
-    try {
-        uda_client.get(directive, "");
-    } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
-    }
+//    std::stringstream ss;
+//    ss << plugin_
+//       << "::endAction("
+//       << "type='" << imas::uda::convert_imas_to_uda<imas::uda::ContextType>(ctx->getType()) << "'"
+//       << ")";
+//
+//    std::string directive = ss.str();
+//
+//    if (verbose_) {
+//        std::cout << "UDABackend request: " << directive << "\n";
+//    }
+//    try {
+//        uda_client_.get(directive, "");
+//    } catch (const uda::UDAException& ex) {
+//        throw UALException(ex.what(), LOG);
+//    }
 }
 
 void
 UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasename, void* data, int datatype, int dim,
                       int* size)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend writeData\n";
-    }
-
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
     }
 
     std::stringstream ss;
 
-    ss << this->plugin
+    ss << plugin_
        << "::writeData("
-       << "ctxId=" << ctx_id
        << ", field='" << fieldname << "'"
        << ", timebase='" << timebasename << "'"
        << ", datatype=" << datatype
@@ -376,28 +805,28 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
         dims.emplace_back(i, size[i], "", "");
     }
 
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
     }
 
-    int dummy[] = { 0 };
-    uda::Array array{ dummy, {}};
+    int dummy[] = {0};
+    uda::Array array{dummy, {}};
 
     try {
         switch (datatype) {
             case CHAR_DATA:
-                array = uda::Array{ reinterpret_cast<char*>(data), dims };
+                array = uda::Array{reinterpret_cast<char*>(data), dims};
                 break;
             case INTEGER_DATA:
-                array = uda::Array{ reinterpret_cast<int*>(data), dims };
+                array = uda::Array{reinterpret_cast<int*>(data), dims};
                 break;
             case DOUBLE_DATA:
-                array = uda::Array{ reinterpret_cast<double*>(data), dims };
+                array = uda::Array{reinterpret_cast<double*>(data), dims};
                 break;
             default:
                 throw UALException("unknown datatype", LOG);
         }
-        uda_client.put(directive, array);
+        uda_client_.put(directive, array);
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
@@ -405,29 +834,24 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
 
 void UDABackend::deleteData(OperationContext* ctx, std::string path)
 {
-    if (verbose) {
+    if (verbose_) {
         std::cout << "UDABackend deleteData\n";
-    }
-
-    if (ctx_id == -1) {
-        throw UALException("invalid ctx_id", LOG);
     }
 
     std::stringstream ss;
 
-    ss << this->plugin
+    ss << plugin_
        << "::deleteData("
-       << "ctxId=" << ctx_id
        << ", path='" << path << "'"
        << ")";
 
     std::string directive = ss.str();
 
-    if (verbose) {
-        std::cout << "UDA directive: " << directive << "\n";
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
     }
     try {
-        uda_client.get(directive, "");
+        uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
     }
