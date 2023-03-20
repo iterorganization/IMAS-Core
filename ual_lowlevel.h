@@ -448,7 +448,7 @@ extern "C"
                          const char *options,
                          char** uri);
 
-  LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
+  LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
 
   LIBRARY_API al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
   

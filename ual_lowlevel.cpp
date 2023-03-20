@@ -1230,7 +1230,7 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
 
 //HLI Wrappers for calling LL functions - Call plugins if required
 
-al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int rwmode,
+al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                     int *octxID)
 {
   al_status_t status;
@@ -1238,7 +1238,7 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, int 
   status.code = 0;
 
   try {
-    status = ual_begin_global_action(pctxID, dataobjectname, rwmode, octxID);
+    status = ual_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
     if (status.code != 0)
         return status;
     std::set<std::string> pluginsNames;
