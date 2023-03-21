@@ -692,6 +692,8 @@ void HDF5DataSetHandler::close()
             	for (int i = 0; i < (int) full_data_sets_buffers.size(); i++)
                     free(full_data_sets_buffers[i]);
                 full_data_sets_buffers.clear();
+                for (int i = 0; i < (int) data_sets_buffers.size(); i++)
+                    free(data_sets_buffers[i]);
                 data_sets_buffers.clear();
                 break;
             }
@@ -875,13 +877,17 @@ void HDF5DataSetHandler::fillFullBuffers() {
     case ualconst::char_data: 
         {   
             std::vector<char *> &buffers = data_sets_buffers;
-            if (buffers.size() == 0)
+            if (buffers.size() == 0) {
                 break;
+            }
 
             assert(requests_arrctx_indices.size() == buffers.size());
 
-            std::vector<char *> v;
-            v.resize(getSize());
+            full_data_sets_buffers.resize(getSize());
+            for (int i = 0; i < (int) full_data_sets_buffers.size(); i++) {
+                full_data_sets_buffers[i] = strdup("");
+            }
+
             auto it = requests_arrctx_indices.begin();
             int request = 0;
             HDF5Utils hdf5_utils;
@@ -892,15 +898,16 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 assert(buffer != NULL);
                 if (getRank() != 0) {
                     int index = hdf5_utils.indices_to_flat_index(request_arrctx_indices, getLargestDims());
-                    v[index] = buffer;
+                    free(full_data_sets_buffers[index]);
+                    full_data_sets_buffers[index] = strdup(buffer);
                 }
                 else {
-                    v[0] = buffer;
+                    free(full_data_sets_buffers[0]);
+                    full_data_sets_buffers[0] = strdup(buffer);
                 }
                 ++it;
-                request++;
+                request++; 
             }
-            full_data_sets_buffers = v;
             break;
         }
     }
@@ -990,7 +997,13 @@ void HDF5DataSetHandler::read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelec
     if (hsSelectionReader.getRank() != 0) {
         HDF5Utils hdf5_utils;
         int index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
-        *data = strdup(full_data_sets_buffers[index]);
+        /*if (full_data_sets_buffers[index] == NULL) {
+           *data = malloc(2);
+           strcpy((char*) *data, "");
+           printf("testing..\n");
+         }
+        else*/
+            *data = strdup(full_data_sets_buffers[index]);
     }
     else {
         *data = strdup(full_data_sets_buffers[0]);
