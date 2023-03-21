@@ -111,7 +111,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   std::string options = ctx != nullptr ? ctx->getOptions() : "";
   this->dbname = ctx->getURI().query.get("path").value();
   std::stringstream ss;
-  
+
   const char* dbfolder = this->dbname.c_str();
 
   n = options.find("fullpath=");
@@ -119,15 +119,23 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   if (n != std::string::npos) {
     ss << options.substr(n+9,options.length());
     ss >> this->fullpath;
+    if (mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
+      std::string message("Unable to open pulse, file does not exist: ");
+      message += this->fullpath;
+      throw UALBackendException(message, LOG);
     }
-  else {
+  } else {
+    if (mode == OPEN_PULSE && !boost::filesystem::is_directory(dbfolder)) {
+      std::string message("Unable to open pulse, directory does not exist: ");
+      message += dbfolder;
+      throw UALBackendException(message, LOG);
+    }
     try {
       if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
-	if (!boost::filesystem::exists(dbfolder))
-	  boost::filesystem::create_directories(dbfolder);
+        if (!boost::filesystem::exists(dbfolder))
+          boost::filesystem::create_directories(dbfolder);
       }
-    }
-    catch(std::exception & e) {
+    } catch (std::exception & e) {
       std::string message("Unable to create pulse files shot directory: ");
       message += dbfolder;
       throw UALBackendException(message, LOG);
