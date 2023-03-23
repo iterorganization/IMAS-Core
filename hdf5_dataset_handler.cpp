@@ -997,9 +997,13 @@ void HDF5DataSetHandler::read0DStringsFromBuffer(HDF5HsSelectionReader & hsSelec
     if (hsSelectionReader.getRank() != 0) {
         HDF5Utils hdf5_utils;
         int index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        if (full_data_sets_buffers[index] == NULL)
+             full_data_sets_buffers[index] = strdup("");
         *data = strdup(full_data_sets_buffers[index]);
     }
     else {
+         if (full_data_sets_buffers[0] == NULL)
+             full_data_sets_buffers[0] = strdup("");
         *data = strdup(full_data_sets_buffers[0]);
     }
 }
