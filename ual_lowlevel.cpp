@@ -383,10 +383,10 @@ void LLplugin::setvalueParameterPlugin(const char* parameter_name, int datatype,
   al_plugin->setParameter(parameter_name, datatype, dim, size, data);
 }
 
-void LLplugin::begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, int opCtx) {
+void LLplugin::begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
-  al_plugin->begin_global_action(pulseCtx, dataobjectname, mode, opCtx);
+  al_plugin->begin_global_action(pulseCtx, dataobjectname, datapath, mode, opCtx);
 }
 
 void LLplugin::begin_slice_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
@@ -1245,7 +1245,7 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, cons
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-           LLplugin::begin_global_action_plugin(pluginName, pctxID, dataobjectname, rwmode, *octxID);
+           LLplugin::begin_global_action_plugin(pluginName, pctxID, dataobjectname, datapath, rwmode, *octxID);
     }
   }
   catch (const UALContextException& e) {
