@@ -228,8 +228,12 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     std::string host = ctx->getURI().authority.host;
     int port = ctx->getURI().authority.port;
 
-    uda::Client::setServerHostName(host);
-    uda::Client::setServerPort(port);
+    if (!host.empty()) {
+        uda::Client::setServerHostName(host);
+    }
+    if (port != 0) {
+        uda::Client::setServerPort(port);
+    }
 
     if (verbose_) {
         std::cout << "UDA server: " << host << "\n";
