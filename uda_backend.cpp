@@ -75,7 +75,7 @@ std::string array_path(Context* ctx, bool for_dim = false)
  */
 template <typename T>
 void unpack_data(NodeReader* node,
-                 const std::vector<size_t>& shape,
+                 const std::vector<int>& shape,
                  void** data,
                  int* dim,
                  int* size)
@@ -89,7 +89,7 @@ void unpack_data(NodeReader* node,
 
     *dim = static_cast<int>(shape.size());
     for (int i = 0; i < *dim; ++i) {
-        size[i] = static_cast<int>(shape[i]);
+        size[i] = shape[i];
     }
 }
 
@@ -107,6 +107,7 @@ void unpack_data(NodeReader* node,
  * @param size [OUT] array of dimension sizes
  */
 void unpack_node(const std::string& path,
+                 TreeReader* tree,
                  NodeReader* node,
                  void** data,
                  int* datatype,
@@ -119,35 +120,45 @@ void unpack_node(const std::string& path,
         throw UALBackendException("Invalid node returned: " + std::string(name));
     }
 
-    int type = uda_capnp_read_type(node);
-    size_t rank = uda_capnp_read_rank(node).value;
+    size_t num_children = uda_capnp_num_children(node);
+    if (num_children != 2) {
+        throw UALBackendException("Invalid number of children on node: " + std::to_string(num_children));
+    }
 
-    std::vector<size_t> shape(rank);
-    uda_capnp_read_shape(node, shape.data());
+    auto shape_node = uda_capnp_read_child_n(tree, node, 0);
+    auto data_node = uda_capnp_read_child_n(tree, node, 1);
 
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    std::vector<char> bytes(count);
+    std::vector<size_t> shape_shape(1);
+    uda_capnp_read_shape(shape_node, shape_shape.data());
+
+    size_t count = std::accumulate(shape_shape.begin(), shape_shape.end(), 1, std::multiplies<size_t>());
+    std::vector<int> shape(count);
+    auto buffer = reinterpret_cast<char*>(shape.data());
+
+    uda_capnp_read_data(shape_node, buffer);
+
+    int type = uda_capnp_read_type(data_node);
 
     switch (type) {
         case CHAR_DATA:
         case UDA_TYPE_STRING:
             *datatype = CHAR_DATA;
-            unpack_data<char>(node, shape, data, dim, size);
+            unpack_data<char>(data_node, shape, data, dim, size);
             break;
         case INTEGER_DATA:
         case UDA_TYPE_INT:
             *datatype = INTEGER_DATA;
-            unpack_data<int>(node, shape, data, dim, size);
+            unpack_data<int>(data_node, shape, data, dim, size);
             break;
         case DOUBLE_DATA:
         case UDA_TYPE_DOUBLE:
             *datatype = DOUBLE_DATA;
-            unpack_data<double>(node, shape, data, dim, size);
+            unpack_data<double>(data_node, shape, data, dim, size);
             break;
         case COMPLEX_DATA:
         case UDA_TYPE_COMPLEX:
             *datatype = COMPLEX_DATA;
-            unpack_data<double _Complex>(node, shape, data, dim, size);
+            unpack_data<double _Complex>(data_node, shape, data, dim, size);
             break;
         default: throw UALBackendException("Unknown data type: " + std::to_string(type));
     }
@@ -448,7 +459,7 @@ int UDABackend::readData(Context* ctx,
                 }
 
                 auto node = uda_capnp_read_child_n(tree, root, 0);
-                unpack_node(path, node, data, datatype, dim, size);
+                unpack_node(path, tree, node, data, datatype, dim, size);
             }
 
             return 1;
