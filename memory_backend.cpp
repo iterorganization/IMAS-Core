@@ -549,7 +549,14 @@ else
         }
         if(inCtx->getType() == CTX_OPERATION_TYPE) //Here it is only necessary to free possibly allocated IdsInfo
 	{
-//	  idsInfoMap.erase(inCtx->getUid());
+     /*     for(auto kv :  internalCtx->idsInfoMap) 
+	  {
+     		delete kv.second;
+	  }*/
+      	auto oldItem = internalCtx->idsInfoMap.find(inCtx->getUid()); 
+      	if (oldItem!=internalCtx->idsInfoMap.end()) 
+	    delete oldItem->second;
+
 	  internalCtx->idsInfoMap.erase(inCtx->getUid());
 	}
 	internalCtx->unlock();
