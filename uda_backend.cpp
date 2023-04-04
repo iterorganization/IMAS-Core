@@ -236,8 +236,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     }
 
     if (verbose_) {
-        std::cout << "UDA server: " << host << "\n";
-        std::cout << "UDA port: " << port << "\n";
+        std::cout << "UDA server: " << uda::Client::serverHostName() << "\n";
+        std::cout << "UDA port: " << uda::Client::serverPort() << "\n";
         std::cout << "UDA plugin: " << plugin_ << "\n";
     }
 
