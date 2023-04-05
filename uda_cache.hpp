@@ -15,6 +15,8 @@
 #include <UDA.hpp>
 #include <serialisation/capnp_serialisation.h>
 
+#include "uda_exceptions.hpp"
+
 namespace imas {
 namespace uda {
 
@@ -47,7 +49,7 @@ using CacheType = std::map<std::string, imas::uda::CacheData>;
  * @param cache the cache to store the data in
  */
 template <typename T>
-void add_value_to_cache(const std::string& name, NodeReader* node, const std::vector<size_t>& shape, imas::uda::CacheType& cache)
+void add_value_to_cache(const std::string& name, NodeReader* node, const std::vector<int>& shape, imas::uda::CacheType& cache)
 {
     size_t rank = uda_capnp_read_rank(node).value;
     std::vector<size_t> size(rank);
