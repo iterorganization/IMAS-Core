@@ -591,7 +591,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 
     std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
 
-    constexpr size_t N = 20;
+    int N = std::stoi(entry_ctx->getURI().query.get("batch_size").value_or("20"));
     std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
     try {
         size_t n = 0;
