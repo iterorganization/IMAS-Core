@@ -164,6 +164,12 @@ void unpack_node(const std::string& path,
     }
 }
 
+std::string strip_occurrence(const std::string& ids)
+{
+    auto pos = ids.find('/');
+    return ids.substr(0, pos);
+}
+
 } // anon namespace
 
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
@@ -316,6 +322,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     auto query = ctx->getURI().query;
     std::string backend = query.get("backend").value_or("mdsplus");
     query.remove("backend");
+    query.remove("options");
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
@@ -357,6 +364,7 @@ int UDABackend::readData(Context* ctx,
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
         *dim = cache_data.shape.size();
+        size_t count = std::accumulate(cache_data.shape.begin(), cache_data.shape.end(), 1, std::multiplies<size_t>());
         switch (*datatype) {
             case INTEGER_DATA: {
                 auto& vec = boost::get<std::vector<int>>(cache_data.values);
@@ -365,7 +373,9 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    *data = vec.data();
+                    int* d = (int*)malloc(sizeof(int) * count);
+                    memcpy(d, vec.data(), sizeof(int) * count);
+                    *data = d;
                 }
                 break;
             }
@@ -376,7 +386,9 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    *data = vec.data();
+                    double* d = (double*)malloc(sizeof(double) * count);
+                    memcpy(d, vec.data(), sizeof(double) * count);
+                    *data = d;
                 }
                 break;
             }
@@ -387,7 +399,9 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    *data = vec.data();
+                    char* d = (char*)malloc(sizeof(char) * count);
+                    memcpy(d, vec.data(), sizeof(char) * count);
+                    *data = d;
                 }
                 break;
             }
@@ -522,20 +536,16 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 {
     bool is_homogeneous = get_homogeneous_flag(ids, entry_ctx, op_ctx);
 
-    auto nodes = doc_->child("IDSs");
+    auto ids_node = imas::uda::find_node(doc_->document_element(), strip_occurrence(ids), true);
 
-    std::vector<std::string> size_requests;
-    std::vector<std::string> ids_paths = imas::uda::generate_ids_paths(path, nodes, size_requests);
+    std::vector<std::string> ids_paths = imas::uda::generate_ids_paths(path, ids_node);
 
     std::vector<std::string> requests;
     imas::uda::AttributeMap attributes;
 
     for (const auto& ids_path: ids_paths) {
-        imas::uda::get_requests(requests, attributes, ids_path, nodes);
+        imas::uda::get_requests(requests, attributes, ids_path, ids_node);
     }
-
-    auto node = imas::uda::find_node(doc_->document_element(), ids, true);
-    imas::uda::get_attributes(attributes, ids, node);
 
     std::vector<std::string> uda_requests = {};
 
@@ -652,6 +662,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         }
 
         cache_.clear();
+
         populate_cache(ids, path, entry_ctx, op_ctx);
 
         if (cache_.count(path)) {

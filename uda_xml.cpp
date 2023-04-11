@@ -122,8 +122,9 @@ void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string 
     }
 }
 
-void imas::uda::get_requests(std::vector<std::string>& requests, imas::uda::AttributeMap& attributes, std::string ids_path,
-                  const pugi::xml_node& node, bool walk_arrays)
+void imas::uda::get_requests(
+        std::vector<std::string>& requests, imas::uda::AttributeMap& attributes,
+        std::string ids_path, const pugi::xml_node& node, bool walk_arrays)
 {
     std::string dtype = node.attribute("data_type").value();
 
@@ -162,11 +163,14 @@ void imas::uda::get_requests(std::vector<std::string>& requests, imas::uda::Attr
     }
 }
 
-std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, pugi::xml_node& nodes,
-                                            std::vector<std::string>& size_requests)
+std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, pugi::xml_node nodes)
 {
     std::deque<std::string> tokens;
     boost::split(tokens, path, boost::is_any_of("/"), boost::token_compress_on);
+
+    if (tokens.empty()) {
+        return {};
+    }
 
     std::vector<std::string> ids_paths;
 
@@ -188,9 +192,6 @@ std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, 
 
             std::vector<std::string> new_paths;
             for (const auto& ids_path : ids_paths) {
-                if (tokens.size() != 1) {
-                    size_requests.push_back(ids_path);
-                }
                 for (long i = range.begin; i < range.end; i += range.stride) {
                     std::string new_path = ids_path + "[" + std::to_string(i) + "]";
                     new_paths.push_back(new_path);
