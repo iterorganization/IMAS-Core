@@ -184,6 +184,7 @@ public:
   int backend_id;                       /**< a backend identifier */
 
  private:
+  uri::Uri checkUriHost(const uri::Uri& uri);
   void setBackendID(const std::string &path, const std::string &host);
   uri::Uri buildURIFromLegacy();
 

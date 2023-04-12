@@ -373,7 +373,7 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    int* d = (int*)malloc(sizeof(int) * count);
+                    auto d = (int*)malloc(sizeof(int) * count);
                     memcpy(d, vec.data(), sizeof(int) * count);
                     *data = d;
                 }
@@ -386,7 +386,7 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    double* d = (double*)malloc(sizeof(double) * count);
+                    auto d = (double*)malloc(sizeof(double) * count);
                     memcpy(d, vec.data(), sizeof(double) * count);
                     *data = d;
                 }
@@ -399,7 +399,7 @@ int UDABackend::readData(Context* ctx,
                     *d = vec[0];
                     *data = d;
                 } else {
-                    char* d = (char*)malloc(sizeof(char) * count);
+                    auto d = (char*)malloc(sizeof(char) * count);
                     memcpy(d, vec.data(), sizeof(char) * count);
                     *data = d;
                 }
@@ -407,6 +407,8 @@ int UDABackend::readData(Context* ctx,
             }
         }
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
+        // clear cache entry to save memory
+        cache_.erase(path);
         return 1;
     } else if (fieldname == "ids_properties/homogeneous_time"
             || fieldname == "ids_properties/version_put/data_dictionary"

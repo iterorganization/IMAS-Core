@@ -96,7 +96,6 @@ int get_rank(const std::string& data_type);
  *
  * @param path the path to expand
  * @param nodes the node corresponding to the given path
- * @param size_requests
  * @return
  */
 std::vector<std::string> generate_ids_paths(const std::string& path, pugi::xml_node nodes);
