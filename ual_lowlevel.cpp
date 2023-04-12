@@ -176,7 +176,7 @@ bool LLplugin::getBoundPlugins(const char* dataobjectname, std::set<std::string>
     
   for(auto it = boundPlugins.begin(); it != boundPlugins.end(); ++it) {
       const std::string &key = it->first;
-      if (key.rfind(fullDataObjectName, 0)) {
+      if (key.rfind(fullDataObjectName, 0) != std::string::npos) {
           std::vector<std::string> &plugins = it->second; 
           for (auto &pluginName:plugins) 
             pluginsNames.insert(pluginName);
