@@ -440,19 +440,6 @@ int UDABackend::readData(Context* ctx,
                << ", dynamic_flags=" << 0;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
-
-            auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
-            if (maybe_pff_user) {
-                ss << ", ppfUser='" << maybe_pff_user.value() << "'";
-            }
-            auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
-            if (maybe_pff_sequence) {
-                ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
-            }
-            auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
-            if (maybe_pff_dda) {
-                ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
-            }
             ss << ")";
 
             std::string directive = ss.str();
@@ -470,7 +457,10 @@ int UDABackend::readData(Context* ctx,
 
                 auto root = uda_capnp_read_root(tree);
                 size_t num_children = uda_capnp_num_children(root);
-                if (num_children != 1) {
+                if (num_children == 0) {
+                    return 0;
+                }
+                if (num_children > 1) {
                     throw UALBackendException(std::string("Too many tree elements returned"), LOG);
                 }
 
@@ -545,8 +535,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
     std::vector<std::string> requests;
     imas::uda::AttributeMap attributes;
 
+    auto node = imas::uda::find_node(doc_->document_element(), path, true);
+
     for (const auto& ids_path: ids_paths) {
-        imas::uda::get_requests(requests, attributes, ids_path, ids_node);
+        imas::uda::get_requests(requests, attributes, ids_path, node);
     }
 
     std::vector<std::string> uda_requests = {};

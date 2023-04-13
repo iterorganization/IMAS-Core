@@ -49,6 +49,9 @@ pugi::xml_node imas::uda::find_node(const pugi::xml_node& root, const std::strin
         if (token.find('[') != std::string::npos) {
             token = token.substr(0, token.find('['));
         }
+        if (token.find('(') != std::string::npos) {
+            token = token.substr(0, token.find('('));
+        }
         if (top_level) {
             node = node.find_child_by_attribute("IDS", "name", token.c_str());
         } else {
