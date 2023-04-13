@@ -212,6 +212,12 @@ void UDABackend::process_option(const std::string& option)
         } else {
             throw UALException("invalid cache mode", LOG);
         }
+    } else if (name == "verbose") {
+        if (value == "1" || value == "true") {
+            verbose_ = true;
+        } else {
+            verbose_ = false;
+        }
     } else {
         throw UALException("invalid option (option name not recognised)", LOG);
     }
@@ -230,12 +236,12 @@ void UDABackend::process_options(const std::string& options)
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
+    process_options(ctx->getOptions());
+
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
     }
     open_mode_ = mode;
-
-    process_options(ctx->getOptions());
 
     auto maybe_plugin = ctx->getURI().query.get("plugin");
     if (maybe_plugin) {
