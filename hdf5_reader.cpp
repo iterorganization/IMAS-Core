@@ -325,13 +325,22 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         break;
     case PREVIOUS_INTERP:
         closest = slice_inf;
-        if (*slice_sup > 0 && fabs(time - slices_times[*slice_sup]) < std::numeric_limits<double>::epsilon())
+        if (*slice_sup > 0 && ( (fabs(time - slices_times[*slice_sup]) < std::numeric_limits<double>::epsilon()) 
+                              || (time > slices_times[*slice_sup])) )
             closest = *slice_sup;
         free(slices_times);
         return closest;
         break;
     case LINEAR_INTERP:
         if (*slice_sup == slice_inf) {
+            *ignore_linear_interpolation = true;
+            free(slices_times);
+            return slice_inf;
+        } else if (time > slices_times[*slice_sup]) {
+            *ignore_linear_interpolation = true;
+            free(slices_times);
+            return *slice_sup;
+        } else if (time < slices_times[slice_inf]) {
             *ignore_linear_interpolation = true;
             free(slices_times);
             return slice_inf;
