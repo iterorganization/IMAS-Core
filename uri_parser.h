@@ -4,6 +4,7 @@
 #define SIMPLE_URI_PARSER_LIBRARY_H
 
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <algorithm>
 #include <cctype>
