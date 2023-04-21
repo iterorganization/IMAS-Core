@@ -4,6 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <boost/filesystem.hpp>
+#include "ual_utilities.h"
 
 #include "mdsplus_backend.h"
 
