@@ -392,14 +392,14 @@ template <typename T>
 T* read_data_from_cache(imas::uda::CacheData& cache_data, int rank)
 {
     size_t count = std::accumulate(cache_data.shape.begin(), cache_data.shape.end(), 1, std::multiplies<size_t>());
-    auto& vec = boost::get<std::vector<int>>(cache_data.values);
+    auto& vec = boost::get<std::vector<T>>(cache_data.values);
     if (rank == 0) {
-        int* d = (int*)malloc(sizeof(int));
+        auto d = (T*)malloc(sizeof(T));
         *d = vec[0];
         return d;
     } else {
-        auto d = (int*)malloc(sizeof(int) * count);
-        memcpy(d, vec.data(), sizeof(int) * count);
+        auto d = (T*)malloc(sizeof(T) * count);
+        memcpy(d, vec.data(), sizeof(T) * count);
         return d;
     }
 }
