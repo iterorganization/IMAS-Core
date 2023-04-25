@@ -19,7 +19,7 @@
 
 #include <vector>
 #include <map>
-#include <string.h>
+#include <string>
 
 // Check if regex is available (fully implemented since GCC 4.9)
 // see https://stackoverflow.com/questions/12530406/is-gcc-4-8-or-earlier-buggy-about-regular-expressions
