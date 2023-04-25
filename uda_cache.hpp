@@ -62,10 +62,29 @@ void add_value_to_cache(const std::string& name, NodeReader* node, const std::ve
         throw imas::uda::CacheException("Count of data does not match shape");
     }
 
-    std::vector<T> data(node_count);
-    auto buffer = reinterpret_cast<char*>(data.data());
+    bool eos = uda_capnp_read_is_eos(node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
 
-    uda_capnp_read_data(node, buffer);
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    std::vector<T> data(node_count);
+    size_t offset = 0;
+
+    for (size_t i = 0; i < num_slices; ++i) {
+        size_t slice_size = uda_capnp_read_slice_size(node, i);
+        if ((offset + slice_size) / sizeof(T) >= node_count) {
+            throw imas::uda::CacheException("Too much data found in slices");
+        }
+        auto buffer = reinterpret_cast<char*>(&data[offset]);
+        uda_capnp_read_data(node, i, buffer);
+        offset += slice_size;
+    }
+
+    if ((offset / sizeof(T)) != node_count) {
+        throw imas::uda::CacheException("Sum of slice sizes not equal to provided data count");
+    }
+
     cache[name] = CacheData{ shape, data };
 }
 

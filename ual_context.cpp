@@ -172,7 +172,7 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
 }
 
 uri::Uri DataEntryContext::checkUriHost(const uri::Uri& uri) {
-    if (uri.path != "uda") {
+    if (uri.path != "/uda" && uri.path != "uda") {
         return uri;
     }
     uri::OptionalValue maybe_backend = uri.query.get("backend");

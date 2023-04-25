@@ -80,12 +80,35 @@ void unpack_data(NodeReader* node,
                  int* dim,
                  int* size)
 {
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    size_t rank = uda_capnp_read_rank(node).value;
+    std::vector<size_t> size_vec(rank);
+    uda_capnp_read_shape(node, size_vec.data());
 
-    *data = malloc(count * sizeof(T));
+    size_t node_count = std::accumulate(size_vec.begin(), size_vec.end(), 1, std::multiplies<size_t>());
+    size_t shape_count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    if (node_count != shape_count) {
+        throw imas::uda::CacheException("Count of data does not match shape");
+    }
+
+    bool eos = uda_capnp_read_is_eos(node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    *data = malloc(node_count * sizeof(T));
     auto buffer = reinterpret_cast<char*>(*data);
+    size_t offset = 0;
 
-    uda_capnp_read_data(node, buffer);
+    for (size_t i = 0; i < num_slices; ++i) {
+        size_t slice_size = uda_capnp_read_slice_size(node, i);
+        if ((offset + slice_size) / sizeof(T) >= node_count) {
+            throw imas::uda::CacheException("Too much data found in slices");
+        }
+        uda_capnp_read_data(node, i, buffer + offset);
+        offset += slice_size;
+    }
 
     *dim = static_cast<int>(shape.size());
     for (int i = 0; i < *dim; ++i) {
@@ -135,7 +158,22 @@ void unpack_node(const std::string& path,
     std::vector<int> shape(count);
     auto buffer = reinterpret_cast<char*>(shape.data());
 
-    uda_capnp_read_data(shape_node, buffer);
+    bool eos = uda_capnp_read_is_eos(shape_node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    if (num_slices != 1) {
+        throw imas::uda::CacheException("Incorrect number of slices for shape node");
+    }
+
+    size_t slice_size = uda_capnp_read_slice_size(node, 0);
+    if (slice_size / sizeof(int) != count) {
+        throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
+    }
+
+    uda_capnp_read_data(shape_node, 0, buffer);
 
     int type = uda_capnp_read_type(data_node);
 
@@ -350,6 +388,22 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     }
 }
 
+template <typename T>
+T* read_data_from_cache(imas::uda::CacheData& cache_data, int rank)
+{
+    size_t count = std::accumulate(cache_data.shape.begin(), cache_data.shape.end(), 1, std::multiplies<size_t>());
+    auto& vec = boost::get<std::vector<int>>(cache_data.values);
+    if (rank == 0) {
+        int* d = (int*)malloc(sizeof(int));
+        *d = vec[0];
+        return d;
+    } else {
+        auto d = (int*)malloc(sizeof(int) * count);
+        memcpy(d, vec.data(), sizeof(int) * count);
+        return d;
+    }
+}
+
 int UDABackend::readData(Context* ctx,
                          std::string fieldname,
                          std::string timebasename,
@@ -370,47 +424,17 @@ int UDABackend::readData(Context* ctx,
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
         *dim = cache_data.shape.size();
-        size_t count = std::accumulate(cache_data.shape.begin(), cache_data.shape.end(), 1, std::multiplies<size_t>());
+
         switch (*datatype) {
-            case INTEGER_DATA: {
-                auto& vec = boost::get<std::vector<int>>(cache_data.values);
-                if (*dim == 0) {
-                    int* d = (int*)malloc(sizeof(int));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    auto d = (int*)malloc(sizeof(int) * count);
-                    memcpy(d, vec.data(), sizeof(int) * count);
-                    *data = d;
-                }
+            case INTEGER_DATA:
+                *data = read_data_from_cache<int>(cache_data, *dim);
                 break;
-            }
-            case DOUBLE_DATA: {
-                auto& vec = boost::get<std::vector<double>>(cache_data.values);
-                if (*dim == 0) {
-                    double* d = (double*)malloc(sizeof(double));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    auto d = (double*)malloc(sizeof(double) * count);
-                    memcpy(d, vec.data(), sizeof(double) * count);
-                    *data = d;
-                }
+            case DOUBLE_DATA:
+                *data = read_data_from_cache<double>(cache_data, *dim);
                 break;
-            }
-            case CHAR_DATA: {
-                auto& vec = boost::get<std::vector<char>>(cache_data.values);
-                if (*dim == 0) {
-                    char* d = (char*)malloc(sizeof(char));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    auto d = (char*)malloc(sizeof(char) * count);
-                    memcpy(d, vec.data(), sizeof(char) * count);
-                    *data = d;
-                }
+            case CHAR_DATA:
+                *data = read_data_from_cache<char>(cache_data, *dim);
                 break;
-            }
         }
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
         // clear cache entry to save memory
@@ -422,7 +446,7 @@ int UDABackend::readData(Context* ctx,
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
-            auto entry_ctx = op_ctx->getDataEntryContext();
+//            auto entry_ctx = op_ctx->getDataEntryContext();
 
             auto query = ctx->getURI().query;
             std::string backend = query.get("backend").value_or("mdsplus");

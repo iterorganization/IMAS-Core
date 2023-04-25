@@ -24,7 +24,22 @@ void imas::uda::add_node_to_cache(TreeReader* tree, NodeReader* node, CacheType&
     std::vector<int> shape(count);
     auto buffer = reinterpret_cast<char*>(shape.data());
 
-    uda_capnp_read_data(shape_node, buffer);
+    bool eos = uda_capnp_read_is_eos(shape_node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    if (num_slices != 1) {
+        throw imas::uda::CacheException("Incorrect number of slices for shape node");
+    }
+
+    size_t slice_size = uda_capnp_read_slice_size(node, 0);
+    if (slice_size / sizeof(int) != count) {
+        throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
+    }
+
+    uda_capnp_read_data(shape_node, 0, buffer);
 
     int type = uda_capnp_read_type(data_node);
 
