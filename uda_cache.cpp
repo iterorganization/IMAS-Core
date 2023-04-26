@@ -82,5 +82,7 @@ void imas::uda::add_data_to_cache(const ::uda::Result& result, CacheType& cache)
             auto child = uda_capnp_read_child_n(tree, root, n);
             add_node_to_cache(tree, child, cache);
         }
+
+        uda_capnp_free_tree_reader(tree);
     }
 }

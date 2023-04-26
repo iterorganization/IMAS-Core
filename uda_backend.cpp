@@ -503,6 +503,8 @@ int UDABackend::readData(Context* ctx,
 
                 auto node = uda_capnp_read_child_n(tree, root, 0);
                 unpack_node(path, tree, node, data, datatype, dim, size);
+
+                uda_capnp_free_tree_reader(tree);
             }
 
             return 1;
