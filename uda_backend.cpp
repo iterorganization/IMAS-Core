@@ -815,7 +815,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
 void UDABackend::endAction(Context* ctx)
 {
-    if (ctx->getType() == CTX_PULSE_TYPE) {
+    if (ctx->getType() == CTX_PULSE_TYPE || ctx->getType() == CTX_OPERATION_TYPE) {
         cache_.clear();
     }
 
