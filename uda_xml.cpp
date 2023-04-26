@@ -46,6 +46,10 @@ pugi::xml_node imas::uda::find_node(const pugi::xml_node& root, const std::strin
     while (!tokens.empty()) {
         auto token = tokens.front();
         tokens.pop_front();
+        if (std::string("IDS") == node.name() && imas::is_integer(token)) {
+            // Skip occurrence number
+            continue;
+        }
         if (token.find('[') != std::string::npos) {
             token = token.substr(0, token.find('['));
         }

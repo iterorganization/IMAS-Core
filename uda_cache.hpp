@@ -69,11 +69,12 @@ void add_value_to_cache(const std::string& name, NodeReader* node, const std::ve
 
     size_t num_slices = uda_capnp_read_num_slices(node);
     std::vector<T> data(node_count);
+    size_t buffer_size = node_count * sizeof(T);
     size_t offset = 0;
 
     for (size_t i = 0; i < num_slices; ++i) {
         size_t slice_size = uda_capnp_read_slice_size(node, i);
-        if ((offset + slice_size) / sizeof(T) >= node_count) {
+        if ((offset + slice_size) > buffer_size) {
             throw imas::uda::CacheException("Too much data found in slices");
         }
         auto buffer = reinterpret_cast<char*>(&data[offset]);
@@ -81,7 +82,7 @@ void add_value_to_cache(const std::string& name, NodeReader* node, const std::ve
         offset += slice_size;
     }
 
-    if ((offset / sizeof(T)) != node_count) {
+    if (offset != buffer_size) {
         throw imas::uda::CacheException("Sum of slice sizes not equal to provided data count");
     }
 

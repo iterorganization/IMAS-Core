@@ -97,17 +97,22 @@ void unpack_data(NodeReader* node,
     }
 
     size_t num_slices = uda_capnp_read_num_slices(node);
-    *data = malloc(node_count * sizeof(T));
+    size_t buffer_size = node_count * sizeof(T);
+    *data = malloc(buffer_size);
     auto buffer = reinterpret_cast<char*>(*data);
     size_t offset = 0;
 
     for (size_t i = 0; i < num_slices; ++i) {
         size_t slice_size = uda_capnp_read_slice_size(node, i);
-        if ((offset + slice_size) / sizeof(T) >= node_count) {
+        if ((offset + slice_size) > buffer_size) {
             throw imas::uda::CacheException("Too much data found in slices");
         }
         uda_capnp_read_data(node, i, buffer + offset);
         offset += slice_size;
+    }
+
+    if (offset != buffer_size) {
+        throw imas::uda::CacheException("Sum of slice sizes not equal to provided data count");
     }
 
     *dim = static_cast<int>(shape.size());
@@ -156,24 +161,26 @@ void unpack_node(const std::string& path,
 
     size_t count = std::accumulate(shape_shape.begin(), shape_shape.end(), 1, std::multiplies<size_t>());
     std::vector<int> shape(count);
-    auto buffer = reinterpret_cast<char*>(shape.data());
 
-    bool eos = uda_capnp_read_is_eos(shape_node);
-    if (!eos) {
-        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    if (count != 0) {
+        bool eos = uda_capnp_read_is_eos(shape_node);
+        if (!eos) {
+            throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+        }
+
+        size_t num_slices = uda_capnp_read_num_slices(shape_node);
+        if (num_slices != 1) {
+            throw imas::uda::CacheException("Incorrect number of slices for shape node");
+        }
+
+        size_t slice_size = uda_capnp_read_slice_size(shape_node, 0);
+        if (slice_size / sizeof(int) != count) {
+            throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
+        }
+
+        auto buffer = reinterpret_cast<char*>(shape.data());
+        uda_capnp_read_data(shape_node, 0, buffer);
     }
-
-    size_t num_slices = uda_capnp_read_num_slices(node);
-    if (num_slices != 1) {
-        throw imas::uda::CacheException("Incorrect number of slices for shape node");
-    }
-
-    size_t slice_size = uda_capnp_read_slice_size(node, 0);
-    if (slice_size / sizeof(int) != count) {
-        throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
-    }
-
-    uda_capnp_read_data(shape_node, 0, buffer);
 
     int type = uda_capnp_read_type(data_node);
 
