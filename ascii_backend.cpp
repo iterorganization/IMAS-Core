@@ -120,13 +120,13 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
     ss << options.substr(n+9,options.length());
     ss >> this->fullpath;
     if (mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
-      std::string message("Unable to open pulse, file does not exist: ");
+      std::string message("Unable to open data-entry, file does not exist: ");
       message += this->fullpath;
       throw UALBackendException(message, LOG);
     }
   } else {
     if (mode == OPEN_PULSE && !boost::filesystem::is_directory(dbfolder)) {
-      std::string message("Unable to open pulse, directory does not exist: ");
+      std::string message("Unable to open data-entry, directory does not exist: ");
       message += dbfolder;
       throw UALBackendException(message, LOG);
     }
@@ -136,7 +136,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
           boost::filesystem::create_directories(dbfolder);
       }
     } catch (std::exception & e) {
-      std::string message("Unable to create pulse files shot directory: ");
+      std::string message("Unable to create data-entry directory: ");
       message += dbfolder;
       throw UALBackendException(message, LOG);
     }
