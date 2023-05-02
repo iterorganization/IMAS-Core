@@ -537,7 +537,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", dataObject='" << ids << "'"
        << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
        << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
-       << ", time=-999"
+       << ", time=" << op_ctx->getTime()
        << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
        << ", path='" << path << "'"
        << ", datatype='integer'"
@@ -607,6 +607,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", rank=" << attr.rank
            << ", is_homogeneous=" << is_homogeneous
            << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
+
+        if (!attr.timebase.empty()) {
+            ss << ", timebase='" << attr.timebase << "'";
+        }
 
         auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
         if (maybe_pff_user) {

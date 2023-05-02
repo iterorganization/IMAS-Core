@@ -24,6 +24,7 @@ struct Attribute
 {
     std::string type;
     std::string dtype;
+    std::string timebase;
     int data_type;
     int rank;
 };
