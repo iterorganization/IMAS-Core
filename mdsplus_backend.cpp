@@ -4452,8 +4452,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  
 	  std::string mdsplusBaseStr = ctx->getURI().query.get("path").value();
 	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
-		create_directories(mdsplusBaseStr.c_str());
-		
+	    try {
+	      create_directories(mdsplusBaseStr.c_str());
+	    } catch (const std::exception& exc) {
+	      throw UALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
+	    }
+	  
+	  
 	  setDataEnv(ctx); 
     	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, 		if(originalIdsPath == "")
 	  
@@ -4465,7 +4470,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }catch(MDSplus::MdsException &exc)
 		  {
                     resetIdsPath(szTree);
-		    throw  UALBackendException(exc.what(),LOG); 
+		    throw  UALBackendException(exc.what()+mdsplusBaseStr,LOG); 
 		  }
 		  break;
 	    case ualconst::create_pulse:
@@ -4479,7 +4484,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		  }catch(MDSplus::MdsException &exc)
 		  {
                     resetIdsPath(szTree);
-		    throw UALBackendException(exc.what(),LOG); 
+		    throw UALBackendException(exc.what()+mdsplusBaseStr,LOG); 
 		  }
 		  break;
 	    default:

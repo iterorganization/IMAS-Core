@@ -428,7 +428,7 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
         }
     }
     catch(std::exception & e) {
-        std::string message("Unable to create pulse files shot directory: ");
+        std::string message("Unable to create data-entry directory: ");
         message += files_directory;
         throw UALBackendException(message, LOG);
     }
