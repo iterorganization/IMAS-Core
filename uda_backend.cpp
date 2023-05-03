@@ -634,9 +634,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         for (const auto& req: uda_requests) {
             std::cout << "UDABackend cache request: " << req << "\n";
         }
+        std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
     }
-
-    std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
 
     int N = std::stoi(entry_ctx->getURI().query.get("batch_size").value_or("20"));
     std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
@@ -646,7 +645,9 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
             size_t m = std::min(n + N, uda_requests.size());
             std::vector<std::string> reqs = std::vector<std::string>{ uda_requests.begin() + n, uda_requests.begin() + m };
 
-            std::cout << "UDABackend cache get: " << n << " - " << m << std::endl;
+            if (verbose_) {
+                std::cout << "UDABackend cache get: " << n << " - " << m << std::endl;
+            }
             uda::ResultList results = uda_client_.get_batch(reqs, "");
             for (auto handle: results.handles()) {
                 auto& result = results.at(handle);
@@ -665,7 +666,9 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         throw UALException(ex.what(), LOG);
     }
 
-    std::cout << cache_ << std::endl;
+    if (verbose_) {
+        std::cout << cache_ << std::endl;
+    }
 }
 
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
