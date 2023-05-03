@@ -821,7 +821,11 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
 void UDABackend::endAction(Context* ctx)
 {
-    if (ctx->getType() == CTX_PULSE_TYPE || ctx->getType() == CTX_OPERATION_TYPE) {
+    if (verbose_) {
+        std::cout << "UDABackend endAction\n";
+    }
+
+    if (ctx->getType() == CTX_PULSE_TYPE) {
         cache_.clear();
     }
 

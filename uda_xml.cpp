@@ -98,7 +98,7 @@ std::shared_ptr<pugi::xml_document> imas::uda::load_xml()
 void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string ids_path, const pugi::xml_node& node)
 {
     std::string dtype = node.attribute("data_type").value();
-    std::string timebase = node.attribute("timebase").value();
+    std::string timebase = node.attribute("timebasepath").value();
 
     if (dtype == "struct_array") {
         std::vector<std::string> tokens;
@@ -135,7 +135,7 @@ void imas::uda::get_requests(
         std::string ids_path, const pugi::xml_node& node, bool walk_arrays)
 {
     std::string dtype = node.attribute("data_type").value();
-    std::string timebase = node.attribute("timebase").value();
+    std::string timebase = node.attribute("timebasepath").value();
 
     if (dtype == "struct_array") {
         std::vector<std::string> tokens;
