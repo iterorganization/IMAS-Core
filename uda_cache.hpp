@@ -15,6 +15,8 @@
 #include <UDA.hpp>
 #include <serialisation/capnp_serialisation.h>
 
+#include "uda_exceptions.hpp"
+
 namespace imas {
 namespace uda {
 
@@ -27,7 +29,7 @@ using VariantVector = boost::variant<std::vector<int>, std::vector<double>, std:
  * Structure for holding a cache entry.
  */
 struct CacheData {
-    std::vector<size_t> shape;
+    std::vector<int> shape;
     VariantVector values;
 };
 
@@ -47,24 +49,54 @@ using CacheType = std::map<std::string, imas::uda::CacheData>;
  * @param cache the cache to store the data in
  */
 template <typename T>
-void add_value_to_cache(const std::string& name, NodeReader* node, const std::vector<size_t>& shape, imas::uda::CacheType& cache)
+void add_value_to_cache(const std::string& name, NodeReader* node, const std::vector<int>& shape, imas::uda::CacheType& cache)
 {
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    size_t rank = uda_capnp_read_rank(node).value;
+    std::vector<size_t> size(rank);
+    uda_capnp_read_shape(node, size.data());
 
-    std::vector<T> data(count);
+    size_t node_count = std::accumulate(size.begin(), size.end(), 1, std::multiplies<size_t>());
+    size_t shape_count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    if (node_count != shape_count) {
+        throw imas::uda::CacheException("Count of data does not match shape");
+    }
+
+    bool eos = uda_capnp_read_is_eos(node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    std::vector<T> data(node_count);
     auto buffer = reinterpret_cast<char*>(data.data());
+    size_t buffer_size = node_count * sizeof(T);
+    size_t offset = 0;
 
-    uda_capnp_read_data(node, buffer);
+    for (size_t i = 0; i < num_slices; ++i) {
+        size_t slice_size = uda_capnp_read_slice_size(node, i);
+        if ((offset + slice_size) > buffer_size) {
+            throw imas::uda::CacheException("Too much data found in slices");
+        }
+        uda_capnp_read_data(node, i, buffer + offset);
+        offset += slice_size;
+    }
+
+    if (offset != buffer_size) {
+        throw imas::uda::CacheException("Sum of slice sizes not equal to provided data count");
+    }
+
     cache[name] = CacheData{ shape, data };
 }
 
 /**
  * Use the provided NodeReader to access the deserialised Capn Proto data node and store it in the provided cache.
  *
- * @param node the NodeReader wrapping the Capn Proto deserialised data tree
+ * @param tree the TreeReader wrapper the Capn Proto deserialised data tree
+ * @param node the NodeReader wrapping the Capn Proto node to read
  * @param cache the cache to store the data in
  */
-void add_node_to_cache(NodeReader* node, CacheType& cache);
+void add_node_to_cache(TreeReader* tree, NodeReader* node, CacheType& cache);
 
 /**
  * Extract the data from the uda::Result object and store it in the provided cache.

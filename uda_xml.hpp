@@ -24,6 +24,7 @@ struct Attribute
 {
     std::string type;
     std::string dtype;
+    std::string timebase;
     int data_type;
     int rank;
 };
@@ -65,8 +66,9 @@ std::shared_ptr<pugi::xml_document> load_xml();
  * @param node the node corresponding to the given ids_path
  * @param walk_arrays whether to recurse down into struct_arrays
  */
-void get_requests(std::vector<std::string>& requests, imas::uda::AttributeMap& attributes, std::string ids_path,
-                  const pugi::xml_node& node, bool walk_arrays=true);
+void get_requests(
+        std::vector<std::string>& requests, imas::uda::AttributeMap& attributes,
+        std::string ids_path, const pugi::xml_node& node, bool walk_arrays=true);
 
 /**
  * Find the attributes for all the IDS paths at and below the specified ids_path.
@@ -95,11 +97,9 @@ int get_rank(const std::string& data_type);
  *
  * @param path the path to expand
  * @param nodes the node corresponding to the given path
- * @param size_requests
  * @return
  */
-std::vector<std::string> generate_ids_paths(const std::string& path, pugi::xml_node& nodes,
-                                            std::vector<std::string>& size_requests);
+std::vector<std::string> generate_ids_paths(const std::string& path, pugi::xml_node nodes);
 
 /**
  * Generate the list of flags specifying whether each part of the given path is marked as dynamic in the data dictionary

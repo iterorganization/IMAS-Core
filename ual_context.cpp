@@ -1,6 +1,7 @@
 #include "ual_context.h"
 
 #include <unordered_map>
+#include <boost/algorithm/string.hpp>
 
 std::atomic<unsigned long int> Context::SID(0);
 
@@ -44,7 +45,7 @@ unsigned long int Context::getUid() const
 
 /// DataEntryContext ///
 
-DataEntryContext::DataEntryContext(std::string uri_) : uri(uri::parse_uri(uri_))
+DataEntryContext::DataEntryContext(std::string uri_) : uri(checkUriHost(uri::parse_uri(uri_)))
 {
   if (uri.error != uri::Error::None) {
     throw UALContextException("Unable to parse the URI: " + uri_, LOG);
@@ -168,6 +169,25 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
   uri::QueryDict query = {};
   query.insert("path", filePath);
   return { uri.scheme, uri.authority, uri.path, query, "" };
+}
+
+uri::Uri DataEntryContext::checkUriHost(const uri::Uri& uri) {
+    if (uri.path != "/uda" && uri.path != "uda") {
+        return uri;
+    }
+    uri::OptionalValue maybe_backend = uri.query.get("backend");
+    const char* env = std::getenv("IMAS_LOCAL_HOSTS");
+    std::vector<std::string> local_hosts;
+    if (env != nullptr) {
+        boost::split(local_hosts, env, boost::is_any_of(";"), boost::token_compress_on);
+    }
+    auto found = std::find(local_hosts.begin(), local_hosts.end(), uri.authority.host);
+    if (found != local_hosts.end() && maybe_backend) {
+        auto query = uri.query;
+        query.remove("backend");
+        return {"imas", {}, maybe_backend.value(), query, uri.fragment};
+    }
+    return uri;
 }
 
 void DataEntryContext::setBackendID(const std::string &path, const std::string &host) {

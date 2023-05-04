@@ -46,8 +46,15 @@ pugi::xml_node imas::uda::find_node(const pugi::xml_node& root, const std::strin
     while (!tokens.empty()) {
         auto token = tokens.front();
         tokens.pop_front();
+        if (std::string("IDS") == node.name() && imas::is_integer(token)) {
+            // Skip occurrence number
+            continue;
+        }
         if (token.find('[') != std::string::npos) {
             token = token.substr(0, token.find('['));
+        }
+        if (token.find('(') != std::string::npos) {
+            token = token.substr(0, token.find('('));
         }
         if (top_level) {
             node = node.find_child_by_attribute("IDS", "name", token.c_str());
@@ -91,13 +98,14 @@ std::shared_ptr<pugi::xml_document> imas::uda::load_xml()
 void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string ids_path, const pugi::xml_node& node)
 {
     std::string dtype = node.attribute("data_type").value();
+    std::string timebase = node.attribute("timebasepath").value();
 
     if (dtype == "struct_array") {
         std::vector<std::string> tokens;
         boost::split(tokens, ids_path, boost::is_any_of("/"), boost::token_compress_on);
 
         auto type_attr = node.attribute("type");
-        attributes[ids_path] = { (type_attr.empty() ? "static" : type_attr.value()), dtype, 0, 0 };
+        attributes[ids_path] = { (type_attr.empty() ? "static" : type_attr.value()), dtype, timebase, 0, 0 };
 
         if (imas::is_index(tokens.back())) {
             for (const auto& child : node.children("field")) {
@@ -110,7 +118,7 @@ void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string 
             }
         }
     } else if (!dtype.empty() && dtype != "structure") {
-        attributes[ids_path] = { node.attribute("type").value(), dtype, convert_xml_type_to_imas(dtype), get_rank(dtype) };
+        attributes[ids_path] = { node.attribute("type").value(), dtype, timebase, convert_xml_type_to_imas(dtype), get_rank(dtype) };
 
         for (const auto& child : node.children("field")) {
             get_attributes(attributes, ids_path + "/" + child.attribute("name").value(), child);
@@ -122,17 +130,19 @@ void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string 
     }
 }
 
-void imas::uda::get_requests(std::vector<std::string>& requests, imas::uda::AttributeMap& attributes, std::string ids_path,
-                  const pugi::xml_node& node, bool walk_arrays)
+void imas::uda::get_requests(
+        std::vector<std::string>& requests, imas::uda::AttributeMap& attributes,
+        std::string ids_path, const pugi::xml_node& node, bool walk_arrays)
 {
     std::string dtype = node.attribute("data_type").value();
+    std::string timebase = node.attribute("timebasepath").value();
 
     if (dtype == "struct_array") {
         std::vector<std::string> tokens;
         boost::split(tokens, ids_path, boost::is_any_of("/"), boost::token_compress_on);
 
         auto type_attr = node.attribute("type");
-        attributes[ids_path] = { (type_attr.empty() ? "static" : type_attr.value()), dtype, 0 };
+        attributes[ids_path] = { (type_attr.empty() ? "static" : type_attr.value()), dtype, timebase, 0, 0 };
 
         if (walk_arrays) {
             if (imas::is_index(tokens.back())) {
@@ -150,7 +160,7 @@ void imas::uda::get_requests(std::vector<std::string>& requests, imas::uda::Attr
         }
     } else if (!dtype.empty() && dtype != "structure") {
         requests.push_back(ids_path);
-        attributes[ids_path] = { node.attribute("type").value(), dtype, convert_xml_type_to_imas(dtype), get_rank(dtype) };
+        attributes[ids_path] = { node.attribute("type").value(), dtype, timebase, convert_xml_type_to_imas(dtype), get_rank(dtype) };
 
         for (const auto& child : node.children("field")) {
             get_requests(requests, attributes, ids_path + "/" + child.attribute("name").value(), child, walk_arrays);
@@ -162,11 +172,14 @@ void imas::uda::get_requests(std::vector<std::string>& requests, imas::uda::Attr
     }
 }
 
-std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, pugi::xml_node& nodes,
-                                            std::vector<std::string>& size_requests)
+std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, pugi::xml_node nodes)
 {
     std::deque<std::string> tokens;
     boost::split(tokens, path, boost::is_any_of("/"), boost::token_compress_on);
+
+    if (tokens.empty()) {
+        return {};
+    }
 
     std::vector<std::string> ids_paths;
 
@@ -188,9 +201,6 @@ std::vector<std::string> imas::uda::generate_ids_paths(const std::string& path, 
 
             std::vector<std::string> new_paths;
             for (const auto& ids_path : ids_paths) {
-                if (tokens.size() != 1) {
-                    size_requests.push_back(ids_path);
-                }
                 for (long i = range.begin; i < range.end; i += range.stride) {
                     std::string new_path = ids_path + "[" + std::to_string(i) + "]";
                     new_paths.push_back(new_path);

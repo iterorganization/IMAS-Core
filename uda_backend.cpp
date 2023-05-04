@@ -75,21 +75,49 @@ std::string array_path(Context* ctx, bool for_dim = false)
  */
 template <typename T>
 void unpack_data(NodeReader* node,
-                 const std::vector<size_t>& shape,
+                 const std::vector<int>& shape,
                  void** data,
                  int* dim,
                  int* size)
 {
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    size_t rank = uda_capnp_read_rank(node).value;
+    std::vector<size_t> size_vec(rank);
+    uda_capnp_read_shape(node, size_vec.data());
 
-    *data = malloc(count * sizeof(T));
+    size_t node_count = std::accumulate(size_vec.begin(), size_vec.end(), 1, std::multiplies<size_t>());
+    size_t shape_count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+
+    if (node_count != shape_count) {
+        throw imas::uda::CacheException("Count of data does not match shape");
+    }
+
+    bool eos = uda_capnp_read_is_eos(node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    size_t buffer_size = node_count * sizeof(T);
+    *data = malloc(buffer_size);
     auto buffer = reinterpret_cast<char*>(*data);
+    size_t offset = 0;
 
-    uda_capnp_read_data(node, buffer);
+    for (size_t i = 0; i < num_slices; ++i) {
+        size_t slice_size = uda_capnp_read_slice_size(node, i);
+        if ((offset + slice_size) > buffer_size) {
+            throw imas::uda::CacheException("Too much data found in slices");
+        }
+        uda_capnp_read_data(node, i, buffer + offset);
+        offset += slice_size;
+    }
+
+    if (offset != buffer_size) {
+        throw imas::uda::CacheException("Sum of slice sizes not equal to provided data count");
+    }
 
     *dim = static_cast<int>(shape.size());
     for (int i = 0; i < *dim; ++i) {
-        size[i] = static_cast<int>(shape[i]);
+        size[i] = shape[i];
     }
 }
 
@@ -107,6 +135,7 @@ void unpack_data(NodeReader* node,
  * @param size [OUT] array of dimension sizes
  */
 void unpack_node(const std::string& path,
+                 TreeReader* tree,
                  NodeReader* node,
                  void** data,
                  int* datatype,
@@ -119,38 +148,71 @@ void unpack_node(const std::string& path,
         throw UALBackendException("Invalid node returned: " + std::string(name));
     }
 
-    int type = uda_capnp_read_type(node);
-    size_t rank = uda_capnp_read_rank(node).value;
+    size_t num_children = uda_capnp_num_children(node);
+    if (num_children != 2) {
+        throw UALBackendException("Invalid number of children on node: " + std::to_string(num_children));
+    }
 
-    std::vector<size_t> shape(rank);
-    uda_capnp_read_shape(node, shape.data());
+    auto shape_node = uda_capnp_read_child_n(tree, node, 0);
+    auto data_node = uda_capnp_read_child_n(tree, node, 1);
 
-    size_t count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
-    std::vector<char> bytes(count);
+    std::vector<size_t> shape_shape(1);
+    uda_capnp_read_shape(shape_node, shape_shape.data());
+
+    size_t count = std::accumulate(shape_shape.begin(), shape_shape.end(), 1, std::multiplies<size_t>());
+    std::vector<int> shape(count);
+
+    if (count != 0) {
+        bool eos = uda_capnp_read_is_eos(shape_node);
+        if (!eos) {
+            throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+        }
+
+        size_t num_slices = uda_capnp_read_num_slices(shape_node);
+        if (num_slices != 1) {
+            throw imas::uda::CacheException("Incorrect number of slices for shape node");
+        }
+
+        size_t slice_size = uda_capnp_read_slice_size(shape_node, 0);
+        if (slice_size / sizeof(int) != count) {
+            throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
+        }
+
+        auto buffer = reinterpret_cast<char*>(shape.data());
+        uda_capnp_read_data(shape_node, 0, buffer);
+    }
+
+    int type = uda_capnp_read_type(data_node);
 
     switch (type) {
         case CHAR_DATA:
         case UDA_TYPE_STRING:
             *datatype = CHAR_DATA;
-            unpack_data<char>(node, shape, data, dim, size);
+            unpack_data<char>(data_node, shape, data, dim, size);
             break;
         case INTEGER_DATA:
         case UDA_TYPE_INT:
             *datatype = INTEGER_DATA;
-            unpack_data<int>(node, shape, data, dim, size);
+            unpack_data<int>(data_node, shape, data, dim, size);
             break;
         case DOUBLE_DATA:
         case UDA_TYPE_DOUBLE:
             *datatype = DOUBLE_DATA;
-            unpack_data<double>(node, shape, data, dim, size);
+            unpack_data<double>(data_node, shape, data, dim, size);
             break;
         case COMPLEX_DATA:
         case UDA_TYPE_COMPLEX:
             *datatype = COMPLEX_DATA;
-            unpack_data<double _Complex>(node, shape, data, dim, size);
+            unpack_data<double _Complex>(data_node, shape, data, dim, size);
             break;
         default: throw UALBackendException("Unknown data type: " + std::to_string(type));
     }
+}
+
+std::string strip_occurrence(const std::string& ids)
+{
+    auto pos = ids.find('/');
+    return ids.substr(0, pos);
 }
 
 } // anon namespace
@@ -195,6 +257,12 @@ void UDABackend::process_option(const std::string& option)
         } else {
             throw UALException("invalid cache mode", LOG);
         }
+    } else if (name == "verbose") {
+        if (value == "1" || value == "true") {
+            verbose_ = true;
+        } else {
+            verbose_ = false;
+        }
     } else {
         throw UALException("invalid option (option name not recognised)", LOG);
     }
@@ -213,12 +281,12 @@ void UDABackend::process_options(const std::string& options)
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
+    process_options(ctx->getOptions());
+
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
     }
     open_mode_ = mode;
-
-    process_options(ctx->getOptions());
 
     auto maybe_plugin = ctx->getURI().query.get("plugin");
     if (maybe_plugin) {
@@ -228,12 +296,16 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     std::string host = ctx->getURI().authority.host;
     int port = ctx->getURI().authority.port;
 
-    uda::Client::setServerHostName(host);
-    uda::Client::setServerPort(port);
+    if (!host.empty()) {
+        uda::Client::setServerHostName(host);
+    }
+    if (port != 0) {
+        uda::Client::setServerPort(port);
+    }
 
     if (verbose_) {
-        std::cout << "UDA server: " << host << "\n";
-        std::cout << "UDA port: " << port << "\n";
+        std::cout << "UDA server: " << uda::Client::serverHostName() << "\n";
+        std::cout << "UDA port: " << uda::Client::serverPort() << "\n";
         std::cout << "UDA plugin: " << plugin_ << "\n";
     }
 
@@ -301,6 +373,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     auto query = ctx->getURI().query;
     std::string backend = query.get("backend").value_or("mdsplus");
     query.remove("backend");
+    query.remove("options");
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
@@ -319,6 +392,22 @@ void UDABackend::closePulse(DataEntryContext* ctx,
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
         throw UALException(ex.what(), LOG);
+    }
+}
+
+template <typename T>
+T* read_data_from_cache(imas::uda::CacheData& cache_data, int rank)
+{
+    size_t count = std::accumulate(cache_data.shape.begin(), cache_data.shape.end(), 1, std::multiplies<size_t>());
+    auto& vec = boost::get<std::vector<T>>(cache_data.values);
+    if (rank == 0) {
+        auto d = (T*)malloc(sizeof(T));
+        *d = vec[0];
+        return d;
+    } else {
+        auto d = (T*)malloc(sizeof(T) * count);
+        memcpy(d, vec.data(), sizeof(T) * count);
+        return d;
     }
 }
 
@@ -342,42 +431,21 @@ int UDABackend::readData(Context* ctx,
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
         *dim = cache_data.shape.size();
+
         switch (*datatype) {
-            case INTEGER_DATA: {
-                auto& vec = boost::get<std::vector<int>>(cache_data.values);
-                if (*dim == 0) {
-                    int* d = (int*)malloc(sizeof(int));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    *data = vec.data();
-                }
+            case INTEGER_DATA:
+                *data = read_data_from_cache<int>(cache_data, *dim);
                 break;
-            }
-            case DOUBLE_DATA: {
-                auto& vec = boost::get<std::vector<double>>(cache_data.values);
-                if (*dim == 0) {
-                    double* d = (double*)malloc(sizeof(double));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    *data = vec.data();
-                }
+            case DOUBLE_DATA:
+                *data = read_data_from_cache<double>(cache_data, *dim);
                 break;
-            }
-            case CHAR_DATA: {
-                auto& vec = boost::get<std::vector<char>>(cache_data.values);
-                if (*dim == 0) {
-                    char* d = (char*)malloc(sizeof(char));
-                    *d = vec[0];
-                    *data = d;
-                } else {
-                    *data = vec.data();
-                }
+            case CHAR_DATA:
+                *data = read_data_from_cache<char>(cache_data, *dim);
                 break;
-            }
         }
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
+        // clear cache entry to save memory
+        cache_.erase(path);
         return 1;
     } else if (fieldname == "ids_properties/homogeneous_time"
             || fieldname == "ids_properties/version_put/data_dictionary"
@@ -385,7 +453,7 @@ int UDABackend::readData(Context* ctx,
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
-            auto entry_ctx = op_ctx->getDataEntryContext();
+//            auto entry_ctx = op_ctx->getDataEntryContext();
 
             auto query = ctx->getURI().query;
             std::string backend = query.get("backend").value_or("mdsplus");
@@ -409,19 +477,6 @@ int UDABackend::readData(Context* ctx,
                << ", dynamic_flags=" << 0;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
-
-            auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
-            if (maybe_pff_user) {
-                ss << ", ppfUser='" << maybe_pff_user.value() << "'";
-            }
-            auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
-            if (maybe_pff_sequence) {
-                ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
-            }
-            auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
-            if (maybe_pff_dda) {
-                ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
-            }
             ss << ")";
 
             std::string directive = ss.str();
@@ -439,12 +494,17 @@ int UDABackend::readData(Context* ctx,
 
                 auto root = uda_capnp_read_root(tree);
                 size_t num_children = uda_capnp_num_children(root);
-                if (num_children != 1) {
+                if (num_children == 0) {
+                    return 0;
+                }
+                if (num_children > 1) {
                     throw UALBackendException(std::string("Too many tree elements returned"), LOG);
                 }
 
                 auto node = uda_capnp_read_child_n(tree, root, 0);
-                unpack_node(path, node, data, datatype, dim, size);
+                unpack_node(path, tree, node, data, datatype, dim, size);
+
+                uda_capnp_free_tree_reader(tree);
             }
 
             return 1;
@@ -477,7 +537,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", dataObject='" << ids << "'"
        << ", access='" << imas::uda::convert_imas_to_uda<imas::uda::AccessMode>(op_ctx->getAccessmode()) << "'"
        << ", range='" << imas::uda::convert_imas_to_uda<imas::uda::RangeMode>(op_ctx->getRangemode()) << "'"
-       << ", time=-999"
+       << ", time=" << op_ctx->getTime()
        << ", interp='" << imas::uda::convert_imas_to_uda<imas::uda::InterpMode>(op_ctx->getInterpmode()) << "'"
        << ", path='" << path << "'"
        << ", datatype='integer'"
@@ -507,20 +567,18 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 {
     bool is_homogeneous = get_homogeneous_flag(ids, entry_ctx, op_ctx);
 
-    auto nodes = doc_->child("IDSs");
+    auto ids_node = imas::uda::find_node(doc_->document_element(), strip_occurrence(ids), true);
 
-    std::vector<std::string> size_requests;
-    std::vector<std::string> ids_paths = imas::uda::generate_ids_paths(path, nodes, size_requests);
+    std::vector<std::string> ids_paths = imas::uda::generate_ids_paths(path, ids_node);
 
     std::vector<std::string> requests;
     imas::uda::AttributeMap attributes;
 
-    for (const auto& ids_path: ids_paths) {
-        imas::uda::get_requests(requests, attributes, ids_path, nodes);
-    }
+    auto node = imas::uda::find_node(doc_->document_element(), path, true);
 
-    auto node = imas::uda::find_node(doc_->document_element(), ids, true);
-    imas::uda::get_attributes(attributes, ids, node);
+    for (const auto& ids_path: ids_paths) {
+        imas::uda::get_requests(requests, attributes, ids_path, node);
+    }
 
     std::vector<std::string> uda_requests = {};
 
@@ -550,6 +608,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", is_homogeneous=" << is_homogeneous
            << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
 
+        if (!attr.timebase.empty()) {
+            ss << ", timebase='" << attr.timebase << "'";
+        }
+
         auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
         if (maybe_pff_user) {
             ss << ", ppfUser='" << maybe_pff_user.value() << "'";
@@ -572,11 +634,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         for (const auto& req: uda_requests) {
             std::cout << "UDABackend cache request: " << req << "\n";
         }
+        std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
     }
 
-    std::cout << "UDABackend cache number of requests: " << uda_requests.size() << "\n";
-
-    constexpr size_t N = 20;
+    int N = std::stoi(entry_ctx->getURI().query.get("batch_size").value_or("20"));
     std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
     try {
         size_t n = 0;
@@ -584,7 +645,9 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
             size_t m = std::min(n + N, uda_requests.size());
             std::vector<std::string> reqs = std::vector<std::string>{ uda_requests.begin() + n, uda_requests.begin() + m };
 
-            std::cout << "UDABackend cache get: " << n << " - " << m << std::endl;
+            if (verbose_) {
+                std::cout << "UDABackend cache get: " << n << " - " << m << std::endl;
+            }
             uda::ResultList results = uda_client_.get_batch(reqs, "");
             for (auto handle: results.handles()) {
                 auto& result = results.at(handle);
@@ -603,7 +666,9 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         throw UALException(ex.what(), LOG);
     }
 
-    std::cout << cache_ << std::endl;
+    if (verbose_) {
+        std::cout << cache_ << std::endl;
+    }
 }
 
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
@@ -637,6 +702,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         }
 
         cache_.clear();
+
         populate_cache(ids, path, entry_ctx, op_ctx);
 
         if (cache_.count(path)) {
@@ -758,6 +824,10 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
 void UDABackend::endAction(Context* ctx)
 {
+    if (verbose_) {
+        std::cout << "UDABackend endAction\n";
+    }
+
     if (ctx->getType() == CTX_PULSE_TYPE) {
         cache_.clear();
     }
