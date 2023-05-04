@@ -508,9 +508,9 @@ int AsciiBackend::readData(Context *ctx,
       }
     }
     std::getline(this->curcontent,this->curline); // consume current dim or size line
-    if (totsize == 0) { 
-      std::getline(this->curcontent,this->curline); // consume empty line
-      //this->curline = "";
+    if (totsize == 0 && (*dim == 0 || size[0] == 0 || *datatype != CHAR_DATA)) { 
+      // consume empty line, unless this is a STR_1D with a single empty string (IMAS-4690)
+      std::getline(this->curcontent,this->curline);
       return 0;
     }
 

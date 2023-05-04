@@ -2162,7 +2162,11 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 		    sprintf(buf, "item_%d:aos", (groupIdx-1)*1000+childIdx);
 		    currPath = buf;
 		    MDSplus::TreeNode *currChild = currGroup->getNode(checkFullPath(currPath, true).c_str());
-		    if(currChild->getLength() == 0) break;  //Avoid goin through no more used timed_n
+		    if(currChild->getLength() == 0)
+		    {
+			delete currChild;
+ 			break;  //Avoid goin through no more used timed_n
+		    }
 		    currChild->deleteData();
 		    delete currChild;
 		    sprintf(buf, "item_%d:time", (groupIdx-1)*1000+childIdx);
@@ -2171,7 +2175,11 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 		    currChild->deleteData();
 		    delete currChild;
 		}
-		if(childIdx <= numChildren) break; //Avoid goin through no more used timed_n
+		if(childIdx <= numChildren)
+		{
+		    delete currGroup;
+		    break; //Avoid goin through no more used timed_n
+		}
 		delete currGroup;
 	    }
 	    delete currNode;
