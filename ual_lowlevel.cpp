@@ -105,7 +105,7 @@ void LLplugin::getFullPath(int opctxID, const char* fieldPath,  std::string &ful
 }
 
 bool LLplugin::pluginsFrameworkEnabled(){
-  char *pluginsFrameworkEnabled =  getenv("AL_PLUGINS_FRAMEWORK_ENABLED");
+  char *pluginsFrameworkEnabled =  getenv("AL_PLUGINS_ENABLED");
   if (!pluginsFrameworkEnabled) 
        return false;
   std::string b = std::string(pluginsFrameworkEnabled);
@@ -114,7 +114,7 @@ bool LLplugin::pluginsFrameworkEnabled(){
 
 void LLplugin::checkIfPluginsFrameworkIsEnabled(){
   if(!pluginsFrameworkEnabled())
-       throw UALLowlevelException("Plugins feature is disabled. Set the global variable 'AL_PLUGINS_FRAMEWORK_ENABLED' to 'TRUE' to enable this feature.");
+       throw UALLowlevelException("Plugins feature is disabled. Set the global variable 'AL_PLUGINS_ENABLED' to 'TRUE' to enable this feature.");
 } 
 
 void LLplugin::getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path) {
@@ -176,7 +176,7 @@ bool LLplugin::getBoundPlugins(const char* dataobjectname, std::set<std::string>
     
   for(auto it = boundPlugins.begin(); it != boundPlugins.end(); ++it) {
       const std::string &key = it->first;
-      if (key.rfind(fullDataObjectName, 0)) {
+      if (key.rfind(fullDataObjectName, 0) != std::string::npos) {
           std::vector<std::string> &plugins = it->second; 
           for (auto &pluginName:plugins) 
             pluginsNames.insert(pluginName);
