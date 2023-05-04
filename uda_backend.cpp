@@ -761,12 +761,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
     std::string ids = op_ctx->getDataobjectName();
     auto entry_ctx = op_ctx->getDataEntryContext();
 
-    if (cache_.count(ids)) {
-        if (verbose_) {
-            std::cout << "UDABackend found value in cache\n";
-        }
-        return;
-    } else if (cache_mode_ == imas::uda::CacheMode::IDS) {
+    if (cache_mode_ == imas::uda::CacheMode::IDS) {
         std::string path = op_ctx->getDatapath();
         if (path != "ids_properties/homogeneous_time" && path != "ids_properties/version_put/data_dictionary") {
             if (verbose_) {
@@ -782,8 +777,6 @@ void UDABackend::beginAction(OperationContext* op_ctx)
             }
 
             populate_cache(ids, path, entry_ctx, op_ctx);
-
-            cache_[ids] = {{}, {}};
         }
     } else {
         std::stringstream ss;
