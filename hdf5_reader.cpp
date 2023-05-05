@@ -560,11 +560,8 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                     if (p[i] != nullptr && strlen(p[i]) > maxlength)
                         maxlength = strlen(p[i]);
                 }
-				if (maxlength == 0) {
-					return exit_request(data_set, 0);
-                }
                 char *buffer = (char *) malloc(size[0] * (maxlength + 1));
-                memset(buffer, 0, size[0] * maxlength);
+                memset(buffer, 0, size[0] * (maxlength + 1));
                 for (int i = 0; i < size[0]; i++) {
 					if (p[i] == nullptr)
 						continue;
