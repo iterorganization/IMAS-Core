@@ -228,26 +228,13 @@ std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
     return version;
 }
 
-void UDABackend::process_option(const std::string& option)
+void UDABackend::process_options(uri::Uri uri)
 {
-    if (option.empty()) {
-        return;
-    }
+    uri::OptionalValue maybe_cache_mode = uri.query.get("cache_mode");
+    uri::OptionalValue maybe_verbose = uri.query.get("verbose");
 
-    std::vector<std::string> tokens;
-    boost::split(tokens, option, boost::is_any_of("="), boost::token_compress_on);
-
-    if (tokens.size() != 2) {
-        throw UALException("invalid option (option must be name=value)", LOG);
-    }
-
-    std::string name = tokens[0];
-    std::string value = tokens[1];
-
-    boost::to_lower(name);
-    boost::to_lower(value);
-
-    if (name == "cache_mode") {
+    if (maybe_cache_mode) {
+        std::string value = maybe_cache_mode.value();
         if (value == "none") {
             cache_mode_ = imas::uda::CacheMode::None;
         } else if (value == "ids") {
@@ -257,31 +244,22 @@ void UDABackend::process_option(const std::string& option)
         } else {
             throw UALException("invalid cache mode", LOG);
         }
-    } else if (name == "verbose") {
+    }
+
+    if (maybe_verbose) {
+        std::string value = maybe_verbose.value();
         if (value == "1" || value == "true") {
             verbose_ = true;
         } else {
             verbose_ = false;
         }
-    } else {
-        throw UALException("invalid option (option name not recognised)", LOG);
-    }
-}
-
-void UDABackend::process_options(const std::string& options)
-{
-    std::vector<std::string> tokens;
-    boost::split(tokens, options, boost::is_any_of(","), boost::token_compress_on);
-
-    for (const auto& token : tokens) {
-        process_option(token);
     }
 }
 
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
-    process_options(ctx->getOptions());
+    process_options(ctx->getURI());
 
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
@@ -373,7 +351,8 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     auto query = ctx->getURI().query;
     std::string backend = query.get("backend").value_or("mdsplus");
     query.remove("backend");
-    query.remove("options");
+    query.remove("cache_mode");
+    query.remove("verbose");
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;

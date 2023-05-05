@@ -75,21 +75,12 @@ private:
     int open_mode_ = 0;
 
     /**
-     * Process each option. Each option is expected to be a key=value pair.
+     * Process any UDA backend specific options found on the DBEntry URI.
      *
-     * @param option the option as a key=value pair
-     * @throw UALException if the option name is not recognised
+     * @param uri the uri of the DBEntry
+     * @throw UALException if any of the passed options have invalid values
      */
-    void process_option(const std::string& option);
-
-    /**
-     * Process the options passed to backend via the getOptions on the context object. The options string is treated as
-     * a comma separated list of options.
-     *
-     * @param options the string containing the comma separated list of options
-     * @throw UALException if any of the passed options are not recognised
-     */
-    void process_options(const std::string& options);
+    void process_options(uri::Uri uri);
 
     /**
      * Generate all requests for the given `ids` starting at the given `path` and send these requests to the UDA server,
