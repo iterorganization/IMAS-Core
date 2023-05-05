@@ -4,7 +4,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <boost/filesystem.hpp>
-#include "ual_utilities.h"
 
 #include "mdsplus_backend.h"
 
@@ -4431,7 +4430,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   void MDSplusBackend::openPulse(DataEntryContext *ctx,
 			 int mode)
     {
-      std::string options = ctx != nullptr ? ctx->getOptions() : "";
 
  	  // Extract MDSplus options
 	  char szOption[256] = { 0 };
@@ -4443,21 +4441,17 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  // By default use "ids" tree name
 	  strcpy(szTree, DEF_TREENAME);
 	  
-	  std::string strValue;
-	  std::map<std::string, std::string> mapOptions;
-	  if (extractOptions(options, mapOptions) > 0)
+	  // Open tree in readonly mode requested? 
+	  if (ctx->getURI().query.get("readonly").value()=="1")
 	  {
-		  // Open tree in readonly mode requested? 
-		  if (isOptionExist("readonly", mapOptions, strValue))
-		  {
-			  strcpy(szOption, DEF_READONLYMODE);
-		  }
-		  // Open a specific tree name?
-		  if (isOptionExist(DEF_TREENAME, mapOptions, strValue) && strValue.length() > 0)
-		  {
-			  strcpy(szTree, strValue.c_str());
-		  }
+	          strcpy(szOption, DEF_READONLYMODE);
 	  }
+	  // Open a specific tree name?
+	  std::string strValue = ctx->getURI().query.get(DEF_TREENAME).value();
+	  if (strValue.length() > 0)
+	  {
+	          strcpy(szTree, strValue.c_str());
+          }
 	  
 	  std::string mdsplusBaseStr = ctx->getURI().query.get("path").value();
 	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ual_lowlevel.h>
-#include "ual_utilities.h"
 
 #ifndef WIN32
 #define _countof(x) sizeof(x)
@@ -266,16 +265,6 @@ int main(int argc, char *argv[])
 		printf("Open action:\t%s\n", ualconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
 		printf("Close action:\t%s\n", ualconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
 		printf("Parameters:\t%s\n", szParams);
-		
-		const std::string strOptions(szParams);
-		std::map<std::string, std::string> mapOptions;
-		int iParam = extractOptions(strOptions, mapOptions);
-		printf("Nb parameters:\t%d\n", iParam);
-		for (std::map<std::string, std::string>::iterator it = mapOptions.begin(); it != mapOptions.end(); it++)
-		{
-			printf(" -> %s = %s\n", it->first.c_str(), it->second.c_str());
-		}
-		printf("\n");
 		
 		// Low Level
 		int iPulseCtx = -1;
