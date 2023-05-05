@@ -87,11 +87,6 @@ std::string DataEntryContext::getBackendName() const
   return std::string(const2str(this->backend_id));
 }
 
-std::string DataEntryContext::getOptions() const
-{ 
-  return this->uri.query.get("options").value_or("");
-}
-
 uri::Uri DataEntryContext::getURI() const
 {
   return this->uri;
@@ -206,10 +201,6 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
     }
 }
 
-void DataEntryContext::addOptions(const std::string &options_) {
-    uri.query.insert("options", options_);
-}
-
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
                          const int run, 
@@ -223,7 +214,7 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
     std::string backend = getURIBackend(backendID);
     desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
     if (strcmp(options,"")!=0)
-      desc << ";options=" << options;
+      desc << ";" << options;
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);

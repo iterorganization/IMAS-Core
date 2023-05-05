@@ -105,26 +105,18 @@ AsciiBackend::AsciiBackend()
 
 
 void AsciiBackend::openPulse(DataEntryContext *ctx,
-			int mode)
+			     int mode)
 {
-  size_t n;
-  std::string options = ctx != nullptr ? ctx->getOptions() : "";
   this->dbname = ctx->getURI().query.get("path").value();
-  std::stringstream ss;
 
-  const char* dbfolder = this->dbname.c_str();
+  this->fullpath = ctx->getURI().query.get("fullpath").value();
 
-  n = options.find("fullpath=");
-  ss.str("");
-  if (n != std::string::npos) {
-    ss << options.substr(n+9,options.length());
-    ss >> this->fullpath;
-    if (mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
+  if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
       std::string message("Unable to open data-entry, file does not exist: ");
       message += this->fullpath;
       throw UALBackendException(message, LOG);
-    }
   } else {
+    const char* dbfolder = this->dbname.c_str();
     if (mode == OPEN_PULSE && !boost::filesystem::is_directory(dbfolder)) {
       std::string message("Unable to open data-entry, directory does not exist: ");
       message += dbfolder;

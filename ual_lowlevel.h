@@ -275,12 +275,10 @@ extern "C"
      @param[in] mode closing option:
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
-     @param[in] options additional options (possibly backend specific)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
   LIBRARY_API al_status_t ual_close_pulse(int pulseCtx, 
-					  int mode,
-					  const char *options);
+					  int mode);
 
   /**
      Starts an I/O action on a DATAOBJECT.

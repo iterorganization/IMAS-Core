@@ -817,7 +817,7 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
 }
 
 
-al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
+al_status_t ual_close_pulse(int pctxID, int mode)
 {
   al_status_t status;
 
@@ -828,7 +828,6 @@ al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
     if (pctx==NULL)
       throw UALLowlevelException("Wrong Context type stored",LOG);
 
-    pctx->addOptions(options);
     lle.backend->closePulse(pctx, mode);
   }
   catch (const UALBackendException& e) {

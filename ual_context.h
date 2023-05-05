@@ -147,18 +147,6 @@ public:
   static std::string getURIBackend(int backend_id);
 
   /**
-    Returns options string.
-    @result options 
-  */
-  std::string getOptions() const;
-
-  /**
-     Add options to the URI query.
-     @param[in] options options to add
-  */
-  void addOptions(const std::string &options);
-
-  /**
      Builds an URI string using legacy parameters.
      @param[in] backendID name/ID of the back-end
      @param[in] shot shot number
