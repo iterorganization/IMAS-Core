@@ -10,10 +10,10 @@ HDF5BackendFactory::~HDF5BackendFactory()
 {
 }
 
-std::unique_ptr < HDF5Writer > HDF5BackendFactory::createWriter(const std::string &options)
+std::unique_ptr < HDF5Writer > HDF5BackendFactory::createWriter(uri::Uri uri)
 {
     if (backend_version_.compare("1.0") == 0) {
-        std::unique_ptr < HDF5Writer > writer = std::unique_ptr < HDF5Writer > (new HDF5Writer(backend_version_, options));
+        std::unique_ptr < HDF5Writer > writer = std::unique_ptr < HDF5Writer > (new HDF5Writer(backend_version_, uri));
         return writer;
     } else {
         std::string message("No backend writer with version: ");
@@ -23,10 +23,10 @@ std::unique_ptr < HDF5Writer > HDF5BackendFactory::createWriter(const std::strin
 
 }
 
-std::unique_ptr < HDF5Reader > HDF5BackendFactory::createReader(const std::string &options)
+std::unique_ptr < HDF5Reader > HDF5BackendFactory::createReader(uri::Uri uri)
 {
     if (backend_version_.compare("1.0") == 0) {
-        std::unique_ptr < HDF5Reader > reader = std::unique_ptr < HDF5Reader > (new HDF5Reader(backend_version_, options));
+        std::unique_ptr < HDF5Reader > reader = std::unique_ptr < HDF5Reader > (new HDF5Reader(backend_version_, uri));
         return reader;
     } else {
         std::string message("No backend reader with version: ");

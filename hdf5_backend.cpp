@@ -27,16 +27,15 @@ const int HDF5Backend::HDF5_BACKEND_VERSION_MINOR = 0;
 
 
 void
- HDF5Backend::createBackendComponents(std::string backend_version, const std::string &options) {
+ HDF5Backend::createBackendComponents(std::string backend_version, uri::Uri uri) {
     HDF5BackendFactory backendFactory(backend_version);
-    hdf5Writer = backendFactory.createWriter(options);
-    hdf5Reader = backendFactory.createReader(options);
+    hdf5Writer = backendFactory.createWriter(uri);
+    hdf5Reader = backendFactory.createReader(uri);
     eventsHandler = backendFactory.createEventsHandler();
 }
 
 std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
 {
-  std::string options = ctx != nullptr ? ctx->getOptions() : "";
   std::pair<int,int> version;
   if(ctx==NULL)
     version = {HDF5_BACKEND_VERSION_MAJOR, HDF5_BACKEND_VERSION_MINOR};
@@ -62,7 +61,7 @@ std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
       HDF5BackendFactory backendFactory(backend_version);
       auto hdf5Reader_version = backendFactory.createReader("");
       if (!masterFileAlreadyOpened) //the master pulse file is closed only if it was already closed before to call the getVersion() method
-        hdf5Reader_version->closePulse(ctx, OPEN_PULSE, options, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        hdf5Reader_version->closePulse(ctx, OPEN_PULSE, ctx->getURI(), &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }
   return version;
 }
@@ -82,7 +81,6 @@ void
     std::string backend_version;
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
-    std::string options = ctx != nullptr ? ctx->getOptions() : "";
 
     switch (mode) {
     case OPEN_PULSE:
@@ -103,16 +101,16 @@ void
     default:
         throw UALBackendException("Mode not yet supported", LOG);
     }
-    createBackendComponents(backend_version, options);
+    createBackendComponents(backend_version, ctx->getURI());
 }
 
 void HDF5Backend::closePulse(DataEntryContext * ctx, int mode)
 {
-    std::string options = ctx != nullptr ? ctx->getOptions() : "";
+    assert(ctx != nullptr);
     if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
-        hdf5Reader->closePulse(ctx, mode, options, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        hdf5Reader->closePulse(ctx, mode, ctx->getURI(), &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     } else if (access_mode == CREATE_PULSE || access_mode == FORCE_CREATE_PULSE) {
-        hdf5Writer->closePulse(ctx, mode, options, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
+        hdf5Writer->closePulse(ctx, mode, ctx->getURI(), &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }
     hdf5Writer->close_datasets();
     hdf5Reader->close_datasets();

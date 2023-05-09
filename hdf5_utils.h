@@ -40,8 +40,6 @@ class HDF5Utils {
     void createMasterFile(DataEntryContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
     void openMasterFile(hid_t *file_id, const std::string &filePath);
     void initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
-    
-    void getOptionCacheValue(char* option, size_t *value);
 
   public:
 
@@ -83,7 +81,7 @@ class HDF5Utils {
     void showStatus(hid_t file_id);
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
     void setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering);
-    void readOptions(const std::string &options, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug);
+    void readOptions(uri::Uri uri, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug);
 
 };
 
