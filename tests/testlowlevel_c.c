@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
 				}
 			}
 			
-			alStatus = ual_close_pulse(iPulseCtx, iCloseAction, "");
+			alStatus = ual_close_pulse(iPulseCtx, iCloseAction);
 			
 		}
 	}
