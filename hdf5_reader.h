@@ -28,7 +28,6 @@ class HDF5Reader {
     std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
     
     int slice_mode;
-    uri::Uri uri;
 
     int getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, int *slice_sup, 
                       double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation);
@@ -51,19 +50,19 @@ class HDF5Reader {
 
     std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
-    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
+    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext * opCtx, hid_t gid, const std::string & dataset_name);
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
-    
+    DataEntryContext* getDataEntryContext(Context * ctx);
 
   public:
 
-     HDF5Reader(std::string backend_version_, uri::Uri uri_);
+     HDF5Reader(std::string backend_version_);
     ~HDF5Reader();
 
     
     
 
-    virtual void closePulse(DataEntryContext * ctx, int mode, uri::Uri uri, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
+    virtual void closePulse(DataEntryContext * ctx, int mode, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual int read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size);
     virtual void beginReadArraystructAction(ArraystructContext * ctx, int *size);
 

@@ -30,7 +30,7 @@ class HDF5Backend:public Backend {
     int access_mode;
     int files_path_strategy;
 
-     void createBackendComponents(std::string backend_version, const std::string &options);
+     void createBackendComponents(std::string backend_version);
      std::string getVersion();
      std::string getPulseFilePath(DataEntryContext * ctx);
 

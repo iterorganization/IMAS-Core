@@ -723,18 +723,18 @@ void HDF5Utils::readOptions(uri::Uri uri, bool *compression_enabled, bool *readB
     *debug = false;
     if (debug_option) {
       std::string value = debug_option.value();
-      if (value == "yes" || value="y")
+      if (value == "yes" || value == "y")
          *debug = true;
     }
 
     if (read_cache_option) {
       std::string value = read_cache_option.value();
-      *read_cache = (size_t) (atof(value) * 1024 * 1024);
+      *read_cache = (size_t) (atof(value.c_str()) * 1024 * 1024);
     }
 
     if (write_cache_option) {
       std::string value = write_cache_option.value();
-      *write_cache = (size_t) (atof(value) * 1024 * 1024);
+      *write_cache = (size_t) (atof(value.c_str()) * 1024 * 1024);
     }
 }
 
