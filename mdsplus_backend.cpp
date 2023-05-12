@@ -4440,17 +4440,23 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  
 	  // By default use "ids" tree name
 	  strcpy(szTree, DEF_TREENAME);
-	  
+	 
+          uri::OptionalValue maybe_readonly =  ctx->getURI().query.get("readonly");
 	  // Open tree in readonly mode requested? 
-	  if (ctx->getURI().query.get("readonly").value()=="1")
+	  if (maybe_readonly && maybe_readonly.value()=="1")
 	  {
 	          strcpy(szOption, DEF_READONLYMODE);
 	  }
 	  // Open a specific tree name?
-	  std::string strValue = ctx->getURI().query.get(DEF_TREENAME).value();
-	  if (strValue.length() > 0)
-	  {
+	  uri::OptionalValue maybe_def_treename =  ctx->getURI().query.get("DEF_TREENAME");
+	  if (maybe_def_treename) {
+
+             std::string strValue = maybe_def_treename.value();
+        
+	     if (strValue.length() > 0)
+	     {
 	          strcpy(szTree, strValue.c_str());
+             }
           }
 	  
 	  std::string mdsplusBaseStr = ctx->getURI().query.get("path").value();
