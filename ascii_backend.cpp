@@ -109,8 +109,10 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
 {
   this->dbname = ctx->getURI().query.get("path").value();
 
-  this->fullpath = ctx->getURI().query.get("fullpath").value();
-
+  uri::OptionalValue maybe_fullpath = ctx->getURI().query.get("fullpath");
+  if (maybe_fullpath) {
+     this->fullpath = maybe_fullpath.value();
+  }
   if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
       std::string message("Unable to open data-entry, file does not exist: ");
       message += this->fullpath;
