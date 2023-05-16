@@ -51,7 +51,7 @@ public:
   static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
   static std::map<std::string, std::vector<std::string>>  boundReadbackPlugins;
   static std::vector<std::string> readbackPlugins;
-  static std::string get_operation_path;
+  static std::string getOperationPath;
   static std::vector<std::string> pluginsNames;
   static std::map<std::string, std::vector<std::string>> get_plugins;
 
@@ -69,19 +69,19 @@ public:
     name = NULL;
   }
 
-  static void begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx);
-  static void begin_slice_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
-  static void begin_arraystruct_action_plugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
-  static void end_action_plugin(int ctxID);
-  static void read_data_plugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
-  static void write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
-  static void write_plugins_metadata(int ctxID);
-  static void bind_readback_plugins(int ctxID); 
-  static void unbind_readback_plugins(int ctxID); 
+  static void beginGlobalActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx);
+  static void beginSliceActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
+  static void beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
+  static void endActionPlugin(int ctxID);
+  static void readDataPlugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
+  static void writeDataPlugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  static void writePluginsMetadata(int ctxID);
+  static void bindReadbackPlugins(int ctxID); 
+  static void unbindReadbackPlugins(int ctxID); 
   //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
   //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
-  static void register_plugin(const char* plugin_name);
-  static void unregister_plugin(const char* plugin_name);
+  static void registerPlugin(const char* plugin_name);
+  static void unregisterPlugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
   static void bindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* name);
@@ -292,7 +292,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_begin_global_action(int ctx,
+  LIBRARY_API al_status_t ual_plugin_begin_global_action(int ctx,
                           const char *dataobjectname,
                           const char* datapath,
                           int rwmode,
@@ -317,7 +317,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_begin_slice_action(int ctx,
+  LIBRARY_API al_status_t ual_plugin_begin_slice_action(int ctx,
 						 const char *dataobjectname,
 						 int rwmode,
 						 double time,
@@ -328,16 +328,16 @@ extern "C"
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
-     @param[in] ctx a pulse (ual_begin_dataentry_action()), an operation (ual_begin_global_action() or ual_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
+     @param[in] ctx a pulse (ual_begin_dataentry_action()), an operation (ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_end_action(int ctx); 
+  LIBRARY_API al_status_t ual_plugin_end_action(int ctx); 
 
   /**
      Writes data.
      This function writes a signal in the database given the passed context.
-     @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action()) or
-     array of structure context id (from ual_begin_arraystruct_action())
+     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or
+     array of structure context id (from ual_plugin_begin_arraystruct_action())
      @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] data pointer on the data to be written
@@ -350,7 +350,7 @@ extern "C"
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_write_data(int ctx,
+  LIBRARY_API al_status_t ual_plugin_write_data(int ctx,
 					 const char *fieldpath,
 					 const char *timebasepath,
 					 void *data,
@@ -361,8 +361,8 @@ extern "C"
   /**
      Reads data.
      This function reads a signal in the database given the passed context.
-     @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action()) or
-     array of structure context id (from ual_begin_arraystruct_action())
+     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or
+     array of structure context id (from ual_plugin_begin_arraystruct_action())
      @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[out] data returned pointer on the read data 
@@ -375,7 +375,7 @@ extern "C"
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_read_data(int ctx,
+  LIBRARY_API al_status_t ual_plugin_read_data(int ctx,
 					const char *fieldpath,
 					const char *timebasepath,
 					void **data,
@@ -387,7 +387,7 @@ extern "C"
      Deletes data.
      This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
      given the passed context.
-     @param[in] ctx operation context id (from ual_begin_global_action() or ual_begin_slice_action())
+     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action())
      @param[in] path path of the data structure element to delete (suppress the whole subtree)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
@@ -408,7 +408,7 @@ extern "C"
      @param[out] aosctx array of structure context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_begin_arraystruct_action(int ctx,
+  LIBRARY_API al_status_t ual_plugin_begin_arraystruct_action(int ctx,
 						       const char *path,
 						       const char *timebase,
 						       int *size,
@@ -446,43 +446,43 @@ extern "C"
                          const char *options,
                          char** uri);
 
-  LIBRARY_API al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
+  LIBRARY_API al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
 
-  LIBRARY_API al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+  LIBRARY_API al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
   
-  LIBRARY_API al_status_t hli_end_action(int ctxID);
+  LIBRARY_API al_status_t ual_end_action(int ctxID);
 
-  LIBRARY_API al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
+  LIBRARY_API al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
 
-  LIBRARY_API al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
+  LIBRARY_API al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
   
-  LIBRARY_API al_status_t hli_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  LIBRARY_API al_status_t ual_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
 
-  //LIBRARY_API al_status_t hli_close_pulse(int pctxID, int mode, const char *options);
+  //LIBRARY_API al_status_t ual_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API
 
-  LIBRARY_API al_status_t hli_is_plugin_registered(const char* pluginName, bool *is_registered);
+  LIBRARY_API al_status_t ual_is_plugin_registered(const char* pluginName, bool *is_registered);
 
-  LIBRARY_API al_status_t hli_register_plugin(const char *plugin_name);
+  LIBRARY_API al_status_t ual_register_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t hli_unregister_plugin(const char *plugin_name);
+  LIBRARY_API al_status_t ual_unregister_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t hli_bind_plugin(const char* fieldPath, const char* pluginName);
+  LIBRARY_API al_status_t ual_bind_plugin(const char* fieldPath, const char* pluginName);
 
-  LIBRARY_API al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName);
+  LIBRARY_API al_status_t ual_unbind_plugin(const char* fieldPath, const char* pluginName);
   
-  LIBRARY_API al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
+  LIBRARY_API al_status_t ual_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
   
-  LIBRARY_API al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
+  LIBRARY_API al_status_t ual_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
   
-  LIBRARY_API al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
+  LIBRARY_API al_status_t ual_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
 
-  LIBRARY_API al_status_t hli_write_plugins_metadata(int ctxid);
+  LIBRARY_API al_status_t ual_write_plugins_metadata(int ctxid);
 
-  LIBRARY_API al_status_t hli_bind_readback_plugins(int ctxid);
+  LIBRARY_API al_status_t ual_bind_readback_plugins(int ctxid);
 
-  LIBRARY_API al_status_t hli_unbind_readback_plugins(int ctxID);
+  LIBRARY_API al_status_t ual_unbind_readback_plugins(int ctxID);
 
 #if defined(__cplusplus)
 }

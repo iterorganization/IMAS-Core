@@ -34,11 +34,11 @@ public:
     AccessLayerPluginManager();
     ~AccessLayerPluginManager();
 
-    virtual std::string getName();
-    virtual std::string getCommit();
-    virtual std::string getVersion();
-    virtual std::string getRepository();
-    virtual std::string getParameters();
+    std::string getName() override;
+    std::string getCommit() override;
+    std::string getVersion() override;
+    std::string getRepository() override;
+    std::string getParameters() override;
 
     virtual void write_plugins_metadata(int ctxID);
     virtual void bind_readback_plugins(int ctxID);
