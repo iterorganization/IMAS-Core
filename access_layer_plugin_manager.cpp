@@ -96,7 +96,7 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
             // printf("applied plugin = %s\n ", plugin_name.c_str());
             if (!LLplugin::isPluginRegistered(plugin_name.c_str()))
             {
-                LLplugin::register_plugin(plugin_name.c_str());
+                LLplugin::registerPlugin(plugin_name.c_str());
                 LLplugin::readbackPlugins.push_back(plugin_name);
             }
 
@@ -253,7 +253,7 @@ void AccessLayerPluginManager::unbind_readback_plugins(int ctxID) // function ca
     }
     for (int i = 0; i < (int)LLplugin::readbackPlugins.size(); i++)
     {
-        LLplugin::unregister_plugin(LLplugin::readbackPlugins[i].c_str());
+        LLplugin::unregisterPlugin(LLplugin::readbackPlugins[i].c_str());
     }
     LLplugin::readbackPlugins.clear();
     LLplugin::boundReadbackPlugins.clear();
