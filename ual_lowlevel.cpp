@@ -40,7 +40,7 @@ std::map<std::string, LLplugin> LLplugin::llpluginsStore;
 std::map<std::string, std::vector<std::string>>  LLplugin::boundPlugins;
 std::map<std::string, std::vector<std::string>>  LLplugin::boundReadbackPlugins;
 std::vector<std::string> LLplugin::readbackPlugins;
-std::string LLplugin::get_operation_path;
+std::string LLplugin::getOperationPath;
 std::vector<std::string> LLplugin::pluginsNames;
 std::map<std::string, std::vector<std::string>> LLplugin::get_plugins;
 
@@ -293,7 +293,7 @@ bool LLplugin::isPluginRegistered(const char* name) {
    return llpluginsStore.find(std::string(name)) != llpluginsStore.end();
 }
 
-void LLplugin::register_plugin(const char* plugin_name) {
+void LLplugin::registerPlugin(const char* plugin_name) {
     checkIfPluginsFrameworkIsEnabled();
     const char* AL_PLUGINS = std::getenv("AL_PLUGINS");
     if (AL_PLUGINS == NULL)
@@ -343,7 +343,7 @@ void LLplugin::register_plugin(const char* plugin_name) {
     addDestroyPlugin(plugin_name, (void*) destroy_plugin);
 }
 
-void LLplugin::unregister_plugin(const char* plugin_name) {
+void LLplugin::unregisterPlugin(const char* plugin_name) {
     checkIfPluginsFrameworkIsEnabled();
     if (!isPluginRegistered(plugin_name)) {
         char error_message[200];
@@ -383,32 +383,32 @@ void LLplugin::setvalueParameterPlugin(const char* parameter_name, int datatype,
   al_plugin->setParameter(parameter_name, datatype, dim, size, data);
 }
 
-void LLplugin::begin_global_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx) {
+void LLplugin::beginGlobalActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
   al_plugin->begin_global_action(pulseCtx, dataobjectname, datapath, mode, opCtx);
 }
 
-void LLplugin::begin_slice_action_plugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
+void LLplugin::beginSliceActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
   al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
 }
 
-void LLplugin::begin_arraystruct_action_plugin(const std::string &plugin_name, int ctxID, int *actxID, 
+void LLplugin::beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, 
 const char* fieldPath, const char* timeBasePath, int *arraySize) {
   AccessLayerPluginManager alplugin_manager;
   alplugin_manager.begin_arraystruct_action_handler(plugin_name, ctxID, actxID, fieldPath, timeBasePath, arraySize);
 }
 
-void LLplugin::end_action_plugin(int ctxID)
+void LLplugin::endActionPlugin(int ctxID)
 {
     if(!pluginsFrameworkEnabled()) return;
     AccessLayerPluginManager alplugin_manager;
     alplugin_manager.end_action_plugin_handler(ctxID);
 }
 
-void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
+void LLplugin::readDataPlugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
     AccessLayerPluginManager alplugin_manager;
@@ -419,25 +419,25 @@ void LLplugin::read_data_plugin(const std::string &plugin_name, int ctxID, const
     }
 }
 
-void LLplugin::bind_readback_plugins(int ctxID) { //function called before a get()
+void LLplugin::bindReadbackPlugins(int ctxID) { //function called before a get()
     if(!pluginsFrameworkEnabled()) return;
     AccessLayerPluginManager alplugin_manager;
     alplugin_manager.bind_readback_plugins(ctxID);
 }
 
-void LLplugin::unbind_readback_plugins(int ctxID) { //function called after a get()
+void LLplugin::unbindReadbackPlugins(int ctxID) { //function called after a get()
     if(!pluginsFrameworkEnabled()) return;
     AccessLayerPluginManager alplugin_manager;
     alplugin_manager.unbind_readback_plugins(ctxID);
 }
 
-void LLplugin::write_plugins_metadata(int ctxID) { //function called at the end of a put()
+void LLplugin::writePluginsMetadata(int ctxID) { //function called at the end of a put()
     if(!pluginsFrameworkEnabled()) return;
     AccessLayerPluginManager alplugin_manager;
     alplugin_manager.write_plugins_metadata(ctxID);
 }
 
-void LLplugin::write_data_plugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
+void LLplugin::writeDataPlugin(const std::string &plugin_name, int ctxID, const char *field, const char *timebase, 
               void *data, int datatype, int dim, int *size)
 {
     AccessLayerPluginManager alplugin_manager;
@@ -1245,7 +1245,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, cons
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-           LLplugin::begin_global_action_plugin(pluginName, pctxID, dataobjectname, datapath, rwmode, *octxID);
+           LLplugin::beginGlobalActionPlugin(pluginName, pctxID, dataobjectname, datapath, rwmode, *octxID);
     }
   }
   catch (const UALContextException& e) {
@@ -1281,7 +1281,7 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-		   LLplugin::begin_slice_action_plugin(pluginName, pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
+		   LLplugin::beginSliceActionPlugin(pluginName, pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
 	}
    }
   catch (const UALContextException& e) {
@@ -1325,7 +1325,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
         int actxID_user = 0;
         std::vector<std::string> plugins;
 	      for (const auto& pluginName : pluginsNames) {
-              LLplugin::begin_arraystruct_action_plugin(pluginName, ctxID, actxID, path, timebase, size);
+              LLplugin::beginArraystructActionPlugin(pluginName, ctxID, actxID, path, timebase, size);
            if ( (actxID_user == 0) && (actxID_default != *actxID) ) {//plugin has created another AOS context
                actxID_user = *actxID;
                plugins.push_back(pluginName);
@@ -1354,7 +1354,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
 
     if (*size == 0) {
         if (!skipAOSWriteAccess && isPluginBound)
-           LLplugin::end_action_plugin(*actxID);
+           LLplugin::endActionPlugin(*actxID);
         assert(actxID != 0);
         LLenv lle_aos = Lowlevel::getLLenv(*actxID);
         assert(lle_aos.context != NULL);
@@ -1398,7 +1398,7 @@ al_status_t ual_end_action(int ctxID)
   if (ctxID!=0)
     {
       try {
-        LLplugin::end_action_plugin(ctxID);
+        LLplugin::endActionPlugin(ctxID);
         LLenv lle = Lowlevel::delLLenv(ctxID);
         lle.backend->endAction(lle.context);
 
@@ -1439,7 +1439,7 @@ al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
     if (isPluginBound) {
 		  for (const auto& pluginName : pluginsNames)
-        LLplugin::write_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
+        LLplugin::writeDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
       if (Lowlevel::data_has_non_zero_shape(datatype, data, dim, size))
@@ -1477,7 +1477,7 @@ al_status_t ual_read_data(int ctxID, const char *field, const char *timebase,
     //printf("ual_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
     if (isPluginBound) {
 	   for (const auto& pluginName : pluginsNames)
-                LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
+                LLplugin::readDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
         status = ual_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
@@ -1592,7 +1592,7 @@ al_status_t ual_register_plugin(const char *plugin_name)
   al_status_t status;
   status.code = 0;
   try {
-    LLplugin::register_plugin(plugin_name);
+    LLplugin::registerPlugin(plugin_name);
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
@@ -1614,7 +1614,7 @@ al_status_t ual_unregister_plugin(const char *plugin_name)
   al_status_t status;
   status.code = 0;
   try {
-    LLplugin::unregister_plugin(plugin_name);
+    LLplugin::unregisterPlugin(plugin_name);
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
@@ -1699,7 +1699,7 @@ al_status_t ual_write_plugins_metadata(int ctxid)
   al_status_t status;
   status.code = 0;
   try {
-    LLplugin::write_plugins_metadata(ctxid);
+    LLplugin::writePluginsMetadata(ctxid);
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
@@ -1721,7 +1721,7 @@ al_status_t ual_bind_readback_plugins(int ctxid)
   al_status_t status;
   status.code = 0;
   try {
-    LLplugin::bind_readback_plugins(ctxid);
+    LLplugin::bindReadbackPlugins(ctxid);
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;
@@ -1743,7 +1743,7 @@ al_status_t ual_unbind_readback_plugins(int ctxid)
   al_status_t status;
   status.code = 0;
   try {
-    LLplugin::unbind_readback_plugins(ctxid);
+    LLplugin::unbindReadbackPlugins(ctxid);
   }
   catch (const UALContextException& e) {
     status.code = ualerror::context_err;

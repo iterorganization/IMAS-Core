@@ -619,7 +619,7 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
                     paths.push_back(path);
                 }
                 const std::string &path = paths[arctx->getIndex()];
-                LLplugin::get_operation_path = path;
+                LLplugin::getOperationPath = path;
                 *data = strdup(path.c_str());
                 *size = path.length();
                 return 1;
@@ -630,14 +630,14 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
         {
             assert(LLplugin::pluginsNames.size() > 0);
             const std::string &plugin_name = LLplugin::pluginsNames[arctx->getIndex()];
-            /*if (LLplugin::get_operation_path.rfind("ids_properties/plugins/node")){ //do not update for this path
+            /*if (LLplugin::getOperationPath.rfind("ids_properties/plugins/node")){ //do not update for this path
                     return 0;
                 } */
 
             if (plugin_name == al_plugin->getName())
             {
                 // checking if the plugin contributes to the get()/get_slice() operation, other wise, the get_operation data structure is not updated for this plugin
-                if (al_plugin->node_operation(LLplugin::get_operation_path) == plugin::OPERATION::PUT_ONLY)
+                if (al_plugin->node_operation(LLplugin::getOperationPath) == plugin::OPERATION::PUT_ONLY)
                 {
                     return 0;
                 }
@@ -674,7 +674,7 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
                 return 0;
         }
     }
-    if (al_plugin->node_operation(LLplugin::get_operation_path) != plugin::OPERATION::PUT_ONLY)
+    if (al_plugin->node_operation(LLplugin::getOperationPath) != plugin::OPERATION::PUT_ONLY)
         return al_plugin->read_data(ctxID, fieldPath, timeBasePath, data, datatype, dim, size);
     return 0;
 }
@@ -685,7 +685,7 @@ void AccessLayerPluginManager::write_data_plugin_handler(const std::string &plug
     access_layer_plugin *al_plugin = NULL;
     LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
     al_plugin = (access_layer_plugin *)llp.al_plugin;
-    if (al_plugin->node_operation(LLplugin::get_operation_path) != plugin::OPERATION::GET_ONLY)
+    if (al_plugin->node_operation(LLplugin::getOperationPath) != plugin::OPERATION::GET_ONLY)
         al_plugin->write_data(ctxID, field, timebase, data, datatype, dim, size);
 }
 
