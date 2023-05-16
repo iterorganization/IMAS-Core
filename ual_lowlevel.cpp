@@ -847,7 +847,7 @@ al_status_t ual_close_pulse(int pctxID, int mode, const char *options)
   return status;
 }
 
-al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
+al_status_t ual_plugin_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                                             int *octxID)
 {
   al_status_t status;
@@ -901,7 +901,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, cons
 }
 
 
-al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+al_status_t ual_plugin_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
 				   double time, int interpmode, int *octxID)
 {
   al_status_t status;
@@ -956,7 +956,7 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
 }
 
 
-al_status_t ual_end_action(int ctxID)
+al_status_t ual_plugin_end_action(int ctxID)
 {
   al_status_t status;
 
@@ -990,7 +990,7 @@ al_status_t ual_end_action(int ctxID)
 }
 
 
-al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,  
+al_status_t ual_plugin_write_data(int ctxID, const char *field, const char *timebase,  
 			 void *data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1023,7 +1023,7 @@ al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,
 }
 
 
-al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, 
+al_status_t ual_plugin_read_data(int ctxID, const char *field, const char *timebase, 
 			  void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1117,7 +1117,7 @@ al_status_t ual_delete_data(int octxID, const char *field)
 }
 
 
-al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, 
+al_status_t ual_plugin_begin_arraystruct_action(int ctxID, const char *path, 
 					 const char *timebase, int *size,
 					 int *actxID)
 {
@@ -1230,7 +1230,7 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
 
 //HLI Wrappers for calling LL functions - Call plugins if required
 
-al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
+al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                     int *octxID)
 {
   al_status_t status;
@@ -1238,7 +1238,7 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, cons
   status.code = 0;
 
   try {
-    status = ual_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
+    status = ual_plugin_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
     if (status.code != 0)
         return status;
     std::set<std::string> pluginsNames;
@@ -1267,14 +1267,14 @@ al_status_t hli_begin_global_action(int pctxID, const char* dataobjectname, cons
   return status;
 }
 
-al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
                    double time, int interpmode, int *octxID)
 {
   al_status_t status;
 
   status.code = 0;
   try {
-    status = ual_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
+    status = ual_plugin_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
     if (status.code != 0)
      return status;
     std::set<std::string> pluginsNames;
@@ -1303,7 +1303,7 @@ al_status_t hli_begin_slice_action(int pctxID, const char* dataobjectname, int r
   return status;
 }
 
-al_status_t hli_begin_arraystruct_action(int ctxID, const char *path, 
+al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, 
                      const char *timebase, int *size,
                      int *actxID)
 {
@@ -1319,7 +1319,7 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
     } 
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, path, pluginsNames);
-    //printf("hli_begin_arraystruct_action::isPluginBound=%d for path=%s\n", isPluginBound, path);
+    //printf("ual_begin_arraystruct_action::isPluginBound=%d for path=%s\n", isPluginBound, path);
     if (!skipAOSWriteAccess && isPluginBound) {
         int actxID_default = *actxID;
         int actxID_user = 0;
@@ -1332,7 +1332,7 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
            }
            else if (actxID_user != 0 && *actxID != 0) { //at least 2 plugins have created an AOS context, it's an error
               plugins.push_back(pluginName);
-              std::string message = "Error calling hli_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
+              std::string message = "Error calling ual_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
               message += "AOS context path: " + std::string(path) + "\n";
               for (size_t i = 0; i < plugins.size(); i++)
                   message += "--> Plugin: " + plugins[i] + "\n";
@@ -1391,7 +1391,7 @@ al_status_t hli_begin_arraystruct_action(int ctxID, const char *path,
   return status;
 }
 
-al_status_t hli_end_action(int ctxID)
+al_status_t ual_end_action(int ctxID)
 {
   al_status_t status;
   status.code = 0;
@@ -1428,7 +1428,7 @@ al_status_t hli_end_action(int ctxID)
   return status;
 }
 
-al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,  
+al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,  
 			 void *data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1443,7 +1443,7 @@ al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,
     }
     else {
       if (Lowlevel::data_has_non_zero_shape(datatype, data, dim, size))
-        status = ual_write_data(ctxID, field, timebase, data, datatype, dim, size);
+        status = ual_plugin_write_data(ctxID, field, timebase, data, datatype, dim, size);
     }
   }
   catch (const UALContextException& e) {
@@ -1465,7 +1465,7 @@ al_status_t hli_write_data(int ctxID, const char *field, const char *timebase,
   return status;
 }
 
-al_status_t hli_read_data(int ctxID, const char *field, const char *timebase, 
+al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1474,13 +1474,13 @@ al_status_t hli_read_data(int ctxID, const char *field, const char *timebase,
   try {
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
-    //printf("hli_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
+    //printf("ual_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
     if (isPluginBound) {
 	   for (const auto& pluginName : pluginsNames)
                 LLplugin::read_data_plugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
-        status = ual_read_data(ctxID, field, timebase, data, datatype, dim, size);
+        status = ual_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
         if (status.code != 0)
             return status;
     }
@@ -1505,7 +1505,7 @@ al_status_t hli_read_data(int ctxID, const char *field, const char *timebase,
    
 }
 
-al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
+al_status_t ual_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1530,7 +1530,7 @@ al_status_t hli_setvalue_parameter_plugin(const char* parameter_name, int dataty
     return status;
 }
 
-al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
+al_status_t ual_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1558,7 +1558,7 @@ al_status_t hli_setvalue_int_scalar_parameter_plugin(const char* parameter_name,
     return status;
 }
 
-al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
+al_status_t ual_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1587,7 +1587,7 @@ al_status_t hli_setvalue_double_scalar_parameter_plugin(const char* parameter_na
 }
 
 //HLI wrappers for plugins API
-al_status_t hli_register_plugin(const char *plugin_name)
+al_status_t ual_register_plugin(const char *plugin_name)
 {
   al_status_t status;
   status.code = 0;
@@ -1609,7 +1609,7 @@ al_status_t hli_register_plugin(const char *plugin_name)
   return status;
 }
 
-al_status_t hli_unregister_plugin(const char *plugin_name)
+al_status_t ual_unregister_plugin(const char *plugin_name)
 {
   al_status_t status;
   status.code = 0;
@@ -1631,7 +1631,7 @@ al_status_t hli_unregister_plugin(const char *plugin_name)
   return status;
 }
 
-al_status_t hli_is_plugin_registered(const char* pluginName, bool *is_registered) {
+al_status_t ual_is_plugin_registered(const char* pluginName, bool *is_registered) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1652,7 +1652,7 @@ al_status_t hli_is_plugin_registered(const char* pluginName, bool *is_registered
     return status;
 }
 
-al_status_t hli_bind_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t ual_bind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1673,7 +1673,7 @@ al_status_t hli_bind_plugin(const char* fieldPath, const char* pluginName) {
     return status;
 }
 
-al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t ual_unbind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1694,7 +1694,7 @@ al_status_t hli_unbind_plugin(const char* fieldPath, const char* pluginName) {
     return status;
 }
 
-al_status_t hli_write_plugins_metadata(int ctxid)
+al_status_t ual_write_plugins_metadata(int ctxid)
 {
   al_status_t status;
   status.code = 0;
@@ -1716,7 +1716,7 @@ al_status_t hli_write_plugins_metadata(int ctxid)
   return status;
 }
 
-al_status_t hli_bind_readback_plugins(int ctxid)
+al_status_t ual_bind_readback_plugins(int ctxid)
 {
   al_status_t status;
   status.code = 0;
@@ -1738,7 +1738,7 @@ al_status_t hli_bind_readback_plugins(int ctxid)
   return status;
 }
 
-al_status_t hli_unbind_readback_plugins(int ctxid)
+al_status_t ual_unbind_readback_plugins(int ctxid)
 {
   al_status_t status;
   status.code = 0;
