@@ -449,8 +449,8 @@ public:
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
      @throw BackendException
   */
-    virtual void openPulse(DataEntryContext *ctx,
-			 int mode)
+    void openPulse(DataEntryContext *ctx,
+			 int mode) override
     {
 	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
 
@@ -502,8 +502,8 @@ public:
      - ERASE_PULSE = close and remove the pulse
      @throw BackendException
   */
-    virtual void closePulse(DataEntryContext *ctx,
-			  int mode)
+    void closePulse(DataEntryContext *ctx,
+			  int mode) override
 
     {
     }
@@ -515,13 +515,14 @@ public:
 			   int datatype,
 			   int dim,
 			   int* size);
-    virtual void writeData(Context *ctx,
+
+    void writeData(Context *ctx,
 			   std::string fieldname,
 			   std::string timebase,
 			   void* data,
 			   int datatype,
 			   int dim,
-			   int* size)
+			   int* size) override
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
 	    putInArraystruct((ArraystructContext *)ctx,fieldname,timebase, //Relative to the current AoS root. Empty for non time dependent fields
@@ -537,13 +538,13 @@ public:
 			  int* datatype,
 			  int* dim,
 			  int* size);
-    virtual int readData(Context *ctx,
+    int readData(Context *ctx,
 			  std::string fieldname,
 			  std::string timebase,
 			  void** data,
 			  int* datatype,
 			  int* dim,
-			  int* size)
+			  int* size) override
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
 	    return getFromArraystruct((ArraystructContext *)ctx, fieldname, timebase, 
@@ -559,8 +560,8 @@ public:
     @param[in] path path of the data structure element to delete (suppress the whole subtree)
     @throw BackendException
   **/
-  virtual void deleteData(OperationContext *ctx,
-			  std::string path);
+  void deleteData(OperationContext *ctx,
+			  std::string path) override;
 
   /**
      Starts writing a new array of structures.
@@ -631,7 +632,7 @@ public:
 				  int* datatype,
 				  int* dim,
 				  int* size);
-    virtual void beginArraystructAction(ArraystructContext *ctx, int *size)
+    void beginArraystructAction(ArraystructContext *ctx, int *size) override
     {
         if(ctx->getOperationContext()->getAccessmode() == READ_OP)
 	   beginReadArraystruct(ctx, size);
@@ -639,9 +640,9 @@ public:
 	   beginWriteArraystruct(ctx, *size);
     }
   	
-    virtual void endAction(Context *ctx); 
+    void endAction(Context *ctx) override; 
 		
-    virtual void beginAction(OperationContext *ctx);
+    void beginAction(OperationContext *ctx) override;
 
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 

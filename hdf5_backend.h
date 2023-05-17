@@ -46,7 +46,7 @@ class HDF5Backend:public Backend {
 
      virtual ~ HDF5Backend();
 
-     virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
+     std::pair<int,int> getVersion(DataEntryContext *ctx); override
 
         /**
      Opens a database entry.
@@ -59,7 +59,7 @@ class HDF5Backend:public Backend {
      - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
      @throw BackendException
 	 */
-    virtual void openPulse(DataEntryContext * ctx, int mode);
+    void openPulse(DataEntryContext * ctx, int mode) override;
 
         /**
      Closes a database entry.
@@ -70,7 +70,7 @@ class HDF5Backend:public Backend {
      - ERASE_PULSE = close and remove the pulse
      @throw BackendException
 	 */
-    virtual void closePulse(DataEntryContext * ctx, int mode);
+    void closePulse(DataEntryContext * ctx, int mode) override;
 
         /**
      Writes data.
@@ -88,7 +88,7 @@ class HDF5Backend:public Backend {
      @param[in] size array of the size of each dimension (NULL is dim=0)
      @throw BackendException
 	 */
-    virtual void writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size);
+    void writeData(Context * ctx, std::string fieldname, std::string timebasename, void *data, int datatype, int dim, int *size) override;
 
         /**
      Reads data.
@@ -106,7 +106,7 @@ class HDF5Backend:public Backend {
      @param[out] size array returned with elements filled at the size of each dimension 
      @throw BackendException
 	 */
-    virtual int readData(Context * ctx, std::string fieldname, std::string timebase, void **data, int *datatype, int *dim, int *size);
+    int readData(Context * ctx, std::string fieldname, std::string timebase, void **data, int *datatype, int *dim, int *size) override;
 
         /**
     Deletes data.
@@ -116,17 +116,17 @@ class HDF5Backend:public Backend {
     @param[in] path path of the data structure element to delete (suppress the whole subtree)
     @throw BackendException
 	 */
-    virtual void deleteData(OperationContext * ctx, std::string path);
+    void deleteData(OperationContext * ctx, std::string path) override;
 
-    virtual void beginArraystructAction(ArraystructContext * ctx, int *size) {
+    void beginArraystructAction(ArraystructContext * ctx, int *size) override {
         if (ctx->getOperationContext()->getAccessmode() == READ_OP)
             beginReadArraystructAction(ctx, size);
         else
             beginWriteArraystructAction(ctx, size);
     }
-    virtual void endAction(Context * ctx);
+    void endAction(Context * ctx) override;
 
-    virtual void beginAction(OperationContext * ctx);
+    void beginAction(OperationContext * ctx) override;
 
 };
 

@@ -64,39 +64,31 @@ public:
   AsciiBackend();
   virtual ~AsciiBackend() {};
 
-  virtual void openPulse(DataEntryContext *ctx,
-			 int mode);
-
-  virtual void closePulse(DataEntryContext *ctx,
-			  int mode);
-
-  virtual void beginAction(OperationContext *ctx);
-
-  virtual void endAction(Context *ctx); 
-
-  virtual void writeData(Context *ctx,
+  void openPulse(DataEntryContext *ctx, int mode) override;
+  void closePulse(DataEntryContext *ctx, int mode) override;
+  void beginAction(OperationContext *ctx) override;
+  void endAction(Context *ctx) override; 
+  void writeData(Context *ctx,
 			 std::string fieldname,
 			 std::string timebasename, 
 			 void* data,
 			 int datatype,
 			 int dim,
-			 int* size);
+			 int* size) override;
 
-  virtual int readData(Context *ctx,
+  int readData(Context *ctx,
 		       std::string fieldname,
 		       std::string timebasename, 
 		       void** data,
 		       int* datatype,
 		       int* dim,
-		       int* size);
+		       int* size) override;
 
-  virtual void deleteData(OperationContext *ctx,
-			  std::string path);
+  void deleteData(OperationContext *ctx, std::string path) override;
 
-  virtual void beginArraystructAction(ArraystructContext *ctx,
-				      int *size);
+  void beginArraystructAction(ArraystructContext *ctx, int *size) override;
 
-  virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
+  std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
 };
 

@@ -113,31 +113,31 @@ public:
   /**
      Returns full description of the pulse context.
   */
-  virtual std::string print() const; 
+  std::string print() const override; 
 
   /**
      Returns the type of context.
      @result CTX_PULSE_TYPE
   */
-  virtual int getType() const; 
+  int getType() const override; 
 
   /**
      Returns the URI.
      @result URI string
   */
-  virtual uri::Uri getURI() const;
+  uri::Uri getURI() const override;
 
   /**
      Returns the ID of associated backend.
      @result backend_id
   */
-  virtual int getBackendID() const;
+  int getBackendID() const override;
 
   /**
      Returns the name of associated backend.
      @result name of the backend
   */
-  virtual std::string getBackendName() const;
+  std::string getBackendName() const override;
  
   /**
      Builds the URI backend from the backend ID.
@@ -231,31 +231,31 @@ public:
   /**
      Returns full description of the operation context.
   */
-  virtual std::string print() const; 
+  std::string print() const override; 
 
   /**
      Returns the type of context.
      @result CTX_OPERATION_TYPE
   */
-  virtual int getType() const; 
+  int getType() const override; 
 
   /**
      Returns the URI.
      @result URI 
   */
-  virtual uri::Uri getURI() const;
+  uri::Uri getURI() const override;
 
   /**
      Returns the ID of associated backend.
      @result backend_id
   */
-  virtual int getBackendID() const;
+  int getBackendID() const override;
 
   /**
      Returns the name of associated backend.
      @result name of the backend
   */
-  virtual std::string getBackendName() const;
+  std::string getBackendName() const override;
 
   /**
      Returns the name of the DATAOBJECT.
@@ -364,31 +364,31 @@ class LIBRARY_API ArraystructContext : public Context
   /**
      Returns full description of the array of structure context.
   */
-  virtual std::string print() const;
+  std::string print() const override;
 
   /**
      Returns the type of context.
      @result CTX_ARRAYSTRUCT_TYPE
   */
-  virtual int getType() const;
+  int getType() const override;
 
   /**
      Returns the URI.
      @result URI 
   */
-  virtual uri::Uri getURI() const;
+  uri::Uri getURI() const override;
 
   /**
      Returns the ID of associated backend.
      @result backend_id
   */
-  virtual int getBackendID() const;
+  int getBackendID() const override;
 
   /**
      Returns the name of associated backend.
      @result name of the backend
   */
-  virtual std::string getBackendName() const;
+  std::string getBackendName() const override;
 
   /**
      Returns the path of the array of structure.

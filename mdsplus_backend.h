@@ -141,15 +141,15 @@ class LIBRARY_API MDSplusBackend:public Backend
 
     static Backend* initBackend(int id);
 
-    virtual void openPulse(DataEntryContext *ctx,
-			   int mode);
+    void openPulse(DataEntryContext *ctx,
+			   int mode) override;
       
-    virtual void closePulse(DataEntryContext *ctx,
-			    int mode);
+    void closePulse(DataEntryContext *ctx,
+			    int mode) override;
 
-    virtual void beginAction(OperationContext *ctx);
+    void beginAction(OperationContext *ctx) override;
 
-    virtual void endAction(Context *ctx);
+    void endAction(Context *ctx) override;
 
     virtual void writeData(OperationContext *ctx,
 			   std::string fieldname,
@@ -158,13 +158,13 @@ class LIBRARY_API MDSplusBackend:public Backend
 			   int datatype,
 			   int dim,
 			   int* size);
-    virtual void writeData(Context *ctx,
+    void writeData(Context *ctx,
 			   std::string fieldname,
 			   std::string timebase,
 			   void* data,
 			   int datatype,
 			   int dim,
-			   int* size)
+			   int* size) override
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
 	    putInArraystruct((ArraystructContext *)ctx,fieldname,timebase, //Relative to the current AoS root. Empty for non time dependent fields
@@ -173,13 +173,13 @@ class LIBRARY_API MDSplusBackend:public Backend
 	    writeData((OperationContext *)ctx, fieldname, timebase, data, datatype, dim, size);
     }
     
-    virtual int readData(Context *ctx,
+    int readData(Context *ctx,
 			  std::string fieldname,
 			  std::string timebase,
 			  void** data,
 			  int* datatype,
 			  int* dim,
-			  int* size)
+			  int* size) override
     {
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
 	  return getFromArraystruct((ArraystructContext *)ctx, fieldname,
@@ -196,8 +196,8 @@ class LIBRARY_API MDSplusBackend:public Backend
 			int* dim,
 			int* size);  
 
-    virtual void deleteData(OperationContext *ctx,
-			    std::string fieldname);
+    void deleteData(OperationContext *ctx,
+			    std::string fieldname) override;
 			
 			
     virtual void beginWriteArraystruct(ArraystructContext *ctx,
@@ -224,8 +224,8 @@ class LIBRARY_API MDSplusBackend:public Backend
 				    int* size);
 
 
-    virtual void beginArraystructAction(ArraystructContext *ctx,
-				      int *size)
+    void beginArraystructAction(ArraystructContext *ctx,
+				      int *size) override
     {
         if(ctx->getOperationContext()->getAccessmode() == READ_OP)
 	   beginReadArraystruct(ctx, size);
@@ -241,7 +241,7 @@ class LIBRARY_API MDSplusBackend:public Backend
      otherwise returns the version stored in associated pulse file
      @result std::pair<int,int> for <major,minor> version numbers
   */
-    virtual std::pair<int,int> getVersion(DataEntryContext *ctx);
+    std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
