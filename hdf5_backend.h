@@ -46,7 +46,7 @@ class HDF5Backend:public Backend {
 
      virtual ~ HDF5Backend();
 
-     std::pair<int,int> getVersion(DataEntryContext *ctx); override
+     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
         /**
      Opens a database entry.
