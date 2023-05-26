@@ -145,10 +145,10 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 			double linear_interpolation_factor = 0;
 			int slice_sup = -1;
             bool ignore_linear_interpolation = true;
-            std::string time_dataset_name = getTimeVectorDataSetName(ctx, timed_AOS_index, tensorized_paths);
+            std::string time_dataset_name = getTimeVectorDataSetName(timed_AOS_index, tensorized_paths);
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
-            slice_index = getSliceIndex(opCtx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
+            slice_index = getSliceIndex(opCtx, time_data_set, "",&slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
             opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
     }
    
@@ -177,7 +177,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
    
 }
 
-std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index) {
+std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::string timebasename, int timed_AOS_index) {
 
     std::string dataset_name;
 
@@ -186,17 +186,21 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::
             return dataset_name;
        }
     
-     //handling case where time basis is inhomogeneous
-
     std::string tensorized_path = timebasename;
+    //printf("timebasename = %s\n", timebasename.c_str());
 
-    if (timed_AOS_index != -1) { //that means that the time basis is at the root of the dynamic AOS
-        auto &tensorized_paths = tensorized_paths_per_op_context[opCtx];
-        dataset_name = tensorized_paths[timed_AOS_index] + "&time";
+    if (timed_AOS_index != -1) { //that means we are inside an AOS
+        if (timebasename.substr(0,1) == "&") {
+            dataset_name = timebasename.replace(0,1,"");
+        } 
+        else{
+            auto &tensorized_paths = tensorized_paths_per_op_context[opCtx];
+            dataset_name = tensorized_paths[timed_AOS_index] + "&time";
+        } 
     } 
     else {
-        if (timebasename.compare("&time") == 0 || timebasename.compare("time") == 0) {
-            dataset_name = "time";
+        if (timebasename.substr(0,1) == "&"){
+            dataset_name = timebasename.replace(0,1,"");
         } else {
             auto got = tensorized_paths_per_op_context.find(opCtx);
             if (got != tensorized_paths_per_op_context.end()) {
@@ -213,17 +217,15 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext * opCtx, std::
     return dataset_name;
 }
 
-std::string HDF5Reader::getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths) {
+std::string HDF5Reader::getTimeVectorDataSetName(int timed_AOS_index, std::vector < std::string > &tensorized_paths) {
 
     std::string dataset_name;
-
      if (homogeneous_time == 1) {
             dataset_name = "time";
             return dataset_name;
     }
     assert(timed_AOS_index != -1);
     dataset_name = tensorized_paths[timed_AOS_index] + "&time";
-    //printf("getTimeVectorDataSetName::AOS time basis=%s\n", dataset_name.c_str());
     return dataset_name;
 }
 
@@ -252,7 +254,7 @@ std::unique_ptr < HDF5DataSetHandler > HDF5Reader::getTimeVectorDataSet(hid_t gi
     return data_set;
 }
 
-int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, int *slice_sup, 
+int HDF5Reader::getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int *slice_sup, 
 double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation)
 {
     double time = opCtx->getTime();
@@ -262,8 +264,9 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
     size_t timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
     double *slices_times = nullptr;
+    bool homogeneous_time_basis = homogeneous_time == 1 || timebasename.substr(0,1) == "&" || data_set->getName().compare("time") == 0;
 
-    if (homogeneous_time == 1 || data_set->getName().compare("time") == 0) {
+    if (homogeneous_time_basis) {
         slices_times = (double *) malloc(timeVectorLength * sizeof(double));
         herr_t status = H5Dread(data_set->dataset_id, H5T_NATIVE_DOUBLE, H5P_DEFAULT, H5P_DEFAULT,
                                 H5P_DEFAULT, (void *) slices_times);
@@ -273,7 +276,6 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
             throw UALBackendException(error_message, LOG);
         }
     } else {
-
         // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
         int dim = -1;
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), ualconst::double_data, current_arrctx_indices.size(), &dim);
@@ -289,7 +291,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
             throw UALBackendException(error_message, LOG);
         }
     }
-    //printf("getSliceIndex::data_set=%s, timeVectorLength=%d\n", data_set->getName().c_str(), timeVectorLength);
+
     *slice_sup = timeVectorLength - 1;
     int slice_inf = 0;
     if (*slice_sup > 0)
@@ -427,7 +429,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
             assert(time_data_set);
             slice_mode = opctx->getRangemode();
-            slice_index = getSliceIndex(opctx, time_data_set, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
+            slice_index = getSliceIndex(opctx, time_data_set, timebasename, &slice_sup, &linear_interpolation_factor, timed_AOS_index, current_arrctx_indices, &ignore_linear_interpolation);
             opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
         }
     }
