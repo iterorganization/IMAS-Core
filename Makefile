@@ -39,7 +39,7 @@ LDF=gfortran -lc -lstdc++
 endif
 
 CXXINCLUDES= -DASCII ${INCLUDES} -I. -I$(BOOST_HOME)/include 
-LIBS+= -lboost_filesystem -lboost_system
+LIBS+= -lboost_filesystem -lboost_system -ldl
 
 CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp access_layer_plugin_manager.cpp \
 	ual_const.cpp ual_exception.cpp no_backend.cpp \
