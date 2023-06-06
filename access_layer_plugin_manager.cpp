@@ -241,22 +241,12 @@ void AccessLayerPluginManager::addReadbackPlugin(const std::string &plugin_name,
 
 void AccessLayerPluginManager::unbind_readback_plugins(int ctxID) // function called after a get() to unbind the readback plugins
 {
-    for (auto it = LLplugin::boundReadbackPlugins.begin(); it != LLplugin::boundReadbackPlugins.end(); it++)
-    {
-        std::string path = it->first;
-        std::vector<std::string> &plugins = it->second;
-        for (int i = 0; i < (int)plugins.size(); i++)
-        {
-            std::string &plugin_name = plugins[i];
-            LLplugin::unbindPlugin(path.c_str(), plugin_name.c_str(), LLplugin::boundReadbackPlugins);
-        }
-    }
+    LLplugin::boundReadbackPlugins.clear();
     for (int i = 0; i < (int)LLplugin::readbackPlugins.size(); i++)
     {
         LLplugin::unregisterPlugin(LLplugin::readbackPlugins[i].c_str());
     }
     LLplugin::readbackPlugins.clear();
-    LLplugin::boundReadbackPlugins.clear();
 }
 
 bool AccessLayerPluginManager::sortPlugins(const plugin_info &p, const plugin_info &q) { return (p.application_index > q.application_index); }
