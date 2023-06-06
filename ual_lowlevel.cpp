@@ -282,9 +282,10 @@ void LLplugin::unbindPlugin(const char* fieldPath, const char* pluginName, std::
 		auto itr = std::find(plugins.begin(), plugins.end(), std::string(pluginName));
         if (itr != plugins.end()) {
             plugins.erase(itr);
-            if (plugins.size() == 0)
-			   boundPlugins_.erase(got);
-		}
+            if (plugins.size() == 0) {
+                  boundPlugins_.erase(got);
+            }  
+		      }
     }
 }
 
@@ -343,39 +344,57 @@ void LLplugin::registerPlugin(const char* plugin_name) {
     addDestroyPlugin(plugin_name, (void*) destroy_plugin);
 }
 
-void LLplugin::unregisterPlugin(const char* plugin_name) {
+void LLplugin::unregisterPlugin(const char *plugin_name)
+{
     checkIfPluginsFrameworkIsEnabled();
-    if (!isPluginRegistered(plugin_name)) {
+    if (!isPluginRegistered(plugin_name))
+    {
         char error_message[200];
         sprintf(error_message, "Plugin %s not registered in the plugins store.\n", plugin_name);
         throw UALLowlevelException(error_message, LOG);
     }
-    //Erasing all paths bound to this plugin from the boundPlugins map
+    // Erasing all paths bound to this plugin from the boundPlugins map
     auto it = boundPlugins.begin();
-    while(it != boundPlugins.end())
+    std::set<std::string> paths;
+    while (it != boundPlugins.end())
     {
-		std::vector<std::string> &plugins = it->second;
-		auto itr = std::find(plugins.begin(), plugins.end(), plugin_name);
-        if (itr != plugins.end()) {
-			const std::string &fieldPath = it->first; 
-			unbindPlugin(fieldPath.c_str(), plugin_name);
-			auto got = llpluginsStore.find(plugin_name);
-			if (got != llpluginsStore.end()) {
-				LLplugin &llp = got->second;
-				access_layer_plugin* al_plugin_ptr = (access_layer_plugin*) llp.al_plugin;
-				if (al_plugin_ptr != NULL) {
-					//Deleting plugin instance
-					destroy_t* destroy = (destroy_t*) llp.destroy_plugin;
-					if (destroy != NULL) {
-					   destroy(al_plugin_ptr);
-					   llpluginsStore.erase(got);
-					}
-				}
-		    }
-		}
+        std::vector<std::string> &plugins = it->second;
+        auto itr = std::find(plugins.begin(), plugins.end(), plugin_name);
+        if (itr != plugins.end())
+        {
+            const std::string &fieldPath = it->first;
+            paths.insert(fieldPath);
+            auto got = llpluginsStore.find(plugin_name);
+            if (got != llpluginsStore.end())
+            {
+                  LLplugin &llp = got->second;
+                  access_layer_plugin *al_plugin_ptr = (access_layer_plugin *)llp.al_plugin;
+                  if (al_plugin_ptr != NULL)
+                  {
+                    // Deleting plugin instance
+                    destroy_t *destroy = (destroy_t *)llp.destroy_plugin;
+                    if (destroy != NULL)
+                    {
+                      destroy(al_plugin_ptr);
+                      llpluginsStore.erase(got);
+                    }
+                  }
+            }
+        }
         it++;
     }
+    for(auto it = paths.begin(); it != paths.end(); ++it) {
+      auto got = boundPlugins.find(*it);
+      if (got == boundPlugins.end()) continue;
+      auto &v = got->second; //vector of plugins names for field path=*it
+      auto p = std::find(v.begin(), v.end(), plugin_name);
+      if (p != v.end())
+          v.erase(p);
+      if (v.size() == 0)
+          boundPlugins.erase(*it);
+    } 
 }
+
 
 void LLplugin::setvalueParameterPlugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* plugin_name) {
 	LLplugin &llp = llpluginsStore[plugin_name];
