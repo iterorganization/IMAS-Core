@@ -2,6 +2,7 @@
 #include <typeinfo>
 #include <iomanip>
 #include <limits>
+#include <cstring>
 #include <boost/filesystem.hpp>
 
 
@@ -109,9 +110,10 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
 {
   this->dbname = ctx->getURI().query.get("path").value();
 
-  uri::OptionalValue maybe_fullpath = ctx->getURI().query.get("fullpath");
-  if (maybe_fullpath) {
-     this->fullpath = maybe_fullpath.value();
+  uri::OptionalValue filename = ctx->getURI().query.get("filename");
+
+  if (filename) {
+    this->fullpath  = this->dbname + "/" + filename.value();
   }
   if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
       std::string message("Unable to open data-entry, file does not exist: ");
@@ -163,7 +165,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   this->pulsefile.close();
   //this->prefix = "";
   //this->suffix = "";
-  //this->fullpath = "";
+  this->fullpath = "";
   this->dbname = "";
 }
 
