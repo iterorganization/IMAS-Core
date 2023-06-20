@@ -5065,6 +5065,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 				  
     {
 	MDSplus::Apd *currApd = getApdFromContext(ctx);
+	if (!currApd) return 0;
         MDSplus::Data *data = getFromApd(currApd, idx, fieldname, ctx);
 	if(!data) return 0;
 	MDSplus::Data *evaluatedData = data->data();
