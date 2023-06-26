@@ -29,7 +29,7 @@ class HDF5Reader {
     
     int slice_mode;
 
-    int getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, int *slice_sup, 
+    int getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int *slice_sup, 
                       double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation);
     int getPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, 
 			    int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes, 
@@ -48,9 +48,10 @@ class HDF5Reader {
  				    );
     int readAOSPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector < int > &current_arrctx_indices);
 
-    std::string getTimeVectorDataSetName(ArraystructContext * ctx, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
-    std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string & timebasename, int timed_AOS_index);
-    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext * opCtx, hid_t gid, const std::string & dataset_name);
+    std::string getTimeVectorDataSetName(int timed_AOS_index, std::vector < std::string > &tensorized_paths);
+    std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string timebasename, int timed_AOS_index);
+    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name);
+
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     DataEntryContext* getDataEntryContext(Context * ctx);
 
