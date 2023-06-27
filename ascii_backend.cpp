@@ -2,7 +2,6 @@
 #include <typeinfo>
 #include <iomanip>
 #include <limits>
-#include <cstring>
 #include <boost/filesystem.hpp>
 
 
