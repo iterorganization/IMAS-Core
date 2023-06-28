@@ -4842,7 +4842,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    addContextAndApd(ctx, currApd);   
 	   // *size = currApd->len();
 	}
-std::cout << "finisce begin readarray 1\n"; 
     }
 }
 
