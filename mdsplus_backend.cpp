@@ -32,6 +32,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 #define DEF_NORMALMODE		"NORMAL"
 #define DEF_READONLYMODE	"READONLY"
 
+
 //Original ids_path
 static std::string originalIdsPath = "";
 
@@ -4630,6 +4631,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
       addContextAndApd(ctx, newApd);     
   }
 
+
   void MDSplusBackend::beginReadArraystruct(ArraystructContext *ctx,
 				    int* size)
   {
@@ -4741,7 +4743,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      if (!strcmp(exc.what(),"%TREE-W-NNF, Node Not Found")) {
 		  // Backward compatibility for previous MDSplus backend versions
 		currPath = composePaths(ctx->getOperationContext()->getDataobjectName(), ctx->getPath()+"/timed_1/aos");
+		try {
 		  node = getNode(checkFullPath(currPath, true).c_str());
+		} catch(MDSplus::MdsException &exc)
+		{
+		    *size = 0;
+		    return;
+		}
 	      }
 	      else {throw;}
 	    }
