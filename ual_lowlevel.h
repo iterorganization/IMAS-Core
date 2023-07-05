@@ -80,7 +80,7 @@ public:
   static void unbindReadbackPlugins(int ctxID); 
   //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
   //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
-  static void registerPlugin(const char* plugin_name);
+  static bool registerPlugin(const char* plugin_name);
   static void unregisterPlugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
   static void bindPlugin(const char* fieldPath, const char* name);

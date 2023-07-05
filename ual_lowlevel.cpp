@@ -3,6 +3,7 @@
 #include "dlfcn.h"
 #include "access_layer_plugin.h"
 #include "access_layer_plugin_manager.h"
+#include <boost/filesystem.hpp>
 
 #include <assert.h>
 #include <string.h>
@@ -294,7 +295,7 @@ bool LLplugin::isPluginRegistered(const char* name) {
    return llpluginsStore.find(std::string(name)) != llpluginsStore.end();
 }
 
-void LLplugin::registerPlugin(const char* plugin_name) {
+bool LLplugin::registerPlugin(const char* plugin_name) {
     checkIfPluginsFrameworkIsEnabled();
     const char* AL_PLUGINS = std::getenv("AL_PLUGINS");
     if (AL_PLUGINS == NULL)
@@ -305,6 +306,21 @@ void LLplugin::registerPlugin(const char* plugin_name) {
         sprintf(error_message, "Plugin %s already registered in the plugins store.\n", plugin_name);
         throw UALLowlevelException(error_message, LOG);
     }
+  
+    std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
+    if (!boost::filesystem::exists(ids_plugin.c_str())) { 
+      const char* IMAS_VERSION = std::getenv("IMAS_VERSION");
+      if (IMAS_VERSION == NULL || std::string(IMAS_VERSION).find("-") != std::string::npos) {
+        //printf("Plugin shared library %s not found\n", ids_plugin.c_str());
+        return false;
+      }
+      else {
+        char error_message[200];
+        sprintf(error_message, "Plugin shared library %s not found", ids_plugin.c_str());
+        throw UALLowlevelException(error_message, LOG); 
+      }
+    }
+
     llpluginsStore[std::string(plugin_name)] = LLplugin();
     LLplugin &lle = llpluginsStore[std::string(plugin_name)];
     void* plugin_handler = lle.plugin_handler;
@@ -312,7 +328,6 @@ void LLplugin::registerPlugin(const char* plugin_name) {
     create_t* create_plugin = NULL;
     destroy_t* destroy_plugin = NULL;
 
-    std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     //printf("-->ids_plugins:%s\n", ids_plugin.c_str());
     plugin_handler =  dlopen(ids_plugin.c_str(), RTLD_LAZY);
     if (plugin_handler == nullptr) {
@@ -342,6 +357,7 @@ void LLplugin::registerPlugin(const char* plugin_name) {
     al_plugin = create_plugin();
     addPlugin(plugin_name, al_plugin);
     addDestroyPlugin(plugin_name, (void*) destroy_plugin);
+    return true;
 }
 
 void LLplugin::unregisterPlugin(const char *plugin_name)

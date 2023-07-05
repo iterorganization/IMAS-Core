@@ -102,10 +102,12 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
             // printf("applied plugin = %s\n ", plugin_name.c_str());
             if (!LLplugin::isPluginRegistered(plugin_name.c_str()))
             {
-                LLplugin::registerPlugin(plugin_name.c_str());
-                LLplugin::readbackPlugins.push_back(plugin_name);
+                if (LLplugin::registerPlugin(plugin_name.c_str()))
+                    LLplugin::readbackPlugins.push_back(plugin_name);
+                else
+                   continue;
             }
-
+            
             std::string full_path;
             std::string dataObjectName;
             LLplugin::getFullPath(ctxID, path.c_str(), full_path, dataObjectName);
