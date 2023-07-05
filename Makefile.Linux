@@ -1,4 +1,4 @@
-SPECIFIC_TOOLS=
+SPECIFIC_TOOLS= mdsplusIMASDB4to5 
 
 # Needed by memory_backend
 LIBS+= -lpthread
@@ -11,7 +11,7 @@ LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 LIBS+= -lboost_filesystem -lboost_system
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp 
-SPECIFIC_TOOLS=printMDSplusFileVersion
+SPECIFIC_TOOLS+=printMDSplusFileVersion
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
@@ -65,6 +65,9 @@ $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir)
 # Additional executable
 printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
+
+../bin/mdsplusIMASDB4to5:
+
 
 # Dynamic library
 libal.so.$(SO_NUM): $(COMMON_OBJECTS)

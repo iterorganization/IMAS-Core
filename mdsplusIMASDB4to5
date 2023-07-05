@@ -1,0 +1,87 @@
+#!/bin/env python
+
+from pathlib import Path
+import os
+
+
+
+import argparse
+
+parser = argparse.ArgumentParser(description='Maps MDS+ backend imasdb layout from AL4 to AL5 by creating new directory layout and links to original data files (does not remove data)')
+
+parser.add_argument('--dry-run',action='store_true',help='print actions but do not perform them')
+parser.add_argument('-p','--path',default=Path.home()/'public',
+                    help='specify path where imasdb to map (by default $HOME/public)')
+parser.add_argument('-d','--database',default=None,
+                    help='specify a database to be map (by default all)')
+parser.add_argument('-f','--force',action='store_true',
+                    help='force the creation of symlink even if the file exists')
+args = parser.parse_args()
+
+imasdbdir = Path(args.path)/'imasdb'
+
+if not imasdbdir.is_dir():
+    print(f"could not find imasdb in specified path={imasdbdir.parent}")
+    exit(1)
+
+if args.database==None:
+    ldb = [d for d in imasdbdir.iterdir() if d.is_dir()]
+else:
+    dbdir = imasdbdir/args.database
+    if dbdir.is_dir():
+        ldb = [dbdir]
+    else:
+        print(f"could not find database={args.database} in {imasdbdir}")
+        exit(1)
+        
+
+for db in ldb:
+    print(f"============ {db.name} ============")
+    lver = [d for d in db.iterdir() if d.is_dir()]
+    for ver in lver:
+        lmdsbr = [d for d in ver.iterdir() if (d.is_dir() and len(d.name)==1)]
+        for batchrun in lmdsbr:
+            lpulse = [f for f in batchrun.iterdir() if (f.is_file() and f.suffix==".datafile")]
+            addtorun = int(batchrun.name)*10000
+
+            for pulse in lpulse:
+                p = pulse.stem[4:]
+                if len(p)<=4:
+                    shot=0
+                else:
+                    shot=int(p[0:-4])
+
+                run=int(p[-4:])+addtorun
+                newpulsedir = ver/str(shot)/str(run)
+
+                datafile = pulse
+                treefile = pulse.with_suffix('.tree')
+                charfile = pulse.with_suffix('.characteristics')
+
+                newfilename = newpulsedir/'ids_001'
+                newdatafile = newfilename.with_suffix('.datafile')
+                newtreefile = newfilename.with_suffix('.tree')
+                newcharfile = newfilename.with_suffix('.characteristics')
+                
+                print(f"mapping shot={shot} run={run} to {newpulsedir}")
+                if args.dry_run:
+                    print(f"make dir {newpulsedir}")
+                    print(f"link {newdatafile} --> {datafile}")
+                    print(f"link {newtreefile} --> {treefile}")
+                    print(f"link {newcharfile} --> {charfile}")
+                else:
+                    newpulsedir.mkdir(parents=True,exist_ok=True)
+                    if newdatafile.exists():
+                        if args.force:
+                            newdatafile.unlink()
+                            newtreefile.unlink()
+                            newcharfile.unlink()
+                        else:
+                            print(f"{newdatafile} exists already, skip")
+                            continue
+                            
+                    newdatafile.symlink_to(datafile)
+                    newtreefile.symlink_to(treefile)
+                    newcharfile.symlink_to(charfile)
+
+
