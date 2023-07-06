@@ -43,14 +43,20 @@ std::string AccessLayerPluginManager::getParameters()
 
 void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function called before a get()
 {
-    int actxID = -1;
-    // printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
-    int size = 0; // number of nodes bound to a plugin
-    ual_plugin_begin_arraystruct_action(ctxID, PLUGINS_NODE_PATH, "", &size, &actxID);
-    assert(actxID >= 0);
-    al_status_t status;
-    int data_shape[MAXDIM];
-    void *ptrData = NULL;
+
+     al_status_t status;
+     int data_shape[MAXDIM];
+     void *ptrData = NULL;
+
+     int actxID = -1;
+     // printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
+     int size = 0; // number of nodes bound to a plugin
+     int h = -1;
+     ptrData = &h;
+     status = ual_plugin_read_data(ctxID, "ids_properties/homogeneous_time", "", &ptrData, INTEGER_DATA, 0, &data_shape[0]); //ASCII backend patch
+     ual_plugin_begin_arraystruct_action(ctxID, PLUGINS_NODE_PATH, "", &size, &actxID);
+     assert(actxID >= 0);
+
     for (int i = 0; i < size; i++)
     {
         status = ual_plugin_read_data(actxID, "path", "", &ptrData, CHAR_DATA, 1, &data_shape[0]);
