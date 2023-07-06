@@ -54,6 +54,7 @@ class HDF5Reader {
     std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(hid_t gid, const std::string & dataset_name);
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     
+    bool INTERPOLATION_WARNING;
 
   public:
 

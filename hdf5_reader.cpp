@@ -14,6 +14,7 @@ HDF5Reader::HDF5Reader(std::string backend_version_, const std::string &options_
 tensorized_paths_per_context(), tensorized_paths_per_op_context(), arrctx_shapes_per_context(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP), options(options_)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+    INTERPOLATION_WARNING = (std::getenv("IMAS_AL_DISABLE_INTERPOLATION_WARNING") == nullptr);
 }
 
 HDF5Reader::~HDF5Reader()
@@ -614,8 +615,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                     second_slice_shape[i] = size[i];
 
                 if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, hsSelectionReader.getDim()) != 0) {
-                    printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
-                    return exit_request(data_set, 0);
+		    if (this->INTERPOLATION_WARNING)
+		        printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_sup);
+		    return exit_request(data_set, 0);
                 }
             }
         }
@@ -628,8 +630,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 	else
 	   status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
 	if (status < 0) {
-            printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
-            return exit_request(data_set, 0);
+	    if (this->INTERPOLATION_WARNING)
+	      printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
+	    return exit_request(data_set, 0);
         }
         size_t N =  buffer / hsSelectionReader.dtype_size;
 

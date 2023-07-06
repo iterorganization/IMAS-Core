@@ -3693,7 +3693,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
           int len1 = apd2->len();
 	  if(len != len1)
 	  {
-	      std::cout << "WARNING: Linear interpolation not possible (different number of elements: " << len << ", " << len1 << ") for "+currPath << std::endl;
+	      if (this->INTERPOLATION_WARNING)
+	          std::cout << "WARNING: Linear interpolation not possible (different number of elements: " << len << ", " << len1 << ") for "+currPath << std::endl;
 	      return interpApd;
 	  }
 	  if(len == 0) 
@@ -3703,7 +3704,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	  {
 	      if(!(apd2->getDescAt(0) != NULL && apd2->getDescAt(0)->clazz != CLASS_APD))
 	      {
-	          std::cout << "WARNING: Linear interpolation not possible  (incompatible elements) for  "+currPath << std::endl;
+		  if (this->INTERPOLATION_WARNING)
+	              std::cout << "WARNING: Linear interpolation not possible  (incompatible elements) for  "+currPath << std::endl;
 		  return interpApd;
 	      }
 //At this point it is a Struct
@@ -3724,8 +3726,9 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	int len1 = apd1->len(); //already checked
 	int len2 = apd2->len(); //already checked
 	if(apd1->len() != apd2->len())
-	{  
-	    std::cout << "WARNING: Linear interpolation not possible (different length: " << len1 << ", " << len2<<") for "+currPath << std::endl;
+	{
+	    if (this->INTERPOLATION_WARNING)
+	        std::cout << "WARNING: Linear interpolation not possible (different length: " << len1 << ", " << len2<<") for "+currPath << std::endl;
 	    return NULL;
 	}
 	if(apd1->len() == 0)
@@ -3743,7 +3746,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	char *nameStr2 = name2->getString();
 	if(strcmp(nameStr1, nameStr2))
 	{
-	    std::cout << "WARNING: Linear interpolation not possible (different names: "<< nameStr1 << ", " << nameStr2 << ") for  "+currPath << std::endl;
+  	    if (this->INTERPOLATION_WARNING)
+	        std::cout << "WARNING: Linear interpolation not possible (different names: "<< nameStr1 << ", " << nameStr2 << ") for  "+currPath << std::endl;
 	    delete [] nameStr1;
 	    delete[] nameStr2;
 	    return NULL;
@@ -3763,7 +3767,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    if(apd2->getDescAt(1)->clazz == CLASS_APD) //The other one is a directory or an AoS, inconsistent
 	    {
 	    	//std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+ctx->fullPath()<< std::endl;
-	    	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
+	        if (this->INTERPOLATION_WARNING)
+	    	    std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
@@ -3778,7 +3783,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
 	    if(currItem2->len() > 0)
 	    {
-	    	std::cout << "WARNING: Linear interpolation not possible (different length: " << currItem1->len() << ", " << currItem2->len() << ") for  "+currPath<< std::endl;
+	        if (this->INTERPOLATION_WARNING)
+	    	    std::cout << "WARNING: Linear interpolation not possible (different length: " << currItem1->len() << ", " << currItem2->len() << ") for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
@@ -3791,7 +3797,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    MDSplus::Apd *currItem2 = (MDSplus::Apd* )apd2->getDescAt(1);
 	    if(!(currItem2->len() > 0 && currItem2->getDescAt(0)->clazz == CLASS_APD)) //If the field is NOT an AoS, inconsistent
 	    {
-	    	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
+	        if (this->INTERPOLATION_WARNING)
+	    	    std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath<< std::endl;
 		MDSplus::deleteData(interpApd);
 		return NULL;
 	    }
@@ -3833,8 +3840,9 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	    	MDSplus::Data *currName2 = currApd2->getDescAt(0);
 		if(currName2->clazz != CLASS_S)
 		{
+		    if (this->INTERPOLATION_WARNING)
 			std::cout << "WARING: Linear interpolation not possible for node "+currPath  << std::endl;
-			return NULL;
+		    return NULL;
 		}
 	    	char *currNameStr2 = currName2->getString();
 		if(!strcmp(currNameStr1, currNameStr2))
@@ -3879,7 +3887,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 {
 	     if(item2->clazz != CLASS_APD)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+		     std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
 		 return NULL;
 	     }
 	     return interpolateStruct((MDSplus::Apd *)item1, (MDSplus::Apd *)item2, t, t1, t2, currPath, ctx);
@@ -3888,12 +3897,14 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 {
 	     if(item2->clazz != CLASS_S)
 	     {
-	      	std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+		     std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for "+currPath << std::endl;
 		return NULL;
 	     }
 	     if(item1->dtype != item2->dtype)
 	     {	
-	         std::cout << "WARNING: interpolation requested for inconsistent AoS at "+currPath << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+		     std::cout << "WARNING: interpolation requested for inconsistent AoS at "+currPath << std::endl;
 		 return NULL;
 	     }
 	     switch(item1->dtype)  {
@@ -3927,12 +3938,14 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	 {
 	     if(item2->clazz != CLASS_A)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+	             std::cout << "WARNING: Linear interpolation not possible (incompatible elements) for  "+currPath << std::endl;
 		 return NULL;
 	     }
 	     if(item1->dtype != item2->dtype)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible (incompatible types) for  "+currPath  << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+	             std::cout << "WARNING: Linear interpolation not possible (incompatible types) for  "+currPath  << std::endl;
 		 return NULL;
 	     }
 	     int len;
@@ -3942,7 +3955,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	     dims1 = ((MDSplus::Array *)item2)->getShape(&nDims1);
 	     if(nDims != nDims1)
 	     {
-	         std::cout << "WARNING: Linear interpolation not possible (different number of dimensions: << " << nDims << ", " << nDims1 <<") for  "+currPath << std::endl;
+	         if (this->INTERPOLATION_WARNING)
+	             std::cout << "WARNING: Linear interpolation not possible (different number of dimensions: << " << nDims << ", " << nDims1 <<") for  "+currPath << std::endl;
 	     	 delete [] dims;
 	     	 delete [] dims1;
 		 return NULL;
@@ -3951,7 +3965,8 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	     {
 		if (dims[i] != dims1[i] && item1->dtype != DTYPE_B)
 	     	{
-	             std::cout << "WARNING: Linear interpolation not possible (different dimension " << i << ": " << dims[i] << ", " << dims1[i] << ")for  "+currPath  << std::endl;
+		     if (this->INTERPOLATION_WARNING)
+		         std::cout << "WARNING: Linear interpolation not possible (different dimension " << i << ": " << dims[i] << ", " << dims1[i] << ")for  "+currPath  << std::endl;
 	     	     delete [] dims;
 	     	     delete [] dims1;
 		     return NULL;
@@ -4515,6 +4530,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  }
 	  treeNodeMap.clear();
           resetIdsPath(szTree);
+	  this->INTERPOLATION_WARNING = (std::getenv("IMAS_AL_DISABLE_INTERPOLATION_WARNING") == nullptr);
       }
 
       
