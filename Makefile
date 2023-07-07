@@ -61,7 +61,7 @@ all sources sources_install install uninstall:
 endif
 
 clean: pkgconfig_clean test_clean 
-	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll $(SPECIFIC_TOOLS)
+	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll mdsplusFileVersion
 
 clean-src: clean clean-doc
 	$(RM) *.d *~ ual_defs.h $(INSTALL)/include/*.h
