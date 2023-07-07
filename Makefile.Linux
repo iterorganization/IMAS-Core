@@ -66,7 +66,7 @@ $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir)
 printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
 
-../bin/mdsplusIMASDB4to5:
+mdsplusIMASDB4to5:
 
 
 # Dynamic library
