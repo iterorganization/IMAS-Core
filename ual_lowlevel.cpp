@@ -106,7 +106,7 @@ void LLplugin::getFullPath(int opctxID, const char* fieldPath,  std::string &ful
 }
 
 bool LLplugin::pluginsFrameworkEnabled(){
-  char *pluginsFrameworkEnabled =  getenv("AL_PLUGINS_ENABLED");
+  char *pluginsFrameworkEnabled =  getenv("IMAS_AL_ENABLE_PLUGINS");
   if (!pluginsFrameworkEnabled) 
        return false;
   std::string b = std::string(pluginsFrameworkEnabled);
@@ -115,7 +115,7 @@ bool LLplugin::pluginsFrameworkEnabled(){
 
 void LLplugin::checkIfPluginsFrameworkIsEnabled(){
   if(!pluginsFrameworkEnabled())
-       throw UALLowlevelException("Plugins feature is disabled. Set the global variable 'AL_PLUGINS_ENABLED' to 'TRUE' to enable this feature.");
+       throw UALLowlevelException("Plugins feature is disabled. Set the global variable 'IMAS_AL_ENABLE_PLUGINS' to 'TRUE' to enable this feature.");
 } 
 
 void LLplugin::getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path) {
@@ -297,9 +297,9 @@ bool LLplugin::isPluginRegistered(const char* name) {
 
 bool LLplugin::registerPlugin(const char* plugin_name) {
     checkIfPluginsFrameworkIsEnabled();
-    const char* AL_PLUGINS = std::getenv("AL_PLUGINS");
-    if (AL_PLUGINS == NULL)
-        throw UALLowlevelException("AL_PLUGINS environment variable not defined",LOG);
+    const char* IMAS_AL_PLUGINS = std::getenv("IMAS_AL_PLUGINS");
+    if (IMAS_AL_PLUGINS == NULL)
+        throw UALLowlevelException("IMAS_AL_PLUGINS environment variable not defined",LOG);
 
     if (isPluginRegistered(plugin_name)) {
         char error_message[200];
@@ -307,7 +307,7 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
         throw UALLowlevelException(error_message, LOG);
     }
   
-    std::string ids_plugin = std::string(AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
+    std::string ids_plugin = std::string(IMAS_AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     if (!boost::filesystem::exists(ids_plugin.c_str())) { 
       const char* IMAS_VERSION = std::getenv("IMAS_VERSION");
       if (IMAS_VERSION == NULL || std::string(IMAS_VERSION).find("-") != std::string::npos) {
