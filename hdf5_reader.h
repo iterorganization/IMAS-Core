@@ -54,6 +54,7 @@ class HDF5Reader {
 
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     DataEntryContext* getDataEntryContext(Context * ctx);
+    bool INTERPOLATION_WARNING;
 
   public:
 

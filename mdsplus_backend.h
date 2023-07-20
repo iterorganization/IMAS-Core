@@ -47,6 +47,8 @@ class LIBRARY_API MDSplusBackend:public Backend
     int maxAosTimedId;
     int maxAosTimeaId;
 
+    bool INTERPOLATION_WARNING;
+    
     //Keep for every timed AoS field or dynamic AoS the full path of the corresponding node 
     std::unordered_map<std::string, std::string> timedNodePathMap;
     std::unordered_map<std::string, std::string> timeaNodePathMap;
