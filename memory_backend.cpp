@@ -1229,7 +1229,7 @@ else
 	timed = timebase != "";
 	
 	dimensionV.clear();
-	int totSize = 1;
+	unsigned long long totSize = 1;
 	for(int i = 0; i < numDims; i++)
 	{
 	    totSize *= dims[i];
@@ -1265,7 +1265,7 @@ else
 	}
 	else
 	{
-	    int currSize = totSize * getItemSize(type);
+	    unsigned long long currSize = totSize * getItemSize(type);
 	    unsigned char *currBuf = new unsigned char[currSize];
 	    memcpy(currBuf, buf, currSize);
 	    bufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
@@ -1285,12 +1285,12 @@ else
 	    exit(0);
 	}
 	dimensionV[numDims - 1] += dims[numDims - 1];
-	int sliceSize = 1;
+	unsigned long long sliceSize = 1;
 	for(int i = 0; i < (int)dimensionV.size()-1; i++)
 	    sliceSize *= dimensionV[i];
 	for(int i = 0; i < dims[numDims - 1]; i++)
 	{
-	    int currSize = sliceSize * getItemSize(type);
+	    unsigned long long currSize = sliceSize * getItemSize(type);
 	    unsigned char *currBuf = new unsigned char[currSize];
 	    memcpy(currBuf, &buf[i * currSize], currSize);
 	    newBufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
@@ -1360,13 +1360,13 @@ else
 	if(mapState != MAPPING::MAPPED || bufV.size() == 0)
 	    return 0;
 	*datatype  = type;
-	int totSize = 1;
+	unsigned long long totSize = 1;
 	for(size_t i = 0; i < dimensionV.size(); i++)
 	    totSize *= dimensionV[i];
 	unsigned char *currBuf = (unsigned char *)malloc(totSize * getItemSize(type));
 	if(timed)
 	{
-	    int sliceSize = totSize * getItemSize(type)/dimensionV[dimensionV.size()-1];
+	    unsigned long long sliceSize = totSize * getItemSize(type)/dimensionV[dimensionV.size()-1];
 	    for(size_t i = 0; i < bufV.size(); i++)
 	    {
 		memcpy(&currBuf[i * sliceSize], bufV[i].get(), sliceSize);
