@@ -241,7 +241,7 @@ std::unique_ptr < HDF5DataSetHandler > HDF5Reader::getTimeVectorDataSet(Operatio
         dataset_id = data_set->dataset_id;
     } else {
         std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler(false, opCtx->getDataEntryContext()->getURI()));
-        dataSetHandler-> open(dataset_name.c_str(), gid, &dataset_id, 1, nullptr, ualconst::double_data, false, true, opCtx->getDataEntryContext()->getURI());
+        dataSetHandler-> open(dataset_name.c_str(), gid, &dataset_id, 1, nullptr, alconst::double_data, false, true, opCtx->getDataEntryContext()->getURI());
         dataset_id = dataSetHandler->dataset_id;
         data_set = std::move(dataSetHandler);
     }
@@ -249,7 +249,7 @@ std::unique_ptr < HDF5DataSetHandler > HDF5Reader::getTimeVectorDataSet(Operatio
     if (dataset_id < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to open dataset: %s for getting time vector.\n", dataset_name.c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     
     return data_set;
@@ -274,12 +274,12 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to read the homogeneous time basis:%s\n", data_set->getName().c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     } else {
         // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
         int dim = -1;
-        HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), ualconst::double_data, current_arrctx_indices.size(), &dim);
+        HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), alconst::double_data, current_arrctx_indices.size(), &dim);
         hsSelectionReader.allocateInhomogeneousTimeDataSet((void **) &slices_times, timed_AOS_index);
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index!=-1);
         herr_t status = H5Dread(data_set->dataset_id, hsSelectionReader.dtype_id,
@@ -289,7 +289,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to read the inhomogeneous time basis: %s\n", data_set->getName().c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
 
@@ -357,7 +357,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         break;
 
     default:
-        throw UALBackendException("Interpolation mode not yet supported", LOG);
+        throw ALBackendException("Interpolation mode not yet supported", LOG);
     }
 }
 
@@ -541,7 +541,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
     }
 
     char **p = nullptr;
-    if (datatype == ualconst::char_data) {
+    if (datatype == alconst::char_data) {
         
         if (*dim == 1) {
             p = (char **) data;
@@ -611,7 +611,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
 				current_arrctx_indices
  			      );
 
-            if (datatype != ualconst::char_data) {
+            if (datatype != alconst::char_data) {
                 for (int i = 0; i < hsSelectionReader.getDim(); i++)
                     second_slice_shape[i] = size[i];
 
@@ -626,7 +626,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
-	if (datatype != ualconst::char_data)
+	if (datatype != alconst::char_data)
            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
 	else
 	   status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
@@ -640,7 +640,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         //Making linear interpolation
         switch (datatype) {
 
-        case ualconst::integer_data:
+        case alconst::integer_data:
             {
                 int *data_int = (int *) *data;
                 int *next_slice_data_int = (int *) next_slice_data;
@@ -649,7 +649,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                 free(next_slice_data);
                 break;
             }
-        case ualconst::double_data:
+        case alconst::double_data:
             {
                 double *data_double = (double *) *data;
                 double *next_slice_data_double = (double *) next_slice_data;
@@ -658,7 +658,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
                 free(next_slice_data);
                 break;
             }
-        case ualconst::char_data:
+        case alconst::char_data:
             {
 		char* data_str = (char*) *data;
 		char* next_data_str = (char*) next_slice_data;
@@ -691,8 +691,8 @@ int HDF5Reader::getPersistentShapes(Context * ctx, hid_t gid, const std::string 
 
     int shapesDataSetExists = 0;
 
-    if ((datatype != ualconst::char_data && dim > 0)
-        || (datatype == ualconst::char_data && dim == 2)) {
+    if ((datatype != alconst::char_data && dim > 0)
+        || (datatype == alconst::char_data && dim == 2)) {
         int *shapes = nullptr;
         shapesDataSetExists = readPersistentShapes(ctx, gid, tensorized_path, (void **) &shapes, slice_mode, is_dynamic, isTimed, 
 slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataSet, current_arrctx_indices);
@@ -704,7 +704,7 @@ slice_index, timed_AOS_index, zero_shape, dataset_id_shapes, isOpenedShapesDataS
 
         if (shapesDataSetExists == 1) {
 
-            if (datatype == ualconst::char_data && dim == 2) {
+            if (datatype == alconst::char_data && dim == 2) {
                 size[0] = shapes[0];
             } else {
                 size[0] = 1;    //for scalars
@@ -748,18 +748,18 @@ int HDF5Reader::readPersistentShapes_Get(Context * ctx, hid_t gid, const std::st
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         hid_t dataset_id = -1;
-        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, dec->getURI());
+        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
         assert(new_data_set->dataset_id >=0);
         *dataset_id_shapes = dataset_id;
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr < HDF5HsSelectionReader >(new HDF5HsSelectionReader(new_data_set->getRank(), new_data_set->dataset_id, 
-            new_data_set->getDataSpace(), new_data_set->getLargestDims(), ualconst::integer_data, current_arrctx_indices.size(), &dim));
+            new_data_set->getDataSpace(), new_data_set->getLargestDims(), alconst::integer_data, current_arrctx_indices.size(), &dim));
         new_data_set->selection_reader = std::move(hsSelectionReader);
         data_set = std::move(new_data_set);
     }
 
     int dim = 1; 
-    data_set->readData(current_arrctx_indices, ualconst::integer_data, dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, shapes);
+    data_set->readData(current_arrctx_indices, alconst::integer_data, dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, shapes);
     opened_shapes_data_sets[tensorized_path] = std::move(data_set);
     return 1;
 }
@@ -790,10 +790,10 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
     {
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
-        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, dec->getURI());
+        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr < HDF5HsSelectionReader >(new HDF5HsSelectionReader(new_data_set->getRank(), dataset_id, 
-            new_data_set->getDataSpace(), new_data_set->getLargestDims(), ualconst::integer_data, aos_indices.size(), &dim));
+            new_data_set->getDataSpace(), new_data_set->getLargestDims(), alconst::integer_data, aos_indices.size(), &dim));
         new_data_set->selection_reader = std::move(hsSelectionReader);
         dataset_id = new_data_set->dataset_id;
         data_set = std::move(new_data_set);
@@ -815,7 +815,7 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
       char error_message[200];
       sprintf (error_message,
 	       "Unable to read SHAPE: %s\n", tensorized_path.c_str ());
-      throw UALBackendException (error_message, LOG);
+      throw ALBackendException (error_message, LOG);
     }
 
   int *shapes_int = (int *) *shapes;
@@ -854,11 +854,11 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, hid_t gid, const std::str
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         hid_t dataset_id = -1;
-        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, dec->getURI());
+        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
         dataset_id = new_data_set->dataset_id;
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr < HDF5HsSelectionReader >(new HDF5HsSelectionReader(new_data_set->getRank(), dataset_id, 
-            new_data_set->getDataSpace(), new_data_set->getLargestDims(), ualconst::integer_data, aos_indices.size(), &dim));
+            new_data_set->getDataSpace(), new_data_set->getLargestDims(), alconst::integer_data, aos_indices.size(), &dim));
         new_data_set->selection_reader = std::move(hsSelectionReader);
         data_set = std::move(new_data_set);
     }
@@ -866,7 +866,7 @@ int HDF5Reader::readAOSPersistentShapes(Context * ctx, hid_t gid, const std::str
     int dim = 1;
     if (!data_set->isRequestInExtent(aos_indices))
        return 0;
-    data_set->readData(aos_indices, ualconst::integer_data, dim, slice_mode, false, timed_AOS_index != -1, timed_AOS_index, slice_index, shapes);
+    data_set->readData(aos_indices, alconst::integer_data, dim, slice_mode, false, timed_AOS_index != -1, timed_AOS_index, slice_index, shapes);
     aos_opened_shapes_data_sets[tensorized_path] = std::move(data_set);
     return 1;
 }

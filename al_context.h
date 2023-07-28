@@ -1,15 +1,15 @@
 /*-*-c++-*-*/
 
 /**
-   \file ual_context.h
+   \file al_context.h
    Contains definition of Context classes and all its subclasses.
 */
 
-#ifndef UAL_CONTEXT_H
-#define UAL_CONTEXT_H 1
+#ifndef AL_CONTEXT_H
+#define AL_CONTEXT_H 1
 
-#include "ual_exception.h"
-#include "ual_const.h"
+#include "al_exception.h"
+#include "al_const.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -456,4 +456,4 @@ LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const&
 
 #endif
 
-#endif // UAL_CONTEXT_H
+#endif // AL_CONTEXT_H

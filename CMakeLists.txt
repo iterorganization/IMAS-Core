@@ -36,11 +36,11 @@ endif()
 # Sources
 
 set( SRC_FILES
-  ual_backend.cpp
-  ual_lowlevel.cpp
-  ual_context.cpp
-  ual_const.cpp
-  ual_exception.cpp
+  al_backend.cpp
+  al_lowlevel.cpp
+  al_context.cpp
+  al_const.cpp
+  al_exception.cpp
   no_backend.cpp
   memory_backend.cpp
   ascii_backend.cpp
@@ -51,12 +51,12 @@ set( HEADER_FILES
   ascii_backend.h
   memory_backend.h
   no_backend.h
-  ual_backend.h
-  ual_const.h
-  ual_context.h
-  ual_defs.h
-  ual_exception.h
-  ual_lowlevel.h
+  al_backend.h
+  al_const.h
+  al_context.h
+  al_defs.h
+  al_exception.h
+  al_lowlevel.h
   access_layer_plugin_manager.h
 )
 

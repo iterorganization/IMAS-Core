@@ -1,6 +1,6 @@
 #include "hdf5_backend_factory.h"
 
-#include "ual_backend.h"
+#include "al_backend.h"
 
 HDF5BackendFactory::HDF5BackendFactory(std::string backend_version):backend_version_(backend_version)
 {
@@ -18,7 +18,7 @@ std::unique_ptr < HDF5Writer > HDF5BackendFactory::createWriter()
     } else {
         std::string message("No backend writer with version: ");
         message += backend_version_;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
 
 }
@@ -31,7 +31,7 @@ std::unique_ptr < HDF5Reader > HDF5BackendFactory::createReader()
     } else {
         std::string message("No backend reader with version: ");
         message += backend_version_;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
 }
 
@@ -43,6 +43,6 @@ std::unique_ptr < HDF5EventsHandler > HDF5BackendFactory::createEventsHandler()
     } else {
         std::string message("No backend events handler with version: ");
         message += backend_version_;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
 }

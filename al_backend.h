@@ -1,15 +1,15 @@
 //-*-c++-*-
 
 /**
-   \file ual_backend.h
+   \file al_backend.h
    Contains definition of abstract Backend classe, defining the virtual API each 
    back-end implementation has to provide code for.
 */
 
-#ifndef UAL_BACKEND_H
-#define UAL_BACKEND_H 1
+#ifndef AL_BACKEND_H
+#define AL_BACKEND_H 1
 
-#include "ual_context.h"
+#include "al_context.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -168,4 +168,4 @@ public:
 
 #endif
 
-#endif // UAL_BACKEND_H
+#endif // AL_BACKEND_H

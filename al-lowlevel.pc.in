@@ -4,7 +4,7 @@ libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: al-lowlevel
-Version: __UAL_GIT_DESCRIBE__
+Version: __AL_GIT_DESCRIBE__
 Description: IMAS Access Layer Low Level libraries for C.
 URL: https://imas.iter.org
 Cflags: -I${includedir}

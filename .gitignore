@@ -1,10 +1,10 @@
 /mdsplus_backend.d
 /memory_backend.d
-/ual_backend.d
-/ual_const.d
-/ual_context.d
-/ual_low_level.d
-/ual_lowlevel.d
+/al_backend.d
+/al_const.d
+/al_context.d
+/al_low_level.d
+/al_lowlevel.d
 /html/
 /latex/
 /uda_backend.d*
@@ -17,4 +17,4 @@ pkgconfig_install
 *.a_install
 *.so_install
 /lowlevel
-ual_defs.h
+al_defs.h

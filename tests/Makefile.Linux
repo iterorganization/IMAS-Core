@@ -1,7 +1,7 @@
 include ../../Makefile.common
 
-ifeq (,$(wildcard $(UAL)))
-$(error $$UAL is unset)
+ifeq (,$(wildcard $(AL)))
+$(error $$AL is unset)
 endif
 
 ifneq (${DEBUG},yes)
@@ -15,8 +15,8 @@ CFLAGS=-std=c11 -pedantic -Wall -fPIC ${OPTFLAG} ${DBGFLAGS}
 CXXFLAGS=-std=c++11 -pedantic -fPIC -Wall ${OPTFLAG} ${DBGFLAGS}
 LDFLAGS=-pthread ${DBGFLAGS}
 
-INCDIR= -I$(UAL)/lowlevel
-LIBS= -L$(UAL)/lowlevel
+INCDIR= -I$(AL)/lowlevel
+LIBS= -L$(AL)/lowlevel
 LIBS+= -lal
 
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")

@@ -69,7 +69,7 @@ int
         if (att_id < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to open attribute: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
 
         hid_t dtype_id = H5Tcopy (H5T_C_S1);
@@ -79,7 +79,7 @@ int
         if (tset < 0) {
             char error_message[100];
             sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message);
+            throw ALBackendException(error_message);
         }
 
         char version[10];
@@ -87,7 +87,7 @@ int
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
         backend_version = std::string(version);
         H5Tclose(dtype_id);
@@ -95,7 +95,7 @@ int
     } else {
         char error_message[200];
         sprintf(error_message, "Not a IMAS HDF5 pulse file. Unable to find attribute: %s\n", backend_version_attribute_name);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 
     /* Restore previous error handler */
@@ -132,7 +132,7 @@ void
             else {
                 char error_message[200];
                 sprintf(error_message, "HDF5 master file: %s already exists. Use FORCE_CREATE_PULSE instead.\n", pulseFilePath.c_str());
-                throw UALBackendException(error_message, LOG);
+                throw ALBackendException(error_message, LOG);
             }
             break;
         case FORCE_CREATE_PULSE:
@@ -140,7 +140,7 @@ void
             hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
             break;
         default:
-            throw UALBackendException("Mode not yet supported", LOG);
+            throw ALBackendException("Mode not yet supported", LOG);
     }
 
     /* Restore previous error handler */
@@ -168,7 +168,7 @@ void HDF5Utils::deleteIDSFile(const std::string &filePath) {
         if (exists(filePath.c_str())) {
             char error_message[200];
             sprintf(error_message, "Unable to remove HDF5 pulse file: %s\n", filePath.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
 }
@@ -184,7 +184,7 @@ void HDF5Utils::deleteMasterFile(const std::string &filePath, hid_t *file_id, st
         if (exists(filePath.c_str())) {
             char error_message[200];
             sprintf(error_message, "Unable to remove HDF5 master file: %s\n", filePath.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
      }
 }
@@ -194,7 +194,7 @@ void HDF5Utils::createMasterFile(DataEntryContext * ctx, std::string &filePath, 
     hid_t create_plist = H5Pcreate(H5P_FILE_CREATE);
     herr_t status = H5Pset_userblock(create_plist, 1024);
     if (status < 0) {
-        throw UALBackendException("createPulse:unable to set a user block.", LOG);
+        throw ALBackendException("createPulse:unable to set a user block.", LOG);
     }
     /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
     assert(fap_plist >= 0);
@@ -209,7 +209,7 @@ void HDF5Utils::createMasterFile(DataEntryContext * ctx, std::string &filePath, 
     if (*file_id < 0) {
         std::string message("Unable to create HDF5 file: ");
         message += filePath;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
     HDF5Utils hdf5_utils;
     hdf5_utils.writeHeader(ctx, *file_id, filePath, backend_version);
@@ -223,13 +223,13 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to set a user block on pulse file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     *IDS_file_id = H5Fcreate(IDSpulseFile.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
     if (*IDS_file_id < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     assert(H5Pclose(create_plist) >= 0);
 
@@ -247,7 +247,7 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
             if (*IDS_file_id < 0) { 
                 char error_message[200];
                 sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
-                throw UALBackendException(error_message, LOG);
+                throw ALBackendException(error_message, LOG);
             }
             else {
 				//printf("IDS read successfully with file_id=%d\n", *IDS_file_id);
@@ -256,7 +256,7 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
         else {
 		    char error_message[200];
 		    sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
-		    throw UALBackendException(error_message, LOG);
+		    throw ALBackendException(error_message, LOG);
 	        
         }
     }
@@ -268,7 +268,7 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
     if (!exists(filePath)) {
         std::string message("HDF5 master file not found: ");
         message += filePath;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
     /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
     assert(fap_plist >= 0);
@@ -280,7 +280,7 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
         if (*file_id < 0) {
             std::string message("Unable to open HDF5 master file: ");
             message += filePath;
-            throw UALBackendException(message, LOG);
+            throw ALBackendException(message, LOG);
         }
 		else {
 			//printf("master file read successfully with file_id=%d\n", *file_id);
@@ -296,7 +296,7 @@ void HDF5Utils::closeMasterFile(hid_t *file_id) {
     if (status < 0) {
         char error_message[100];
         sprintf(error_message, "Unable to close HDF5 master file with handler: %d\n", (int) *file_id);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     *file_id = -1;
 }
@@ -331,20 +331,20 @@ void HDF5Utils::writeHeader(DataEntryContext * ctx, hid_t file_id, std::string &
     if (tset < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", backend_version_attribute_name);
-        throw UALBackendException(error_message);
+        throw ALBackendException(error_message);
     }
     hid_t att_id = H5Acreate2(file_id, backend_version_attribute_name, dtype_id,
                               dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
     if (att_id < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create attribute: %s\n", backend_version_attribute_name);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     herr_t status = H5Awrite(att_id, dtype_id, backend_version.c_str());
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to write attribute: %s\n", backend_version_attribute_name);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 
     writeUserBlock(filePath.c_str(), ctx);
@@ -360,7 +360,7 @@ void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * 
     if (!file.is_open()) {
         char error_message[200];
         sprintf(error_message, "Unable to open the file %s for writing the user block.\n", filePath.c_str());
-        throw UALBackendException(error_message, LOG);       
+        throw ALBackendException(error_message, LOG);       
     }
     file.seekp(0, std::ios::beg);
 
@@ -381,7 +381,7 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
         if (IDS_file_id < 0) {
             std::string message("Unable to open external file: ");
             message += IDSpulseFile;
-            throw UALBackendException(message, LOG);
+            throw ALBackendException(message, LOG);
        
             if (!od->mode) {
                 if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
@@ -408,10 +408,10 @@ std::string HDF5Utils::pulseFilePathFactory(DataEntryContext * ctx, int mode, in
         return getPulseFilePath(ctx, mode, strategy, files_directory, relative_file_path);
         break;
     case FREE_PATH_STRATEGY:
-        throw UALBackendException("Strategy for pulse files path location not yet implemented", LOG);
+        throw ALBackendException("Strategy for pulse files path location not yet implemented", LOG);
         break;
     default:
-        throw UALBackendException("Unknow strategy for pulse files path location", LOG);
+        throw ALBackendException("Unknow strategy for pulse files path location", LOG);
     }
 }
 
@@ -430,7 +430,7 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
     catch(std::exception & e) {
         std::string message("Unable to create data-entry directory: ");
         message += files_directory;
-        throw UALBackendException(message, LOG);
+        throw ALBackendException(message, LOG);
     }
     return files_directory + "/" + relative_file_path;
 }
@@ -550,14 +550,14 @@ hid_t HDF5Utils::createOrOpenHDF5Group(const std::string & path, const hid_t & p
         if (loc_id < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to create HDF5 group: %s\n", att_name.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     } else {
         loc_id = H5Gopen2(parent_loc_id, att_name.c_str(), H5P_DEFAULT);
         if (loc_id < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to open HDF5 group: %s\n", att_name.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
     return loc_id;
@@ -574,7 +574,7 @@ hid_t HDF5Utils::createHDF5Group(const std::string & path, const hid_t & parent_
         if (loc_id < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to create HDF5 group: %s\n", att_name.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     } else {
         *group_already_exists = true;
@@ -593,7 +593,7 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
     if (loc_id < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to open HDF5 group: %s\n", att_name.c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     return loc_id;
 }
@@ -656,7 +656,7 @@ void HDF5Utils::closeIDSFile(hid_t pulse_file_id, const std::string &external_li
         if (status < 0) {
             char error_message[100];
             sprintf(error_message, "Unable to close HDF5 file for IDS: %s\n", external_link_name.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
 }
@@ -666,7 +666,7 @@ void HDF5Utils::removeLinkFromIDSPulseFile(hid_t &IDS_file_id, const std::string
         if (H5Ldelete(IDS_file_id, IDS_link_name.c_str(), H5P_DEFAULT) < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to remove HDF5 link %s from IDS file.\n", IDS_link_name.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
 }
@@ -675,7 +675,7 @@ void HDF5Utils::removeLinkFromMasterPulseFile(hid_t &file_id, const std::string 
     if (H5Ldelete(file_id, link_name.c_str(), H5P_DEFAULT) < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to remove HDF5 link %s from master file.\n", link_name.c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 

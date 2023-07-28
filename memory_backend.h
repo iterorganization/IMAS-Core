@@ -9,10 +9,10 @@
 #include <vector>
 #include <pthread.h>
 
-#include "ual_backend.h"
-#include "ual_context.h"
-#include "ual_defs.h"
-#include "ual_const.h"
+#include "al_backend.h"
+#include "al_context.h"
+#include "al_defs.h"
+#include "al_const.h"
 
 #define NODENAME_MANGLING  //Use IMAS mangling
 
@@ -42,7 +42,7 @@ struct array_deleter
 
 //Support classes for memory mapping
 
-class LIBRARY_API UalData
+class LIBRARY_API ALData
 {
     bool timed;
     int type;
@@ -57,7 +57,7 @@ class LIBRARY_API UalData
 
 public:
     enum MAPPING { UNMAPPED = 1, MAPPED = 2, SLICE_MAPPED = 3 };
-    UalData();
+    ALData();
     bool isTimed() { return timed;}
     int getMapState() {return mapState;}
 
@@ -75,7 +75,7 @@ public:
 //Called only when in state SLICE_MAPPED, that is, only when it contains only the most recent slices
     void prependData(int type, int numDims, int *dims, unsigned char *buf);
     void addSlice(int type, int numDims, int *dims, unsigned char *buf);
-    void addSlice(UalData &slice);
+    void addSlice(ALData &slice);
 
     bool isEmpty() { return bufV.size() == 0;}
     void shrinkDimension() //TEMPORARY , MAY BE REMOVED LATER
@@ -87,25 +87,25 @@ public:
     int readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     int readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     void readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation);
-    UalData *clone();
-    bool isCompatible(UalData *ualData)
+    ALData *clone();
+    bool isCompatible(ALData *alData)
     {
-	if(type != ualData->type)
+	if(type != alData->type)
 	    return  false;
-	if(dimensionV.size() != ualData->dimensionV.size())
+	if(dimensionV.size() != alData->dimensionV.size())
 	    return false;
 	for(size_t i = 0; i < dimensionV.size(); i++)
 	{
-	    if(dimensionV[i] != ualData->dimensionV[i])
+	    if(dimensionV[i] != alData->dimensionV[i])
 	    	return false;
 	}
 	return true;
     }
 
 //Interpolation method valid only for timed AoS and therefore where dimensionV.size() == 1 
-    UalData *linearInterpol(UalData *ualData, double t, double t1, double t2)
+    ALData *linearInterpol(ALData *alData, double t, double t1, double t2)
     {
-	UalData *retData = new UalData();
+	ALData *retData = new ALData();
 	if(bufV.size() != 1)
 	{
 	    std::cout << "INTERNAL ERROR: unexpected number of slices > 1 when interpolating AoS\n";
@@ -127,7 +127,7 @@ public:
 	    case CHAR_DATA:
 	    {
 		char *data1 = (char *)bufV[0].get();
-		char *data2 = (char *)ualData->bufV[0].get();
+		char *data2 = (char *)alData->bufV[0].get();
 	    	char *currBuf = new char[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((char *)data1)[i] + delta * (((char *)data2)[i] - ((char *)data1)[i]);
@@ -138,7 +138,7 @@ public:
 	    case INTEGER_DATA:
 	    {
 		int *data1 = (int *)bufV[0].get();
-		int *data2 = (int *)ualData->bufV[0].get();
+		int *data2 = (int *)alData->bufV[0].get();
 	    	int *currBuf = new int[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((int *)data1)[i] + delta * (((int *)data2)[i] - ((int *)data1)[i]);
@@ -149,7 +149,7 @@ public:
 	    case DOUBLE_DATA:
 	    {
 		double *data1 = (double *)bufV[0].get();
-		double *data2 = (double *)ualData->bufV[0].get();
+		double *data2 = (double *)alData->bufV[0].get();
 	    	double *currBuf = new double[numItems];
 		for(int i = 0; i < numItems; i++)
 		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
@@ -160,7 +160,7 @@ public:
 	    case COMPLEX_DATA:
 	    {
 		double *data1 = (double *)bufV[0].get();
-		double *data2 = (double *)ualData->bufV[0].get();
+		double *data2 = (double *)alData->bufV[0].get();
 	    	double *currBuf = new double[2*numItems];
 		for(int i = 0; i < 2*numItems; i++)
 		    currBuf[i] = ((double *)data1)[i] + delta * (((double *)data2)[i] - ((double *)data1)[i]);
@@ -236,42 +236,42 @@ public:
     }
 };
 
-class UalStruct;
-class LIBRARY_API UalAoS
+class ALStruct;
+class LIBRARY_API ALAoS
 {
 public:
     std::string timebase;
-    std::vector<UalStruct *> aos;
+    std::vector<ALStruct *> aos;
     void setTimebase(std::string timebase) {this->timebase = timebase;}
-    void addSlice(UalAoS &sliceAos, ArraystructContext *ctx);
+    void addSlice(ALAoS &sliceAos, ArraystructContext *ctx);
     void deleteData();
-    UalAoS *clone();
+    ALAoS *clone();
     void dump(int tabs);
-    ~UalAoS();
-    UalAoS * linearInterpol(UalAoS *ualAos, double t, double t1, double t2); 
+    ~ALAoS();
+    ALAoS * linearInterpol(ALAoS *alAos, double t, double t1, double t2); 
 };
 
-class LIBRARY_API UalStruct
+class LIBRARY_API ALStruct
 {
 	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
-	UalStruct(const UalStruct&) = delete;
-    UalStruct& operator=(const UalStruct&) = delete;
+	ALStruct(const ALStruct&) = delete;
+    ALStruct& operator=(const ALStruct&) = delete;
 	
 public:
-     std::unordered_map<std::string, UalData *> dataFields;
-    std::unordered_map<std::string, UalAoS *>aosFields;
+     std::unordered_map<std::string, ALData *> dataFields;
+    std::unordered_map<std::string, ALAoS *>aosFields;
 
-    UalData *getData(std::string path);
- //   void setData(std::string path, UalData &data);
+    ALData *getData(std::string path);
+ //   void setData(std::string path, ALData &data);
     void deleteData();
-    UalAoS *getSubAoS(std::string path);
-    void addSlice(UalStruct &ualSlice, ArraystructContext *ctx);
+    ALAoS *getSubAoS(std::string path);
+    void addSlice(ALStruct &alSlice, ArraystructContext *ctx);
     bool isAoSMapped(std::string path);
-    UalStruct *clone();
-    UalStruct()
+    ALStruct *clone();
+    ALStruct()
 	{
 	}
-    ~UalStruct()
+    ~ALStruct()
     {
   	for ( auto it = dataFields.cbegin(); it != dataFields.cend(); ++it )
 	{
@@ -300,18 +300,18 @@ public:
 	    it->second->dump(tabs + 1);
 	}
     }
-    UalStruct *linearInterpol(UalStruct *ualStruct, double t, double t1, double t2);
+    ALStruct *linearInterpol(ALStruct *alStruct, double t, double t1, double t2);
 	
 };
 
 class LIBRARY_API StructPath
 {
 public:
-    UalStruct *ualStruct;
+    ALStruct *alStruct;
     std::string path;
-    StructPath(UalStruct *ualStruct, std::string path)
+    StructPath(ALStruct *alStruct, std::string path)
     {
-	this->ualStruct = ualStruct;
+	this->alStruct = alStruct;
 	this->path = path;
     }
 };
@@ -321,8 +321,8 @@ class LIBRARY_API IdsInfo
 {
 public:
     std::string idsPath;
-    UalStruct *ids;
-    IdsInfo(std::string idsPath, UalStruct *ids)
+    ALStruct *ids;
+    IdsInfo(std::string idsPath, ALStruct *ids)
     {
 	this->idsPath = idsPath;
 	this->ids = ids;
@@ -333,7 +333,7 @@ public:
 class InternalCtx  
 {
 public:
-    std::unordered_map<std::string, UalStruct *> idsMap;
+    std::unordered_map<std::string, ALStruct *> idsMap;
     std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
     pthread_mutex_t mutex;
     int refCount;
@@ -378,23 +378,23 @@ class LIBRARY_API MemoryBackend:public Backend
 
     bool isCreated;
     InternalCtx *internalCtx;
-    //std::unordered_map<std::string, UalStruct *> idsMap;
+    //std::unordered_map<std::string, ALStruct *> idsMap;
     //std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
 
 //currentAoS will containg the fields being written when assembing a new AoS (or AoS slice)
-    UalAoS currentAos;
+    ALAoS currentAos;
 
 
     //Get the full pathname (internal) of the IDS root 
     std::string getIdsPath(OperationContext *ctx);
 
-    //Get the IDS (in UalStruct) 
-    UalStruct *getIds(OperationContext *ctx);
+    //Get the IDS (in ALStruct) 
+    ALStruct *getIds(OperationContext *ctx);
 
-    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    UalAoS *getAoS(ArraystructContext *ctx, bool isCurrent = false);
+    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS ALStruct is condiered.
+    ALAoS *getAoS(ArraystructContext *ctx, bool isCurrent = false);
 
-    UalData *getData(ArraystructContext *ctx, int idx, std::string path, bool isCurrent);
+    ALData *getData(ArraystructContext *ctx, int idx, std::string path, bool isCurrent);
 
 
 //Optimization info
@@ -452,22 +452,22 @@ public:
     void openPulse(DataEntryContext *ctx,
 			 int mode) override
     {
-	isCreated = (mode == ualconst::create_pulse || mode == ualconst::force_create_pulse);
+	isCreated = (mode == alconst::create_pulse || mode == alconst::force_create_pulse);
 
     std::string fullName = ctx->getURI().query.get("path").value();
 	
 	lock();  //Global Lock
 	try {
 	    internalCtx = ctxMap.at(fullName);
-	    if(mode == ualconst::create_pulse)
+	    if(mode == alconst::create_pulse)
 	    {
 		unlock();
-		throw  UALBackendException("CreatePulse: a pulse file already exists",LOG);
+		throw  ALBackendException("CreatePulse: a pulse file already exists",LOG);
 	    }
 	    internalCtx->refCount++;
 	} catch (const std::out_of_range& oor) 
 	{
-	    if(mode == ualconst::create_pulse || mode == ualconst::force_create_pulse || mode == ualconst::force_open_pulse)
+	    if(mode == alconst::create_pulse || mode == alconst::force_create_pulse || mode == alconst::force_open_pulse)
 	    {
 		internalCtx = new InternalCtx;
 		internalCtx->fullName = fullName;
@@ -476,10 +476,10 @@ public:
             else
 	    {
 		unlock();
-		throw  UALBackendException("Missing pulse",LOG);
+		throw  ALBackendException("Missing pulse",LOG);
 	    }
 	}
-	if (mode == ualconst::force_create_pulse)  //Empty previous content, if any
+	if (mode == alconst::force_create_pulse)  //Empty previous content, if any
 	{
    	    internalCtx->lock();
 
@@ -648,8 +648,8 @@ public:
 
 
     void flush(DataEntryContext *ctx, std::string dataobjectName);
-    void flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos);
-    void recFlushAoS(UalAoS &ualAoS, OperationContext *opCtx, ArraystructContext *ctx);
+    void flushAoS(OperationContext *ctx, std::string fieldName, ALAoS &alAos);
+    void recFlushAoS(ALAoS &alAos, OperationContext *opCtx, ArraystructContext *ctx);
     int getFromAoS(ArraystructContext *ctx,
 					std::string fieldname,
 					int idx,
@@ -666,11 +666,11 @@ public:
 					int* size);
 	
     void prepareSlice(ArraystructContext *ctx);
-    UalStruct *prepareSliceRec(ArraystructContext *ctx, UalStruct &ualStruct, UalStruct &ids, double time, std::vector<StructPath> &parentV, UalAoS *aos);
-	std::vector<double> getTimebaseVect(std::string path, std::vector<StructPath> &ctxV, UalAoS *aos = NULL);
-    void getSliceIdxs(std::string path, double time, std::vector<StructPath> &ctxV, int &sliceIdx1, int &sliceIdx2, UalAoS *aos = NULL);
-    UalData *getUalSlice(ArraystructContext *ctx, UalData &inData, double time);
-    UalData *getUalSlice(ArraystructContext *ctx, UalData &inData, double time, std::vector<double> timebaseV);
+    ALStruct *prepareSliceRec(ArraystructContext *ctx, ALStruct &alStruct, ALStruct &ids, double time, std::vector<StructPath> &parentV, ALAoS *aos);
+	std::vector<double> getTimebaseVect(std::string path, std::vector<StructPath> &ctxV, ALAoS *aos = NULL);
+    void getSliceIdxs(std::string path, double time, std::vector<StructPath> &ctxV, int &sliceIdx1, int &sliceIdx2, ALAoS *aos = NULL);
+    ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time);
+    ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time, std::vector<double> timebaseV);
 };
 
 #endif

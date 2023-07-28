@@ -16,10 +16,10 @@
 #include <stdlib.h>
 #include <boost/cstdlib.hpp>
 
-#include "ual_backend.h"
-#include "ual_const.h"
-#include "ual_context.h"
-#include "ual_defs.h"
+#include "al_backend.h"
+#include "al_const.h"
+#include "al_context.h"
+#include "al_defs.h"
 #include "uda_xml.hpp"
 #include "uda_cache.hpp"
 
@@ -78,7 +78,7 @@ private:
      * Process any UDA backend specific options found on the DBEntry URI.
      *
      * @param uri the uri of the DBEntry
-     * @throw UALException if any of the passed options have invalid values
+     * @throw ALException if any of the passed options have invalid values
      */
     void process_options(uri::Uri uri);
 

@@ -55,7 +55,7 @@ std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
       catch (std::exception &e) {
             char error_message[200];
             sprintf(error_message, "Unable to get backend version: %s\n", e.what());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
       }
       
       HDF5BackendFactory backendFactory(backend_version);
@@ -99,7 +99,7 @@ void
         HDF5Utils::createPulse(ctx, mode, backend_version, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path, this->pulseFilePath);
         break;
     default:
-        throw UALBackendException("Mode not yet supported", LOG);
+        throw ALBackendException("Mode not yet supported", LOG);
     }
     createBackendComponents(backend_version);
 }

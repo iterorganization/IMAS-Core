@@ -73,7 +73,7 @@ public:
     explicit operator bool() const { return found_; }
     std::string value() const {
         if (!found_) {
-            throw UALBackendException("URI query parameter " + param_ + " not found", LOG);
+            throw ALBackendException("URI query parameter " + param_ + " not found", LOG);
         }
         return value_;
     }

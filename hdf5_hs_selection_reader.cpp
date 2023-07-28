@@ -16,23 +16,23 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
 {
     switch (datatype) {
 
-    case ualconst::integer_data:
+    case alconst::integer_data:
         {
             dtype_id = H5T_NATIVE_INT;
             break;
         }
-    case ualconst::double_data:
+    case alconst::double_data:
         {
             dtype_id = H5T_NATIVE_DOUBLE;
             break;
         }
-	case ualconst::complex_data:
+	case alconst::complex_data:
         {
             immutable = false;
             dtype_id = H5Dget_type(dataset_id);
             break;
         }
-    case ualconst::char_data:
+    case alconst::char_data:
         {
             immutable = false;
             dtype_id = H5Dget_type(dataset_id);
@@ -42,7 +42,7 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
 
     dtype_size = H5Tget_size(dtype_id);
 
-    if (datatype != ualconst::char_data) {
+    if (datatype != alconst::char_data) {
         *dim = dataset_rank - AOSRank;
         for (int i = 0; i < dataset_rank - AOSRank; i++) {
             size[*dim - 1 - i] = (int) dataspace_dims[i + AOSRank];
@@ -93,7 +93,7 @@ void HDF5HsSelectionReader::setBufferSize()
 
     buffer_size = dtype_size;
 
-    if (datatype != ualconst::char_data) {
+    if (datatype != alconst::char_data) {
         for (int i = 0; i < dataset_rank - AOSRank; i++) {
             buffer_size *= (size_t) size[i];
         }
@@ -158,19 +158,19 @@ int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_d
         buffer /= this->size[dim - 1];
     }
 
-    if (datatype != ualconst::char_data) {
+    if (datatype != alconst::char_data) {
         *data = malloc(buffer);
         if (*data == nullptr) {
              char error_message[200];
              sprintf(error_message, "Unable to allocate memory.\n");
-             throw UALBackendException(error_message, LOG);
+             throw ALBackendException(error_message, LOG);
         }
     } else {
         data = (void **) malloc(sizeof(char *) * this->size[0]);
         if (data == nullptr) {
              char error_message[200];
              sprintf(error_message, "Unable to allocate memory.\n");
-             throw UALBackendException(error_message, LOG);
+             throw ALBackendException(error_message, LOG);
         }
     }
     return buffer;
@@ -183,7 +183,7 @@ int HDF5HsSelectionReader::allocateFullBuffer(void **data)
         size *= dataspace_dims[i];
     }
 	//std::cout << "total buffer size = " << buffer * dtype_size << std::endl;
-    if (datatype != ualconst::char_data) {
+    if (datatype != alconst::char_data) {
         *data = malloc(size * dtype_size);
     }
     else {
@@ -275,7 +275,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create dataspace HDF5 hyperslab.\n");
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 
     hsize_t dims[H5S_MAX_RANK];
@@ -348,7 +348,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create memory HDF5 hyperslab\n");
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 
 }

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <ual_lowlevel.h>
+#include <al_lowlevel.h>
 
 #ifndef WIN32
 #define _countof(x) sizeof(x)
@@ -33,7 +33,7 @@ void usage()
 	printf("\t-m\tMachine name\n");
 	printf("\t-o\tOpen action to do: O=Open (default), C=Create\n");
 	printf("\t-c\tClose action to do: C=Close (default), E=Close and erase\n");
-	printf("\t-p\tParameters to pass at UAL\n");
+	printf("\t-p\tParameters to pass at AL\n");
 	printf("\t-h\tShow this help\n");
 	printf("\n");
 }
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 	char szVersion[1024] = "3";
 	char szParams[1024] = "";
 	
-	printf("UAL version:\t%s\n", getUALVersion());
+	printf("AL version:\t%s\n", getALVersion());
 	printf("DD version:\t%s\n", getDDVersion());
 	printf("\n");
 
@@ -259,22 +259,22 @@ int main(int argc, char *argv[])
 	{		
 		printf("Shot number:\t%d\n", iShot);
 		printf("Run number:\t%d\n", iRun);
-		printf("Backend:\t%s\n", ualconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
+		printf("Backend:\t%s\n", alconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
 		printf("User name:\t%s\n", szUser);
 		printf("Machine:\t%s\n", szTokamak);
-		printf("Open action:\t%s\n", ualconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
-		printf("Close action:\t%s\n", ualconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
+		printf("Open action:\t%s\n", alconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
+		printf("Close action:\t%s\n", alconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
 		printf("Parameters:\t%s\n", szParams);
 		
 		// Low Level
 		int iPulseCtx = -1;
         char* uri;
-        ual_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, "", &uri);
-        al_status_t alStatus = ual_begin_dataentry_action(uri, iOpenAction, &iPulseCtx);
+        al_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, "", &uri);
+        al_status_t alStatus = al_begin_dataentry_action(uri, iOpenAction, &iPulseCtx);
 
 		if (alStatus.code != 0)
 		{
-			printf("Error opening imas action ctx for shot %d, run %d: ual_begin_dataentry_action = %s\n", iShot, iRun, alStatus.message);
+			printf("Error opening imas action ctx for shot %d, run %d: al_begin_dataentry_action = %s\n", iShot, iRun, alStatus.message);
 			iRet = alStatus.code;
 		}
 		else
@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 			printf("Opening imas pulse action ctx %d OK!\n", iPulseCtx);
 			
 			char* szInfo = NULL;
-			alStatus = ual_context_info(iPulseCtx, &szInfo);
+			alStatus = al_context_info(iPulseCtx, &szInfo);
 			if (alStatus.code == 0 && szInfo)
 			{
 				printf("Context info:\n%s\n", szInfo);
@@ -309,20 +309,20 @@ int main(int argc, char *argv[])
 				printf("Writing data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = ual_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
-					printf("Error opening imas %s for writing: ual_begin_global_action = %s\n", szIdsFullName, alStatus.message);
+					printf("Error opening imas %s for writing: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
 					iRet = alStatus.code;
 				}
 				else
 				{
 					printf("Opening imas global ctx %d OK!\n", iGetOpCtx);
 					
-					alStatus = ual_write_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void*)(&iValue), INTEGER_DATA, 0, NULL);
+					alStatus = al_write_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void*)(&iValue), INTEGER_DATA, 0, NULL);
 					if (alStatus.code != 0)
 					{
-						printf("Error writing integer imas global ctx %d: ual_write_data = %s\n", iGetOpCtx, alStatus.message);
+						printf("Error writing integer imas global ctx %d: al_write_data = %s\n", iGetOpCtx, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -331,10 +331,10 @@ int main(int argc, char *argv[])
 					}
 					
 					int arrayOfSizes[1] = { (int)strlen(szValue) };
-					alStatus = ual_write_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void*)(szValue), CHAR_DATA, 1, arrayOfSizes);
+					alStatus = al_write_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void*)(szValue), CHAR_DATA, 1, arrayOfSizes);
 					if (alStatus.code != 0)
 					{
-						printf("Error writing string imas global ctx %d: ual_write_data = %s\n", iGetOpCtx, alStatus.message);
+						printf("Error writing string imas global ctx %d: al_write_data = %s\n", iGetOpCtx, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
 						printf("Wrting string data in global ctx %d OK!\n", iGetOpCtx);
 					}
 					
-					alStatus = ual_end_action(iGetOpCtx);
+					alStatus = al_end_action(iGetOpCtx);
 				}
 			}
 			
@@ -352,10 +352,10 @@ int main(int argc, char *argv[])
 				printf("Reading data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = ual_begin_global_action(iPulseCtx, szIdsFullName, READ_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, READ_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
-					printf("Error opening imas %s for reading: ual_begin_global_action = %s\n", szIdsFullName, alStatus.message);
+					printf("Error opening imas %s for reading: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
 					iRet = alStatus.code;
 				}
 				else
@@ -367,10 +367,10 @@ int main(int argc, char *argv[])
 					char* szTemp = NULL;
 					int retSize[MAXDIM] = { 0 };
 					
-					alStatus = ual_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
+					alStatus = al_read_data(iGetOpCtx, szFieldPath, szTimeBasePath, (void**)&pData, INTEGER_DATA, 0, &retSize[0]);
 					if (alStatus.code != 0)
 					{
-						printf("Error reading integer imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
+						printf("Error reading integer imas global ctx %d: al_read_data = %s\n", iGetOpCtx, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -378,10 +378,10 @@ int main(int argc, char *argv[])
 						printf("Reading integer imas global ctx %d OK! -> %d\n", iGetOpCtx, iTemp);
 					}
 					
-					alStatus = ual_read_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void**)&szTemp, CHAR_DATA, 1, &retSize[0]);
+					alStatus = al_read_data(iGetOpCtx, szFieldPath2, szTimeBasePath, (void**)&szTemp, CHAR_DATA, 1, &retSize[0]);
 					if (alStatus.code != 0)
 					{
-						printf("Error reading string imas global ctx %d: ual_read_data = %s\n", iGetOpCtx, alStatus.message);
+						printf("Error reading string imas global ctx %d: al_read_data = %s\n", iGetOpCtx, alStatus.message);
 						iRet = alStatus.code;
 					}
 					else
@@ -390,11 +390,11 @@ int main(int argc, char *argv[])
 						free(szTemp);
 					}
 					
-					alStatus = ual_end_action(iGetOpCtx);
+					alStatus = al_end_action(iGetOpCtx);
 				}
 			}
 			
-			alStatus = ual_close_pulse(iPulseCtx, iCloseAction);
+			alStatus = al_close_pulse(iPulseCtx, iCloseAction);
 		}
 	}
 	

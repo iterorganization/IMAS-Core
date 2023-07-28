@@ -1,4 +1,4 @@
-#include "ual_context.h"
+#include "al_context.h"
 
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
@@ -48,7 +48,7 @@ unsigned long int Context::getUid() const
 DataEntryContext::DataEntryContext(std::string uri_) : uri(checkUriHost(uri::parse_uri(uri_)))
 {
   if (uri.error != uri::Error::None) {
-    throw UALContextException("Unable to parse the URI: " + uri_, LOG);
+    throw ALContextException("Unable to parse the URI: " + uri_, LOG);
   }
 
   setBackendID(uri.path, uri.authority.host);
@@ -60,7 +60,7 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(checkUriHost(uri::par
 
   /* too soon to decide conflicting query options? */
   /*if (!pathFromURI.empty() && (!userFromURI.empty() && !databaseFromURI.empty() && !versionFromURI.empty())) {
-      throw UALContextException("path should not be specified in the URI since user/database/version parameters are specified",LOG);
+      throw ALContextException("path should not be specified in the URI since user/database/version parameters are specified",LOG);
       }*/
 
   this->uid = ++SID;
@@ -97,27 +97,27 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
 
   auto maybe_user = uri.query.get("user");
   if (!maybe_user) {
-    throw UALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    throw ALContextException("'user' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   auto maybe_database = uri.query.get("database");
   if (!maybe_database) {
-    throw UALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    throw ALContextException("'database' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   auto maybe_version = uri.query.get("version");
   if (!maybe_version) {
-    throw UALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    throw ALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   auto maybe_shot = uri.query.get("shot");
   if (!maybe_shot) {
-    throw UALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    throw ALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   auto maybe_run = uri.query.get("run");
   if (!maybe_run) {
-    throw UALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    throw ALContextException("'run' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
   // using legacy to build standard paths
@@ -125,7 +125,7 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
   if (user == "public") {
     char *home = getenv("IMAS_HOME");
     if (home == NULL) {
-      throw UALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
+      throw ALBackendException("when user is 'public', IMAS_HOME environment variable should be set.", LOG);
     }
     filePath += home;
     filePath += "/shared/imasdb/";
@@ -149,7 +149,7 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
       filePath += pw->pw_dir;
 #endif
     } else {
-      throw  UALBackendException("Can't find or access " + user + " user's data",LOG);
+      throw  ALBackendException("Can't find or access " + user + " user's data",LOG);
     }
     filePath += "/public/imasdb/";
     filePath += maybe_database.value();
@@ -197,7 +197,7 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
     } else if (path == "uda" || !host.empty()) {
         backend_id = UDA_BACKEND;
     } else {
-        throw UALContextException("Unable to identify a backend from the URI",LOG);
+        throw ALContextException("Unable to identify a backend from the URI",LOG);
     }
 }
 
@@ -240,7 +240,7 @@ std::string DataEntryContext::getURIBackend(int backend_id)
         return "uda";
     }
     else {
-        throw UALContextException("getURIBackend, converting backend ID to backend URI string not yet implemented",LOG);
+        throw ALContextException("getURIBackend, converting backend ID to backend URI string not yet implemented",LOG);
     }
 }
 
@@ -250,15 +250,15 @@ std::string DataEntryContext::getURIBackend(int backend_id)
 OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access)
         : pctx(ctx), dataobjectname(dataobject), datapath(datapath)
 {
-    rangemode = ualconst::global_op;
-    time = ualconst::undefined_time;
-    interpmode = ualconst::undefined_interp;
+    rangemode = alconst::global_op;
+    time = alconst::undefined_time;
+    interpmode = alconst::undefined_interp;
 
     try {
-        ualconst::op_access_list.at(access-OP_ACCESS_0);
+        alconst::op_access_list.at(access-OP_ACCESS_0);
     }
     catch (const std::out_of_range& e) {
-        throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
+        throw ALContextException("Wrong access mode "+std::to_string(access),LOG);
     }
     accessmode = access;
     pctx = ctx;
@@ -270,34 +270,34 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
   : pctx(ctx), dataobjectname(dataobject), time(t)
 {
   try {
-    ualconst::op_range_list.at(range-OP_RANGE_0);
+    alconst::op_range_list.at(range-OP_RANGE_0);
   } 
   catch (const std::out_of_range& e) {
-    throw UALContextException("Wrong range mode "+std::to_string(range),LOG);
+    throw ALContextException("Wrong range mode "+std::to_string(range),LOG);
   }
   rangemode = range;
 
   try {
-    ualconst::op_access_list.at(access-OP_ACCESS_0);
+    alconst::op_access_list.at(access-OP_ACCESS_0);
   } 
   catch (const std::out_of_range& e) {
-    throw UALContextException("Wrong access mode "+std::to_string(access),LOG);
+    throw ALContextException("Wrong access mode "+std::to_string(access),LOG);
   }
   accessmode = access;
 
   try {
-    ualconst::op_interp_list.at(interp-OP_INTERP_0);
+    alconst::op_interp_list.at(interp-OP_INTERP_0);
   } 
   catch (const std::out_of_range& e) {
-    throw UALContextException("Wrong interp mode "+std::to_string(interp),LOG);
+    throw ALContextException("Wrong interp mode "+std::to_string(interp),LOG);
   }
   interpmode = interp;
 
   // test consistency [missing or wrong expected args, not all possible missmatches!]
-  if (rangemode==ualconst::slice_op)
+  if (rangemode==alconst::slice_op)
     {
-      if (accessmode==ualconst::read_op && interpmode==ualconst::undefined_interp)
-	throw UALContextException("Missing interpmode",LOG);
+      if (accessmode==alconst::read_op && interpmode==alconst::undefined_interp)
+	throw ALContextException("Missing interpmode",LOG);
     }
   this->uid = ++SID;
 }

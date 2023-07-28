@@ -1,18 +1,18 @@
 /*-*-c++-*-*/
 
 /**
-   \file ual_lowlevel.h
+   \file al_lowlevel.h
    Contains definition of Lowlevel static class and all C wrappers around back-end API.
 */
 
-#ifndef UAL_LOWLEVEL_H
-#define UAL_LOWLEVEL_H 1
+#ifndef AL_LOWLEVEL_H
+#define AL_LOWLEVEL_H 1
 
 #include <stdbool.h>
 #include <stdio.h>
 
-/*#include "ual_const.h"*/
-#include "ual_backend.h"
+/*#include "al_const.h"*/
+#include "al_backend.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -78,8 +78,8 @@ public:
   static void writePluginsMetadata(int ctxID);
   static void bindReadbackPlugins(int ctxID); 
   static void unbindReadbackPlugins(int ctxID); 
-  //static al_status_t ual_close_pulse_plugins(int pulseCtx, int mode);
-  //static al_status_t ual_open_pulse_plugins(int pulseCtx, int mode);
+  //static al_status_t al_close_pulse_plugins(int pulseCtx, int mode);
+  //static al_status_t al_open_pulse_plugins(int pulseCtx, int mode);
   static bool registerPlugin(const char* plugin_name);
   static void unregisterPlugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
@@ -242,7 +242,7 @@ extern "C"
      @param[out] info context info as a string -> NEED TO BE FREEED!!
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t ual_context_info(int ctx, char **info);
+  LIBRARY_API al_status_t al_context_info(int ctx, char **info);
 
 
   /**
@@ -251,7 +251,7 @@ extern "C"
      @param[out] beid backendID 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t ual_get_backendID(int ctx, int *beid);
+  LIBRARY_API al_status_t al_get_backendID(int ctx, int *beid);
 
 
   /**
@@ -266,24 +266,24 @@ extern "C"
      @param[out] dectxID data entry context id [_null context if = 0_] 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID);
+  LIBRARY_API al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID);
 
   /**
      Closes a database entry.
      This function closes a database entry described by the passed pulse context.
-     @param[in] pulseCtx pulse context id (from ual_begin_dataentry_action())
+     @param[in] pulseCtx pulse context id (from al_begin_dataentry_action())
      @param[in] mode closing option:
      - CLOSE_PULSE = close the pulse
      - ERASE_PULSE = close and remove the pulse 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_close_pulse(int pulseCtx, 
+  LIBRARY_API al_status_t al_close_pulse(int pulseCtx, 
 					  int mode);
 
   /**
      Starts an I/O action on a DATAOBJECT.
      This function gives a new operation context for the duration of an action on a DATAOBJECT.
-     @param[in] ctx pulse context id (from ual_begin_dataentry_action())
+     @param[in] ctx pulse context id (from al_begin_dataentry_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] datapath path to data node for partial get operation
      @param[in] rwmode mode for this operation:
@@ -292,7 +292,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_begin_global_action(int ctx,
+  LIBRARY_API al_status_t al_plugin_begin_global_action(int ctx,
                           const char *dataobjectname,
                           const char* datapath,
                           int rwmode,
@@ -301,7 +301,7 @@ extern "C"
   /**
      Starts an I/O action on a DATAOBJECT slice.
      This function gives a new operation context for the duration of an action on a slice.  
-     @param[in] ctx pulse context (from ual_begin_dataentry_action())
+     @param[in] ctx pulse context (from al_begin_dataentry_action())
      @param[in] dataobjectname name of the DATAOBJECT
      @param[in] rwmode mode for this operation:
      - READ_OP: read operation
@@ -317,7 +317,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_begin_slice_action(int ctx,
+  LIBRARY_API al_status_t al_plugin_begin_slice_action(int ctx,
 						 const char *dataobjectname,
 						 int rwmode,
 						 double time,
@@ -328,16 +328,16 @@ extern "C"
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
      not valide anymore.
-     @param[in] ctx a pulse (ual_begin_dataentry_action()), an operation (ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or an array of structure context id (ual_begin_array_struct_action())
+     @param[in] ctx a pulse (al_begin_dataentry_action()), an operation (al_plugin_begin_global_action() or al_plugin_begin_slice_action()) or an array of structure context id (al_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_end_action(int ctx); 
+  LIBRARY_API al_status_t al_plugin_end_action(int ctx); 
 
   /**
      Writes data.
      This function writes a signal in the database given the passed context.
-     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or
-     array of structure context id (from ual_plugin_begin_arraystruct_action())
+     @param[in] ctx operation context id (from al_plugin_begin_global_action() or al_plugin_begin_slice_action()) or
+     array of structure context id (from al_plugin_begin_arraystruct_action())
      @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] data pointer on the data to be written
@@ -350,7 +350,7 @@ extern "C"
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_write_data(int ctx,
+  LIBRARY_API al_status_t al_plugin_write_data(int ctx,
 					 const char *fieldpath,
 					 const char *timebasepath,
 					 void *data,
@@ -361,8 +361,8 @@ extern "C"
   /**
      Reads data.
      This function reads a signal in the database given the passed context.
-     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action()) or
-     array of structure context id (from ual_plugin_begin_arraystruct_action())
+     @param[in] ctx operation context id (from al_plugin_begin_global_action() or al_plugin_begin_slice_action()) or
+     array of structure context id (from al_plugin_begin_arraystruct_action())
      @param[in] fieldpath field path for the data (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[in] timebasepath field path for the timebase (paths are always relative to current Context, dataobject absolute path can be specified with a prepended '/')
      @param[out] data returned pointer on the read data 
@@ -375,7 +375,7 @@ extern "C"
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_read_data(int ctx,
+  LIBRARY_API al_status_t al_plugin_read_data(int ctx,
 					const char *fieldpath,
 					const char *timebasepath,
 					void **data,
@@ -387,11 +387,11 @@ extern "C"
      Deletes data.
      This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
      given the passed context.
-     @param[in] ctx operation context id (from ual_plugin_begin_global_action() or ual_plugin_begin_slice_action())
+     @param[in] ctx operation context id (from al_plugin_begin_global_action() or al_plugin_begin_slice_action())
      @param[in] path path of the data structure element to delete (suppress the whole subtree)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_delete_data(int ctx,
+  LIBRARY_API al_status_t al_delete_data(int ctx,
 					  const char *path);
 
 
@@ -408,7 +408,7 @@ extern "C"
      @param[out] aosctx array of structure context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t ual_plugin_begin_arraystruct_action(int ctx,
+  LIBRARY_API al_status_t al_plugin_begin_arraystruct_action(int ctx,
 						       const char *path,
 						       const char *timebase,
 						       int *size,
@@ -422,7 +422,7 @@ extern "C"
      @param[in] step iteration step size (typically=1)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t ual_iterate_over_arraystruct(int aosctx, 
+  LIBRARY_API al_status_t al_iterate_over_arraystruct(int aosctx, 
 						       int step);
 
   /**
@@ -437,7 +437,7 @@ extern "C"
      @param[out] uri string
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t ual_build_uri_from_legacy_parameters(const int backendID, 
+  LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
                          const int run, 
                          const char *user, 
@@ -446,47 +446,47 @@ extern "C"
                          const char *options,
                          char** uri);
 
-  LIBRARY_API al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
+  LIBRARY_API al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
 
-  LIBRARY_API al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+  LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
   
-  LIBRARY_API al_status_t ual_end_action(int ctxID);
+  LIBRARY_API al_status_t al_end_action(int ctxID);
 
-  LIBRARY_API al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
+  LIBRARY_API al_status_t al_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
 
-  LIBRARY_API al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
+  LIBRARY_API al_status_t al_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
   
-  LIBRARY_API al_status_t ual_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  LIBRARY_API al_status_t al_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
 
-  //LIBRARY_API al_status_t ual_close_pulse(int pctxID, int mode, const char *options);
+  //LIBRARY_API al_status_t al_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API
 
-  LIBRARY_API al_status_t ual_is_plugin_registered(const char* pluginName, bool *is_registered);
+  LIBRARY_API al_status_t al_is_plugin_registered(const char* pluginName, bool *is_registered);
 
-  LIBRARY_API al_status_t ual_register_plugin(const char *plugin_name);
+  LIBRARY_API al_status_t al_register_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t ual_unregister_plugin(const char *plugin_name);
+  LIBRARY_API al_status_t al_unregister_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t ual_bind_plugin(const char* fieldPath, const char* pluginName);
+  LIBRARY_API al_status_t al_bind_plugin(const char* fieldPath, const char* pluginName);
 
-  LIBRARY_API al_status_t ual_unbind_plugin(const char* fieldPath, const char* pluginName);
+  LIBRARY_API al_status_t al_unbind_plugin(const char* fieldPath, const char* pluginName);
   
-  LIBRARY_API al_status_t ual_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
+  LIBRARY_API al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
   
-  LIBRARY_API al_status_t ual_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
+  LIBRARY_API al_status_t al_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
   
-  LIBRARY_API al_status_t ual_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
+  LIBRARY_API al_status_t al_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
 
-  LIBRARY_API al_status_t ual_write_plugins_metadata(int ctxid);
+  LIBRARY_API al_status_t al_write_plugins_metadata(int ctxid);
 
-  LIBRARY_API al_status_t ual_bind_readback_plugins(int ctxid);
+  LIBRARY_API al_status_t al_bind_readback_plugins(int ctxid);
 
-  LIBRARY_API al_status_t ual_unbind_readback_plugins(int ctxID);
+  LIBRARY_API al_status_t al_unbind_readback_plugins(int ctxID);
 
 #if defined(__cplusplus)
 }
 #endif
 
 
-#endif // UAL_LOWLEVEL_H
+#endif // AL_LOWLEVEL_H

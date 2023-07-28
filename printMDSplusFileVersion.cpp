@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
   try {
     MDSplusBackend::printFileVersionInfo(progArgs.shot,progArgs.run,progArgs.user,progArgs.database,progArgs.version);
   }
-  catch (const UALBackendException& e) {
+  catch (const ALBackendException& e) {
     std::cerr << "Error while calling MDSplusBackend::printFileVersionInfo\n";
     return EXIT_FAILURE;
   }

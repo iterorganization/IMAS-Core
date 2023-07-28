@@ -5,7 +5,7 @@
 
 
 
-    void UalAoS::addSlice(UalAoS &sliceAos, ArraystructContext *ctx)
+    void ALAoS::addSlice(ALAoS &sliceAos, ArraystructContext *ctx)
     {
 //	if(ctx->getTimebasePath().length() > 0)
 	if(timebase != "")
@@ -56,20 +56,20 @@
 	}
     }
 
-    void UalStruct::addSlice(UalStruct &ualSlice, ArraystructContext *ctx)
+    void ALStruct::addSlice(ALStruct &alSlice, ArraystructContext *ctx)
     {
 	//First step: check time dependent fields that are not AoS
 	for(auto &field: dataFields)
 	{
 	    if(field.second->isTimed())
-	    	field.second->addSlice(*ualSlice.dataFields[field.first]);
+	    	field.second->addSlice(*alSlice.dataFields[field.first]);
 	}
 	//Second step: check time dependent ApS fields	
 	for(auto &aosField: aosFields)
 	{
 //Check if the AoS to be added has been declared in the slice
-	    if(ualSlice.aosFields[aosField.first])
-	    	aosField.second->addSlice(*ualSlice.aosFields[aosField.first], ctx);
+	    if(alSlice.aosFields[aosField.first])
+	    	aosField.second->addSlice(*alSlice.aosFields[aosField.first], ctx);
 	}
     }
 
@@ -116,13 +116,13 @@ else
       internalCtx->lock();
       try  {
 
-	UalStruct *ids = getIds(ctx);
-	UalData *ualData = ids->getData(fieldname);
+	ALStruct *ids = getIds(ctx);
+	ALData *alData = ids->getData(fieldname);
 	if(ctx->getRangemode() == GLOBAL_OP)
-	    ualData->writeData(datatype, dim, size, (unsigned char *)data, timebasename);
+	    alData->writeData(datatype, dim, size, (unsigned char *)data, timebasename);
 	else
         {
-	    //ualData->addSlice(datatype, dim, size, (unsigned char *)data); Gabriele May 2020: more than one slice can be written
+	    //alData->addSlice(datatype, dim, size, (unsigned char *)data); Gabriele May 2020: more than one slice can be written
 	    int *currDims = new int[dim];
 	    int sliceSize = 1;
 	    for(int i = 0; i < dim - 1; i++)
@@ -138,7 +138,7 @@ else
 	    }
 	    currDims[dim-1] = 1;
 	    for(int i = 0; i < size[dim - 1]; i++)
-	    	ualData->addSlice(datatype, dim, currDims, ((unsigned char *)data)+(i * sliceSize));
+	    	alData->addSlice(datatype, dim, currDims, ((unsigned char *)data)+(i * sliceSize));
 	    delete[] currDims;
 	}
       } 
@@ -175,9 +175,9 @@ else
   {
     internalCtx->lock();  
     try {
-	UalStruct *ids = getIds(ctx);
-	UalData *ualData = ids->getData(fieldname);
-	if(ualData->isEmpty())
+	ALStruct *ids = getIds(ctx);
+	ALData *alData = ids->getData(fieldname);
+	if(alData->isEmpty())
 	{
 	    internalCtx->unlock();
 	    return 0;
@@ -187,17 +187,17 @@ else
 	int status = 1;
 	if(ctx->getRangemode() == GLOBAL_OP)
 	{
-	    switch(ualData->getMapState())
+	    switch(alData->getMapState())
 	    {
-	    	case UalData::MAPPING::MAPPED:
-		    status= ualData->readData(data, datatype, dim, size);
+	    	case ALData::MAPPING::MAPPED:
+		    status= alData->readData(data, datatype, dim, size);
 		    break;
-	    	case UalData::MAPPING::UNMAPPED:
-		    ualData->writeData(*datatype, *dim, size, (unsigned char *)*data, timebase);
+	    	case ALData::MAPPING::UNMAPPED:
+		    alData->writeData(*datatype, *dim, size, (unsigned char *)*data, timebase);
 		    break;
-		case UalData::MAPPING::SLICE_MAPPED:
-		    ualData->prependData(*datatype, *dim, size, (unsigned char *)*data);
-		    ualData->readData(data, datatype, dim, size);
+		case ALData::MAPPING::SLICE_MAPPED:
+		    alData->prependData(*datatype, *dim, size, (unsigned char *)*data);
+		    alData->readData(data, datatype, dim, size);
 		    break;
 		default: {}//Nothing
 	    }
@@ -208,13 +208,13 @@ else
 	  //First make sure the cache is aligned
 	    //Fake ctx to target backend in order to force global operation
 	    OperationContext newCtx(ctx->getDataEntryContext(), ctx->getDataobjectName(), READ_OP, GLOBAL_OP, 0, 0);
- 	    if(ualData->getMapState() == UalData::MAPPING::UNMAPPED)
+ 	    if(alData->getMapState() == ALData::MAPPING::UNMAPPED)
 	    {
-		ualData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
+		alData->writeData(*datatype, *dim, size, *(unsigned char **)data, timebase);
 	    }
-	    else if(ualData->getMapState() == UalData::MAPPING::SLICE_MAPPED) 
+	    else if(alData->getMapState() == ALData::MAPPING::SLICE_MAPPED) 
 	    {
-		ualData->prependData(*datatype, *dim, size, *(unsigned char **)data);
+		alData->prependData(*datatype, *dim, size, *(unsigned char **)data);
 	    }		
 	    //At this point all the info is in cache, we need to get time
 	    double *timeData;
@@ -223,7 +223,7 @@ else
 	    int timeDims[16];
 	    if(timebase.length() == 0)  //handle empty time and /time
 	    {
-		int status = ualData->readData(data, datatype, dim, size);  //Not time dependent
+		int status = alData->readData(data, datatype, dim, size);  //Not time dependent
 		internalCtx->unlock();
                 return status; 
 	    }
@@ -240,12 +240,12 @@ else
 		return 0;
 	    }
 	    //Check timebase consistency
-	    if(timeDatatype != ualconst::double_data || timeNumDims != 1)
+	    if(timeDatatype != alconst::double_data || timeNumDims != 1)
 	    {
 		std::cout << "INTERNAL ERROR: Inconsistent timebase information " << ctx->getDataobjectName() << "  " << timebase << std::endl;
-		throw  UALBackendException("Internal error: Inconsistent timebase information",LOG);
+		throw  ALBackendException("Internal error: Inconsistent timebase information",LOG);
 	    }
-	    ualData->readTimeSlice(timeData, timeDims[0], ctx->getTime(), data, datatype, dim, size, ctx->getInterpmode());
+	    alData->readTimeSlice(timeData, timeDims[0], ctx->getTime(), data, datatype, dim, size, ctx->getInterpmode());
 	    free((char *)timeData);
 	}
 /* if(*datatype == DOUBLE_DATA)
@@ -277,10 +277,10 @@ else
     {
       internalCtx->lock();
       try  {
-	UalStruct *ids = getIds(ctx);
+	ALStruct *ids = getIds(ctx);
 	if(ctx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
         {
-	    UalAoS *aos = ids->getSubAoS(fieldname);
+	    ALAoS *aos = ids->getSubAoS(fieldname);
 	    aos->deleteData();
 	}
 	else
@@ -288,13 +288,13 @@ else
 	  auto search = ids->aosFields.find(fieldname);
 	  if (search!=ids->aosFields.end())
 	    {
-	      UalAoS *aos = search->second; //ids->getSubAoS(fieldname);
+	      ALAoS *aos = search->second; //ids->getSubAoS(fieldname);
 	      aos->deleteData();
 	    }
 	  else
 	    {
-	      UalData *ualData = ids->getData(fieldname);
-	      ualData->deleteData();
+	      ALData *alData = ids->getData(fieldname);
+	      alData->deleteData();
 	    }
 	}
         internalCtx->unlock();
@@ -330,8 +330,8 @@ else
 	    try {
 	    	currentAos.deleteData();
 	//prepare empty structure if not existing
-	    	UalStruct *ids = getIds(ctx->getOperationContext());	
-	    	UalAoS *aos = ids->getSubAoS(ctx->getPath());
+	    	ALStruct *ids = getIds(ctx->getOperationContext());	
+	    	ALAoS *aos = ids->getSubAoS(ctx->getPath());
 	    	if(ctx->getOperationContext()->getRangemode() == GLOBAL_OP) 
 	    	    aos->deleteData();
 
@@ -340,7 +340,7 @@ else
 		    int prevSize = (int)aos->aos.size();
 		    aos->aos.resize(size);
 		    for(int i = prevSize; i < size; i++)
-		   	if(!aos->aos[i]) aos->aos[i] = new UalStruct;
+		   	if(!aos->aos[i]) aos->aos[i] = new ALStruct;
 		}
 
 		internalCtx->unlock();
@@ -354,12 +354,12 @@ else
 	else
 	{
 //Gabriele May 2021
-	  UalAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
+	  ALAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);  
 	    if(size != (int)aos->aos.size())
 	    {
 	    	aos->aos.resize(size);
 	    	for(int i = 0; i < size; i++)
-	    	    if(!aos->aos[i]) aos->aos[i] = new UalStruct;
+	    	    if(!aos->aos[i]) aos->aos[i] = new ALStruct;
 	    }
 	}
 
@@ -386,7 +386,7 @@ else
 //If it is a slice, then size = 1
 /*	if(ctx->getRangemode() == SLICE_OP && !ctx->getParent())
 	{
-	    UalAoS *aos = getAoS(ctx, false);  //Gabriele Jan 2019
+	    ALAoS *aos = getAoS(ctx, false);  //Gabriele Jan 2019
             if(aos->timebase == "")
 	        *size = aos->aos.size();  //Static AoS
 	    else
@@ -399,7 +399,7 @@ else
 	  if(ctx->getOperationContext()->getRangemode() == SLICE_OP && !ctx->getParent())
 	    {
 	    	prepareSlice(ctx);
-	    	UalAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
+	    	ALAoS *aos = getAoS(ctx, true);  //Gabriele Jan 2019
             	if(aos->timebase == "")
 	            *size = aos->aos.size();  //Static AoS
 	    	else
@@ -407,8 +407,8 @@ else
 	    }
 	    else
 	    {
-    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-	      UalAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
+    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS ALStruct is condiered.
+	      ALAoS *aos = (ctx->getOperationContext()->getRangemode() == SLICE_OP)?getAoS(ctx, true):getAoS(ctx, false);
 	    	*size = aos->aos.size();
 	    }
 	    internalCtx->unlock();
@@ -451,13 +451,13 @@ else
 	{
 	    return;
 	}
-	UalData *ualData;
+	ALData *alData;
 	if(ctx->getOperationContext()->getRangemode() == SLICE_OP)
-	    ualData = getData(ctx, idx, fieldname, true);  //We are going to write in currentAos
+	    alData = getData(ctx, idx, fieldname, true);  //We are going to write in currentAos
 	else
-	    ualData = getData(ctx, idx, fieldname, false);  //We are going in AoS in main IDS
+	    alData = getData(ctx, idx, fieldname, false);  //We are going in AoS in main IDS
 
-	ualData->writeData(datatype, dim, size, (unsigned char *)data, timebase);
+	alData->writeData(datatype, dim, size, (unsigned char *)data, timebase);
     }
 
   /**
@@ -531,10 +531,10 @@ else
 	    }
 	    if(ctx->getParent() == NULL)
 	    {
-	      if(ctx->getOperationContext()->getAccessmode() == ualconst::write_op)
+	      if(ctx->getOperationContext()->getAccessmode() == alconst::write_op)
 	        {
-		    UalAoS *aos = getAoS(ctx, false);   //AoS stored in main IDS UalStruct 
-		    UalAoS *currAos = getAoS(ctx, true);  //Current AoS being written
+		    ALAoS *aos = getAoS(ctx, false);   //AoS stored in main IDS ALStruct 
+		    ALAoS *currAos = getAoS(ctx, true);  //Current AoS being written
 		    if(ctx->getOperationContext()->getRangemode() == SLICE_OP)
 		    {
 			if(aos->timebase != ctx->getTimebasePath())
@@ -575,7 +575,7 @@ else
 //If reading or writing slices for non mapped AoS, pass to target backend
 	internalCtx->lock();
 	try  {
-	    if((ctx->getType() != CTX_ARRAYSTRUCT_TYPE && ctx->getAccessmode() == ualconst::read_op) || (ctx->getType() == CTX_ARRAYSTRUCT_TYPE && !isMappedAoS((ArraystructContext *)ctx)))	
+	    if((ctx->getType() != CTX_ARRAYSTRUCT_TYPE && ctx->getAccessmode() == alconst::read_op) || (ctx->getType() == CTX_ARRAYSTRUCT_TYPE && !isMappedAoS((ArraystructContext *)ctx)))	
 	    internalCtx->unlock();
 	}
      	catch(...)
@@ -590,11 +590,11 @@ else
     void MemoryBackend::flush(DataEntryContext *ctx, std::string dataobjectName)
     {
 	OperationContext newCtx(ctx, dataobjectName, "", GLOBAL_OP);
-	UalStruct *ids = getIds(&newCtx);
+	ALStruct *ids = getIds(&newCtx);
 	for(auto &field: ids->dataFields)
 	{
 	    std::string fieldName = field.first;
-	    UalData *fieldData = field.second;
+	    ALData *fieldData = field.second;
 	    void *data;
 	    int datatype, numDims;
 	    int dims[MAX_DIM];
@@ -603,7 +603,7 @@ else
 	for(auto &aosField: ids->aosFields)
 	{
 	    std::string fieldName = aosField.first;
-	    UalAoS *fieldAos = aosField.second;
+	    ALAoS *fieldAos = aosField.second;
 	    flushAoS(&newCtx, fieldName, *fieldAos);
 	}
     }
@@ -612,20 +612,20 @@ else
 
 
 
-    void MemoryBackend::flushAoS(OperationContext *ctx, std::string fieldName, UalAoS &ualAos)
+    void MemoryBackend::flushAoS(OperationContext *ctx, std::string fieldName, ALAoS &alAos)
     {
-	ArraystructContext arrayStructCtx(ctx, fieldName, ualAos.timebase);
-	recFlushAoS(ualAos, ctx, &arrayStructCtx);
+	ArraystructContext arrayStructCtx(ctx, fieldName, alAos.timebase);
+	recFlushAoS(alAos, ctx, &arrayStructCtx);
     }
 
-    void MemoryBackend::recFlushAoS(UalAoS &ualAos, OperationContext *opCtx, ArraystructContext *ctx)
+    void MemoryBackend::recFlushAoS(ALAoS &alAos, OperationContext *opCtx, ArraystructContext *ctx)
     {
-	for(size_t idx = 0; idx < ualAos.aos.size(); idx++)
+	for(size_t idx = 0; idx < alAos.aos.size(); idx++)
 	{
-	    for(auto &field: ualAos.aos[idx]->dataFields)
+	    for(auto &field: alAos.aos[idx]->dataFields)
 	    {
 		std::string fieldName = field.first;
-		UalData *fieldData = field.second;
+		ALData *fieldData = field.second;
 		void *data;
 		int datatype;
 		int dim;
@@ -634,10 +634,10 @@ else
 	
 	    }
 	    //Normal fields done, now handle AoS
-	    for(auto &aosField: ualAos.aos[idx]->aosFields)
+	    for(auto &aosField: alAos.aos[idx]->aosFields)
 	    {
 		std::string fieldName = aosField.first;
-		UalAoS *currAos = aosField.second;
+		ALAoS *currAos = aosField.second;
 
 		// WILD GUESS HERE
 		//ArraystructContext currCtx(opCtx, fieldName, currAos->timebase, ctx, idx);
@@ -656,8 +656,8 @@ else
 				  int* dim,
 				  int* size) 
     {
-	UalData *ualData = getData(ctx, idx, fieldname, false);  //We are going to read the AoS in main structure
-	return ualData->readData(data, datatype, dim, size);
+	ALData *alData = getData(ctx, idx, fieldname, false);  //We are going to read the AoS in main structure
+	return alData->readData(data, datatype, dim, size);
     }
 
 
@@ -670,8 +670,8 @@ else
 				  int* dim,
 				  int* size) 
     {
-	UalData *ualData = getData(ctx, idx, fieldname, true);  //We are going to read the AoS slice in the memory struture prepared by prepareSlice()
-	return ualData->readData(data, datatype, dim, size);
+	ALData *alData = getData(ctx, idx, fieldname, true);  //We are going to read the AoS slice in the memory struture prepared by prepareSlice()
+	return alData->readData(data, datatype, dim, size);
     }
 
 
@@ -680,8 +680,8 @@ else
     {
         OperationContext *opctx = ctx->getOperationContext();
         double time = opctx->getTime();
-	UalStruct *ids = getIds(opctx);
-	UalAoS *topAos = ids->getSubAoS(ctx->getPath());
+	ALStruct *ids = getIds(opctx);
+	ALAoS *topAos = ids->getSubAoS(ctx->getPath());
 
 	currentAos.deleteData();  //Prapere currentAoS that is going to contain the selected slice
 
@@ -705,11 +705,11 @@ else
 
  	        getSliceIdxs(currTimebase, time, ctxV, sliceIdx1, sliceIdx2, topAos);
 
-		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		if (ctx->getOperationContext()->getInterpmode() == alconst::previous_interp || sliceIdx1 == sliceIdx2)
 		{
 		     currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
 		}
-		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		else if (ctx->getOperationContext()->getInterpmode() == alconst::closest_interp)
 		{
 		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
 		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
@@ -721,7 +721,7 @@ else
 		     	currentAos.aos.push_back(topAos->aos[sliceIdx2]->clone());
 		    }
 		}
-		else //ualconst::linear_interp not yet supported
+		else //alconst::linear_interp not yet supported
 		{
 		    std::vector<double> timesV = getTimebaseVect(currTimebase, ctxV, topAos);
 //	            currentAos.aos.push_back(topAos->aos[sliceIdx1]->clone());
@@ -743,9 +743,9 @@ else
 	}
     }		
 	
-    UalData *MemoryBackend::getUalSlice(ArraystructContext *ctx, UalData &inData, double time)
+    ALData *MemoryBackend::getAlSlice(ArraystructContext *ctx, ALData &inData, double time)
     {
-	UalData *retData = new UalData;
+	ALData *retData = new ALData;
 	void *data;
 	int datatype;
 	int numDims;
@@ -757,51 +757,51 @@ else
 	OperationContext newCtx(ctx->getOperationContext()->getDataEntryContext(), ctx->getOperationContext()->getDataobjectName(), ctx->getOperationContext()->getDatapath(), READ_OP);
     	readData(&newCtx, inData.getTimebase(), inData.getTimebase(), (void **)&timeData, &timeDatatype, &timeNumDims, timeDims);
 	    //Check timebase consistency
-//	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, alconst::previous_interp);
 	inData.readTimeSlice((double *)timeData, timeDims[0],  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	free((char *)timeData);
 	return retData;
     }
-    UalData *MemoryBackend::getUalSlice(ArraystructContext *ctx, UalData &inData, double time, std::vector<double> timebaseV)
+    ALData *MemoryBackend::getAlSlice(ArraystructContext *ctx, ALData &inData, double time, std::vector<double> timebaseV)
     {
-	UalData *retData = new UalData;
+	ALData *retData = new ALData;
 	void *data;
 	int datatype;
 	int numDims;
 	int dims[16];
 	
-//	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ualconst::previous_interp);
+//	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, alconst::previous_interp);
 	inData.readTimeSlice(timebaseV.data(), timebaseV.size(),  time,  &data, &datatype, &numDims, dims, ctx->getOperationContext()->getInterpmode());
     	retData->writeData(datatype, numDims, dims, (unsigned char *)data, "");
 	free((char *)data);
 	return retData;
     }
 
-    UalStruct *MemoryBackend::prepareSliceRec(ArraystructContext *ctx, UalStruct &ualStruct, UalStruct &ids, double time, std::vector<StructPath> &ctxV, UalAoS *aos)
+    ALStruct *MemoryBackend::prepareSliceRec(ArraystructContext *ctx, ALStruct &alStruct, ALStruct &ids, double time, std::vector<StructPath> &ctxV, ALAoS *aos)
     {
-	UalStruct *retUalStruct = new UalStruct;;
-	for(auto &field:ualStruct.dataFields)
+	ALStruct *retAlStruct = new ALStruct;;
+	for(auto &field:alStruct.dataFields)
 
 	{
 	    if(field.second->getTimebase() == "")
-		retUalStruct->dataFields[field.first] = field.second->clone();
+		retAlStruct->dataFields[field.first] = field.second->clone();
 	    else
 	    {
 		std::vector<double> timebaseV = getTimebaseVect(field.second->getTimebase(), ctxV);
-		UalData *retData = getUalSlice(ctx, *field.second, time, timebaseV);
+		ALData *retData = getAlSlice(ctx, *field.second, time, timebaseV);
 ////NOTE: FOR COMPATIBILITY WITH CURRENT MDSplus backend, may be removed later
 		retData->shrinkDimension();
 ////////////////////////////////////////////////////////////////////////////////
 
-	    	retUalStruct->dataFields[field.first] = retData;
+	    	retAlStruct->dataFields[field.first] = retData;
 	    }
 	}
-	for(auto &aosField:ualStruct.aosFields)
+	for(auto &aosField:alStruct.aosFields)
 	{
-	    UalAoS *currAos = aosField.second;
-	    UalAoS *newAos;
+	    ALAoS *currAos = aosField.second;
+	    ALAoS *newAos;
 	    if(currAos->timebase != "")
 	    {
 	    	int sliceIdx1, sliceIdx2;
@@ -812,12 +812,12 @@ else
 
 	        getSliceIdxs(currAos->timebase, time, newCtxV, sliceIdx1, sliceIdx2, currAos);
 
-		newAos = new UalAoS;
-		if (ctx->getOperationContext()->getInterpmode() == ualconst::previous_interp || sliceIdx1 == sliceIdx2)
+		newAos = new ALAoS;
+		if (ctx->getOperationContext()->getInterpmode() == alconst::previous_interp || sliceIdx1 == sliceIdx2)
 		{
 		     newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
 		}
-		else if (ctx->getOperationContext()->getInterpmode() == ualconst::closest_interp)
+		else if (ctx->getOperationContext()->getInterpmode() == alconst::closest_interp)
 		{
 		    std::vector<double> timesV = getTimebaseVect(currAos->timebase, newCtxV, currAos);
 		    if (time - timesV[sliceIdx1] < timesV[sliceIdx2] - time)
@@ -829,7 +829,7 @@ else
 		     	newAos->aos.push_back(currAos->aos[sliceIdx2]->clone());
 		    }
 		}
-		else //ualconst::linear_interp not yet supported
+		else //alconst::linear_interp not yet supported
 		{
 	            newAos->aos.push_back(currAos->aos[sliceIdx1]->clone());
 		}
@@ -838,7 +838,7 @@ else
 	    }
 	    else
 	    {
-		newAos = new UalAoS;
+		newAos = new ALAoS;
 		for(size_t i = 0; i < currAos->aos.size(); i++)
 	  	{	
 		    std::vector<StructPath> newCtxV = ctxV;
@@ -847,13 +847,13 @@ else
 	    	    newAos->aos.push_back(prepareSliceRec(ctx, *currAos->aos[i], ids, time, newCtxV, currAos));
 		}
 	    }
- 	    retUalStruct->aosFields[aosField.first] = newAos;
+ 	    retAlStruct->aosFields[aosField.first] = newAos;
 	}
-	return retUalStruct;
+	return retAlStruct;
     }
 
 
-    std::vector<double> MemoryBackend::getTimebaseVect(std::string path, std::vector<StructPath> &ctxV, UalAoS *aos)
+    std::vector<double> MemoryBackend::getTimebaseVect(std::string path, std::vector<StructPath> &ctxV, ALAoS *aos)
     {
 //First step: go up of as many including AoS as occurrences of ../
 	std::string currPath = path;
@@ -882,14 +882,14 @@ else
 	    {
 		if(aosPos != std::string::npos)
 		{
-		    UalStruct *ualStruct = ctxV[currIdx-1].ualStruct;
+		    ALStruct *alStruct = ctxV[currIdx-1].alStruct;
 		    std::string actPath = currAosPath+"/"+currPath;
-		    return ualStruct->getData(actPath)->getDoubleVect();
+		    return alStruct->getData(actPath)->getDoubleVect();
 		}
 		else
 		{
-		    UalStruct *ualStruct = ctxV[currIdx].ualStruct;
-	    	    return ualStruct->getData(currPath)->getDoubleVect();
+		    ALStruct *alStruct = ctxV[currIdx].alStruct;
+	    	    return alStruct->getData(currPath)->getDoubleVect();
 		}
 	    }
 	    else //Time definition inside the IDS but outside the AoS
@@ -906,17 +906,17 @@ else
 			aosPath = aosPath.substr(0, aosPos);
 	    	}
 		if(aosPath == "")
-		    return ctxV[0].ualStruct->getData(currPath)->getDoubleVect();
+		    return ctxV[0].alStruct->getData(currPath)->getDoubleVect();
 		else
-		    return ctxV[0].ualStruct->getData(aosPath+"/"+currPath)->getDoubleVect();
+		    return ctxV[0].alStruct->getData(aosPath+"/"+currPath)->getDoubleVect();
 	    }
 	}
 	else if(path[0] == '/')
-	    return ctxV[0].ualStruct->getData(currPath.substr(1))->getDoubleVect();   //OCIO CHE QUI SCIOPA TUTO
+	    return ctxV[0].alStruct->getData(currPath.substr(1))->getDoubleVect();   //OCIO CHE QUI SCIOPA TUTO
 	else //it is the reference to internal field time
 	{
 	    if(!aos) //We are dealing with time dependent firlds of static AoS
-	    	return ctxV[ctxV.size()-1].ualStruct->getData(currPath)->getDoubleVect();
+	    	return ctxV[ctxV.size()-1].alStruct->getData(currPath)->getDoubleVect();
 	    else
 	    {
 	    	std::vector<double> retTimeV;
@@ -932,7 +932,7 @@ else
 
 
 /*	
-    std::vector<double> MemoryBackend::getTimebaseVect(std::string path, UalAoS &aos, std::vector<UalStruct *> &aosParentV, ArraystructContext *ctx)
+    std::vector<double> MemoryBackend::getTimebaseVect(std::string path, ALAoS &aos, std::vector<ALStruct *> &aosParentV, ArraystructContext *ctx)
     {
 //First step: go up of as many including AoS as occurrences of ../
 	std::string currPath = path;
@@ -980,7 +980,7 @@ else
 	}
     }
 */ 
-    void MemoryBackend::getSliceIdxs(std::string timebase, double time, std::vector<StructPath> &ctxV, int &sliceIdx1, int &sliceIdx2, UalAoS *aos)
+    void MemoryBackend::getSliceIdxs(std::string timebase, double time, std::vector<StructPath> &ctxV, int &sliceIdx1, int &sliceIdx2, ALAoS *aos)
     {
 	std::vector<double> timesV = getTimebaseVect(timebase, ctxV, aos);
 	if(time <= timesV[0])
@@ -1018,8 +1018,8 @@ else
       return lastIdsPath;
     }
 
-    //Get the IDS (in UalStruct) 
-    UalStruct  *MemoryBackend::getIds(OperationContext *ctx)
+    //Get the IDS (in ALStruct) 
+    ALStruct  *MemoryBackend::getIds(OperationContext *ctx)
     {
 //      auto search = /*idsInfoMap*/.find(ctx->getUid());
       auto search = internalCtx->idsInfoMap.find(ctx->getUid());
@@ -1029,7 +1029,7 @@ else
 
       //      std::cout << "GET IDS FOR " << ctx->getDataobjectName() << std::endl;
 
-	UalStruct *retIds;
+	ALStruct *retIds;
 	std::string idsPath = getIdsPath(ctx);
 //	auto searchids = idsMap.find(idsPath);
 	auto searchids = internalCtx->idsMap.find(idsPath);
@@ -1040,7 +1040,7 @@ else
 	} 
 	else
 	{
-	  retIds = new UalStruct;
+	  retIds = new ALStruct;
 //	  idsMap[idsPath] = retIds;
 	  internalCtx->idsMap[idsPath] = retIds;
 	}
@@ -1052,15 +1052,15 @@ else
 	    return idsMap.at(idsPath);
 	} catch (const std::out_of_range& oor) 
 	{
-	    idsMap[idsPath] = new UalStruct;
+	    idsMap[idsPath] = new ALStruct;
 	    return idsMap.at(idsPath);
 	}
 */    }
 
 
 
-    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS UalStruct is condiered.
-    UalAoS *MemoryBackend::getAoS(ArraystructContext *ctx, bool isCurrent)
+    //Get the  AoS referred to the passed ArrayStructContext. If isCurrent, then the currentAoS is considered, otherwise the corresponding AoS in the main IDS ALStruct is condiered.
+    ALAoS *MemoryBackend::getAoS(ArraystructContext *ctx, bool isCurrent)
     {
 	std::vector<ArraystructContext *>currCtxV;
 	ArraystructContext *currCtx = ctx;
@@ -1068,13 +1068,13 @@ else
 	    currCtxV.push_back(currCtx);
 	    currCtx = currCtx->getParent();
 	} while(currCtx);
-	UalAoS *topAos;
+	ALAoS *topAos;
 	if(isCurrent)
 	    topAos = &currentAos;
 	else
 	{
-	    UalStruct *ualStruct = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
-	    topAos = ualStruct->getSubAoS(currCtxV[currCtxV.size() - 1]->getPath());
+	    ALStruct *alStruct = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
+	    topAos = alStruct->getSubAoS(currCtxV[currCtxV.size() - 1]->getPath());
 	}	
 
 	for(int i = currCtxV.size() - 2; i >= 0; i--)
@@ -1087,7 +1087,7 @@ else
 		topAos->aos.resize(currCtxV[i]->getParent()->getIndex()+1);  
 		for(int j = prevSize; j <= currCtxV[i]->getParent()->getIndex(); j++) 
 //		for(int j = prevSize; j <= currCtxV[i]->getIndex(); j++)
-		    topAos->aos[j] = new UalStruct;
+		    topAos->aos[j] = new ALStruct;
 	    }
 	    topAos = topAos->aos[currCtxV[i]->getParent()->getIndex()]->getSubAoS(currCtxV[i]->getPath()); 
 //	    topAos = topAos->aos[currCtxV[i]->getIndex()]->getSubAoS(currCtxV[i]->getPath());
@@ -1099,9 +1099,9 @@ else
 	return topAos;
     }
 
-    UalData *MemoryBackend::getData(ArraystructContext *ctx, int idx, std::string path, bool isCurrent)
+    ALData *MemoryBackend::getData(ArraystructContext *ctx, int idx, std::string path, bool isCurrent)
     {
-	UalAoS *aos = getAoS(ctx, isCurrent);
+	ALAoS *aos = getAoS(ctx, isCurrent);
 	if(aos->timebase != ctx->getTimebasePath())
 	    aos->timebase = ctx->getTimebasePath();
 	if(aos->aos.size() <= (size_t)idx)
@@ -1109,7 +1109,7 @@ else
 	    int prevSize = aos->aos.size();
 	    aos->aos.resize(idx+1);
 	    for(int j = prevSize; j <= idx; j++)
-		aos->aos[j] = new UalStruct;
+		aos->aos[j] = new ALStruct;
 	}
 	return aos->aos[idx]->getData(path);
     }
@@ -1134,7 +1134,7 @@ else
 	std::string fullAosPath = idsPath + "/";
 	fullAosPath += currCtxV[currCtxV.size() - 1]->getPath();
 
-	UalStruct *ids = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
+	ALStruct *ids = getIds(currCtxV[currCtxV.size() - 1]->getOperationContext());
 
         bool isMapped = ids->isAoSMapped(currCtxV[currCtxV.size() - 1]->getPath());
 	if(!isMapped)
@@ -1146,61 +1146,61 @@ else
 
 //////////////////////////////////////////////////////////////////////////
 
-    UalData* UalData::clone()
+    ALData* ALData::clone()
     {
-	UalData *newData = new UalData;
+	ALData *newData = new ALData;
 	*newData = *this;
 	return newData;
     }
 
 
-    int UalData::getItemSize(int inType)
+    int ALData::getItemSize(int inType)
     {
 	switch(inType)
 	{
-	    case ualconst::char_data: return 1;
-	    case ualconst::integer_data: return 4;
-	    case ualconst::double_data: return 8;
-	    case ualconst::complex_data: return 16;
+	    case alconst::char_data: return 1;
+	    case alconst::integer_data: return 4;
+	    case alconst::double_data: return 8;
+	    case alconst::complex_data: return 16;
 	    default: return 0; //Never happens
 	}
     }
 
-    UalData::UalData()
+    ALData::ALData()
     {
 	timed = false;
 	mapState = MAPPING::UNMAPPED;
     }
-    std::vector<double> UalData::getDoubleVect()
+    std::vector<double> ALData::getDoubleVect()
     {
-	if(type != ualconst::double_data)
+	if(type != alconst::double_data)
 	{
 	    std::cout << "FATAL ERROR: time reference is not a double array" << std::endl;
-	    throw UALBackendException("FATAL ERROR: time reference is not a double array",LOG); 
+	    throw ALBackendException("FATAL ERROR: time reference is not a double array",LOG); 
 	}
 	std::vector<double>res;
 	for(size_t i = 0; i < bufV.size(); i++)
 	    res.push_back(*(double *)(static_cast<unsigned char *>(bufV[i].get())));
 	return res;
     }
-    double UalData::getDouble()
+    double ALData::getDouble()
     {
-	if(type != ualconst::double_data)
+	if(type != alconst::double_data)
 	{
 	    std::cout  << "FATAL ERROR: time reference is not double" << std::endl;
-	    throw UALBackendException("FATAL ERROR: time reference is not double ",LOG); 
+	    throw ALBackendException("FATAL ERROR: time reference is not double ",LOG); 
 	}
 	return *(double *)(static_cast<unsigned char *>(bufV[0].get()));
     }
 
 
 
-    void UalData::setTimebase(std::string timebase)
+    void ALData::setTimebase(std::string timebase)
     {
 	timed = true;
 	this->timebase = timebase;
     }
-    void UalData::deleteData()
+    void ALData::deleteData()
     {
 	timebase = "";
 	mapState = MAPPING::MAPPED;
@@ -1208,7 +1208,7 @@ else
 	bufV.clear();
     }
 
-    void UalData::writeData(int type, int numDims, int *dims, unsigned char *buf, std::string timebase)
+    void ALData::writeData(int type, int numDims, int *dims, unsigned char *buf, std::string timebase)
     {
 	//Free previous data
 
@@ -1264,7 +1264,7 @@ else
     }
 
 //Called only when in state SLICE_MAPPED, that is, only when it contains only the most recent slices
-    void UalData::prependData(int type, int numDims, int *dims, unsigned char *buf)
+    void ALData::prependData(int type, int numDims, int *dims, unsigned char *buf)
     {
 	std::vector<std::shared_ptr<unsigned char>>newBufV;
 
@@ -1290,7 +1290,7 @@ else
 	    newBufV.push_back(bufV[i]);
 	bufV = newBufV;
     }
-    void UalData::addSlice(int type, int numDims, int *dims, unsigned char *buf)
+    void ALData::addSlice(int type, int numDims, int *dims, unsigned char *buf)
     {
 	if(mapState == MAPPING::UNMAPPED)
 	    mapState = MAPPING::SLICE_MAPPED;
@@ -1314,7 +1314,7 @@ else
 	dimensionV[dimensionV.size() - 1]++;
 	bufV.push_back(std::shared_ptr<unsigned char>(currBuf, [](unsigned char *p) { delete[] p; }));
     }
-    void UalData::addSlice(UalData &slice)
+    void ALData::addSlice(ALData &slice)
     {
 	if(mapState == MAPPING::UNMAPPED)
 	    mapState = MAPPING::SLICE_MAPPED;
@@ -1346,7 +1346,7 @@ else
 	}
     }
 
-    int UalData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
+    int ALData::readData(void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
 	if(mapState != MAPPING::MAPPED || bufV.size() == 0)
 	    return 0;
@@ -1377,7 +1377,7 @@ else
 	}
 	return 1;
     }
-    int UalData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
+    int ALData::readSlice(int sliceIdx, void **retDataPtr, int *datatype, int *retNumDims, int *retDims)
     {
 	if(mapState != MAPPING::MAPPED || bufV.size() == 0)
 	    return 0;
@@ -1403,7 +1403,7 @@ else
 	    retDims[dimensionV.size()-1] = 1;
 	return 1;
     }
-    void UalData::readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation)
+    void ALData::readTimeSlice(double *times, int numTimes, double time, void **retDataPtr, int *datatype, int *retNumDims, int *retDims, int interpolation)
     {
 	int sliceIdx1, sliceIdx2 = -1;
 	if(time <= times[0])
@@ -1431,16 +1431,16 @@ else
 	{
 	    switch(interpolation)
 	    {
-	        case ualconst::previous_interp:
+	        case alconst::previous_interp:
 		    readSlice(sliceIdx1, retDataPtr, datatype, retNumDims, retDims);
 		    break;
-	        case ualconst::closest_interp:
+	        case alconst::closest_interp:
 		    if((time - times[sliceIdx1]) < (times[sliceIdx2] - time))
 		    	readSlice(sliceIdx1, retDataPtr, datatype, retNumDims, retDims);
 		    else
 		    	readSlice(sliceIdx2, retDataPtr, datatype, retNumDims, retDims);
 		    break;
-		case ualconst::linear_interp:
+		case alconst::linear_interp:
 		{
 		    void *data1, *data2;
 		    readSlice(sliceIdx1, &data1, datatype, retNumDims, retDims);
@@ -1452,10 +1452,10 @@ else
 
 		    switch(*datatype)
 		    {
-			case ualconst::char_data: //Revert to previous sample
+			case alconst::char_data: //Revert to previous sample
 		    	    readSlice(sliceIdx1, retDataPtr, datatype, retNumDims, retDims);
 			    break;
-			case ualconst::integer_data:
+			case alconst::integer_data:
 			{
 			    int *retData = (int *)malloc(sizeof(int) * numSamples);
 			    for(int i = 0; i < numSamples; i++)
@@ -1463,7 +1463,7 @@ else
 			    *retDataPtr = retData;
 			    break;
 			}
-			case ualconst::double_data:
+			case alconst::double_data:
 			{
 			    double *retData = (double *)malloc(sizeof(double) * numSamples);
 			    for(int i = 0; i < numSamples; i++)
@@ -1471,7 +1471,7 @@ else
 			    *retDataPtr = retData;
 			    break;
 			}
-			case ualconst::complex_data:
+			case alconst::complex_data:
 			{
 			    double *retData = (double *)malloc(2*sizeof(double) * numSamples);
 			    for(int i = 0; i < numSamples * 2; i++)
@@ -1489,9 +1489,9 @@ else
 	}
     }
 
-    UalAoS * UalAoS::clone()
+    ALAoS * ALAoS::clone()
     {
-	UalAoS *newAos = new UalAoS;
+	ALAoS *newAos = new ALAoS;
 	for(size_t i = 0; i < aos.size(); i++)
 	    newAos->aos.push_back(aos[i]->clone());
 	newAos->timebase = timebase;
@@ -1499,7 +1499,7 @@ else
     }
 
 
-    void UalAoS::deleteData()
+    void ALAoS::deleteData()
     {
 	timebase = "";
 	for(size_t i = 0; i < aos.size(); i++)
@@ -1509,7 +1509,7 @@ else
 	}
 	aos.clear();
     }
-    UalData *UalStruct::getData(std::string path)
+    ALData *ALStruct::getData(std::string path)
     {
       auto search = dataFields.find(path);
       if (search!=dataFields.end())
@@ -1518,7 +1518,7 @@ else
 	} 
 	else
 	{
-	  UalData * d = new UalData; 
+	  ALData * d = new ALData; 
 	  dataFields[path] = d;
 	  return d;
 	}
@@ -1526,14 +1526,14 @@ else
 	    return dataFields.at(path);
 	} catch (const std::out_of_range& oor) 
 	{
-	    dataFields[path] = new UalData; 
+	    dataFields[path] = new ALData; 
 	    return dataFields[path];
 	} */
     }
 
-    UalStruct *UalStruct::clone()
+    ALStruct *ALStruct::clone()
     {
-	UalStruct *newStruct = new UalStruct;
+	ALStruct *newStruct = new ALStruct;
 	for(auto &field:dataFields)
 	{
 	    newStruct->dataFields[field.first] = field.second->clone();
@@ -1547,7 +1547,7 @@ else
 
 
 
-     void UalStruct::deleteData()
+     void ALStruct::deleteData()
     {
 	for(auto &field:dataFields)
 	{
@@ -1564,7 +1564,7 @@ else
 	}
 	aosFields.clear();
     }
-    UalAoS *UalStruct::getSubAoS(std::string path)
+    ALAoS *ALStruct::getSubAoS(std::string path)
     {
       //if(aosFields.find(path) != aosFields.end())
       //    return aosFields.at(path);
@@ -1573,16 +1573,16 @@ else
 	return search->second;
       else
 	{
-	  UalAoS *aos = new UalAoS;
-	  aosFields[path]=aos; //new UalAoS;
+	  ALAoS *aos = new ALAoS;
+	  aosFields[path]=aos; //new ALAoS;
 	  return aos; //aosFields[path];
 	}
 /*	try {
 	    return aosFields.at(path);
-	} catch (const std::out_of_range& oor) {aosFields[path]=new UalAoS;return aosFields[path];}
+	} catch (const std::out_of_range& oor) {aosFields[path]=new ALAoS;return aosFields[path];}
 */    }
 
-    bool UalStruct::isAoSMapped(std::string path)
+    bool ALStruct::isAoSMapped(std::string path)
     {
 	return (aosFields.find(path) != aosFields.end());
 /*	try {
@@ -1593,7 +1593,7 @@ else
 */    }
 
 
-/*    void UalAoS::dump(int tabs)
+/*    void ALAoS::dump(int tabs)
     {
 	for(int i = 0; i < tabs; i++)
 	    std::cout << "  ";
@@ -1605,7 +1605,7 @@ else
     }*/
 
 
-    void UalAoS::dump(int tabs)
+    void ALAoS::dump(int tabs)
     {
 	for (size_t i = 0; i < aos.size(); i++)
 	{
@@ -1619,42 +1619,42 @@ else
 
 
 
-    UalAoS::~UalAoS()
+    ALAoS::~ALAoS()
     {
         for(size_t i = 0; i < aos.size(); i++)
 	    delete aos[i];
     }
 
-    UalAoS * UalAoS::linearInterpol(UalAoS *ualAos, double t, double t1, double t2) 
+    ALAoS * ALAoS::linearInterpol(ALAoS *alAos, double t, double t1, double t2) 
     {
-	UalAoS *retAos = new UalAoS();
-	if(aos.size() != ualAos->aos.size())
+	ALAoS *retAos = new ALAoS();
+	if(aos.size() != alAos->aos.size())
 	    return retAos;
 	for( size_t i = 0; i < aos.size(); i++)
-	    retAos->aos.push_back(aos[i]->linearInterpol(ualAos->aos[i], t, t1, t2));
+	    retAos->aos.push_back(aos[i]->linearInterpol(alAos->aos[i], t, t1, t2));
 	return retAos;
     }
-    UalStruct *UalStruct::linearInterpol(UalStruct *ualStruct, double t, double t1, double t2)
+    ALStruct *ALStruct::linearInterpol(ALStruct *alStruct, double t, double t1, double t2)
     {
-	UalStruct *retStruct = new UalStruct();
+	ALStruct *retStruct = new ALStruct();
 	for(auto &field: dataFields)
 	{
-	    auto search = ualStruct->dataFields.find(field.first);
-      	    if (search!= ualStruct->dataFields.end()) //If an element with that path has been found 
+	    auto search = alStruct->dataFields.find(field.first);
+      	    if (search!= alStruct->dataFields.end()) //If an element with that path has been found 
 	    {
-		UalData *thisData = field.second;
-		UalData *thatData = ualStruct->dataFields.at(field.first);
+		ALData *thisData = field.second;
+		ALData *thatData = alStruct->dataFields.at(field.first);
 		if(thisData->isCompatible(thatData))
 		    retStruct->dataFields[field.first] = thisData->linearInterpol(thatData, t, t1, t2);
 	    }
 	}
 	for(auto &field: aosFields)
 	{
-	    auto search = ualStruct->aosFields.find(field.first);
-      	    if (search!= ualStruct->aosFields.end()) //If an element with that path has been found 
+	    auto search = alStruct->aosFields.find(field.first);
+      	    if (search!= alStruct->aosFields.end()) //If an element with that path has been found 
 	    {
-		UalAoS *thisAos = field.second;
-		UalAoS *thatAos = ualStruct->aosFields.at(field.first);
+		ALAoS *thisAos = field.second;
+		ALAoS *thatAos = alStruct->aosFields.at(field.first);
 		retStruct->aosFields[field.first] = thisAos->linearInterpol(thatAos, t, t1, t2);
 	    }
 	}

@@ -13,10 +13,10 @@
 #include <pwd.h>
 #endif // WIN32
 
-#include "ual_context.h"
-#include "ual_backend.h"
-#include "ual_defs.h"
-#include "ual_const.h"
+#include "al_context.h"
+#include "al_backend.h"
+#include "al_defs.h"
+#include "al_const.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)

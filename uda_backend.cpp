@@ -145,12 +145,12 @@ void unpack_node(const std::string& path,
     const char* name = uda_capnp_read_name(node);
 
     if (name != path) {
-        throw UALBackendException("Invalid node returned: " + std::string(name));
+        throw ALBackendException("Invalid node returned: " + std::string(name));
     }
 
     size_t num_children = uda_capnp_num_children(node);
     if (num_children != 2) {
-        throw UALBackendException("Invalid number of children on node: " + std::to_string(num_children));
+        throw ALBackendException("Invalid number of children on node: " + std::to_string(num_children));
     }
 
     auto shape_node = uda_capnp_read_child_n(tree, node, 0);
@@ -205,7 +205,7 @@ void unpack_node(const std::string& path,
             *datatype = COMPLEX_DATA;
             unpack_data<double _Complex>(data_node, shape, data, dim, size);
             break;
-        default: throw UALBackendException("Unknown data type: " + std::to_string(type));
+        default: throw ALBackendException("Unknown data type: " + std::to_string(type));
     }
 }
 
@@ -242,7 +242,7 @@ void UDABackend::process_options(uri::Uri uri)
         } else if (value == "struct") {
             cache_mode_ = imas::uda::CacheMode::Struct;
         } else {
-            throw UALException("invalid cache mode", LOG);
+            throw ALException("invalid cache mode", LOG);
         }
     }
 
@@ -334,7 +334,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     try {
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+        throw ALException(ex.what(), LOG);
     }
 }
 
@@ -370,7 +370,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     try {
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+        throw ALException(ex.what(), LOG);
     }
 }
 
@@ -477,7 +477,7 @@ int UDABackend::readData(Context* ctx,
                     return 0;
                 }
                 if (num_children > 1) {
-                    throw UALBackendException(std::string("Too many tree elements returned"), LOG);
+                    throw ALBackendException(std::string("Too many tree elements returned"), LOG);
                 }
 
                 auto node = uda_capnp_read_child_n(tree, root, 0);
@@ -538,7 +538,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
         auto& cache_data = cache_.at(path);
         return boost::get<std::vector<int>>(cache_data.values).at(0);
     } else {
-        throw UALBackendException(std::string("Invalid result for ids_properties/homogeneous_time: ") + uda_data->type().name(), LOG);
+        throw ALBackendException(std::string("Invalid result for ids_properties/homogeneous_time: ") + uda_data->type().name(), LOG);
     }
 }
 
@@ -642,7 +642,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
             n = m;
         }
     } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+        throw ALException(ex.what(), LOG);
     }
 
     if (verbose_) {
@@ -670,9 +670,9 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         try {
             *size = boost::get<std::vector<int>>(data.values).at(0);
         } catch (boost::bad_get& ex) {
-            throw UALException(ex.what(), LOG);
+            throw ALException(ex.what(), LOG);
         } catch (std::out_of_range& ex) {
-            throw UALException(ex.what(), LOG);
+            throw ALException(ex.what(), LOG);
         }
         return;
     } else if (cache_mode_ == imas::uda::CacheMode::Struct) {
@@ -723,7 +723,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
             *size = 0;
             return;
         } else if (uda_data->type() != typeid(int)) {
-            throw UALBackendException(
+            throw ALBackendException(
                     std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
                     LOG);
         }
@@ -789,7 +789,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         try {
             uda_client_.get(directive, "");
         } catch (const uda::UDAException& ex) {
-            throw UALException(ex.what(), LOG);
+            throw ALException(ex.what(), LOG);
         }
     }
 }
@@ -818,7 +818,7 @@ void UDABackend::endAction(Context* ctx)
 //    try {
 //        uda_client_.get(directive, "");
 //    } catch (const uda::UDAException& ex) {
-//        throw UALException(ex.what(), LOG);
+//        throw ALException(ex.what(), LOG);
 //    }
 }
 
@@ -866,11 +866,11 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
                 array = uda::Array{reinterpret_cast<double*>(data), dims};
                 break;
             default:
-                throw UALException("unknown datatype", LOG);
+                throw ALException("unknown datatype", LOG);
         }
         uda_client_.put(directive, array);
     } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+        throw ALException(ex.what(), LOG);
     }
 }
 
@@ -895,7 +895,7 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
     try {
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
-        throw UALException(ex.what(), LOG);
+        throw ALException(ex.what(), LOG);
     }
 }
 

@@ -4,10 +4,10 @@
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
-#include "ual_defs.h"
+#include "al_defs.h"
 #include "hdf5_hs_selection_reader.h"
 #include "hdf5_hs_selection_writer.h"
-#include "ual_backend.h"
+#include "al_backend.h"
 #include <boost/filesystem.hpp>
 
 
@@ -166,7 +166,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "unable to create external link for IDS: %s.\n", ctx->getDataobjectName().c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
     }
     close_group(ctx);
@@ -232,12 +232,12 @@ int HDF5Writer::readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, co
     int shape = 0;
     hid_t dataset_id = -1;
     std::unique_ptr < HDF5DataSetHandler > new_data_set(new HDF5DataSetHandler(false, uri));
-    new_data_set-> open(tensorized_path.c_str(), loc_id, &dataset_id, 1, nullptr, ualconst::integer_data, true, true, uri);
+    new_data_set-> open(tensorized_path.c_str(), loc_id, &dataset_id, 1, nullptr, alconst::integer_data, true, true, uri);
     dataset_id = new_data_set->dataset_id;
     int dim = -1;
     int *AOS_shapes = nullptr;
     HDF5HsSelectionReader hsSelectionReader(new_data_set->getRank(), dataset_id, 
-            new_data_set->getDataSpace(), new_data_set->getLargestDims(), ualconst::integer_data, current_arrctx_indices.size(), &dim);
+            new_data_set->getDataSpace(), new_data_set->getLargestDims(), alconst::integer_data, current_arrctx_indices.size(), &dim);
     hsSelectionReader.allocateGlobalOpBuffer((void **) &AOS_shapes);
     hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices);
     herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id,
@@ -247,7 +247,7 @@ int HDF5Writer::readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, co
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read timed AOS_SHAPE: %s\n", tensorized_path.c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     assert(H5Dclose(dataset_id) >=0);
     shape = AOS_shapes[0];
@@ -414,7 +414,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
 
     char **p = nullptr;
     int number_of_copies = 0;
-    if (datatype == ualconst::char_data) {
+    if (datatype == alconst::char_data) {
         if (dim == 1) {
             p = (char **) malloc(sizeof(char *));
             p[0] = (char *) data;
@@ -449,8 +449,8 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
         data_set->writeUsingHyperslabs(current_arrctx_indices, slice_mode, slices_extension, data);
         }
 
-    if ((datatype != ualconst::char_data && dim > 0)
-        || (datatype == ualconst::char_data && dim == 2))
+    if ((datatype != alconst::char_data && dim > 0)
+        || (datatype == alconst::char_data && dim == 2))
         createOrUpdateShapesDataSet(ctx, gid, tensorized_path, *data_set, timebasename, timed_AOS_index, current_arrctx_indices, arrctx_shapes);
     
     if (p != nullptr) {
@@ -549,7 +549,7 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
         if (slice_mode == SLICE_OP) {
             data_set->setSliceMode(ctx);
             bool create_chunk_cache = true;
-	        data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, dec->getURI());
+	        data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, shapes_dataset, create_chunk_cache, dec->getURI());
             data_set->storeInitialDims();
 	        data_set->extendDataSpaceForTimeSlices(size, aos_shapes.data(), slices_extension);
 	        data_set->setTimeAxisOffset(current_arrctx_indices, slices_extension);
@@ -557,11 +557,11 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
         } else {
             data_set->setNonSliceMode();
             bool create_chunk_cache = true;
-			data_set->create(tensorized_path.c_str(), &dataset_id, ualconst::integer_data, loc_id, dim, size, AOSRank, aos_shapes.data(), shapes_dataset, create_chunk_cache);
+			data_set->create(tensorized_path.c_str(), &dataset_id, alconst::integer_data, loc_id, dim, size, AOSRank, aos_shapes.data(), shapes_dataset, create_chunk_cache);
         }
 
         if (data_set->useBuffering && slice_mode != SLICE_OP) {
-            data_set->appendToBuffer(current_arrctx_indices, dataSetAlreadyOpened, ualconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
+            data_set->appendToBuffer(current_arrctx_indices, dataSetAlreadyOpened, alconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
         }
         else {
              data_set->writeUsingHyperslabs(current_arrctx_indices, slice_mode, slices_extension, shapes);
@@ -592,7 +592,7 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
 		slices_extension = getDynamic_slices_extension(ctx, timed_AOS_index, shapes[0]);
 
         if (data_set->useBuffering && slice_mode != SLICE_OP) {
-            data_set->appendToBuffer(current_arrctx_indices, dataSetAlreadyOpened, ualconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
+            data_set->appendToBuffer(current_arrctx_indices, dataSetAlreadyOpened, alconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
         }
         else {
             data_set->writeUsingHyperslabs(aos_indices, slice_mode, slices_extension, shapes);
@@ -652,17 +652,17 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
                     dataSetHandler->setTimedAOSShape(timedAOS_shape);
                     shapes[0] = timedAOS_shape + slices_extension;
                 }
-				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, ctx->getDataEntryContext()->getURI()); //dataset extension occurs
+				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, shapes_dataset, create_chunk_cache, ctx->getDataEntryContext()->getURI()); //dataset extension occurs
 				dataSetHandler->extendDataSpaceForTimeSlicesForAOSDataSet(size, aos_shapes.data(), slices_extension);
 				dataSetHandler->setTimeAxisOffsetForAOSDataSet();
 			} else {
 				dataSetHandler->setNonSliceMode();
-				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, ualconst::integer_data, shapes_dataset, create_chunk_cache, ctx->getDataEntryContext()->getURI());
+				dataSetHandler->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, shapes_dataset, create_chunk_cache, ctx->getDataEntryContext()->getURI());
 				dataSetHandler->setCurrentShapesAndExtendForAOSDataSet(size, aos_shapes.data());
 			}
 			
             if (dataSetHandler->useBuffering && slice_mode != SLICE_OP) {
-                dataSetHandler->appendToBuffer(aos_indices, dataSetAlreadyOpened, ualconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
+                dataSetHandler->appendToBuffer(aos_indices, dataSetAlreadyOpened, alconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
             }
             else {
                 dataSetHandler->writeUsingHyperslabs(aos_indices, slice_mode, slices_extension, shapes);
@@ -684,7 +684,7 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
 			}
 
             if (data_set->useBuffering && slice_mode != SLICE_OP) {
-                data_set->appendToBuffer(aos_indices, dataSetAlreadyOpened, ualconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
+                data_set->appendToBuffer(aos_indices, dataSetAlreadyOpened, alconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
                 
             }
             else {
@@ -699,16 +699,16 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
 		if (slice_mode == SLICE_OP) {
 			char error_message[200];
             sprintf(error_message, "Inconsistent state detected in slice mode. The AOS shapes dataset: %s is not present in the HDF5 file.\n", tensorized_path.c_str());
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
 		} else {
 			dataSetHandler->setNonSliceMode();
 		}
 
         hid_t dataset_id = -1;
         bool create_chunk_cache = true;
-		dataSetHandler->create(tensorized_path.c_str(), &dataset_id, ualconst::integer_data, loc_id, dim, size, aos_shapes.size(), aos_shapes.data(), shapes_dataset, create_chunk_cache);
+		dataSetHandler->create(tensorized_path.c_str(), &dataset_id, alconst::integer_data, loc_id, dim, size, aos_shapes.size(), aos_shapes.data(), shapes_dataset, create_chunk_cache);
         if (dataSetHandler->useBuffering && slice_mode != SLICE_OP) {
-                dataSetHandler->appendToBuffer(aos_indices, dataSetAlreadyOpened, ualconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
+                dataSetHandler->appendToBuffer(aos_indices, dataSetAlreadyOpened, alconst::integer_data, 1, slice_mode, slices_extension, nullptr, shapes);
             }
         else {
             dataSetHandler->writeUsingHyperslabs(aos_indices, slice_mode, slices_extension, shapes);

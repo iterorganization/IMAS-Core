@@ -1,10 +1,10 @@
-#include "ual_const.h"
+#include "al_const.h"
 
 
 const char * const2str(int id)
 {
-  auto it = ualconst::constmap.find(id);
-  if (it == ualconst::constmap.end())
+  auto it = alconst::constmap.find(id);
+  if (it == alconst::constmap.end())
     return "";
   else
     return it->second.c_str();
@@ -12,16 +12,16 @@ const char * const2str(int id)
 
 const char * err2str(int id)
 {
-  auto it = ualerror::errmap.find(id);
-  if (it == ualerror::errmap.end())
+  auto it = alerror::errmap.find(id);
+  if (it == alerror::errmap.end())
     return "";
   else
     return it->second.c_str();
 }
 
-const char * getUALVersion()
+const char * getALVersion()
 {
-  return UAL_VERSION;
+  return AL_VERSION;
 }
 
 const char * getDDVersion()

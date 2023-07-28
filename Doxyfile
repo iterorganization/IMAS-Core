@@ -28,7 +28,7 @@ DOXYFILE_ENCODING      = UTF-8
 # identify the project. Note that if you do not use Doxywizard you need
 # to put quotes around the project name if it contains spaces.
 
-PROJECT_NAME           = "UAL Lowlevel"
+PROJECT_NAME           = "AL Lowlevel"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number.
 # This could be handy for archiving the generated documentation or
@@ -40,7 +40,7 @@ PROJECT_NUMBER         = 0.1
 # for a project that appears at the top of each page and should give viewer
 # a quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "Re-engineering of UAL Lowlevel and Backend mechanism"
+PROJECT_BRIEF          = "Re-engineering of AL Lowlevel and Backend mechanism"
 
 # With the PROJECT_LOGO tag one can specify an logo or icon that is
 # included in the documentation. The maximum height of the logo should not
@@ -654,9 +654,9 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = ual_context.h ual_const.h ual_const.cpp ual_backend.h \
-		       ual_lowlevel.h ual_lowlevel.cpp no_backend.h ual_backend.cpp \ 
-		       ual_low_level.c mdsplus_backend.h mdsplus_backend.cpp
+INPUT                  = al_context.h al_const.h al_const.cpp al_backend.h \
+		       al_lowlevel.h al_lowlevel.cpp no_backend.h al_backend.cpp \ 
+		       al_low_level.c mdsplus_backend.h mdsplus_backend.cpp
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is

@@ -117,13 +117,13 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
       std::string message("Unable to open data-entry, file does not exist: ");
       message += this->fullpath;
-      throw UALBackendException(message, LOG);
+      throw ALBackendException(message, LOG);
   } else {
     const char* dbfolder = this->dbname.c_str();
     if (mode == OPEN_PULSE && !boost::filesystem::is_directory(dbfolder)) {
       std::string message("Unable to open data-entry, directory does not exist: ");
       message += dbfolder;
-      throw UALBackendException(message, LOG);
+      throw ALBackendException(message, LOG);
     }
     try {
       if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
@@ -133,7 +133,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
     } catch (std::exception & e) {
       std::string message("Unable to create data-entry directory: ");
       message += dbfolder;
-      throw UALBackendException(message, LOG);
+      throw ALBackendException(message, LOG);
     }
   }
 
@@ -189,7 +189,7 @@ void AsciiBackend::beginAction(OperationContext *ctx)
 
   // here we check that operation is in one of the supported modes
   if (ctx->getRangemode()==SLICE_OP)
-    throw UALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
+    throw ALBackendException("ASCII Backend does not support slice mode of operation!",LOG);
 
   this->idsname = ctx->getDataobjectName();
   n = this->idsname.find("/");
@@ -204,12 +204,12 @@ void AsciiBackend::beginAction(OperationContext *ctx)
       this->fname = this->dbname+"/"+this->idsname+".ids";
   }
   else {
-    throw UALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
+    throw ALBackendException("Filename should be empty at this stage, but is "+this->fname,LOG);
   }
 
   if (this->pulsefile.is_open()) {
     std::cerr << "IDS pulsefile already opened!\n";
-    throw UALBackendException("IDS pulsefile "+this->fname+" is already open",LOG);
+    throw ALBackendException("IDS pulsefile "+this->fname+" is already open",LOG);
   }
 
   switch(ctx->getAccessmode()) {
@@ -217,7 +217,7 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     this->writemode = false; 
     this->pulsefile.open(this->fname, std::ios::in);
     if (this->pulsefile.fail())
-      throw UALBackendException("Failed to open file "+this->fname+" in read mode",LOG);
+      throw ALBackendException("Failed to open file "+this->fname+" in read mode",LOG);
     this->curcontent << this->pulsefile.rdbuf();
     this->curcontent_map.clear();
     while (std::getline(this->curcontent, this->curline)) {
@@ -236,10 +236,10 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     this->writemode = true; 
     this->pulsefile.open(this->fname, std::ios::out|std::ios::trunc);
     if (this->pulsefile.fail())
-      throw UALBackendException("Failed to open file "+this->fname+" in write mode",LOG);
+      throw ALBackendException("Failed to open file "+this->fname+" in write mode",LOG);
     break;
   default: 
-    throw UALBackendException("Unsupported access mode for ASCII Backend!",LOG);
+    throw ALBackendException("Unsupported access mode for ASCII Backend!",LOG);
     break;
   }
 
@@ -258,11 +258,11 @@ void AsciiBackend::endAction(Context *ctx)
   if (ctx->getType()==CTX_OPERATION_TYPE) {
     this->pulsefile.flush();
     if (this->pulsefile.fail()) {
-      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+      throw ALBackendException("WRONG, failbit or badbit detected!",LOG);
     }
     this->pulsefile.close();
     if (this->pulsefile.fail()) {
-      throw UALBackendException("WRONG, failbit or badbit detected!",LOG);
+      throw ALBackendException("WRONG, failbit or badbit detected!",LOG);
     }
     this->fname = "";
   }
@@ -334,7 +334,7 @@ void AsciiBackend::writeData(Context *ctx,
     this->writeData((std::complex<double> *)data, dim, size);
     break;
   default:
-    throw UALBackendException("Unsupported data type for ASCII Backend!",LOG);
+    throw ALBackendException("Unsupported data type for ASCII Backend!",LOG);
     break;
   }
   this->pulsefile.flush();
@@ -362,7 +362,7 @@ void AsciiBackend::writeData(const char *data,
     }
     break;
   default:
-    throw UALBackendException("CHAR data > 2D is not implemented yet in ASCII Backend!",LOG);
+    throw ALBackendException("CHAR data > 2D is not implemented yet in ASCII Backend!",LOG);
     break;
   }
 }
@@ -447,7 +447,7 @@ void writeDataTemp(const T *data,
 	      }
     break;
   default:
-    throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
+    throw ALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
     break;
   }
 }
@@ -523,7 +523,7 @@ int AsciiBackend::readData(Context *ctx,
       this->readData((std::complex<double> **)data, *dim, size);
       break;
     default:
-      throw UALBackendException("Unsupported data type for ASCII Backend!",LOG);
+      throw ALBackendException("Unsupported data type for ASCII Backend!",LOG);
       break;
     }
     
@@ -557,7 +557,7 @@ void AsciiBackend::readData(char **data,
     }
     break;
   default:
-    throw UALBackendException("CHAR data > 2D is not implemented yet in ASCII Backend!",LOG);
+    throw ALBackendException("CHAR data > 2D is not implemented yet in ASCII Backend!",LOG);
     break;
   }
 }
@@ -631,7 +631,7 @@ void readDataTemp(T **data,
 		  curcontent >> temp_imanip<T>() >> (*data)[o*size[5]*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[4]*size[3]*size[2]*size[1]*size[0]+n*size[3]*size[2]*size[1]*size[0]+l*size[2]*size[1]*size[0]+k*size[1]*size[0]+j*size[0]+i] >> temp_imanip<T>();
     break;
   default:
-    throw UALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
+    throw ALBackendException(std::string(typeid(T).name())+" data > 7D is not implemented in ASCII Backend!",LOG);
     break;
   }
 }

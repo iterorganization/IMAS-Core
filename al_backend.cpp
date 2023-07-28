@@ -1,4 +1,4 @@
-#include "ual_backend.h"
+#include "al_backend.h"
 #include "no_backend.h"
 #include "memory_backend.h"
 #ifdef ASCII
@@ -24,56 +24,56 @@ Backend* Backend::initBackend(int id)
 {
   Backend *be = NULL;
 
-  if (id==ualconst::no_backend)
+  if (id==alconst::no_backend)
     {
       NoBackend* tbe = new NoBackend();
       be = tbe;
     }
-  else if (id==ualconst::ascii_backend)
+  else if (id==alconst::ascii_backend)
     {
 #ifdef ASCII
       AsciiBackend* tbe = new AsciiBackend();
       be = tbe;
 #else
-      throw UALBackendException("ASCII backend is not available within current install",LOG);
+      throw ALBackendException("ASCII backend is not available within current install",LOG);
 #endif
     }
-  else if (id==ualconst::mdsplus_backend)
+  else if (id==alconst::mdsplus_backend)
     {
 #ifdef MDSPLUS
       MDSplusBackend* tbe = new MDSplusBackend();
       be = tbe;
 #else
-      throw UALBackendException("MDSplus backend is not available within current install",LOG);
+      throw ALBackendException("MDSplus backend is not available within current install",LOG);
 #endif
     }
-  else if (id==ualconst::hdf5_backend)
+  else if (id==alconst::hdf5_backend)
     {
 #ifdef HDF5
       HDF5Backend* tbe = new HDF5Backend();
       be = tbe;
 #else
-      throw UALBackendException("HDF5 backend is not available within current install",LOG);
+      throw ALBackendException("HDF5 backend is not available within current install",LOG);
 #endif
     }
-  else if (id==ualconst::memory_backend)
+  else if (id==alconst::memory_backend)
     {
       MemoryBackend* tbe = new MemoryBackend();
       be = tbe;
     }
-  else if (id==ualconst::uda_backend)
+  else if (id==alconst::uda_backend)
     {
 #ifdef UDA
       UDABackend* tbe = new UDABackend(false);
       be = tbe;
 #else
-      throw UALBackendException("UDA backend is not available within current install",LOG);
+      throw ALBackendException("UDA backend is not available within current install",LOG);
 #endif
     }
   else
     {
       std::cerr << "Non-identified backend ID (" << id << ")\n";
-      throw UALBackendException("Wrong backend identifier "+std::to_string(id),LOG);
+      throw ALBackendException("Wrong backend identifier "+std::to_string(id),LOG);
     }
 
   return be;

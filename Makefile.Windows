@@ -105,12 +105,12 @@ ifeq ("yes","$(strip $(IMAS_MPI))")
 endif # IMAS_MPI
 endif # IMAS_HDF5
 	# Copy includes
-	$(CP) ual_defs.h $(packagedir)/lowlevel/include
-	$(CP) ual_lowlevel.h $(packagedir)/lowlevel/include
-	$(CP) ual_backend.h $(packagedir)/lowlevel/include
-	$(CP) ual_context.h $(packagedir)/lowlevel/include
-	$(CP) ual_exception.h $(packagedir)/lowlevel/include
-	$(CP) ual_const.h $(packagedir)/lowlevel/include
+	$(CP) al_defs.h $(packagedir)/lowlevel/include
+	$(CP) al_lowlevel.h $(packagedir)/lowlevel/include
+	$(CP) al_backend.h $(packagedir)/lowlevel/include
+	$(CP) al_context.h $(packagedir)/lowlevel/include
+	$(CP) al_exception.h $(packagedir)/lowlevel/include
+	$(CP) al_const.h $(packagedir)/lowlevel/include
 	$(CP) access_layer_plugin_manager.h $(packagedir)/lowlevel/include
 	# Copy documentation
 	$(mkdir_p) $(packagedir)/doc/lowlevel

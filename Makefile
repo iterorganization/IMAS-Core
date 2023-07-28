@@ -41,14 +41,14 @@ endif
 CXXINCLUDES= -DASCII ${INCLUDES} -I. -I$(BOOST_HOME)/include 
 LIBS+= -lboost_filesystem -lboost_system -ldl
 
-CPPSRC= ual_backend.cpp ual_lowlevel.cpp ual_context.cpp access_layer_plugin_manager.cpp \
-	ual_const.cpp ual_exception.cpp no_backend.cpp \
+CPPSRC= al_backend.cpp al_lowlevel.cpp al_context.cpp access_layer_plugin_manager.cpp \
+	al_const.cpp al_exception.cpp no_backend.cpp \
 	memory_backend.cpp ascii_backend.cpp
 
 CSRC= 
 
-COMMON_OBJECTS= ual_lowlevel.o ual_context.o ual_const.o access_layer_plugin_manager.o \
-		ual_exception.o ual_backend.o no_backend.o \
+COMMON_OBJECTS= al_lowlevel.o al_context.o al_const.o access_layer_plugin_manager.o \
+		al_exception.o al_backend.o no_backend.o \
 		memory_backend.o ascii_backend.o
 
 # Include OS-specific Makefile, if exists.
@@ -64,7 +64,7 @@ clean: pkgconfig_clean test_clean
 	$(RM) *.o *.mod *.a *.so *.so.* *.lib *.dll mdsplusFileVersion
 
 clean-src: clean clean-doc
-	$(RM) *.d *~ ual_defs.h $(INSTALL)/include/*.h
+	$(RM) *.d *~ al_defs.h $(INSTALL)/include/*.h
 	$(RM) -r $(INSTALL)/documentation/dev
 
 test: $(TARGETS)
@@ -83,12 +83,12 @@ clean-doc:
 	$(RM) -r latex html
 
 # If only sources generation is requested
-sources: ual_defs.h
+sources: al_defs.h
 
-# Create ual_defs.h
-ual_defs.h: ual_defs.h.in
+# Create al_defs.h
+al_defs.h: al_defs.h.in
 	sed \
-		-e "s|@@UAL_VERSION@@|$(AL_SHORT_DESCRIBE)|g" \
+		-e "s|@@AL_VERSION@@|$(AL_SHORT_DESCRIBE)|g" \
 		-e "s|@@DD_VERSION@@|$(DD_SHORT_DESCRIBE)|g" \
 		$< > $@ 
 

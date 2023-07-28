@@ -50,7 +50,7 @@ void HDF5DataSetHandler::writeBuffer() {
             if (status < 0) {
                 char error_message[200];
                 sprintf(error_message, "Unable to write HDF5 dataset for SHAPE: %s\n", tensorized_path.c_str());
-                throw UALBackendException(error_message, LOG);
+                throw ALBackendException(error_message, LOG);
             }
             free(buffer);
 }
@@ -115,7 +115,7 @@ const hsize_t * HDF5DataSetHandler::getDims()
 std::vector<int> HDF5DataSetHandler::getDimsAsVector() const
 {
     std::vector<int> v;
-    if ( (datatype != ualconst::char_data && request_dim == 0) || (datatype == ualconst::char_data && request_dim == 1) ) {
+    if ( (datatype != alconst::char_data && request_dim == 0) || (datatype == alconst::char_data && request_dim == 1) ) {
         return v;
     }
     v.assign(dims, dims + dataset_rank);
@@ -184,7 +184,7 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
         
         disableBufferingIfNotSupported(datatype, dim);
 		
-		if (datatype != ualconst::char_data) {
+		if (datatype != alconst::char_data) {
 			if (dim > 0 && !isTimed && timed_AOS_index == -1 && size) {
 				this->slices_extension = size[dim - 1];
 			}
@@ -216,7 +216,7 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
 			}
 			else {
 				sprintf(error_message, "Unable to open HDF5 dataset: %s\n", dataset_name);
-				throw UALBackendException(error_message, LOG);
+				throw ALBackendException(error_message, LOG);
 			}
         }
         this->dataset_id = *dataset_id;
@@ -227,17 +227,17 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
         if (dataset_rank < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to call H5Sget_simple_extent_ndims for: %s\n", dataset_name);
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
         herr_t status = H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
 		memcpy(largest_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to call H5Sget_simple_extent_dims for: %s\n", dataset_name);
-            throw UALBackendException(error_message, LOG);
+            throw ALBackendException(error_message, LOG);
         }
 		
-		if (datatype != ualconst::char_data) {
+		if (datatype != alconst::char_data) {
     		this->AOSRank = this->dataset_rank - dim;
 		}
 		else {
@@ -303,7 +303,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
             largest_dims[i] = dims[i];
             maxdims[i] = H5S_UNLIMITED;
     }
-	if (datatype != ualconst::char_data) {
+	if (datatype != alconst::char_data) {
         for (int i = 0; i < dim; i++) { //data axis creation
 			dims[i + AOSRank] = (hsize_t) size[dim - i - 1];
             largest_dims[i + AOSRank] = dims[i + AOSRank];
@@ -418,10 +418,10 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 
 		if (!shape_dataset) {
-			if (datatype == ualconst::integer_data) {
+			if (datatype == alconst::integer_data) {
 				int default_value = -999999999;
 				H5Pset_fill_value(dcpl_id, dtype_id, &default_value);
-			} else if (datatype == ualconst::double_data) {
+			} else if (datatype == alconst::double_data) {
 				double default_value = -9.0E40;
 				H5Pset_fill_value(dcpl_id, dtype_id, &default_value);
 			}
@@ -449,7 +449,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
         if (*dataset_id < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to create HDF5 dataset: %s\n", dataset_name);
-            throw UALBackendException(error_message);
+            throw ALBackendException(error_message);
         }
         this->dataset_id = *dataset_id;
 
@@ -464,19 +464,19 @@ int HDF5DataSetHandler::setType() {
 
 	switch (datatype) {
 
-    case ualconst::integer_data:
+    case alconst::integer_data:
         {
             dtype_id = H5T_NATIVE_INT;
             type_size = H5Tget_size(dtype_id);
             break;
         }
-    case ualconst::double_data:
+    case alconst::double_data:
         {
             dtype_id = H5T_NATIVE_DOUBLE;
             type_size = H5Tget_size(dtype_id);
             break;
         }
-	case ualconst::complex_data:
+	case alconst::complex_data:
         {
 			immutable = false;
 			complex_t tmp;  /*used only to compute offsets */
@@ -486,7 +486,7 @@ int HDF5DataSetHandler::setType() {
             type_size = H5Tget_size(dtype_id);
             break;
         }
-    case ualconst::char_data:
+    case alconst::char_data:
         {
             immutable = false;
             dtype_id = H5Tcopy (H5T_C_S1);
@@ -501,13 +501,13 @@ int HDF5DataSetHandler::setType() {
             if (tset < 0) {
                 char error_message[100];
                 sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", getName().c_str());
-                throw UALBackendException(error_message);
+                throw ALBackendException(error_message);
             }
             break;
         }
 	
     default:
-        throw UALBackendException("Data type not supported", LOG);
+        throw ALBackendException("Data type not supported", LOG);
     }
 	return type_size;
 }
@@ -521,11 +521,11 @@ void HDF5DataSetHandler::setTimeAxisOffset(const std::vector < int > &current_ar
     assert(slice_mode);
     assert(dataset_id > 0);
     int dim = dataset_rank - AOSRank;
-    if (!shape_dataset && datatype != ualconst::char_data && dynamic_AOS_slices_extension == 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
+    if (!shape_dataset && datatype != alconst::char_data && dynamic_AOS_slices_extension == 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
         timeWriteOffset = initial_dims[AOSRank];
         dims[AOSRank] = slices_extension; //increase coordinate along the time axis, done once after opening a dataset in slice mode
     }
-    else if (!shape_dataset && datatype != ualconst::char_data && dynamic_AOS_slices_extension != 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
+    else if (!shape_dataset && datatype != alconst::char_data && dynamic_AOS_slices_extension != 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
         timeWriteOffset = initial_dims[AOSRank];
         dims[AOSRank] = dynamic_AOS_slices_extension;
     }
@@ -557,7 +557,7 @@ void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes,
 	setCurrentShapes(size, AOSShapes);
 	int dim = dataset_rank - AOSRank;
 
-    if (!shape_dataset && datatype != ualconst::char_data && (dim > 0 && !isTimed && timed_AOS_index == -1)) {
+    if (!shape_dataset && datatype != alconst::char_data && (dim > 0 && !isTimed && timed_AOS_index == -1)) {
         largest_dims[AOSRank] = dims[AOSRank] + slices_extension;
         //std::cout << "slices_extension = " << slices_extension << std::endl;
     } else if (isTimed && timed_AOS_index != -1 && timed_AOS_index <= AOSRank) {
@@ -600,7 +600,7 @@ void HDF5DataSetHandler::setCurrentShapes(int *size, int *AOSShapes) {
 			}
     }
 
-	if (datatype != ualconst::char_data) {
+	if (datatype != alconst::char_data) {
 
         int dim = dataset_rank - AOSRank;
 
@@ -660,7 +660,7 @@ void HDF5DataSetHandler::setExtent()
     if (status < 0) {
         char error_message[100];
         sprintf(error_message, "Unable to extend the existing dataset: %d\n", (int) dataset_id);
-        throw UALBackendException(error_message);
+        throw ALBackendException(error_message);
     }
     if (dataspace_id != -1) {
         H5Sclose(dataspace_id);
@@ -673,21 +673,21 @@ void HDF5DataSetHandler::close()
     HDF5Utils hdf5_utils;
     if (useBuffering) {
         switch(datatype) {
-            case ualconst::integer_data:
+            case alconst::integer_data:
             {
                 if (full_int_data_set_buffer != NULL)
                     free(full_int_data_set_buffer);
                 int_data_set_buffer.clear();
                 break;
             }
-            case ualconst::double_data:
+            case alconst::double_data:
             {
                 if (full_double_data_set_buffer != NULL)
                     free(full_double_data_set_buffer);
                 double_data_set_buffer.clear();
                 break;
             }
-            case ualconst::char_data:
+            case alconst::char_data:
             {
             	for (int i = 0; i < (int) full_data_sets_buffers.size(); i++)
                     free(full_data_sets_buffers[i]);
@@ -705,19 +705,19 @@ void HDF5DataSetHandler::close()
 void HDF5DataSetHandler::setBuffering(bool useBufferingOption) {
 
     if (useBufferingOption && !slice_mode) {
-        if (request_dim == 0 && datatype == ualconst::integer_data ) {
+        if (request_dim == 0 && datatype == alconst::integer_data ) {
                 useBuffering = true;
             }
-            else if (request_dim == 0 && datatype == ualconst::double_data) {
+            else if (request_dim == 0 && datatype == alconst::double_data) {
                 useBuffering = true;
             }
-            else if (request_dim == 1 && datatype == ualconst::integer_data) {
+            else if (request_dim == 1 && datatype == alconst::integer_data) {
                 useBuffering = true;
             }
-            else if (request_dim == 1 && datatype == ualconst::double_data) {
+            else if (request_dim == 1 && datatype == alconst::double_data) {
                 useBuffering = true;
             }
-            else if (request_dim == 1 && datatype == ualconst::char_data) {
+            else if (request_dim == 1 && datatype == alconst::char_data) {
                 useBuffering = true;
             }
     }
@@ -734,21 +734,21 @@ void HDF5DataSetHandler::write_buffers() {
     herr_t status = 0;
     switch(datatype) {
 
-        case ualconst::integer_data:
+        case alconst::integer_data:
             {
                 int *v = full_int_data_set_buffer;
                 status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
                 break;
             }
     
-        case ualconst::double_data:
+        case alconst::double_data:
             {
                 double *v = full_double_data_set_buffer;
                 status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
                 break;
             }
 
-        case ualconst::char_data:
+        case alconst::char_data:
             {
                 std::vector<char *> &values = full_data_sets_buffers;
                 char** v = &values[0];
@@ -759,7 +759,7 @@ void HDF5DataSetHandler::write_buffers() {
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to write HDF5 dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
@@ -768,7 +768,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
     HDF5Utils hdf5_utils;
     switch (datatype) {
         
-    case ualconst::integer_data: 
+    case alconst::integer_data: 
         {   
             std::vector<int *> &buffers = int_data_set_buffer;
             if (buffers.size() == 0)
@@ -782,7 +782,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (status < 0) {
                 char error_message[200];
                 sprintf(error_message, "Unable to create full buffer for HDF5 dataset: %s\n", getName().c_str());
-                throw UALBackendException(error_message, LOG);
+                throw ALBackendException(error_message, LOG);
             }
             auto it = requests_arrctx_indices.begin();
             int request = 0;
@@ -820,7 +820,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
             full_int_data_set_buffer = v;
             break;
         }
-    case ualconst::double_data: 
+    case alconst::double_data: 
         {
             std::vector<double *> &buffers = double_data_set_buffer;
             if (buffers.size() == 0)
@@ -834,7 +834,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (status < 0) {
                 char error_message[200];
                 sprintf(error_message, "Unable to create full buffer for HDF5 dataset: %s\n", getName().c_str());
-                throw UALBackendException(error_message, LOG);
+                throw ALBackendException(error_message, LOG);
             }
             auto it = requests_arrctx_indices.begin();
             int request = 0;
@@ -874,7 +874,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
             break;
         }
 
-    case ualconst::char_data: 
+    case alconst::char_data: 
         {   
             std::vector<char *> &buffers = data_sets_buffers;
             if (buffers.size() == 0) {
@@ -965,7 +965,7 @@ void HDF5DataSetHandler::writeUsingHyperslabs(const std::vector < int >&current_
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to write HDF5 dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
@@ -973,19 +973,19 @@ void HDF5DataSetHandler::appendToBuffer(const std::vector < int >&current_arrctx
 
     requests_arrctx_indices.push_back(current_arrctx_indices);
 
-    if (dim == 0 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
+    if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
             appendInt0DToBuffer(current_arrctx_indices, data);
         }
-        else if (dim == 0 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
+        else if (dim == 0 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
             appendDouble0DToBuffer(current_arrctx_indices, data);
         }
-        else if (dim == 1 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
+        else if (dim == 1 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
             appendIntNDToBuffer(current_arrctx_indices, data, dim);
         }
-        else if (dim == 1 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
+        else if (dim == 1 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
             appendDoubleNDToBuffer(current_arrctx_indices, data, dim);
         }
-        else if (dim == 1 && datatype == ualconst::char_data && slice_mode != SLICE_OP) {
+        else if (dim == 1 && datatype == alconst::char_data && slice_mode != SLICE_OP) {
             appendStringToBuffer(current_arrctx_indices, p);
         }
         else {
@@ -1015,7 +1015,7 @@ void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelecti
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
@@ -1084,7 +1084,7 @@ void HDF5DataSetHandler::createIntBuffer(HDF5HsSelectionReader & hsSelectionRead
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
@@ -1109,7 +1109,7 @@ void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionR
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
@@ -1125,30 +1125,30 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
 void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
     if (useBuffering) {
         HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
-        if (datatype != ualconst::char_data) {
-            if (dim == 0 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
+        if (datatype != alconst::char_data) {
+            if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
                 if (full_int_data_set_buffer==NULL)
                     createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readInt0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
-            else if (dim == 0 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
+            else if (dim == 0 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
                 if (full_double_data_set_buffer==NULL)
                     createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readDouble0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
-            else if (dim == 1 && datatype == ualconst::integer_data && slice_mode != SLICE_OP) {
+            else if (dim == 1 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
                 if (full_int_data_set_buffer==NULL)
                     createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readIntNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
-            else if (dim == 1 && datatype == ualconst::double_data && slice_mode != SLICE_OP) {
+            else if (dim == 1 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
                 if (full_double_data_set_buffer==NULL)
                     createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
                 readDoubleNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
@@ -1163,12 +1163,12 @@ void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indic
                 read0DStringsFromBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
             else {
-                readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == ualconst::char_data);
+                readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
             }
         }
     }
     else {
-        readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == ualconst::char_data);
+        readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
     }
 }
 

@@ -1,13 +1,13 @@
 /*-*-c++-*-*/
 
 /**
-   \file ual_const.h
-   Contains all constants used within the UAL low-levels.
+   \file al_const.h
+   Contains all constants used within the AL low-levels.
 */
-#ifndef UAL_CONST_H
-#define UAL_CONST_H 1
+#ifndef AL_CONST_H
+#define AL_CONST_H 1
 
-#include "ual_defs.h"
+#include "al_defs.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -39,7 +39,7 @@ enum BACKEND
 #include <map>
 #include <string>
 
-namespace ualconst {
+namespace alconst {
 
   const int no_backend      = BACKEND::NO_BACKEND;
   const int ascii_backend   = BACKEND::ASCII_BACKEND;
@@ -167,7 +167,7 @@ namespace ualconst {
     };
 }
 
-namespace ualerror {
+namespace alerror {
 
   const int unknown_err = UNKNOWN_ERR;
   const int context_err = CONTEXT_ERR;
@@ -215,10 +215,10 @@ extern "C" {
   LIBRARY_API const char * err2str(int id);
   
   /**
-     Returns the String of the UAL version.
-     @result String of the UAL version
+     Returns the String of the AL version.
+     @result String of the AL version
   */
-  LIBRARY_API const char * getUALVersion();
+  LIBRARY_API const char * getALVersion();
   
   /**
      Returns the String of Data Dictionary version.
@@ -231,4 +231,4 @@ extern "C" {
 }
 #endif
 
-#endif // UAL_CONST_H
+#endif // AL_CONST_H

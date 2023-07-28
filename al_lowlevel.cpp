@@ -1,4 +1,4 @@
-#include "ual_lowlevel.h"
+#include "al_lowlevel.h"
 
 #include "dlfcn.h"
 #include "access_layer_plugin.h"
@@ -57,7 +57,7 @@ void LLplugin::addPlugin(const char* name, void *plugin) {
   if (!plugin) {
     char error_message[200];
     sprintf(error_message, "Plugin %s is NULL and can not be registered in the plugins store. Is the plugin implementing the create() function?\n", name);
-    throw UALBackendException(error_message, LOG);
+    throw ALBackendException(error_message, LOG);
   }
   llpluginsStore[std::string(name)].al_plugin = plugin;
 }
@@ -115,7 +115,7 @@ bool LLplugin::pluginsFrameworkEnabled(){
 
 void LLplugin::checkIfPluginsFrameworkIsEnabled(){
   if(!pluginsFrameworkEnabled())
-       throw UALLowlevelException("Plugins feature is disabled. Set the global variable 'IMAS_AL_ENABLE_PLUGINS' to 'TRUE' to enable this feature.");
+       throw ALLowlevelException("Plugins feature is disabled. Set the global variable 'IMAS_AL_ENABLE_PLUGINS' to 'TRUE' to enable this feature.");
 } 
 
 void LLplugin::getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path) {
@@ -191,8 +191,8 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
     checkIfPluginsFrameworkIsEnabled();
     if (!isPluginRegistered(pluginName)) {
         char error_message[200];
-        sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using ual_register_plugin(name) before to be bound.\n", pluginName);
-        throw UALLowlevelException(error_message, LOG);
+        sprintf(error_message, "Plugin %s is not registered. Plugins need to be registered using al_register_plugin(name) before to be bound.\n", pluginName);
+        throw ALLowlevelException(error_message, LOG);
     }
     std::string fieldPath_str(fieldPath);
     std::string idspath = "/";
@@ -230,12 +230,12 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
         } else {
           char error_message[200];
           sprintf(error_message, "bindPlugin: bad format: (%s) should follow the syntax of an IDS path.\n", idspath.c_str());
-          throw UALLowlevelException(error_message, LOG);
+          throw ALLowlevelException(error_message, LOG);
       }
     } else {
         char error_message[200];
         sprintf(error_message, "bindPlugin: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
-        throw UALLowlevelException(error_message, LOG);
+        throw ALLowlevelException(error_message, LOG);
     }
 
     auto got = boundPlugins.find(idspath);
@@ -245,7 +245,7 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
         if ( got2 != plugins.end()) {
             char error_message[200];
             sprintf(error_message, "Plugin %s is already bound to path: %s.\n", pluginName, idspath.c_str());
-            throw UALLowlevelException(error_message, LOG);
+            throw ALLowlevelException(error_message, LOG);
         }
         else
            plugins.push_back(pluginName);
@@ -299,19 +299,19 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
     checkIfPluginsFrameworkIsEnabled();
     const char* IMAS_AL_PLUGINS = std::getenv("IMAS_AL_PLUGINS");
     if (IMAS_AL_PLUGINS == NULL)
-        throw UALLowlevelException("IMAS_AL_PLUGINS environment variable not defined",LOG);
+        throw ALLowlevelException("IMAS_AL_PLUGINS environment variable not defined",LOG);
 
     if (isPluginRegistered(plugin_name)) {
         char error_message[200];
         sprintf(error_message, "Plugin %s already registered in the plugins store.\n", plugin_name);
-        throw UALLowlevelException(error_message, LOG);
+        throw ALLowlevelException(error_message, LOG);
     }
   
     std::string ids_plugin = std::string(IMAS_AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     if (!boost::filesystem::exists(ids_plugin.c_str())) { 
         char error_message[200];
         sprintf(error_message, "Plugin shared library %s not found", ids_plugin.c_str());
-        throw UALLowlevelException(error_message, LOG); 
+        throw ALLowlevelException(error_message, LOG); 
     }
 
     llpluginsStore[std::string(plugin_name)] = LLplugin();
@@ -327,7 +327,7 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
         //char error_message[200];
         //sprintf(error_message, "%s for plugin: %s.\n", dlerror(), plugin_name);
         printf("error:%s for plugin: %s\n", dlerror(), plugin_name);
-        //throw UALLowlevelException(error_message, LOG);
+        //throw ALLowlevelException(error_message, LOG);
     }
     assert(plugin_handler != nullptr);
     addPluginHandler(plugin_name, plugin_handler);
@@ -336,13 +336,13 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
     if (!create_plugin) {
         char error_message[200];
         sprintf(error_message, "Cannot load symbol create:%s for plugin:%s.\n", dlerror(), plugin_name);
-        throw UALLowlevelException(error_message, LOG);
+        throw ALLowlevelException(error_message, LOG);
     }
     destroy_plugin = (destroy_t*) dlsym(plugin_handler, "destroy");
     if (!destroy_plugin) {
         char error_message[200];
         sprintf(error_message, "Cannot load symbol destroy:%s for plugin:%s.\n", dlerror(), plugin_name);
-        throw UALLowlevelException(error_message, LOG);
+        throw ALLowlevelException(error_message, LOG);
     }
     
     dlerror();
@@ -360,7 +360,7 @@ void LLplugin::unregisterPlugin(const char *plugin_name)
     {
         char error_message[200];
         sprintf(error_message, "Plugin %s not registered in the plugins store.\n", plugin_name);
-        throw UALLowlevelException(error_message, LOG);
+        throw ALLowlevelException(error_message, LOG);
     }
     // Erasing all paths bound to this plugin from the boundPlugins map
     auto it = boundPlugins.begin();
@@ -500,11 +500,11 @@ LLenv Lowlevel::getLLenv(int idx)
   try {
     lle = llenvStore.at(idx);
     if (lle.context == NULL)
-      throw UALLowlevelException("Cannot find context "+std::to_string(idx)+
+      throw ALLowlevelException("Cannot find context "+std::to_string(idx)+
 				 " in store",LOG);
   }
   catch (const std::exception& e) {
-    throw UALLowlevelException("Cannot find context "+std::to_string(idx)+
+    throw ALLowlevelException("Cannot find context "+std::to_string(idx)+
 			       " in store",LOG);
   }
   return lle;
@@ -560,20 +560,20 @@ void Lowlevel::setValue(void *data, int type, int dim, void **var)
     {
       switch(type)
 	{
-	case ualconst::char_data:
+	case alconst::char_data:
 	  **(char **)var = *(char*)data;
 	  break;
-	case ualconst::integer_data:
+	case alconst::integer_data:
 	  **(int**)var = *(int*)data;
 	  break;
-	case ualconst::double_data:
+	case alconst::double_data:
 	  **(double**)var = *(double*)data;
 	  break;
-	case ualconst::complex_data:
+	case alconst::complex_data:
 	  **(std::complex<double>**)var = *(std::complex<double>*)data;
 	  break;
 	default:
-	  throw UALLowlevelException("Unknown data type="+std::to_string(type),LOG);
+	  throw ALLowlevelException("Unknown data type="+std::to_string(type),LOG);
 	}
       free(data);
     }
@@ -588,20 +588,20 @@ void Lowlevel::setDefaultValue(int type, int dim, void **var, int *size)
     {
       switch(type)
 	{
-	case ualconst::char_data:
+	case alconst::char_data:
 	  **(char**)var = Lowlevel::EMPTY_CHAR;
 	  break;
-	case ualconst::integer_data:
+	case alconst::integer_data:
 	  **(int**)var = Lowlevel::EMPTY_INT;
 	  break;
-	case ualconst::double_data:
+	case alconst::double_data:
 	  **(double**)var = Lowlevel::EMPTY_DOUBLE;
 	  break;
-	case ualconst::complex_data:
+	case alconst::complex_data:
 	  **(std::complex<double>**)var = Lowlevel::EMPTY_COMPLEX;
 	  break;
 	default:
-	  throw UALLowlevelException("Unknown data type="+std::to_string(type),LOG);
+	  throw ALLowlevelException("Unknown data type="+std::to_string(type),LOG);
 	}
     }
   else
@@ -617,32 +617,32 @@ void* Lowlevel::convertData(From* data, size_t size, int desttype)
 {
   switch (desttype)
     {
-    case ualconst::char_data:
+    case alconst::char_data:
       {
 	char* convdata = (char*)malloc(size*sizeof(char));
 	std::copy_n(data, size, convdata);
 	return (void*)convdata;
       }
-    case ualconst::integer_data:
+    case alconst::integer_data:
       {
 	int* convdata = (int*)malloc(size*sizeof(int));
 	std::copy_n(data, size, convdata);
 	return (void*)convdata;
       }
-    case ualconst::double_data:
+    case alconst::double_data:
       {
 	double* convdata = (double*)malloc(size*sizeof(double));
 	std::copy_n(data, size, convdata);
 	return (void*)convdata;
       }
-    case ualconst::complex_data:
+    case alconst::complex_data:
       {
 	std::complex<double>* convdata = (std::complex<double>*)malloc(size*sizeof(std::complex<double>));
 	std::copy_n(data, size, convdata);
 	return (void*)convdata;
       }
     default:
-      throw UALLowlevelException("Unknown data type="+std::to_string(desttype),LOG);
+      throw ALLowlevelException("Unknown data type="+std::to_string(desttype),LOG);
     }
 }
 
@@ -655,22 +655,22 @@ void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, in
     totsize*=size[i];
   
   switch (srctype) {
-  case ualconst::char_data:
+  case alconst::char_data:
     convdata = Lowlevel::convertData((char*)data,totsize,desttype);
     Lowlevel::setValue(convdata,desttype,dim,var);
     break;
       
-  case ualconst::integer_data:
+  case alconst::integer_data:
     convdata = Lowlevel::convertData((int*)data,totsize,desttype);
     Lowlevel::setValue(convdata,desttype,dim,var);
     break;
 
-  case ualconst::double_data:
+  case alconst::double_data:
     convdata = Lowlevel::convertData((double*)data,totsize,desttype);
     Lowlevel::setValue(convdata,desttype,dim,var);
     break;
     
-  case ualconst::complex_data:
+  case alconst::complex_data:
     // can't convert, set default
     Lowlevel::setDefaultValue(desttype, dim, var, size);
     break;
@@ -681,16 +681,16 @@ void Lowlevel::setConvertedValue(void *data, int srctype, int dim, int *size, in
 
 int Lowlevel::beginUriAction(const std::string &uri)
 {
-  int ctxID=ualerror::unknown_err;
+  int ctxID=alerror::unknown_err;
   DataEntryContext *pctx=NULL;
   Backend *be=NULL;
 
   try {
     pctx = new DataEntryContext(uri);
   }
-  catch (const UALContextException& e) {
+  catch (const ALContextException& e) {
     std::cerr << e.what() << "\n";
-    ctxID = ualerror::context_err;
+    ctxID = alerror::context_err;
     pctx = NULL;
   }
 
@@ -743,7 +743,7 @@ bool Lowlevel::data_has_non_zero_shape(int datatype, void *data, int dim, int *s
 //////////////////// IMPLEMENTATION OF C WRAPPERS ////////////////////
 
 
-al_status_t ual_context_info(int ctxID, char **info)
+al_status_t al_context_info(int ctxID, char **info)
 {
   al_status_t status;
   std::string str;
@@ -764,9 +764,9 @@ al_status_t ual_context_info(int ctxID, char **info)
 	desc << lle.context->print();
 	str = desc.str();
       }
-      catch (const UALLowlevelException& e) {
-	status.code = ualerror::lowlevel_err;
-	UALException::registerStatus(status.message, __func__, e);
+      catch (const ALLowlevelException& e) {
+	status.code = alerror::lowlevel_err;
+	ALException::registerStatus(status.message, __func__, e);
       }
     }
 
@@ -780,7 +780,7 @@ al_status_t ual_context_info(int ctxID, char **info)
 }
 
 
-al_status_t ual_get_backendID(int ctxID, int *beid)
+al_status_t al_get_backendID(int ctxID, int *beid)
 {
   al_status_t status;
 
@@ -790,16 +790,16 @@ al_status_t ual_get_backendID(int ctxID, int *beid)
     DataEntryContext *pctx = static_cast<DataEntryContext *>(lle.context);
     *beid = pctx->getBackendID();
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
+al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID)
 {
   al_status_t status = { 0 };
 
@@ -809,18 +809,18 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
     LLenv lle = Lowlevel::getLLenv(*dectxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
-      throw UALLowlevelException("Wrong Context type stored",LOG);
+      throw ALLowlevelException("Wrong Context type stored",LOG);
 
     lle.backend->openPulse(pctx,
 			   mode);
 
     switch (mode) {
-    case ualconst::open_pulse:
-    case ualconst::force_open_pulse:
+    case alconst::open_pulse:
+    case alconst::force_open_pulse:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if ((ver.first!=sver.first)||(ver.second<sver.second))
-	throw UALLowlevelException("Compatibility between opened file version "+
+	throw ALLowlevelException("Compatibility between opened file version "+
 				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
 				   " and backend "+pctx->getBackendName()+
 				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
@@ -828,24 +828,24 @@ al_status_t ual_begin_dataentry_action(const char *uri, int mode, int *dectxID)
       break;
     }
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_close_pulse(int pctxID, int mode)
+al_status_t al_close_pulse(int pctxID, int mode)
 {
   al_status_t status;
 
@@ -854,27 +854,27 @@ al_status_t ual_close_pulse(int pctxID, int mode)
     LLenv lle = Lowlevel::getLLenv(pctxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
-      throw UALLowlevelException("Wrong Context type stored",LOG);
+      throw ALLowlevelException("Wrong Context type stored",LOG);
 
     lle.backend->closePulse(pctx, mode);
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
-al_status_t ual_plugin_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
+al_status_t al_plugin_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                                             int *octxID)
 {
   al_status_t status;
@@ -885,7 +885,7 @@ al_status_t ual_plugin_begin_global_action(int pctxID, const char* dataobjectnam
     LLenv lle = Lowlevel::getLLenv(pctxID); 
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
-      throw UALLowlevelException("Wrong Context type stored",LOG);
+      throw ALLowlevelException("Wrong Context type stored",LOG);
 
     octx = new OperationContext(pctx,
 				std::string(dataobjectname),
@@ -894,11 +894,11 @@ al_status_t ual_plugin_begin_global_action(int pctxID, const char* dataobjectnam
     lle.backend->beginAction(octx);
 
     switch (rwmode) {
-    case ualconst::write_op:
+    case alconst::write_op:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if (ver.second!=sver.second)
-	throw UALLowlevelException("Compatibility between opened file version "+
+	throw ALLowlevelException("Compatibility between opened file version "+
 				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
 				   " and backend "+pctx->getBackendName()+
 				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
@@ -907,28 +907,28 @@ al_status_t ual_plugin_begin_global_action(int pctxID, const char* dataobjectnam
     }
     *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_plugin_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+al_status_t al_plugin_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
 				   double time, int interpmode, int *octxID)
 {
   al_status_t status;
@@ -938,22 +938,22 @@ al_status_t ual_plugin_begin_slice_action(int pctxID, const char* dataobjectname
     LLenv lle = Lowlevel::getLLenv(pctxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
-      throw UALLowlevelException("Wrong Context type stored",LOG);
+      throw ALLowlevelException("Wrong Context type stored",LOG);
 
     OperationContext *octx= new OperationContext(pctx, 
 						 std::string(dataobjectname),
 						 rwmode, 
-						 ualconst::slice_op, 
+						 alconst::slice_op, 
 						 time, 
 						 interpmode);
     lle.backend->beginAction(octx);
 
     switch (rwmode) {
-    case ualconst::write_op:
+    case alconst::write_op:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if (ver.second!=sver.second)
-	throw UALLowlevelException("Compatibility between opened file version "+
+	throw ALLowlevelException("Compatibility between opened file version "+
 				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
 				   " and backend "+pctx->getBackendName()+
 				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
@@ -962,28 +962,28 @@ al_status_t ual_plugin_begin_slice_action(int pctxID, const char* dataobjectname
     }
     *octxID = Lowlevel::addLLenv(lle.backend, octx); 
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_plugin_end_action(int ctxID)
+al_status_t al_plugin_end_action(int ctxID)
 {
   al_status_t status;
 
@@ -999,17 +999,17 @@ al_status_t ual_plugin_end_action(int ctxID)
     
 	delete(lle.context);
       }
-      catch (const UALBackendException& e) {
-	status.code = ualerror::backend_err;
-	UALException::registerStatus(status.message, __func__, e);
+      catch (const ALBackendException& e) {
+	status.code = alerror::backend_err;
+	ALException::registerStatus(status.message, __func__, e);
       }
-      catch (const UALLowlevelException& e) {
-	status.code = ualerror::lowlevel_err;
-	UALException::registerStatus(status.message, __func__, e);
+      catch (const ALLowlevelException& e) {
+	status.code = alerror::lowlevel_err;
+	ALException::registerStatus(status.message, __func__, e);
       }
       catch (const std::exception& e) {
-	status.code = ualerror::unknown_err;
-	UALException::registerStatus(status.message, __func__, e);
+	status.code = alerror::unknown_err;
+	ALException::registerStatus(status.message, __func__, e);
       }
     }
   
@@ -1017,7 +1017,7 @@ al_status_t ual_plugin_end_action(int ctxID)
 }
 
 
-al_status_t ual_plugin_write_data(int ctxID, const char *field, const char *timebase,  
+al_status_t al_plugin_write_data(int ctxID, const char *field, const char *timebase,  
 			 void *data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1033,24 +1033,24 @@ al_status_t ual_plugin_write_data(int ctxID, const char *field, const char *time
 			   dim,
 			   size);
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   
   return status;
 }
 
 
-al_status_t ual_plugin_read_data(int ctxID, const char *field, const char *timebase, 
+al_status_t al_plugin_read_data(int ctxID, const char *field, const char *timebase, 
 			  void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1077,7 +1077,7 @@ al_status_t ual_plugin_read_data(int ctxID, const char *field, const char *timeb
       {
 	if (retDim!=dim)
 	  {
-	    throw UALLowlevelException("Wrong dimension of Data returned by backend: expected "+
+	    throw ALLowlevelException("Wrong dimension of Data returned by backend: expected "+
 				       std::string(const2str(datatype))+" in "+
 				       std::to_string(dim)+"D but got "+
 				       std::string(const2str(retType))+" in "+
@@ -1086,8 +1086,8 @@ al_status_t ual_plugin_read_data(int ctxID, const char *field, const char *timeb
 	else if (retType!=datatype)
 	  {
 	    Lowlevel::setConvertedValue(retData, retType, retDim, size, datatype, data);
-	    UALException::registerStatus(status.message, __func__,
-					 UALLowlevelException("Warning: " + lle.context->getURI().to_string() +
+	    ALException::registerStatus(status.message, __func__,
+					 ALLowlevelException("Warning: " + lle.context->getURI().to_string() +
 							      "/" + field + " returned with type " +
 							      std::string(const2str(retType)) +
 							      " while we expect type " +
@@ -1097,24 +1097,24 @@ al_status_t ual_plugin_read_data(int ctxID, const char *field, const char *timeb
 	  Lowlevel::setValue(retData, datatype, dim, data);
       }
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_delete_data(int octxID, const char *field)
+al_status_t al_delete_data(int octxID, const char *field)
 {
   al_status_t status;
 
@@ -1123,28 +1123,28 @@ al_status_t ual_delete_data(int octxID, const char *field)
     LLenv lle = Lowlevel::getLLenv(octxID);
     OperationContext *octx= dynamic_cast<OperationContext *>(lle.context); 
     if (octx==NULL)
-      throw UALLowlevelException("Wrong Context type stored",LOG);
+      throw ALLowlevelException("Wrong Context type stored",LOG);
 
     lle.backend->deleteData(octx, std::string(field));
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_plugin_begin_arraystruct_action(int ctxID, const char *path, 
+al_status_t al_plugin_begin_arraystruct_action(int ctxID, const char *path, 
 					 const char *timebase, int *size,
 					 int *actxID)
 {
@@ -1167,33 +1167,33 @@ al_status_t ual_plugin_begin_arraystruct_action(int ctxID, const char *path,
 	
 	if (*size < 0)
 	  {
-	    throw UALLowlevelException("Returned size for array of structure is negative! ("+
+	    throw ALLowlevelException("Returned size for array of structure is negative! ("+
 				       std::to_string(*size)+")",LOG);
 	  }
       }
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALBackendException& e) {
-    status.code = ualerror::backend_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
 
-al_status_t ual_iterate_over_arraystruct(int aosctxID, 
+al_status_t al_iterate_over_arraystruct(int aosctxID, 
 					 int step)
 {
   al_status_t status;
@@ -1205,23 +1205,23 @@ al_status_t ual_iterate_over_arraystruct(int aosctxID,
     
     actx->nextIndex(step);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
 
   return status;
 }
 
-al_status_t ual_build_uri_from_legacy_parameters(const int backendID, 
+al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
                          const int shot, 
                          const int run, 
                          const char *user, 
@@ -1248,16 +1248,16 @@ al_status_t ual_build_uri_from_legacy_parameters(const int backendID,
                          opt,
                          uri);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
 //HLI Wrappers for calling LL functions - Call plugins if required
 
-al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
+al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode,
                     int *octxID)
 {
   al_status_t status;
@@ -1265,7 +1265,7 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, cons
   status.code = 0;
 
   try {
-    status = ual_plugin_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
+    status = al_plugin_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
     if (status.code != 0)
         return status;
     std::set<std::string> pluginsNames;
@@ -1275,33 +1275,33 @@ al_status_t ual_begin_global_action(int pctxID, const char* dataobjectname, cons
            LLplugin::beginGlobalActionPlugin(pluginName, pctxID, dataobjectname, datapath, rwmode, *octxID);
     }
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALPluginException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
+al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, 
                    double time, int interpmode, int *octxID)
 {
   al_status_t status;
 
   status.code = 0;
   try {
-    status = ual_plugin_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
+    status = al_plugin_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
     if (status.code != 0)
      return status;
     std::set<std::string> pluginsNames;
@@ -1311,26 +1311,26 @@ al_status_t ual_begin_slice_action(int pctxID, const char* dataobjectname, int r
 		   LLplugin::beginSliceActionPlugin(pluginName, pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
 	}
    }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALPluginException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_begin_arraystruct_action(int ctxID, const char *path, 
+al_status_t al_begin_arraystruct_action(int ctxID, const char *path, 
                      const char *timebase, int *size,
                      int *actxID)
 {
@@ -1346,7 +1346,7 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
     } 
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, path, pluginsNames);
-    //printf("ual_begin_arraystruct_action::isPluginBound=%d for path=%s\n", isPluginBound, path);
+    //printf("al_begin_arraystruct_action::isPluginBound=%d for path=%s\n", isPluginBound, path);
     if (!skipAOSWriteAccess && isPluginBound) {
         int actxID_default = *actxID;
         int actxID_user = 0;
@@ -1359,17 +1359,17 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
            }
            else if (actxID_user != 0 && *actxID != 0) { //at least 2 plugins have created an AOS context, it's an error
               plugins.push_back(pluginName);
-              std::string message = "Error calling ual_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
+              std::string message = "Error calling al_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
               message += "AOS context path: " + std::string(path) + "\n";
               for (size_t i = 0; i < plugins.size(); i++)
                   message += "--> Plugin: " + plugins[i] + "\n";
-              throw UALLowlevelException(message.c_str());
+              throw ALLowlevelException(message.c_str());
            }
         }
         if (*actxID == 0) { //no AOS context, unexpected error
             char message[200];
             sprintf(message, "No AOS context has been created, or one plugin has removed it at path:%s.\n", path);
-            throw UALLowlevelException(message);
+            throw ALLowlevelException(message);
         }
     }
     else {
@@ -1394,31 +1394,31 @@ al_status_t ual_begin_arraystruct_action(int ctxID, const char *path,
     
     if (*size < 0)
           {
-            throw UALLowlevelException("Returned size for array of structure is negative! ("+
+            throw ALLowlevelException("Returned size for array of structure is negative! ("+
                            std::to_string(*size)+")",LOG);
           }
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALPluginException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   
   return status;
 }
 
-al_status_t ual_end_action(int ctxID)
+al_status_t al_end_action(int ctxID)
 {
   al_status_t status;
   status.code = 0;
@@ -1435,27 +1435,27 @@ al_status_t ual_end_action(int ctxID)
         delete(lle.context);
         
       }
-      catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+      catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
       }
-      catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+      catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
       }
-      catch (const UALPluginException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+      catch (const ALPluginException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
       }
       catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
       }
   }
   return status;
 }
 
-al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,  
+al_status_t al_write_data(int ctxID, const char *field, const char *timebase,  
 			 void *data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1470,29 +1470,29 @@ al_status_t ual_write_data(int ctxID, const char *field, const char *timebase,
     }
     else {
       if (Lowlevel::data_has_non_zero_shape(datatype, data, dim, size))
-        status = ual_plugin_write_data(ctxID, field, timebase, data, datatype, dim, size);
+        status = al_plugin_write_data(ctxID, field, timebase, data, datatype, dim, size);
     }
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALPluginException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_read_data(int ctxID, const char *field, const char *timebase, 
+al_status_t al_read_data(int ctxID, const char *field, const char *timebase, 
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
@@ -1501,63 +1501,63 @@ al_status_t ual_read_data(int ctxID, const char *field, const char *timebase,
   try {
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
-    //printf("ual_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
+    //printf("al_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
     if (isPluginBound) {
 	   for (const auto& pluginName : pluginsNames)
                 LLplugin::readDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
-        status = ual_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
+        status = al_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
         if (status.code != 0)
             return status;
     }
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALPluginException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
    
 }
 
-al_status_t ual_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
+al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
         LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, size, data, pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALPluginException& e) {
-	status.code = ualerror::lowlevel_err;
-	UALException::registerStatus(status.message, __func__, e);
+    catch (const ALPluginException& e) {
+	status.code = alerror::lowlevel_err;
+	ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
-al_status_t ual_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
+al_status_t al_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1566,26 +1566,26 @@ al_status_t ual_setvalue_int_scalar_parameter_plugin(const char* parameter_name,
 		int *data = &parameter_value;
         LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALPluginException& e) {
-	status.code = ualerror::lowlevel_err;
-	UALException::registerStatus(status.message, __func__, e);
+    catch (const ALPluginException& e) {
+	status.code = alerror::lowlevel_err;
+	ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
-al_status_t ual_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
+al_status_t al_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
@@ -1594,195 +1594,195 @@ al_status_t ual_setvalue_double_scalar_parameter_plugin(const char* parameter_na
 	double *data = &parameter_value;
         LLplugin::setvalueParameterPlugin(parameter_name, datatype, dim, NULL, (void*) data, pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALPluginException& e) {
-	status.code = ualerror::lowlevel_err;
-	UALException::registerStatus(status.message, __func__, e);
+    catch (const ALPluginException& e) {
+	status.code = alerror::lowlevel_err;
+	ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
 //HLI wrappers for plugins API
-al_status_t ual_register_plugin(const char *plugin_name)
+al_status_t al_register_plugin(const char *plugin_name)
 {
   al_status_t status;
   status.code = 0;
   try {
     LLplugin::registerPlugin(plugin_name);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_unregister_plugin(const char *plugin_name)
+al_status_t al_unregister_plugin(const char *plugin_name)
 {
   al_status_t status;
   status.code = 0;
   try {
     LLplugin::unregisterPlugin(plugin_name);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_is_plugin_registered(const char* pluginName, bool *is_registered) {
+al_status_t al_is_plugin_registered(const char* pluginName, bool *is_registered) {
     al_status_t status;
     status.code = 0;
     try {
         *is_registered = LLplugin::isPluginRegistered(pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
-al_status_t ual_bind_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t al_bind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
         LLplugin::bindPlugin(fieldPath, pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
-al_status_t ual_unbind_plugin(const char* fieldPath, const char* pluginName) {
+al_status_t al_unbind_plugin(const char* fieldPath, const char* pluginName) {
     al_status_t status;
     status.code = 0;
     try {
         LLplugin::unbindPlugin(fieldPath, pluginName);
     }
-    catch (const UALContextException& e) {
-        status.code = ualerror::context_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALContextException& e) {
+        status.code = alerror::context_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
-    catch (const UALLowlevelException& e) {
-        status.code = ualerror::lowlevel_err;
-        UALException::registerStatus(status.message, __func__, e);
+    catch (const ALLowlevelException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     catch (const std::exception& e) {
-        status.code = ualerror::unknown_err;
-        UALException::registerStatus(status.message, __func__, e);
+        status.code = alerror::unknown_err;
+        ALException::registerStatus(status.message, __func__, e);
     }
     return status;
 }
 
-al_status_t ual_write_plugins_metadata(int ctxid)
+al_status_t al_write_plugins_metadata(int ctxid)
 {
   al_status_t status;
   status.code = 0;
   try {
     LLplugin::writePluginsMetadata(ctxid);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_bind_readback_plugins(int ctxid)
+al_status_t al_bind_readback_plugins(int ctxid)
 {
   al_status_t status;
   status.code = 0;
   try {
     LLplugin::bindReadbackPlugins(ctxid);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }
 
-al_status_t ual_unbind_readback_plugins(int ctxid)
+al_status_t al_unbind_readback_plugins(int ctxid)
 {
   al_status_t status;
   status.code = 0;
   try {
     LLplugin::unbindReadbackPlugins(ctxid);
   }
-  catch (const UALContextException& e) {
-    status.code = ualerror::context_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
-  catch (const UALLowlevelException& e) {
-    status.code = ualerror::lowlevel_err;
-    UALException::registerStatus(status.message, __func__, e);
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   catch (const std::exception& e) {
-    status.code = ualerror::unknown_err;
-    UALException::registerStatus(status.message, __func__, e);
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
   }
   return status;
 }

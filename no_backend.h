@@ -3,7 +3,7 @@
 #ifndef NO_BACKEND_H
 #define NO_BACKEND_H 1
 
-#include "ual_backend.h"
+#include "al_backend.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)

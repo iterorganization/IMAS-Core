@@ -1,7 +1,7 @@
 include ../../Makefile.common
 
-ifeq (,$(wildcard $(UAL)))
-$(error $$UAL is unset)
+ifeq (,$(wildcard $(AL)))
+$(error $$AL is unset)
 endif
 
 ## Adding DEBUG=yes to make command to print additional debug info

@@ -96,7 +96,7 @@ int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, in
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create dataspace HDF5 hyperslab for dataset: %d\n", (int) dataset_id);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
     
     hsize_t maxdims[H5S_MAX_RANK];
@@ -152,7 +152,7 @@ int slice_mode, hid_t dataspace, int rank, bool isShapeDataSet, bool isTimed, in
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to create memory HDF5 hyperslab for dataset: %d\n", (int) dataset_id);
-        throw UALBackendException(error_message, LOG);
+        throw ALBackendException(error_message, LOG);
     }
 }
 
