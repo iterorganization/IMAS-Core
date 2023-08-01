@@ -499,13 +499,7 @@ void AccessLayerPluginManager::write_field(int ctxID, const std::string &field, 
 
 bool AccessLayerPluginManager::skipWriteAccess(int ctxID, const char *fieldPath)
 {
-    char *imas_version = getenv("IMAS_VERSION");
-    if (imas_version == NULL)
-    {
-        return false;
-    }
-    std::string i_version = std::string(imas_version);
-    if (i_version.find("-") != std::string::npos)
+    if (!LLplugin::pluginsFrameworkEnabled())
         return false;
     std::string field = fieldPath;
     if (field == GET_OPERATION && getAccessmode(ctxID) == WRITE_OP)

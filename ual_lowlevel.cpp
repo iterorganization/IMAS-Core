@@ -309,16 +309,9 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
   
     std::string ids_plugin = std::string(IMAS_AL_PLUGINS) + "/" + plugin_name + "_plugin.so";
     if (!boost::filesystem::exists(ids_plugin.c_str())) { 
-      const char* IMAS_VERSION = std::getenv("IMAS_VERSION");
-      if (IMAS_VERSION == NULL || std::string(IMAS_VERSION).find("-") != std::string::npos) {
-        //printf("Plugin shared library %s not found\n", ids_plugin.c_str());
-        return false;
-      }
-      else {
         char error_message[200];
         sprintf(error_message, "Plugin shared library %s not found", ids_plugin.c_str());
         throw UALLowlevelException(error_message, LOG); 
-      }
     }
 
     llpluginsStore[std::string(plugin_name)] = LLplugin();
