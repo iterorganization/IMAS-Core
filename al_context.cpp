@@ -110,9 +110,18 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
     throw ALContextException("'version' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
   }
 
+  //temporary solution before 'shot' keyword will be deleted from uri
+  auto maybe_pulse = uri.query.get("pulse");
   auto maybe_shot = uri.query.get("shot");
-  if (!maybe_shot) {
-    throw ALContextException("'shot' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+  if (!maybe_pulse) {
+    if (!maybe_shot)
+    {
+        throw ALContextException("'pulse' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+    }
+    else
+    {
+        maybe_pulse = maybe_shot;
+    }
   }
 
   auto maybe_run = uri.query.get("run");
@@ -157,7 +166,7 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
     filePath += maybe_version.value();
   }
   filePath += "/";
-  filePath += maybe_shot.value();
+  filePath += maybe_pulse.value();
   filePath += "/";
   filePath += maybe_run.value();
 
@@ -202,7 +211,7 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
 }
 
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
-                         const int shot, 
+                         const int pulse,
                          const int run, 
                          const char *user, 
                          const char *tokamak, 
@@ -212,7 +221,7 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
 
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
-    desc << "imas:" << backend.c_str() << "?user=" << user << ";shot=" << shot << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";pulse=" << pulse << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
     if (strcmp(options,"")!=0)
       desc << ";" << options;
     const std::string& tmp = desc.str();

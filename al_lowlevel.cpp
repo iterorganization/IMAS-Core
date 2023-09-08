@@ -1222,7 +1222,7 @@ al_status_t al_iterate_over_arraystruct(int aosctxID,
 }
 
 al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
-                         const int shot, 
+                         const int pulse,
                          const int run, 
                          const char *user, 
                          const char *tokamak, 
@@ -1240,7 +1240,7 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
 
     try {
        DataEntryContext::build_uri_from_legacy_parameters(backendID, 
-                         shot, 
+                         pulse,
                          run, 
                          user, 
                          tokamak, 
