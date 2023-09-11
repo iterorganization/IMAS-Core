@@ -113,16 +113,17 @@ uri::Uri DataEntryContext::buildURIFromLegacy() {
   //temporary solution before 'shot' keyword will be deleted from uri
   auto maybe_pulse = uri.query.get("pulse");
   auto maybe_shot = uri.query.get("shot");
-  if (!maybe_pulse) {
-    if (!maybe_shot)
-    {
-        throw ALContextException("'pulse' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
+
+  if (maybe_pulse && maybe_shot) {
+      throw ALContextException("Can't provide both 'pulse and 'shot', use just 'pulse' instead", LOG);
     }
-    else
-    {
+
+  if (maybe_shot) {
         maybe_pulse = maybe_shot;
+    } // from now on, use only maybe_pulse
+  if (!maybe_pulse) {
+      throw ALContextException("'pulse' is not specified in URI but it is required when path is not specified (legacy mode)", LOG);
     }
-  }
 
   auto maybe_run = uri.query.get("run");
   if (!maybe_run) {
