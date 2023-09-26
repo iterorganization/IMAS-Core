@@ -77,3 +77,8 @@ std::pair<int,int> NoBackend::getVersion(DataEntryContext *ctx)
   return {0,0};
 }
 
+void NoBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+    std::string message("get_occurrences() not implemented in NoBackend");
+    throw ALBackendException(message, LOG);
+}
+

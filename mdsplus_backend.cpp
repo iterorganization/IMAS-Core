@@ -4854,6 +4854,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
 }
 
+ void MDSplusBackend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size) {
+		std::string message("get_occurrences() not implemented in MDSplusBackend");
+		throw ALBackendException(message, LOG);
+	}
+
  void MDSplusBackend::fullPath(Context *ctx, std::string &path) {
    if (ctx->getType() == CTX_PULSE_TYPE) {
        path = "";
@@ -5337,5 +5342,4 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	}
 	return version;
     }
-		
-		
+	

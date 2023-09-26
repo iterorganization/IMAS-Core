@@ -678,3 +678,10 @@ void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
   }
 }
 
+void AsciiBackend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
+{
+    std::string message("get_occurrences() not implemented in AsciiBackend");
+    throw ALBackendException(message, LOG);
+}
+
+

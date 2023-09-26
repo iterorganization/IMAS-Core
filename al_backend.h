@@ -163,6 +163,16 @@ public:
   virtual void beginArraystructAction(ArraystructContext *ctx,
 				      int *size) = 0;
 
+   
+   /**
+    Return the list of non empty IDS occurrences.
+    This function returns a list of IDS occurrences (integers) which are non empty in the database
+    @param[out] list of non empty IDS occurrences (integers)
+    @param[out] size of the list of non empty IDS occurrences (integers)
+    @throw BackendException
+  **/
+  virtual void get_occurrences(const char* ids_name, int** occurrences_list, int* size) = 0;
+
 };
 
 

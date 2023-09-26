@@ -671,6 +671,8 @@ public:
     void getSliceIdxs(std::string path, double time, std::vector<StructPath> &ctxV, int &sliceIdx1, int &sliceIdx2, ALAoS *aos = NULL);
     ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time);
     ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time, std::vector<double> timebaseV);
+
+	void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 };
 
 #endif

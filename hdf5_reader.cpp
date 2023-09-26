@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <limits>
 
+#define MAX_LENGTH 200
+
 HDF5Reader::HDF5Reader(std::string backend_version_)
 :  backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(), 
 tensorized_paths_per_context(), tensorized_paths_per_op_context(), arrctx_shapes_per_context(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP)
@@ -944,8 +946,57 @@ DataEntryContext* HDF5Reader::getDataEntryContext(Context * ctx) {
     return opctx->getDataEntryContext();
 }
 
-
-
 void HDF5Reader::setSliceMode(int slice_mode) {
 	this->slice_mode = slice_mode;
+}
+
+void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, int* size, hid_t master_file_id) {
+    assert(master_file_id > 0);
+    struct opdata2 od;
+    od.count = 0;
+    H5L_iterate1_t file_info = op_func;
+    herr_t status = H5Literate (master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void*) &od);
+    assert(status==0);
+    std::string ids_name_str(ids_name);
+    int found_occurrences = 0;
+    std::vector<int> occurrences;
+
+    for (int i = 0; i < od.count; i++) {
+        std::string found_occurrence_name = std::string(od.link_names[i]);
+        std::string::size_type j = found_occurrence_name.find(ids_name_str);
+        //printf("searching %s in occurrence = %s\n", ids_name, found_occurrence_name.c_str());
+        if (j != std::string::npos) { //found occurrence of this IDS
+            //printf("found occurrence... for %s\n", ids_name);
+            int occ;
+            found_occurrence_name.erase(j, ids_name_str.length());
+            if (found_occurrence_name.length() == 0) {
+                occ = 0;
+            }
+            else {
+                found_occurrence_name.erase(0, 1); //removing char '_' at first position
+                occ = std::stoi(found_occurrence_name); //converting string to int
+            }
+            //printf("found occurrence= %d\n", occ);
+            found_occurrences++;
+            occurrences.push_back(occ);
+            free(od.link_names[i]);
+        }
+        else
+           continue;
+    }
+    *size = found_occurrences;
+    std::sort (occurrences.begin(), occurrences.end());
+    *occurrences_list = (int*) malloc(sizeof(int)*found_occurrences); //allocated results on the heap
+    int* p = *occurrences_list;
+    for (int i = 0; i < found_occurrences; i++) 
+        p[i] = occurrences[i];
+}
+
+herr_t op_func (hid_t loc_id, const char *name, const H5L_info_t *info, void *op_data)
+{
+	struct opdata2* op = (struct opdata2*) op_data;
+    op->link_names[op->count] = (char *) malloc(MAX_LENGTH);
+    strcpy(op->link_names[op->count], name);
+    op->count++;
+    return 0;
 }

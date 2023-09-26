@@ -11,6 +11,15 @@
 #include <list>
 #include <unordered_map>
 
+extern "C"  herr_t op_func (hid_t loc_id, const char *name, const H5L_info_t *info, void *op_data);
+
+typedef herr_t(* H5L_iterate1_t) (hid_t group, const char *name, const H5L_info_t *info, void *op_data);
+
+struct opdata2 {
+    int count;
+    char *link_names[500];
+};
+
 class HDF5Reader {
   private:
     std::string backend_version;
@@ -67,6 +76,7 @@ class HDF5Reader {
     virtual void closePulse(DataEntryContext * ctx, int mode, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual int read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size);
     virtual void beginReadArraystructAction(ArraystructContext * ctx, int *size);
+    virtual void get_occurrences(const char* ids_name, int** occurrences_list, int* size, hid_t master_file_id);
 
     void open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     void close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files);
