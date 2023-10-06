@@ -1532,18 +1532,14 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
    
 }
 
-al_status_t al_get_occurrences(const char* uri, const char* ids_name, int** occurrences_list, int* size)
+al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size)
 {
   al_status_t status;
 
   status.code = 0;
   try {
-    int pctxID;
-    al_begin_dataentry_action(uri, FORCE_OPEN_PULSE, &pctxID);
     LLenv lle = Lowlevel::getLLenv(pctxID);
     lle.backend->get_occurrences(ids_name, occurrences_list, size);
-    al_close_pulse(pctxID, FORCE_OPEN_PULSE);
-    al_end_action(pctxID);
   }
   catch (const ALBackendException& e) {
     status.code = alerror::backend_err;
@@ -1560,6 +1556,7 @@ al_status_t al_get_occurrences(const char* uri, const char* ids_name, int** occu
 
   return status;
 }
+
 
 al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
     al_status_t status;
