@@ -952,17 +952,22 @@ void HDF5Reader::setSliceMode(int slice_mode) {
 
 void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, int* size, hid_t master_file_id) {
     assert(master_file_id > 0);
-    struct opdata2 od;
-    od.count = 0;
-    H5L_iterate1_t file_info = op_func;
+    if (master_file_id <= 0) {
+        char error_message[200];
+        sprintf (error_message, "Error calling get_occurrences() for %s, HDF5 master file not opened.\n", ids_name);
+        throw ALBackendException (error_message, LOG);
+    }
+    *occurrences_list = nullptr;
+    *size = 0;
+    std::vector<std::string> od;
+    H5L_iterate1_t file_info = (H5L_iterate1_t) &HDF5Reader::iterate_callback;
     herr_t status = H5Literate (master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void*) &od);
     assert(status==0);
     std::string ids_name_str(ids_name);
-    int found_occurrences = 0;
     std::vector<int> occurrences;
 
-    for (int i = 0; i < od.count; i++) {
-        std::string found_occurrence_name = std::string(od.link_names[i]);
+    for (size_t i = 0; i < od.size(); i++) {
+        std::string found_occurrence_name = od[i];
         std::string::size_type j = found_occurrence_name.find(ids_name_str);
         //printf("searching %s in occurrence = %s\n", ids_name, found_occurrence_name.c_str());
         if (j != std::string::npos) { //found occurrence of this IDS
@@ -977,26 +982,21 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
                 occ = std::stoi(found_occurrence_name); //converting string to int
             }
             //printf("found occurrence= %d\n", occ);
-            found_occurrences++;
             occurrences.push_back(occ);
-            free(od.link_names[i]);
         }
-        else
-           continue;
     }
-    *size = found_occurrences;
+    *size = occurrences.size();
     std::sort (occurrences.begin(), occurrences.end());
-    *occurrences_list = (int*) malloc(sizeof(int)*found_occurrences); //allocated results on the heap
+    *occurrences_list = (int*) malloc(sizeof(int)*occurrences.size()); //allocated results on the heap
     int* p = *occurrences_list;
-    for (int i = 0; i < found_occurrences; i++) 
+    for (size_t i = 0; i < occurrences.size(); i++) 
         p[i] = occurrences[i];
 }
 
-herr_t op_func (hid_t loc_id, const char *name, const H5L_info_t *info, void *op_data)
+
+herr_t HDF5Reader::iterate_callback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callback_data)
 {
-	struct opdata2* op = (struct opdata2*) op_data;
-    op->link_names[op->count] = (char *) malloc(MAX_LENGTH);
-    strcpy(op->link_names[op->count], name);
-    op->count++;
+    std::vector<std::string>* op = reinterpret_cast<std::vector<std::string>*>(callback_data);
+    op->push_back(name);
     return 0;
 }

@@ -11,17 +11,14 @@
 #include <list>
 #include <unordered_map>
 
-extern "C"  herr_t op_func (hid_t loc_id, const char *name, const H5L_info_t *info, void *op_data);
 
 typedef herr_t(* H5L_iterate1_t) (hid_t group, const char *name, const H5L_info_t *info, void *op_data);
 
-struct opdata2 {
-    int count;
-    char *link_names[500];
-};
 
 class HDF5Reader {
   private:
+    static herr_t iterate_callback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callback_data);
+    
     std::string backend_version;
     std::unordered_map < std::string, std::unique_ptr < HDF5DataSetHandler > > opened_data_sets;
     std::unordered_map < std::string, std::unique_ptr < HDF5DataSetHandler > > opened_shapes_data_sets;
@@ -63,6 +60,7 @@ class HDF5Reader {
 
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     DataEntryContext* getDataEntryContext(Context * ctx);
+
     bool INTERPOLATION_WARNING;
 
   public:
