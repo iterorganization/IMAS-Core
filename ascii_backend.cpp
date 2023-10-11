@@ -680,8 +680,29 @@ void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
 
 void AsciiBackend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
 {
-    std::string message("get_occurrences() not implemented in AsciiBackend");
-    throw ALBackendException(message, LOG);
+  boost::filesystem::path path(this->dbname);
+  std::vector<int> occurrences;
+  for(auto & p : boost::filesystem::directory_iterator( path )) {
+    if (p.path().extension() == ".ids") {
+      std::string stem = p.path().stem().generic_string();
+      // Check if the IDS file starts with the ids name
+      if (stem.rfind(ids_name, 0) == 0) {
+        std::string occnum = stem.substr(strlen(ids_name));
+        if (occnum.empty()) {
+          occurrences.push_back(0);
+        } else if (occnum[0] >= '0' && occnum[0] <= '9') {
+          occurrences.push_back(std::stoi(occnum));
+        }
+      }
+    }
+  }
+  // directory traversal doesn't have to be in order, so sort occurrences
+  std::sort(occurrences.begin(), occurrences.end());
+
+  *size = occurrences.size();
+  *occurrences_list = (int*) malloc(sizeof(int)*occurrences.size());
+  for (std::size_t i = 0; i < occurrences.size(); i++) 
+    (*occurrences_list)[i] = occurrences[i];
 }
 
 
