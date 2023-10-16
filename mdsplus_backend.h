@@ -130,6 +130,8 @@ class LIBRARY_API MDSplusBackend:public Backend
     double *getSegmentIdxAndDim(MDSplus::TreeNode *node, std::string dataobjectPath, std::string timebase, double time, int &segIdx, int &nDim);
     void fullPath(Context *ctx, std::string &path);
 
+    void read_occurrences(std::vector<std::string> &occurrences_list);
+
 /////Public section - Implementation of Backend interface		
       public:
 	
