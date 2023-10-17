@@ -88,12 +88,12 @@ def dump(s):
     
     
 if len(sys.argv) != 3:
-    print('Usage: python dumpAps.py <shot> <AoS path>')
+    print('Usage: python dumpAps.py <pulse> <AoS path>')
     sys.exit(0)
-shot = int(sys.argv[1])
+pulse = int(sys.argv[1])
 path = '\\'+ sys.argv[2]+':STATIC'
 
-t=Tree('ids',shot)
+t=Tree('ids',pulse)
 #t=Tree('ids',440334)
 #n=t.getNode('\IDS::TOP.EDGE_SOURCES.SOURCE:STATIC')
 print(path)

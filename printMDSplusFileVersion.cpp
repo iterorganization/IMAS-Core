@@ -8,7 +8,7 @@ struct progArgs_t {
   std::string user;     /* -u option */
   std::string version;  /* -v option */
   std::string database; /* database */
-  int shot;             /* shot */
+  int pulse;             /* pulse */
   int run;              /* run */
 } progArgs;
 
@@ -16,7 +16,7 @@ static const char *optString = "u:v:h";
 
 void display_usage(const char *progName)
 {
-  std::cerr << "Usage: " << progName << " [-u <user>] [-v <version>] <database> <shot> <run>" << std::endl;
+  std::cerr << "Usage: " << progName << " [-u <user>] [-v <version>] <database> <pulse> <run>" << std::endl;
 }
 
 std::string get_major_version(std::string version)
@@ -63,15 +63,15 @@ int main(int argc, char *argv[])
 
   progArgs.database = std::string(argv[optind]);
   try{
-    progArgs.shot = std::stoi(argv[optind+1]);
+    progArgs.pulse = std::stoi(argv[optind+1]);
     progArgs.run = std::stoi(argv[optind+2]);
   }
   catch (const std::invalid_argument &e) {
-    std::cerr << "Invalid shot/run arguments\n";
+    std::cerr << "Invalid pulse/run arguments\n";
   }
 
   try {
-    MDSplusBackend::printFileVersionInfo(progArgs.shot,progArgs.run,progArgs.user,progArgs.database,progArgs.version);
+    MDSplusBackend::printFileVersionInfo(progArgs.pulse,progArgs.run,progArgs.user,progArgs.database,progArgs.version);
   }
   catch (const ALBackendException& e) {
     std::cerr << "Error while calling MDSplusBackend::printFileVersionInfo\n";

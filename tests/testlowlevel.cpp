@@ -23,10 +23,10 @@ void usage()
 {
 	printf("testlowlevel\n");
 	printf("\n");
-	printf("usage: testlowlevel [-s=shot] [-r=run] [-b=backend] [-u=user] [-m=machine] [-o=action] [-c=action] [-p=param] [-h]\n");
+	printf("usage: testlowlevel [-s=pulse] [-r=run] [-b=backend] [-u=user] [-m=machine] [-o=action] [-c=action] [-p=param] [-h]\n");
 	printf("\n");
 	printf("with:\n");
-	printf("\t-s\tShot number\n");
+	printf("\t-s\tPulse number\n");
 	printf("\t-r\tRun number\n");
 	printf("\t-b\tBackend to use: M=MDSplus (default), A=ASCII, U=UDA, H=HDF5\n");
 	printf("\t-u\tUser name\n");
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 	bool bRead = true;
 	bool bWrite = true;
 	int iRet = 0;
-	int iShot = 12;
+	int iPulse = 12;
 	int iRun = 0;
 	int iBackend = MDSPLUS_BACKEND;
 	int iOpenAction = FORCE_OPEN_PULSE;
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 		{
 			if (cOption == 's')
 			{
-				iShot = iTemp;
+				iPulse = iTemp;
 			}
 			else if (cOption == 'r')
 			{
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{		
-		printf("Shot number:\t%d\n", iShot);
+		printf("Pulse number:\t%d\n", iPulse);
 		printf("Run number:\t%d\n", iRun);
 		printf("Backend:\t%s\n", alconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
 		printf("User name:\t%s\n", szUser);
@@ -269,12 +269,12 @@ int main(int argc, char *argv[])
 		// Low Level
 		int iPulseCtx = -1;
         char* uri;
-        al_build_uri_from_legacy_parameters(iBackend, iShot, iRun, szUser, szTokamak, szVersion, "", &uri);
+        al_build_uri_from_legacy_parameters(iBackend, iPulse, iRun, szUser, szTokamak, szVersion, "", &uri);
         al_status_t alStatus = al_begin_dataentry_action(uri, iOpenAction, &iPulseCtx);
 
 		if (alStatus.code != 0)
 		{
-			printf("Error opening imas action ctx for shot %d, run %d: al_begin_dataentry_action = %s\n", iShot, iRun, alStatus.message);
+			printf("Error opening imas action ctx for pulse %d, run %d: al_begin_dataentry_action = %s\n", iPulse, iRun, alStatus.message);
 			iRet = alStatus.code;
 		}
 		else
