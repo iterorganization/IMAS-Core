@@ -59,6 +59,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     std::unordered_map<ArraystructContext *, MDSplus::Apd *> arrayStructCtxDataMap;
     //std::vector<ArraystructContext *>arrayStructContextV;
     //std::vector<MDSplus::Apd *>arrayStructDataV;
+    std::unordered_map < OperationContext *,  std::string> high_level_delete_requests;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);

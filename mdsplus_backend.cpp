@@ -4655,8 +4655,19 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			std::string fieldname)  
   {
      deleteData(tree, ctx->getDataobjectName(), fieldname);
+
+	 //Check if the update below has been already performed within this operation context
+	 auto got = high_level_delete_requests.find(ctx);
+	 if (got != high_level_delete_requests.end()) {
+		 auto &request_name = got->second;
+		 if (request_name == "deleteData")
+		 	return;
+	 }
+	 
+	 //Updating the OCCURRENCES metadata node
 	 std::vector<std::string> occ_list;
 	 read_occurrences(occ_list); //read occurrences infos from disk
+
 	 std::vector<std::string> occ_to_delete;
 	 for (size_t i = 0; i < occ_list.size(); i++) {
 		 const std::string &occ = occ_list[i];
@@ -4694,6 +4705,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	  MDSplus::String *data = new MDSplus::String(new_occ_list.c_str());
 	  node->putData(data);
 	  MDSplus::deleteData(data);
+	  high_level_delete_requests[ctx] = "deleteData"; 
 	  delete node;
 	}
   }   
@@ -5277,6 +5289,13 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   {
 //      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
 //	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
+
+	  if (inCtx->getType() == CTX_OPERATION_TYPE) {
+		  OperationContext *opctx = dynamic_cast<OperationContext*> (inCtx);
+		  auto got = high_level_delete_requests.find(opctx);
+		  if (got != high_level_delete_requests.end())
+		  	high_level_delete_requests.erase(got);
+	  }
 
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
