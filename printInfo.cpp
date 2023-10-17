@@ -4,10 +4,10 @@ int main(int argc, char *argv[])
 {
 	if(argc < 4)
 	{
-		std::cout << "Usage: " << argv[0] << " <directory> < shot> < run>" << std::endl;
+		std::cout << "Usage: " << argv[0] << " <directory> < pulse> < run>" << std::endl;
 		exit(0);
 	}
-	int shot, run;
+	int pulse, run;
 #ifdef WIN32
 	char szEnv[256] = { 0 };
 	sprintf(szEnv, "ids_path=%s", argv[1]);
@@ -16,13 +16,13 @@ int main(int argc, char *argv[])
 	setenv("ids_path",argv[1],1);
 #endif // WIN32
 
-	sscanf(argv[2], "%d", &shot);
+	sscanf(argv[2], "%d", &pulse);
 	sscanf(argv[3], "%d", &run);
-	int mdsShot =  (shot * 10000) + (run%10000);
+	int mdsPulse =  (pulse * 10000) + (run%10000);
 	MDSplus::Tree *tree;
 	try
 	{
-		tree = new MDSplus::Tree("ids", mdsShot);
+		tree = new MDSplus::Tree("ids", mdsPulse);
 	}
 	catch(MDSplus::MdsException &exc)
 	{

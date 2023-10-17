@@ -428,7 +428,7 @@ extern "C"
   /**
      Builds an URI string using legacy parameters.
      @param[in] backendID name/ID of the back-end
-     @param[in] shot shot number
+     @param[in] pulse pulse number
      @param[in] run run number
      @param[in] user username 
      @param[in] tokamak tokamak name 
@@ -438,7 +438,7 @@ extern "C"
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
   LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
-                         const int shot, 
+                         const int pulse,
                          const int run, 
                          const char *user, 
                          const char *tokamak, 

@@ -149,7 +149,7 @@ public:
   /**
      Builds an URI string using legacy parameters.
      @param[in] backendID name/ID of the back-end
-     @param[in] shot shot number
+     @param[in] pulse pulse number
      @param[in] run run number
      @param[in] user username
      @param[in] tokamak tokamak name
@@ -158,7 +158,7 @@ public:
      @param[out] uri URI string
    */
   static void build_uri_from_legacy_parameters(const int backendID, 
-                         const int shot, 
+                         const int pulse,
                          const int run, 
                          const char *user, 
                          const char *tokamak, 

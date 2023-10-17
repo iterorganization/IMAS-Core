@@ -47,12 +47,12 @@ for db in ldb:
             for pulse in lpulse:
                 p = pulse.stem[4:]
                 if len(p)<=4:
-                    shot=0
+                    pulse_number=0
                 else:
-                    shot=int(p[0:-4])
+                    pulse_number=int(p[0:-4])
 
                 run=int(p[-4:])+addtorun
-                newpulsedir = ver/str(shot)/str(run)
+                newpulsedir = ver/str(pulse_number)/str(run)
 
                 datafile = pulse
                 treefile = pulse.with_suffix('.tree')
@@ -63,7 +63,7 @@ for db in ldb:
                 newtreefile = newfilename.with_suffix('.tree')
                 newcharfile = newfilename.with_suffix('.characteristics')
                 
-                print(f"mapping shot={shot} run={run} to {newpulsedir}")
+                print(f"mapping pulse={pulse_number} run={run} to {newpulsedir}")
                 if args.dry_run:
                     print(f"make dir {newpulsedir}")
                     print(f"link {newdatafile} --> {datafile}")
