@@ -449,10 +449,9 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
         data_set->writeUsingHyperslabs(current_arrctx_indices, slice_mode, slices_extension, data);
         }
 
-    if ((datatype != alconst::char_data && dim > 0)
-        || (datatype == alconst::char_data && dim == 2))
+    if ((datatype != alconst::char_data && dim > 0) || (datatype == alconst::char_data && dim == 2)) {
         createOrUpdateShapesDataSet(ctx, gid, tensorized_path, *data_set, timebasename, timed_AOS_index, current_arrctx_indices, arrctx_shapes);
-    
+    }
     if (p != nullptr) {
         for (int i = 0; i < number_of_copies; i++) {
             if (p[i])
@@ -549,10 +548,14 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
         if (slice_mode == SLICE_OP) {
             data_set->setSliceMode(ctx);
             bool create_chunk_cache = true;
-	        data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, shapes_dataset, create_chunk_cache, dec->getURI());
+            bool extendDataSet = H5Lexists(loc_id, tensorized_path.c_str(), H5P_DEFAULT) != 0;
+	        data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, 
+            shapes_dataset, create_chunk_cache, dec->getURI(), AOSRank, aos_shapes.data());
             data_set->storeInitialDims();
-	        data_set->extendDataSpaceForTimeSlices(size, aos_shapes.data(), slices_extension);
-	        data_set->setTimeAxisOffset(current_arrctx_indices, slices_extension);
+            if (extendDataSet) {
+	            data_set->extendDataSpaceForTimeSlices(size, aos_shapes.data(), slices_extension);
+	            data_set->setTimeAxisOffset(current_arrctx_indices, slices_extension);
+            }
 			
         } else {
             data_set->setNonSliceMode();

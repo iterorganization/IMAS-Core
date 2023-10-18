@@ -181,7 +181,6 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
         
 		this->tensorized_path = std::string(dataset_name);
         this->request_dim = dim;
-        
         disableBufferingIfNotSupported(datatype, dim);
 		
 		if (datatype != alconst::char_data) {
@@ -208,7 +207,6 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
             char error_message[200];
 			if (slice_mode && H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
 					assert(AOSRank != -1);
-					assert(!shape_dataset);
 					assert(AOSSize != NULL);
 					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true, uri));
 					data_set->setNonSliceMode();
