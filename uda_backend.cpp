@@ -899,8 +899,80 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
     }
 }
 
+namespace {
+
+std::vector<int> read_occurrences(NodeReader *node) {
+    const char *name = uda_capnp_read_name(node);
+    if (std::string(name) != "occurrences") {
+        throw imas::uda::CacheException("Invalid node: " + std::to_string(name));
+    }
+
+    std::vector <size_t> size(1);
+    uda_capnp_read_shape(shape_node, size.data());
+
+    size_t count = std::accumulate(size.begin(), size.end(), 1, std::multiplies<size_t>());
+    std::vector<int> occurrences(count);
+
+    if (count != 0) {
+        bool eos = uda_capnp_read_is_eos(shape_node);
+        if (!eos) {
+            throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+        }
+
+        size_t num_slices = uda_capnp_read_num_slices(node);
+        if (num_slices != 1) {
+            throw imas::uda::CacheException("Incorrect number of slices for occurrences node");
+        }
+
+        size_t slice_size = uda_capnp_read_slice_size(node, 0);
+        if (slice_size / sizeof(int) != count) {
+            throw imas::uda::CacheException("Incorrect amount of data found in occurrences node slices");
+        }
+
+        auto buffer = reinterpret_cast<char *>(occurrences.data());
+        uda_capnp_read_data(node, 0, buffer);
+    }
+
+    return occurrences;
+}
+
+} // anon namespace
+
 void UDABackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
-    std::string message("get_occurrences() not implemented in UDABackend");
-    throw ALBackendException(message, LOG);
+    if (verbose_) {
+        std::cout << "UDABackend get_occurrences\n";
+    }
+
+    std::stringstream ss;
+
+    ss << plugin_
+       << "::getOccurrences("
+       << ", ids='" << ids_name << "'"
+       << ")";
+
+    std::string directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+    try {
+        uda::Result& result = uda_client_.get(directive, "");
+
+        if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
+            const char* data = result.raw_data();
+            size_t size = result.size();
+            auto tree = uda_capnp_deserialise(data, size);
+            auto root = uda_capnp_read_root(tree);
+
+            auto occurrences = read_occurrences(root);
+            *size = occurrences.size();
+            *occurrences_list = reinterpret_cast<size*>(malloc(sizeof(int) * occurrences.size()));
+            std::copy(occurrences.begin(), occurrences.end(), *occurrences_list);
+        }
+
+        array = uda::Array{reinterpret_cast<int*>(data), dims};
+    } catch (const uda::UDAException& ex) {
+        throw ALException(ex.what(), LOG);
+    }
 }
 
