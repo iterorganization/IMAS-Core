@@ -1144,7 +1144,7 @@ else
 
 	void MemoryBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size)
 	{
-		std::string message("get_occurrences() not implemented in MDSplusBackend");
+		std::string message("get_occurrences() not implemented in MemoryBackend");
 		throw ALBackendException(message, LOG);
 	}
 
