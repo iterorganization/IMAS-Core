@@ -904,17 +904,17 @@ namespace {
 std::vector<int> read_occurrences(NodeReader *node) {
     const char *name = uda_capnp_read_name(node);
     if (std::string(name) != "occurrences") {
-        throw imas::uda::CacheException("Invalid node: " + std::to_string(name));
+        throw imas::uda::CacheException("Invalid node: " + std::string(name));
     }
 
     std::vector <size_t> size(1);
-    uda_capnp_read_shape(shape_node, size.data());
+    uda_capnp_read_shape(node, size.data());
 
     size_t count = std::accumulate(size.begin(), size.end(), 1, std::multiplies<size_t>());
     std::vector<int> occurrences(count);
 
     if (count != 0) {
-        bool eos = uda_capnp_read_is_eos(shape_node);
+        bool eos = uda_capnp_read_is_eos(node);
         if (!eos) {
             throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
         }
@@ -956,21 +956,19 @@ void UDABackend::get_occurrences(const char* ids_name, int** occurrences_list, i
         std::cout << "UDABackend request: " << directive << "\n";
     }
     try {
-        uda::Result& result = uda_client_.get(directive, "");
+        const uda::Result& result = uda_client_.get(directive, "");
 
         if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
             const char* data = result.raw_data();
-            size_t size = result.size();
-            auto tree = uda_capnp_deserialise(data, size);
+            size_t sz = result.size();
+            auto tree = uda_capnp_deserialise(data, sz);
             auto root = uda_capnp_read_root(tree);
 
             auto occurrences = read_occurrences(root);
             *size = occurrences.size();
-            *occurrences_list = reinterpret_cast<size*>(malloc(sizeof(int) * occurrences.size()));
+            *occurrences_list = reinterpret_cast<int*>(malloc(sizeof(int) * occurrences.size()));
             std::copy(occurrences.begin(), occurrences.end(), *occurrences_list);
         }
-
-        array = uda::Array{reinterpret_cast<int*>(data), dims};
     } catch (const uda::UDAException& ex) {
         throw ALException(ex.what(), LOG);
     }
