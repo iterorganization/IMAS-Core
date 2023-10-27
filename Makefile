@@ -38,8 +38,8 @@ CXXFLAGS=-std=c++11 -pedantic -Wall -fPIC ${OPTFLAG} -fno-inline-functions ${DBG
 LDF=gfortran -lc -lstdc++
 endif
 
-CXXINCLUDES= -DASCII ${INCLUDES} -I. -I$(BOOST_HOME)/include 
-LIBS+= -lboost_filesystem -lboost_system -ldl
+CXXINCLUDES= -DASCII ${INCLUDES} -I. -I$(BOOST_ROOT)/include 
+LIBS+= -L$(BOOST_ROOT)/lib -lboost_filesystem -lboost_system -ldl
 
 CPPSRC= al_backend.cpp al_lowlevel.cpp al_context.cpp access_layer_plugin_manager.cpp \
 	al_const.cpp al_exception.cpp no_backend.cpp \
