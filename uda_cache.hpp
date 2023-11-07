@@ -8,7 +8,7 @@
  */
 
 #include <boost/variant.hpp>
-#include <map>
+#include <unordered_map>
 #include <string>
 #include <vector>
 #include <numeric>
@@ -36,7 +36,7 @@ struct CacheData {
 /**
  * Type alias for RAM-cache.
  */
-using CacheType = std::map<std::string, imas::uda::CacheData>;
+using CacheType = std::unordered_map<std::string, imas::uda::CacheData>;
 
 /**
  * Read the byte data out of the NodeReader into a std::vector<T> and store in the cache alongside the given shape, with
