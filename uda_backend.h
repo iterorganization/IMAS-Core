@@ -120,11 +120,7 @@ public:
             plugin_ = env;
         }
 
-        env = getenv("IMAS_VERSION");
-        if (env != nullptr) {
-            dd_version_ = env;
-        }
-
+        dd_version_ = getDDVersion();
         doc_ = imas::uda::load_xml();
 
         if (verbose_) {
