@@ -204,15 +204,15 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
         }
         
         if (*dataset_id < 0) {
-            char error_message[200];
+            
 			if (slice_mode && H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
 					assert(AOSRank != -1);
 					assert(AOSSize != NULL);
 					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true, uri));
-					data_set->setNonSliceMode();
 					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache);
 			}
 			else {
+                char error_message[200];
 				sprintf(error_message, "Unable to open HDF5 dataset: %s\n", dataset_name);
 				throw ALBackendException(error_message, LOG);
 			}
@@ -285,8 +285,6 @@ void HDF5DataSetHandler::disableBufferingIfNotSupported(int datatype, int dim) {
 
 void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, int datatype, hid_t loc_id, int dim, int *size, int AOSRank, int *AOSSize, bool shape_dataset, bool create_chunk_cache) {
 	
-	assert(!slice_mode);
-
 	this->tensorized_path = std::string(dataset_name);
     this->dataset_rank = dim + AOSRank;
     this->AOSRank = AOSRank;
@@ -328,6 +326,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 
 	if (dataset_rank > 0) {
+        //printf("creating dataset=%s, dataset_rank=%d, AOSRank=%d\n", getName().c_str(), dataset_rank, AOSRank);
         size_t rdcc_nbytes = write_chunk_cache_size;
 		size_t rdcc_nslots = H5D_CHUNK_CACHE_NSLOTS_DEFAULT;
 		size_t vp = 1;
@@ -397,7 +396,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 		}
 		
 		size_t v  = vp*vn;
-		
+		//printf("vp=%d, vmin=%d for dataset=%s\n", vp, vmin, getName().c_str());
 		if (v < vmin) {
 			vn = (size_t) vmin/vp;
 			for (int i = AOSRank; i < dataset_rank; i++) {
@@ -406,6 +405,7 @@ void HDF5DataSetHandler::create(const char *dataset_name, hid_t * dataset_id, in
 			}
 			
 		}
+
         //v = vp*vn;
         //printf("dataset_name=%s, volume=%d\n", dataset_name, v);
 		hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
