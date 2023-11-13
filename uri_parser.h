@@ -98,9 +98,21 @@ inline std::string join(const std::unordered_set<std::string>& set) {
 
 class QueryDict {
 public:
+    /**
+     * Returns whether the query dictionary is empty
+     *
+     * @return true if empty
+     */
     bool empty() const {
         return map_.empty();
     }
+
+    /**
+     * Try and get the argument from the query dictionary.
+     *
+     * @param name the argument to return
+     * @return the value wrapped in an OptionalValue if found, otherwise an empty OptionalValue
+     */
     OptionalValue get(const std::string& name) const {
         auto got = map_.find(name);
         if (got != map_.end()) {
@@ -110,6 +122,27 @@ public:
             return OptionalValue(name);
         }
     }
+
+    /**
+     * Set the value for the argument given, overwriting any existing values if they exist.
+     *
+     * @param name the name of the argument
+     * @param value the value to set for the argument
+     */
+    void set(const std::string& name, const std::string& value) {
+        if (!value.empty()) {
+            map_[name] = {value};
+        } else {
+            map_[name] = {};
+        }
+    }
+
+    /**
+     * Insert an additional value for the given argument, creating a new argument if it didn't already exist.
+     *
+     * @param name the name of the argument
+     * @param value the value to insert for the argument
+     */
     void insert(const std::string& name, const std::string& value) {
         auto got = map_.find(name);
         if (got != map_.end()) {
@@ -122,6 +155,13 @@ public:
             map_[name] = {};
         }
     }
+
+    /**
+     * Delete the argument from the query dictionary, or do nothing if the argument is not in the dictionary.
+     *
+     * @param name the name of the argument to delete
+     * @return true if the argument was found
+     */
     bool remove(const std::string& name) {
         auto got = map_.find(name);
         if (got != map_.end()) {
@@ -130,6 +170,12 @@ public:
         }
         return false;
     }
+
+    /**
+     * Return a string representation of the query dictionary, using & separator for the arguments.
+     *
+     * @return the query dictionaries string representation
+     */
     std::string to_string() const {
         std::ostringstream ss;
         const char* delim = "";

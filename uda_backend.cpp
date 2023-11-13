@@ -314,6 +314,10 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     auto query = ctx->getURI().query;
     std::string backend = query.get("backend").value_or("mdsplus");
     query.remove("backend");
+    query.remove("cache_mode");
+    query.remove("verbose");
+    std::string dd_version = query.get("dd_version").value_or(dd_version_);
+    query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     ss.str("");
@@ -353,6 +357,8 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     query.remove("backend");
     query.remove("cache_mode");
     query.remove("verbose");
+    std::string dd_version = query.get("dd_version").value_or(dd_version_);
+    query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
@@ -437,6 +443,8 @@ int UDABackend::readData(Context* ctx,
             auto query = ctx->getURI().query;
             std::string backend = query.get("backend").value_or("mdsplus");
             query.remove("backend");
+            std::string dd_version = query.get("dd_version").value_or(dd_version_);
+            query.set("dd_version", dd_version);
             std::string uri = "imas:" + backend + "?" + query.to_string();
 
             std::stringstream ss;
@@ -506,6 +514,8 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     auto query = entry_ctx->getURI().query;
     std::string backend = query.get("backend").value_or("mdsplus");
     query.remove("backend");
+    std::string dd_version = query.get("dd_version").value_or(dd_version_);
+    query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
@@ -569,6 +579,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         auto query = entry_ctx->getURI().query;
         std::string backend = query.get("backend").value_or("mdsplus");
         query.remove("backend");
+        std::string dd_version = query.get("dd_version").value_or(dd_version_);
+        query.set("dd_version", dd_version);
         std::string uri = "imas:" + backend + "?" + query.to_string();
 
         std::stringstream ss;

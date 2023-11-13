@@ -73,6 +73,7 @@ private:
     imas::uda::CacheType cache_ = {};
     imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
     int open_mode_ = 0;
+    std::string dd_version_ = "";
 
     /**
      * Process any UDA backend specific options found on the DBEntry URI.
@@ -119,11 +120,13 @@ public:
             plugin_ = env;
         }
 
+        dd_version_ = getDDVersion();
         doc_ = imas::uda::load_xml();
 
         if (verbose_) {
             std::cout << "UDABackend constructor\n";
             std::cout << "UDA default plugin: " << plugin_ << "\n";
+            std::cout << "IMAS data dictionary version: " << dd_version_ << "\n";
         }
     }
 

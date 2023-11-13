@@ -8,7 +8,6 @@ ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
 CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
-LIBS+= -lboost_filesystem -lboost_system
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp 
 SPECIFIC_TOOLS+=mdsplusFileVersion
@@ -31,9 +30,9 @@ endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
 ifeq ("yes","$(strip $(IMAS_HDF5))")
-CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include -I$(BOOST_HOME)/include 
-LIBS+= -L$(HDF5_HOME)/lib -L$(BOOST_HOME)/lib
-LIBS+= -lhdf5 -ldl -lz -lboost_filesystem -lboost_system
+CXXINCLUDES+= -DHDF5 -I$(HDF5_DIR)/include 
+LIBS+= -L$(HDF5_DIR)/lib 
+LIBS+= -lhdf5 -ldl -lz 
 COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs_selection_reader.o hdf5_hs_selection_writer.o hdf5_dataset_handler.o hdf5_events_handler.o hdf5_backend_factory.o
 CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
