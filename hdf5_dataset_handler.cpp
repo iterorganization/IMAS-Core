@@ -1132,19 +1132,20 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         int maxlength = 0;
         for (int i = 0; i < strings_count; i++) {
              strs[i] = t[i];
+             //printf("strs[%d]=%s\n", i, strs[i].c_str());
              if ((int) strs[i].length() > maxlength)
                 maxlength = strs[i].length();
         }
-        maxlength++; //null char
         *data = (void*) malloc(sizeof(char) * strings_count * maxlength);
         char* p = (char *) *data;
         memset(p, 0, strings_count * maxlength);
         for(int i=0; i < strings_count; i++)
 		{
-			char* q = const_cast<char *> (strs[i].c_str());
-			memcpy(p + i * maxlength, q, strs[i].length() + 1);	
+			char* q = const_cast<char *> (strs[i].data());
+			memcpy(p + i * maxlength, q, strs[i].length());
+
 		}
-        size[1] = maxlength - 1;
+        size[1] = maxlength;
         hsSelectionReader.setSize(size, 2);
     }
         
