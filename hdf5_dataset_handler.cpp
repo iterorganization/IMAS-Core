@@ -1114,12 +1114,40 @@ void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionR
 void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings) {
     HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
     hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
-    hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
+   
     herr_t status = -1;
-    if (!read_strings)
+    
+    if (!read_strings) {
+         hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *data);
-    else
-        status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) data);
+    }
+    else {
+        int size[H5S_MAX_RANK]; 
+        hsSelectionReader.getSize(size, slice_mode, is_dynamic);
+        int strings_count = size[0];
+        std::vector<const char*> t(strings_count, NULL);
+        status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) &t[0]);
+
+        std::vector<std::string> strs(strings_count);
+        int maxlength = 0;
+        for (int i = 0; i < strings_count; i++) {
+             strs[i] = t[i];
+             if ((int) strs[i].length() > maxlength)
+                maxlength = strs[i].length();
+        }
+        maxlength++; //null char
+        *data = (void*) malloc(sizeof(char) * strings_count * maxlength);
+        char* p = (char *) *data;
+        memset(p, 0, strings_count * maxlength);
+        for(int i=0; i < strings_count; i++)
+		{
+			char* q = const_cast<char *> (strs[i].c_str());
+			memcpy(p + i * maxlength, q, strs[i].length() + 1);	
+		}
+        size[1] = maxlength - 1;
+        hsSelectionReader.setSize(size, 2);
+    }
+        
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());

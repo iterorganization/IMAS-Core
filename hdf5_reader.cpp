@@ -492,8 +492,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         if (shapesDataSetExists == 1)
             hsSelectionReader.setSize(size, hsSelectionReader.getDim());
 
-        hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
+        data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
+
     } else {
         std::unique_ptr < HDF5HsSelectionReader > hsSelectionReader(new HDF5HsSelectionReader(data_set->getRank(), dataset_id, 
             data_set->getDataSpace(), data_set->getLargestDims(), datatype, current_arrctx_indices.size(), dim));
@@ -528,11 +529,11 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         if (shapesDataSetExists == 1)
             hsSelectionReader->setSize(size, *dim);
 
-        hsSelectionReader->getSize(size, slice_mode, is_dynamic);
-
         data_set->selection_reader = std::move(hsSelectionReader);
 
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
+        data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
+
     }
 
     if (tensorized_path.compare("ids_properties&homogeneous_time") == 0) {
@@ -558,22 +559,6 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             p = (char **) data;
             if (*p == nullptr) {
                 return exit_request(data_set, 0);
-            } else {
-                size_t maxlength = 0;
-                for (int i = 0; i < size[0]; i++) {
-                    if (p[i] != nullptr && strlen(p[i]) > maxlength)
-                        maxlength = strlen(p[i]);
-                }
-                char *buffer = (char *) malloc(size[0] * (maxlength + 1));
-                memset(buffer, 0, size[0] * (maxlength + 1));
-                for (int i = 0; i < size[0]; i++) {
-					if (p[i] == nullptr)
-						continue;
-                    strcpy(buffer + i * maxlength, p[i]);
-                }
-                free(*data);
-                *data = buffer;
-                size[1] = maxlength; //max size of a string
             }
         }
     }
@@ -624,12 +609,14 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
 
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
-        hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
 	if (datatype != alconst::char_data)
            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
 	else
 	   status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
+    
+    hsSelectionReader.getSize(size, slice_mode, is_dynamic);
+
 	if (status < 0) {
 	    if (this->INTERPOLATION_WARNING)
 	      printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
