@@ -27,6 +27,8 @@ private:
     static void findPutOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins);
     static void findGetOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins);
 
+    void read_plugins_provenance_infos(const std::string &field, void *p_plugin, void**data, int *size);
+
 protected:
     virtual void write_plugins_infrastructure_infos(int ctxID);
 

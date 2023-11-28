@@ -9,8 +9,11 @@
 #define PLUGIN_MANAGER_REPOSITORY "ssh://git@git.iter.org/imas/access-layer.git"
 
 #define PLUGINS_NODE_PATH "ids_properties/plugins/node"
+#define PLUGINS_READBACK_PATH "readback"
+
 #define GET_OPERATION_NODE_PATH "ids_properties/plugins/node/get_operation"
 #define GET_OPERATION "get_operation"
+
 #define PUT_OPERATION "put_operation"
 
 AccessLayerPluginManager::AccessLayerPluginManager() {}
@@ -44,18 +47,18 @@ std::string AccessLayerPluginManager::getParameters()
 void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function called before a get()
 {
 
-     al_status_t status;
-     int data_shape[MAXDIM];
-     void *ptrData = NULL;
+    al_status_t status;
+    int data_shape[MAXDIM];
+    void *ptrData = NULL;
 
-     int actxID = -1;
-     // printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
-     int size = 0; // number of nodes bound to a plugin
-     int h = -1;
-     ptrData = &h;
-     status = al_plugin_read_data(ctxID, "ids_properties/homogeneous_time", "", &ptrData, INTEGER_DATA, 0, &data_shape[0]); //ASCII backend patch
-     al_plugin_begin_arraystruct_action(ctxID, PLUGINS_NODE_PATH, "", &size, &actxID);
-     assert(actxID >= 0);
+    int actxID = -1;
+    // printf("AccessLayerPluginManager::bind_readback_plugins is called\n");
+    int size = 0; // number of nodes bound to a plugin
+    int h = -1;
+    ptrData = &h;
+    status = al_plugin_read_data(ctxID, "ids_properties/homogeneous_time", "", &ptrData, INTEGER_DATA, 0, &data_shape[0]); //ASCII backend patch
+    al_plugin_begin_arraystruct_action(ctxID, PLUGINS_NODE_PATH, "", &size, &actxID);
+    assert(actxID >= 0);
 
     for (int i = 0; i < size; i++)
     {
@@ -105,9 +108,9 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
                 if (LLplugin::registerPlugin(plugin_name.c_str()))
                     LLplugin::readbackPlugins.push_back(plugin_name);
                 else
-                   continue;
+                    continue;
             }
-            
+
             std::string full_path;
             std::string dataObjectName;
             LLplugin::getFullPath(ctxID, path.c_str(), full_path, dataObjectName);
@@ -117,19 +120,21 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
             if (!LLplugin::isPluginBound(full_path.c_str(), plugin_name.c_str()))
             {
                 LLplugin::bindPlugin(full_path.c_str(), plugin_name.c_str());
-		//check if the plugin present in the store has the expected version and node_operation type (GET)
+                //check if the plugin present in the store has the expected version and node_operation type (GET)
                 LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
-        	access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
-        	if (al_plugin->node_operation(full_path) == plugin::OPERATION::PUT_ONLY) {
-                   char error_message[200];
-                   sprintf(error_message, "Readback plugin %s is declared PUT_ONLY for path=%s.\n", plugin_name.c_str(), full_path.c_str());
-                   throw ALBackendException(error_message, LOG);
+                access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
+                if (al_plugin->node_operation(full_path) == plugin::OPERATION::PUT_ONLY)
+                {
+                    char error_message[200];
+                    sprintf(error_message, "Readback plugin %s is declared PUT_ONLY for path=%s.\n", plugin_name.c_str(), full_path.c_str());
+                    throw ALBackendException(error_message, LOG);
                 }
-                if (al_plugin->getVersion() != plugins_versions[j]) {
-                   char error_message[200];
-                   sprintf(error_message, "Readback plugin %s has not the expected version, found=%s, expected=%s.\n", plugin_name.c_str(), 
-                          al_plugin->getVersion().c_str(), plugins_versions[j].c_str());
-                   throw ALBackendException(error_message, LOG);
+                if (al_plugin->getVersion() != plugins_versions[j])
+                {
+                    char error_message[200];
+                    sprintf(error_message, "Readback plugin %s has not the expected version, found=%s, expected=%s.\n", plugin_name.c_str(),
+                            al_plugin->getVersion().c_str(), plugins_versions[j].c_str());
+                    throw ALBackendException(error_message, LOG);
                 }
                 addReadbackPlugin(plugin_name, full_path);
             }
@@ -278,9 +283,10 @@ void AccessLayerPluginManager::findGetOperationPlugins(std::map<std::string, std
     {
         const std::string &path = it->first;
         std::string node_plugins(PLUGINS_NODE_PATH);
-        if (path.find(node_plugins.c_str(), 0, node_plugins.length()) != std::string::npos) {
-           //printf("ignoring path=%s\n", path.c_str());
-           continue;
+        if (path.find(node_plugins.c_str(), 0, node_plugins.length()) != std::string::npos)
+        {
+            //printf("ignoring path=%s\n", path.c_str());
+            continue;
         }
         std::vector<std::string> &plugins_vector = it->second;
         for (auto &plugin_name : plugins_vector)
@@ -558,9 +564,14 @@ void AccessLayerPluginManager::begin_arraystruct_action_handler(const std::strin
             LLplugin::get_plugins.clear();
             findGetOperationPlugins(LLplugin::get_plugins);
             ArraystructContext *actx = lle.create(fieldPath, timeBasePath);
-            lle.backend->beginArraystructAction(actx, arraySize);
             *arraySize = LLplugin::get_plugins.size();
-            // printf("node arraySize=%d\n ", *arraySize);
+            *actxID = Lowlevel::addLLenv(lle.backend, actx);
+            return;
+        }
+        else if (p == PLUGINS_READBACK_PATH)
+        {
+            ArraystructContext *actx = lle.create(fieldPath, timeBasePath);
+            *arraySize = LLplugin::readbackPlugins.size();
             *actxID = Lowlevel::addLLenv(lle.backend, actx);
             return;
         }
@@ -578,9 +589,7 @@ void AccessLayerPluginManager::begin_arraystruct_action_handler(const std::strin
 
             LLplugin::pluginsNames = LLplugin::get_plugins[path];
             ArraystructContext *actx = lle.create(fieldPath, timeBasePath);
-            lle.backend->beginArraystructAction(actx, arraySize);
             *arraySize = LLplugin::get_plugins[path].size();
-            // printf("get_operation arraySize=%d for path=%s\n ", *arraySize, path.c_str());
             *actxID = Lowlevel::addLLenv(lle.backend, actx);
             return;
         }
@@ -618,6 +627,19 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
             }
         }
 
+        else if (arctx->getPath() == PLUGINS_READBACK_PATH)
+        {
+
+            std::string field = fieldPath;
+            for (auto it = LLplugin::readbackPlugins.begin(); it != LLplugin::readbackPlugins.end(); ++it)
+            {
+                std::string &plugin_name = *it;
+                LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
+                access_layer_plugin *al_readback_plugin = (access_layer_plugin *)llp.al_plugin;
+                read_plugins_provenance_infos(field, (void *)al_readback_plugin, data, size);
+            }
+        }
+
         else if (arctx->getPath() == GET_OPERATION)
         {
             assert(LLplugin::pluginsNames.size() > 0);
@@ -635,31 +657,7 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
                 }
 
                 std::string field = fieldPath;
-                if (field == "name")
-                {
-                    *data = strdup(al_plugin->getName().data());
-                    *size = al_plugin->getName().length();
-                }
-                else if (field == "commit")
-                {
-                    *data = strdup(al_plugin->getCommit().data());
-                    *size = al_plugin->getCommit().length();
-                }
-                else if (field == "version")
-                {
-                    *data = strdup(al_plugin->getVersion().data());
-                    *size = al_plugin->getVersion().length();
-                }
-                else if (field == "repository")
-                {
-                    *data = strdup(al_plugin->getRepository().data());
-                    *size = al_plugin->getRepository().length();
-                }
-                else if (field == "parameters")
-                {
-                    *data = strdup(al_plugin->getParameters().data());
-                    *size = al_plugin->getParameters().length();
-                }
+                read_plugins_provenance_infos(field, (void *)al_plugin, data, size);
                 return 1;
             }
             else
@@ -669,6 +667,36 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
     if (al_plugin->node_operation(LLplugin::getOperationPath) != plugin::OPERATION::PUT_ONLY)
         return al_plugin->read_data(ctxID, fieldPath, timeBasePath, data, datatype, dim, size);
     return 0;
+}
+
+void AccessLayerPluginManager::read_plugins_provenance_infos(const std::string &field, void *p_plugin, void **data, int *size)
+{
+    access_layer_plugin *al_plugin = (access_layer_plugin *)p_plugin;
+    if (field == "name")
+    {
+        *data = strdup(al_plugin->getName().data());
+        *size = al_plugin->getName().length();
+    }
+    else if (field == "commit")
+    {
+        *data = strdup(al_plugin->getCommit().data());
+        *size = al_plugin->getCommit().length();
+    }
+    else if (field == "version")
+    {
+        *data = strdup(al_plugin->getVersion().data());
+        *size = al_plugin->getVersion().length();
+    }
+    else if (field == "repository")
+    {
+        *data = strdup(al_plugin->getRepository().data());
+        *size = al_plugin->getRepository().length();
+    }
+    else if (field == "parameters")
+    {
+        *data = strdup(al_plugin->getParameters().data());
+        *size = al_plugin->getParameters().length();
+    }
 }
 
 void AccessLayerPluginManager::write_data_plugin_handler(const std::string &plugin_name, int ctxID, const char *field, const char *timebase,
