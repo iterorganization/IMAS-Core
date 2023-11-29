@@ -11,6 +11,7 @@ class provenance_plugin_feature {
     virtual ~provenance_plugin_feature() {}
 
     virtual std::string getName() = 0;
+    virtual std::string getDescription() = 0;
     virtual std::string getCommit() = 0;
     virtual std::string getVersion() = 0;
     virtual std::string getRepository() = 0;

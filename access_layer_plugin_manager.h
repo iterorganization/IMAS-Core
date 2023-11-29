@@ -10,6 +10,7 @@
 
    struct plugin_info{
       std::string name;
+      std::string description;
       std::string commit;
       std::string version;
       std::string repository;
@@ -37,6 +38,7 @@ public:
     ~AccessLayerPluginManager();
 
     std::string getName() override;
+    std::string getDescription() override;
     std::string getCommit() override;
     std::string getVersion() override;
     std::string getRepository() override;

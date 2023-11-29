@@ -24,6 +24,11 @@ std::string AccessLayerPluginManager::getName()
     return std::string(PLUGIN_MANAGER_NAME);
 }
 
+std::string AccessLayerPluginManager::getDescription()
+{
+    return "The plugin manager binds readback plugins and manage the plugins provenance.";
+}
+
 std::string AccessLayerPluginManager::getCommit()
 {
     return "0";
@@ -161,6 +166,7 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
     LLplugin::getFullPath(ctxID, GET_OPERATION_NODE_PATH, aos_path_get);
 
     std::string path_get_name = aos_path_get + "/name";
+    std::string path_description_name = aos_path_get + "/description";
     std::string path_get_commit = aos_path_get + "/commit";
     std::string path_get_version = aos_path_get + "/version";
     std::string path_get_repository = aos_path_get + "/repository";
@@ -207,6 +213,12 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
             {
                 al_bind_plugin(path_get_name.c_str(), plugin_name.c_str());
                 addReadbackPlugin(plugin_name, path_get_name);
+            }
+
+            if (!LLplugin::isPluginBound(path_description_name.c_str(), plugin_name.c_str()))
+            {
+                al_bind_plugin(path_description_name.c_str(), plugin_name.c_str());
+                addReadbackPlugin(plugin_name, path_description_name);
             }
 
             if (!LLplugin::isPluginBound(path_get_commit.c_str(), plugin_name.c_str()))
@@ -388,6 +400,7 @@ void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function cal
             LLplugin &llp = LLplugin::llpluginsStore[plugin_name];
             access_layer_plugin *al_plugin = (access_layer_plugin *)llp.al_plugin;
             write_field(nested_actxID, std::string("name"), al_plugin->getName());
+            write_field(nested_actxID, std::string("description"), al_plugin->getDescription());
             write_field(nested_actxID, std::string("commit"), al_plugin->getCommit());
             write_field(nested_actxID, std::string("version"), al_plugin->getVersion());
             write_field(nested_actxID, std::string("repository"), al_plugin->getRepository());
@@ -411,6 +424,7 @@ void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function cal
             if (p_info.name != "")
             {
                 p_info.commit = al_plugin->getReadbackCommit(path);
+                p_info.description = al_plugin->getReadbackDescription(path);
                 p_info.version = al_plugin->getReadbackVersion(path);
                 p_info.repository = al_plugin->getReadbackRepository(path);
                 p_info.parameters = al_plugin->getReadbackParameters(path);
@@ -458,6 +472,7 @@ void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function cal
         {
             struct plugin_info &p_info = plugins_to_apply[i];
             write_field(nested_actxID, std::string("name"), p_info.name);
+            write_field(nested_actxID, std::string("description"), p_info.description);
             write_field(nested_actxID, std::string("commit"), p_info.commit);
             write_field(nested_actxID, std::string("version"), p_info.version);
             write_field(nested_actxID, std::string("repository"), p_info.repository);
@@ -477,6 +492,8 @@ void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID)
     // printf("calling write_plugins_infrastructure_infos...\n");
     std::string name_put = "ids_properties/plugins/infrastructure_put/name";
     write_field(ctxID, name_put, getName());
+    std::string description_put = "ids_properties/plugins/infrastructure_put/description";
+    write_field(ctxID, description_put, getDescription());
     std::string commit_put = "ids_properties/plugins/infrastructure_put/commit";
     write_field(ctxID, commit_put, getCommit());
     std::string version_put = "ids_properties/plugins/infrastructure_put/version";
@@ -664,6 +681,7 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
                 return 0;
         }
     }
+
     if (al_plugin->node_operation(LLplugin::getOperationPath) != plugin::OPERATION::PUT_ONLY)
         return al_plugin->read_data(ctxID, fieldPath, timeBasePath, data, datatype, dim, size);
     return 0;
@@ -676,6 +694,11 @@ void AccessLayerPluginManager::read_plugins_provenance_infos(const std::string &
     {
         *data = strdup(al_plugin->getName().data());
         *size = al_plugin->getName().length();
+    }
+    else if (field == "description")
+    {
+        *data = strdup(al_plugin->getDescription().data());
+        *size = al_plugin->getDescription().length();
     }
     else if (field == "commit")
     {
