@@ -4547,7 +4547,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		}
 		catch(std::exception &e) {
 			char error_message[200];
-			sprintf(error_message, "Unable to find occurrences metadata infos in the current MDS+ pulse file. These MDS+ metadata are available only for AL version > 5.0.0.\n");
+			sprintf(error_message, "Unable to find occurrences metadata infos in the current MDS+ pulse file. These MDS+ metadata are available only for pulse files created with AL version > 5.0.0.\n");
         	throw ALBackendException(error_message, LOG);
 		}
 
@@ -5012,7 +5012,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	}
 	catch(std::exception &e) {
 		char error_message[200];
-		sprintf(error_message, "Unable to find occurrences infos in the current MDS+ pulse file. These file metadata are available for AL version > 5.0.0.\n");
+		sprintf(error_message, "Unable to find occurrences infos in the current MDS+ pulse file. These file metadata are available for pulse files created with AL version > 5.0.0.\n");
         throw ALBackendException(error_message, LOG);
 	}
 	MDSplus::Data *read_data = nullptr;
