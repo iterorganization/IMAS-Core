@@ -59,7 +59,6 @@ class LIBRARY_API MDSplusBackend:public Backend
     std::unordered_map<ArraystructContext *, MDSplus::Apd *> arrayStructCtxDataMap;
     //std::vector<ArraystructContext *>arrayStructContextV;
     //std::vector<MDSplus::Apd *>arrayStructDataV;
-    std::unordered_map < OperationContext *,  std::string> high_level_delete_requests;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);
@@ -130,8 +129,6 @@ class LIBRARY_API MDSplusBackend:public Backend
     int getSegmentIdx(MDSplus::TreeNode *node, int timebaseIdx);
     double *getSegmentIdxAndDim(MDSplus::TreeNode *node, std::string dataobjectPath, std::string timebase, double time, int &segIdx, int &nDim);
     void fullPath(Context *ctx, std::string &path);
-
-    void read_occurrences(std::vector<std::string> &occurrences_list);
 
 /////Public section - Implementation of Backend interface		
       public:
@@ -247,8 +244,6 @@ class LIBRARY_API MDSplusBackend:public Backend
      @result std::pair<int,int> for <major,minor> version numbers
   */
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
-
-    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);

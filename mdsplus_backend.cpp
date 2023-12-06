@@ -2221,8 +2221,6 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	throw ALBackendException(exc.what(),LOG);
       }
 //      delete topNode;
-
-
     }
 
 	
@@ -4536,64 +4534,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
    }
 
-  void MDSplusBackend::beginAction(OperationContext *ctx)  {
-
-	if (ctx->getAccessmode() == WRITE_OP) {
-
-		MDSplus::TreeNode *node = nullptr;
-
-		try {
-			node = tree->getNode("OCCURRENCES"); //metatada node string containing IDSs occurrences infos (ids_name/value) separated by ";" 
-		}
-		catch(std::exception &e) {
-			char error_message[200];
-			sprintf(error_message, "Unable to find occurrences metadata infos in the current MDS+ pulse file. These MDS+ metadata are available only for AL version > 5.0.0.\n");
-        	throw ALBackendException(error_message, LOG);
-		}
-
-		MDSplus::Data *read_data = nullptr;
-		try {
-			read_data = node->getData();
-		}
-		catch(std::exception &e) {} //this exception is thrown if the node doesn't contain data
-
-		if (read_data) {  //node "OCCURRENCES" contains already some data
-			std::vector<std::string> occ_list;
-			read_occurrences(occ_list); //let's read all the occurrences
-
-			bool found = false;
-			for (size_t i = 0; i < occ_list.size(); i++) {
-				if (occ_list[i] == ctx->getDataobjectName()) {
-					found = true;
-				}
-			}
-			
-			if (!found) { //the infos of this new occurrence (ctx->getDataobjectName()) is not found, let's add them to the node
-				//printf("no occ %s found\n", ctx->getDataobjectName().c_str());
-				std::string current_occurrences = read_data->getString();
-				//printf("beginAction::current_occurrences=%s found\n", current_occurrences.c_str());
-				if (occ_list.size() == 0)
-					current_occurrences = ctx->getDataobjectName() + ";";
-				else
-					current_occurrences += ctx->getDataobjectName() + ";";
-				MDSplus::String *data = new MDSplus::String(current_occurrences.c_str());
-				node->putData(data); //the new infos for all occurrences are updated
-				MDSplus::deleteData(data);
-			}
-			else {
-				//printf("occ %s found\n", ctx->getDataobjectName().c_str());
-			}
-		}
-		else { //node "OCCURRENCES" doesn't contain data yet
-			//printf("no occurrences metadata found\n");
-			std::string occ = ctx->getDataobjectName() + ";";
-			MDSplus::String *data = new MDSplus::String(occ.c_str());
-			node->putData(data); //we store the current occurrence infos
-			MDSplus::deleteData(data); //the data object on the heap is finally deleted
-		}
-		delete node;
-	}
-  }
+  void MDSplusBackend::beginAction(OperationContext *ctx)  {}
 
 
   void MDSplusBackend::writeData(OperationContext *ctx,
@@ -4655,59 +4596,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 			std::string fieldname)  
   {
      deleteData(tree, ctx->getDataobjectName(), fieldname);
-
-	 //Check if the update below has been already performed within this operation context
-	 auto got = high_level_delete_requests.find(ctx);
-	 if (got != high_level_delete_requests.end()) {
-		 auto &request_name = got->second;
-		 if (request_name == "deleteData")
-		 	return;
-	 }
-	 
-	 //Updating the OCCURRENCES metadata node
-	 std::vector<std::string> occ_list;
-	 read_occurrences(occ_list); //read occurrences infos from disk
-
-	 std::vector<std::string> occ_to_delete;
-	 for (size_t i = 0; i < occ_list.size(); i++) {
-		 const std::string &occ = occ_list[i];
-		if  (ctx->getDataobjectName() == occ) {
-			occ_to_delete.push_back(occ);
-		}
-	 }
-	 std::vector<std::string> occ_to_keep;
-	 for (size_t i = 0; i < occ_list.size(); i++) {
-		 const std::string &occ = occ_list[i];
-		 bool toKeep = true;
-		 for (size_t j = 0; j < occ_to_delete.size(); j++) {
-			 if (occ == occ_to_delete[j]) {
-				toKeep = false;
-			    break;
-		 	}
-		 }
-		 if (toKeep)
-		 	occ_to_keep.push_back(occ);
-	 }
-	 std::string new_occ_list = "";
-	 for (size_t i = 0; i < occ_to_keep.size(); i++) {
-		 const std::string &occ = occ_to_keep[i];
-		if (new_occ_list == "")
-			new_occ_list = occ + ";";
-		else
-			new_occ_list += occ + ";";
-	 }
-	MDSplus::TreeNode *node = nullptr;
-	try {
-		node = tree->getNode("OCCURRENCES");
-	}
-	catch(std::exception &e) {}
-	if (node) {
-	  MDSplus::String *data = new MDSplus::String(new_occ_list.c_str());
-	  node->putData(data);
-	  MDSplus::deleteData(data);
-	  high_level_delete_requests[ctx] = "deleteData"; 
-	  delete node;
-	}
   }   
 
     
@@ -4966,79 +4854,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
 }
 
- void MDSplusBackend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size) {
-
-	std::vector<std::string> occ_list;
-	read_occurrences(occ_list);
-	//printf("occ_list size = %d\n", occ_list.size());
-	std::vector<int> occurrences;
-
-	for (size_t i = 0; i < occ_list.size(); i++) {
-		const std::string &occ_str = occ_list[i];
-			
-		std::size_t found = occ_str.find("/");
-
-		int occ = 0;
-		if (found != std::string::npos) {
-			std::string found_ids_name = occ_str.substr(0, found);
-			//printf("test1=%s\n", found_ids_name.c_str());
-			if (found_ids_name != std::string(ids_name)){
-				continue;
-			}
-			//printf("test2=%s\n", occ_str.substr(found + 1).c_str());
-			occ = std::atoi(occ_str.substr(found + 1).c_str());
-		}
-		else {
-			if (occ_str != std::string(ids_name)) {
-				continue;
-			}
-		}
-		occurrences.push_back(occ);
-	}
-	std::sort (occurrences.begin(), occurrences.end());
-	*occurrences_list = (int*) malloc(sizeof(int)*occurrences.size()); //allocated results on the heap
-    int* p = *occurrences_list;
-	for (size_t i = 0; i < occurrences.size(); i++) 
-		p[i] = occurrences[i];
-		
-	*size = occurrences.size();
-	
- }
-
- void MDSplusBackend::read_occurrences(std::vector<std::string> &occurrences_list) {
-	MDSplus::TreeNode *node = nullptr;
-	try {
-		node = tree->getNode("OCCURRENCES");
-	}
-	catch(std::exception &e) {
-		char error_message[200];
-		sprintf(error_message, "Unable to find occurrences infos in the current MDS+ pulse file. These file metadata are available for AL version > 5.0.0.\n");
-        throw ALBackendException(error_message, LOG);
-	}
-	MDSplus::Data *read_data = nullptr;
-	try {
-		read_data = node->getData();
-	}
-	catch(std::exception &e) {
-		delete node;
-		return;
-	}
-	if (read_data) {
-		std::string current_occurrences = std::string(read_data->getString());
-		//printf("MDSplusBackend::read_occurrences, current_occurrences=%s\n", current_occurrences.c_str());
-		char *token = strtok(&current_occurrences[0], ";");
-		if (token)
-			occurrences_list.push_back(std::string(token));
-		while (token != NULL)
-		{
-			token = strtok(NULL, ";");
-			if (token)
-				occurrences_list.push_back(std::string(token));
-		}
-	}
-	delete node;
- }
-
  void MDSplusBackend::fullPath(Context *ctx, std::string &path) {
    if (ctx->getType() == CTX_PULSE_TYPE) {
        path = "";
@@ -5290,13 +5105,6 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 //      if(((OperationContext *)inCtx)->getAccessmode() == SLICE_OP && ((OperationContext *)inCtx)->getType() == CTX_OPERATION_TYPE)
 //	timebaseMap.clear(); //Free timebase cache for this IDS slice operation
 
-	  if (inCtx->getType() == CTX_OPERATION_TYPE) {
-		  OperationContext *opctx = dynamic_cast<OperationContext*> (inCtx);
-		  auto got = high_level_delete_requests.find(opctx);
-		  if (got != high_level_delete_requests.end())
-		  	high_level_delete_requests.erase(got);
-	  }
-
       if(inCtx->getType() == CTX_ARRAYSTRUCT_TYPE) //Only in this case actions are required 
       {
 	  ArraystructContext *ctx = (ArraystructContext *)inCtx;
@@ -5529,4 +5337,5 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	}
 	return version;
     }
-	
+		
+		
