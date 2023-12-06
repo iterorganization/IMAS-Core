@@ -4855,6 +4855,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 }
 
 void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+	if(!tree) throw ALBackendException("Data entry not open",LOG);
 	std::vector<int> occurrences;
 
 	// Get the MDS+ node belonging to this IDS
@@ -4865,7 +4866,9 @@ void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_lis
 	} catch(MDSplus::MdsException &exc) {
 		// Node not found probably means that the IDS name is invalid (or did
 		// not exist yet when this data entry was created):
-		throw ALBackendException(exc.what(), LOG);
+		occurrences_list = nullptr;
+		*size = 0;
+		return;
 	}
 	std::string hom_time_path = "ids_properties/homogeneous_time";
 	hom_time_path = checkFullPath(hom_time_path);
