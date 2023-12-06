@@ -4877,6 +4877,7 @@ void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_lis
 			// Homogeneous time is set, assume occurrence is filled
 			occurrences.push_back(0);
 		}
+		delete hom_time;
 	} catch(MDSplus::MdsException &exc) {
 		// Should not be reached if this is a valid IDS, ignore..
 	}
@@ -4899,11 +4900,16 @@ void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_lis
 					// Homogeneous time is set, assume occurrence is filled
 					occurrences.push_back(occurrence);
 				}
+				delete hom_time;
 			} catch(MDSplus::MdsException &exc) {
 				// Should not be reached if this is a valid IDS, ignore..
 			}
 		}
+		delete child;
+		delete[] name;
 	}
+	delete[] children;
+	// note: don't delete ids_node: it is cached by getNode and owned by the cache now
 
 	// Sort the found occurrences and construct return data:
 	std::sort (occurrences.begin(), occurrences.end());
