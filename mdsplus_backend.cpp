@@ -4854,6 +4854,66 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
 }
 
+void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+	std::vector<int> occurrences;
+
+	// Get the MDS+ node belonging to this IDS
+	MDSplus::TreeNode *ids_node = nullptr;
+	try {
+		std::string ids_path(ids_name);
+		ids_node = getNode(checkFullPath(ids_path).c_str());
+	} catch(MDSplus::MdsException &exc) {
+		// Node not found probably means that the IDS name is invalid (or did
+		// not exist yet when this data entry was created):
+		throw ALBackendException(exc.what(), LOG);
+	}
+	std::string hom_time_path = "ids_properties/homogeneous_time";
+	hom_time_path = checkFullPath(hom_time_path);
+
+	// Check occurrence 0: data for occ 0 is stored directly under the ids_node.
+	try {
+		auto hom_time = ids_node->getNode(hom_time_path.c_str());
+		if ( hom_time->getLength() > 0 ) {
+			// Homogeneous time is set, assume occurrence is filled
+			occurrences.push_back(0);
+		}
+	} catch(MDSplus::MdsException &exc) {
+		// Should not be reached if this is a valid IDS, ignore..
+	}
+
+	// Check the other occurrences: these are stored in numbered sub-nodes, e.g.
+	// occurrence 3 is stored in sub-node with node name = "3". Since IDS nodes
+	// are not allowed to contain numbers, all numbered MDS+ nodes must belong
+	// to an occurrence:
+	int numChildren;
+	auto children = ids_node->getChildren(&numChildren);
+	for( int i=0; i<numChildren; ++i ) {
+		auto child = children[i];
+		auto name = child->getNodeName();
+		// Check if this is an occurrence node (starts with numeric char):
+		if( name[0] >= '0' && name[0] <= '9' ) {
+			int occurrence = std::stoi(name);
+			try {
+				auto hom_time = child->getNode(hom_time_path.c_str());
+				if ( hom_time->getLength() > 0 ) {
+					// Homogeneous time is set, assume occurrence is filled
+					occurrences.push_back(occurrence);
+				}
+			} catch(MDSplus::MdsException &exc) {
+				// Should not be reached if this is a valid IDS, ignore..
+			}
+		}
+	}
+
+	// Sort the found occurrences and construct return data:
+	std::sort (occurrences.begin(), occurrences.end());
+	*occurrences_list = (int*) malloc(sizeof(int)*occurrences.size()); //allocated results on the heap
+    int* p = *occurrences_list;
+	for (size_t i = 0; i < occurrences.size(); i++) 
+		p[i] = occurrences[i];
+	*size = occurrences.size();
+}
+
  void MDSplusBackend::fullPath(Context *ctx, std::string &path) {
    if (ctx->getType() == CTX_PULSE_TYPE) {
        path = "";
