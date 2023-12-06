@@ -1,14 +1,16 @@
+SPECIFIC_TOOLS=
 
 # Needed by memory_backend
 LIBS+= -lpthread
 
 #-------------- Options for MDSplus ------------
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -DMDSPLUS_PRE_7_49
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
 LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
 LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lboost_filesystem
 COMMON_OBJECTS+=mdsplus_backend.o
-CPPSRC+=mdsplus_backend.cpp memory_backend.cpp
+CPPSRC+=mdsplus_backend.cpp 
+SPECIFIC_TOOLS=printMDSplusFileVersion
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
@@ -20,22 +22,22 @@ else
 CXXINCLUDES+= -DUDA `pkg-config --cflags uda-cpp`
 LIBS+= `pkg-config --libs uda-cpp`
 endif
-LIBS+= -lssl -lcrypto -L/usr/local/opt/openssl@1.1/lib
+LIBS+= -lssl -lcrypto 
 COMMON_OBJECTS+=uda_backend.o uda_cache.o uda_path.o uda_xml.o pugixml.o
 CPPSRC+=uda_backend.cpp uda_cache.cpp uda_path.cpp uda_xml.cpp pugixml.cpp
 endif # IMAS_UDA
 
 #-------------- Options for HDF5 ---------------
 ifeq ("yes","$(strip $(IMAS_HDF5))")
-CXXINCLUDES+= -DHDF5 -I$(HDF5_HOME)/include
-LIBS+= -L$(HDF5_HOME)/lib
+CXXINCLUDES+= -DHDF5 -I$(HDF5_DIR)/include 
+LIBS+= -L$(HDF5_DIR)/lib
 LIBS+= -lhdf5 -ldl -lz
-COMMON_OBJECTS+= hdf5_backend.o
-CPPSRC+=hdf5_backend.cpp
+COMMON_OBJECTS+= hdf5_backend.o hdf5_writer.o hdf5_reader.o hdf5_utils.o hdf5_hs_selection_reader.o hdf5_hs_selection_writer.o hdf5_dataset_handler.o hdf5_events_handler.o hdf5_backend_factory.o
+CPPSRC+=hdf5_backend.cpp hdf5_writer.cpp hdf5_reader.cpp hdf5_utils.cpp hdf5_hs_selection_reader.cpp hdf5_hs_selection_writer.cpp hdf5_dataset_handler.cpp hdf5_events_handler.cpp hdf5_backend_factory.cpp
 endif # IMAS_HDF5
 
 
-TARGETS = libal.so libal.a printMDSplusFileVersion
+TARGETS = libal.so libal.a $(SPECIFIC_TOOLS)
 
 all: $(TARGETS) pkgconfig doc
 sources:
@@ -44,19 +46,22 @@ sources_install: $(wildcard *.c *.h) | $(datadir)/src/lowlevel
 sources_uninstall:
 	-rm -rf $(datadir)/src/lowlevel
 
-install: all libal.so_install libal.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel
-	$(INSTALL_DATA) al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h access_layer_plugin_manager.h \
-		$(includedir)
+install: all libal.so_install libal.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel $(bindir)
+	$(INSTALL_DATA) al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h $(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
+	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.)
 
 uninstall: libal.so_uninstall libal.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
 	-rm -rf $(addprefix $(includedir)/,al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h access_layer_plugin_manager.h)
 	-rm -f $(addprefix $(libdir)/,libal-$(DD_GIT_DESCRIBE).so.$(SO_NUM) libal-$(DD_GIT_DESCRIBE).so libal.so libal-$(DD_GIT_DESCRIBE).a libal.a)
 
-$(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel:
+$(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir):
 	$(mkdir_p) $@
 
+# Additional executable
+printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
+	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
 # Dynamic library
 libal.so.$(SO_NUM): $(COMMON_OBJECTS)
 	$(CXX) -g -o $@ -shared -Wl,-install_name,$@ $^ $(LIBS)
@@ -65,10 +70,6 @@ libal.so: %:%.$(SO_NUM)
 libal.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
 	$(INSTALL_DATA) $< $(libdir)
 	$(LN_S) $< $(libdir)/$*.so
-
-# Additional executable
-printMDSplusFileVersion: printMDSplusFileVersion.cpp libal.a
-	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS)
 
 # Static library
 libal.a: $(COMMON_OBJECTS)
