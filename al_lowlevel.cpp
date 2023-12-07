@@ -728,11 +728,15 @@ bool Lowlevel::data_has_non_zero_shape(int datatype, void *data, int dim, int *s
 		
 	if (dim != 0 && (data == NULL || size == NULL))
 	   return false;
-	   
-	for (int i = 0; i < dim; i++) {
-		if (size[i] == 0)
-		   return false;
-     }
+
+    //don't check dimension sizes if data is list of strings (IMAS-4948)
+    if(!(datatype == CHAR_DATA && dim > 1)){
+        for (int i = 0; i < dim; i++){
+            if (size[i] == 0){
+                return false;
+            }
+         }
+    }
      return true;
 }
 
