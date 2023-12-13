@@ -5,12 +5,13 @@ LIBS+= -lpthread
 
 #-------------- Options for MDSplus ------------
 ifeq ("yes","$(strip $(IMAS_MDSPLUS))")
-CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include -I.
-LIBS+= -L. -L$(MDSPLUS_DIR)/lib64 -L$(MDSPLUS_DIR)/lib
-LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr -lboost_filesystem
+CXXINCLUDES+= -DMDSPLUS -I$(MDSPLUS_DIR)/include
+LIBS+= -L. -L$(MDSPLUS_DIR)/lib -L$(MDSPLUS_DIR)/lib
+LIBS+= -lTreeShr -lTdiShr -lMdsShr -lXTreeShr -lMdsIpShr -lMdsObjectsCppShr
 COMMON_OBJECTS+=mdsplus_backend.o
 CPPSRC+=mdsplus_backend.cpp 
-SPECIFIC_TOOLS=printMDSplusFileVersion
+SPECIFIC_TOOLS+=mdsplusFileVersion
+SPECIFIC_TOOLS+=mdsplusIMASDB4to5 
 endif # IMAS_MDSPLUS
 
 #-------------- Options for UDA ----------------
@@ -47,24 +48,30 @@ sources_uninstall:
 	-rm -rf $(datadir)/src/lowlevel
 
 install: all libal.so_install libal.a_install pkgconfig_install sources_install | $(libdir) $(includedir) $(docdir)/dev/lowlevel $(bindir)
-	$(INSTALL_DATA) al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h $(includedir)
+	$(INSTALL_DATA) al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h uri_parser.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h\
+		$(includedir)
 	$(CP) latex html $(docdir)/dev/lowlevel
 	$(if $(SPECIFIC_TOOLS),$(INSTALL_PROGRAM) $(SPECIFIC_TOOLS) $(bindir)/.)
 
 uninstall: libal.so_uninstall libal.a_uninstall pkgconfig_uninstall sources_uninstall
 	-rm -rf $(docdir)/dev/lowlevel
-	-rm -rf $(addprefix $(includedir)/,al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h access_layer_plugin_manager.h)
+	-rm -rf $(addprefix $(includedir)/,al_defs.h al_lowlevel.h al_backend.h al_context.h al_exception.h al_const.h access_layer_plugin_manager.h access_layer_plugin.h provenance_plugin_feature.h readback_plugin_feature.h access_layer_base_plugin.h)
 	-rm -f $(addprefix $(libdir)/,libal-$(DD_GIT_DESCRIBE).so.$(SO_NUM) libal-$(DD_GIT_DESCRIBE).so libal.so libal-$(DD_GIT_DESCRIBE).a libal.a)
 
 $(libdir) $(includedir) $(docdir)/dev/lowlevel $(datadir)/src/lowlevel $(bindir):
 	$(mkdir_p) $@
 
-# Additional executable
-printMDSplusFileVersion: printMDSplusFileVersion.cpp libimas.a
+
+# Additional executable tools
+mdsplusFileVersion: printMDSplusFileVersion.cpp libal.a
 	$(CXX) $(CXXFLAGS) $(CXXINCLUDES) -o $@ $^ $(LIBS) 
+
+mdsplusIMASDB4to5:
+
+
 # Dynamic library
 libal.so.$(SO_NUM): $(COMMON_OBJECTS)
-	$(CXX) -g -o $@ -shared -Wl,-install_name,$@ $^ $(LIBS)
+	$(CXX) -g -o $@ -shared -Wl,-install_name,$@ $^ $(LIBS) -pthread
 libal.so: %:%.$(SO_NUM)
 	$(LN_S) $< $@
 libal.so_install: %.so_install:%.so.$(SO_NUM) | $(libdir)
