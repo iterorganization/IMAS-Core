@@ -458,6 +458,8 @@ extern "C"
   
   LIBRARY_API al_status_t al_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
 
+  LIBRARY_API al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size);
+
   //LIBRARY_API al_status_t al_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API

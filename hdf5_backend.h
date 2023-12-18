@@ -128,6 +128,8 @@ class HDF5Backend:public Backend {
 
     void beginAction(OperationContext * ctx) override;
 
+    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+
 };
 
 #endif

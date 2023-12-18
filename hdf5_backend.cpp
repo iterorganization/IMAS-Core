@@ -157,3 +157,9 @@ void HDF5Backend::endAction(Context * ctx)
 {
     eventsHandler->endAction(ctx, file_id, *hdf5Writer, *hdf5Reader, opened_IDS_files);
 }
+
+void HDF5Backend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
+{
+    assert(file_id != -1); //master file not opened
+    hdf5Reader->get_occurrences(ids_name, occurrences_list, size, file_id);
+}

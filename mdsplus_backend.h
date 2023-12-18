@@ -245,6 +245,8 @@ class LIBRARY_API MDSplusBackend:public Backend
   */
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
+    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
 

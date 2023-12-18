@@ -1536,6 +1536,32 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
    
 }
 
+al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size)
+{
+  al_status_t status;
+
+  status.code = 0;
+  try {
+    LLenv lle = Lowlevel::getLLenv(pctxID);
+    lle.backend->get_occurrences(ids_name, occurrences_list, size);
+  }
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+
+  return status;
+}
+
+
 al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName) {
     al_status_t status;
     status.code = 0;

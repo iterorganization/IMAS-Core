@@ -90,6 +90,8 @@ public:
 
   std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
+  void get_occurrences(const  char* ids_name, int** occurrences_list, int* size) override;
+
 };
 
 #endif
