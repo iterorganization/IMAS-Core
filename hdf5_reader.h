@@ -12,11 +12,10 @@
 #include <unordered_map>
 
 
-typedef herr_t(* H5L_iterate1_t) (hid_t group, const char *name, const H5L_info_t *info, void *op_data);
-
-
 class HDF5Reader {
   private:
+
+    typedef herr_t(* H5L_iterate1_t) (hid_t group, const char *name, const H5L_info_t *info, void *op_data);
     static herr_t iterate_callback (hid_t loc_id, const char *name, const H5L_info_t *info, void *callback_data);
     
     std::string backend_version;
