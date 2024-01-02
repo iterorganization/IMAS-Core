@@ -51,7 +51,7 @@
 /**
    AL and Data Dictionary version constants
 */
-#define AL_VERSION                  "@@AL_VERSION@@"
-#define DD_VERSION                  "@@DD_VERSION@@"
+#define AL_VERSION                  "@PROJECT_VERSION@"
+#define DD_VERSION                  "!!DEPRECATED!!"
 
 #endif // AL_DEFS_H

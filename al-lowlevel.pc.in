@@ -1,11 +1,11 @@
-prefix=__PREFIX__
+prefix="@CMAKE_INSTALL_PREFIX@"
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: al-lowlevel
-Version: __AL_GIT_DESCRIBE__
+Version: @PROJECT_VERSION@
 Description: IMAS Access Layer Low Level libraries for C.
 URL: https://imas.iter.org
 Cflags: -I${includedir}
-Libs: -L${libdir} -lal -Wl,--defsym,AL_VER___AL_SAFE_DESCRIBE__=0 -Wl,-rpath,${libdir}
+Libs: -L${libdir} -lal -Wl,--defsym,AL_VER_@PROJECT_VERSION@=0 -Wl,-rpath,${libdir}
