@@ -120,6 +120,7 @@ add_library( al
   access_layer_plugin_manager.cpp
 )
 target_link_libraries( al PRIVATE Boost::filesystem dl )
+set_target_properties( al PROPERTIES VERSION ${PROJECT_VERSION} )
 
 # Enable ASCII backend
 target_compile_definitions( al PRIVATE -DASCII )
