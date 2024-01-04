@@ -1,4 +1,4 @@
-include ../../Makefile.common
+include ../../../Makefile.common
 
 ifneq ("yes","$(strip $(IMAS_MDSPLUS))")
 all sources sources_install sources_uninstall install uninstall clean clean-src:
@@ -39,7 +39,7 @@ LDFLAGS=${DBGFLAGS} #-pthread
 _JAVA_OPTIONS=
 JFLAGS=-Xms1g -Xmx8g -XX:+UseG1GC
 
-IDSDEF= ../../xml/IDSDef.xml
+IDSDEF= ../../../xml/IDSDef.xml
 XSDDIR= $(dir $(IDSDEF))
 
 # ids_path equals to this dir:
