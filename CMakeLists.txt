@@ -215,5 +215,5 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgcon
 ################################################################################
 
 if( AL_BUILD_MDSPLUS_MODELS )
-  add_subdirectory( models/mdsplus )
+  add_subdirectory( models-mdsplus )
 endif()
