@@ -4,13 +4,13 @@ cmake_minimum_required( VERSION 3.16 )
 # Configuration options for common assets
 ################################################################################
 option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" OFF )
-# option( AL_COMMON_GIT_REPOSITORY "Git repository of AL-common" "ssh://git@git.iter.org/imas/al-common.git")
+# set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common")
 
 include(FetchContent)
 
 # Load common assets
 ################################################################################
-if( ${AL_DOWNLOAD_DEPENDENCIES} )
+if( AL_DOWNLOAD_DEPENDENCIES )
   # Download common assets from the ITER git:
   message( FATAL_ERROR "Not implemented yet" )
 else()
@@ -32,7 +32,7 @@ option( AL_BACKEND_HDF5 "Build the HDF5 backend" ON )
 option( AL_BACKEND_UDA "Build the UDA backend" OFF )
 option( AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF )
 
-include(CMakeDependentOption)
+include( CMakeDependentOption )
 cmake_dependent_option( AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON AL_BACKEND_MDSPLUS OFF )
 
 # Define project
