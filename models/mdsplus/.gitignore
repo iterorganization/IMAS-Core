@@ -1,0 +1,15 @@
+/CompileTree.log
+/ids.xml
+/ids_orig.xml
+/ids.xml_orig
+/ids_model.characteristics
+/ids_model.datafile
+/ids_model.tree
+jtraverserjar
+/alport/ids.xml
+/alport/ids_model.characteristics
+/alport/ids_model.datafile
+/alport/ids_model.tree
+/*.characteristics
+/*.datafile
+/*.tree

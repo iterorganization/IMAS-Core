@@ -32,6 +32,8 @@ option( AL_BACKEND_HDF5 "Build the HDF5 backend" ON )
 option( AL_BACKEND_UDA "Build the UDA backend" OFF )
 option( AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF )
 
+include(CMakeDependentOption)
+cmake_dependent_option( AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON AL_BACKEND_MDSPLUS OFF )
 
 # Define project
 ################################################################################
@@ -175,8 +177,8 @@ if( WIN32 )
 endif()
 
 
-################################################################################
 # Documentation
+################################################################################
 
 find_package(Doxygen)
 if( DOXYGEN_FOUND )
@@ -184,8 +186,8 @@ if( DOXYGEN_FOUND )
 endif()
 
 
-################################################################################
 # Install
+################################################################################
 
 # Install library (.so)
 install( TARGETS al )
@@ -203,7 +205,15 @@ configure_file( al-lowlevel.pc.in al-lowlevel.pc @ONLY )
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgconfig )
 
 
-################################################################################
 # Tests
+################################################################################
 
 # Tests were disabled in the Makefile as well
+
+
+# MDSplus models?
+################################################################################
+
+if( AL_BUILD_MDSPLUS_MODELS )
+  add_subdirectory( models/mdsplus )
+endif()
