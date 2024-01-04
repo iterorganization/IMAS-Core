@@ -88,8 +88,7 @@ sources: al_defs.h
 # Create al_defs.h
 al_defs.h: al_defs.h.in
 	sed \
-		-e "s|@@AL_VERSION@@|$(AL_SHORT_DESCRIBE)|g" \
-		-e "s|@@DD_VERSION@@|$(DD_SHORT_DESCRIBE)|g" \
+		-e "s|@PROJECT_VERSION@|$(AL_SHORT_DESCRIBE)|g" \
 		$< > $@ 
 
 # Create dependency files

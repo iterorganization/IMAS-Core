@@ -201,7 +201,7 @@ target_include_directories(al PUBLIC
 )
 
 # Generate and install .pc file
-configure_file( al-lowlevel.pc.in al-lowlevel.pc @ONLY )
+configure_file( pkgconfig/al-lowlevel.pc.in al-lowlevel.pc @ONLY )
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgconfig )
 
 
