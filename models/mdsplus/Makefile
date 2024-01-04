@@ -102,6 +102,6 @@ alport/ids.xml: alport/IDSDef2MDSpreTreeWithAoS.xsl
 	$(SAXON) -threads:4 -t -warnings:fatal -s:$(IDSDEF) -xsl:$< > $@
 
 #----------------------- classpath deps ---------------------
-include ../../Makefile.classpath
+include ../../../Makefile.classpath
 
 endif # IMAS_MDSPLUS
