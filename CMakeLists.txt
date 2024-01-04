@@ -129,7 +129,7 @@ target_compile_definitions( al PRIVATE -DASCII )
 
 # Optional backends
 if( AL_BACKEND_MDSPLUS )
-  target_sources( al PRIVATE mdsplus_backend.h )
+  target_sources( al PRIVATE mdsplus_backend.cpp )
   target_compile_definitions( al PRIVATE -DMDSPLUS )
   if( WIN32 )
     target_compile_definitions( al PRIVATE -DMDSOBJECTSCPPSHRVS_EXPORTS )
