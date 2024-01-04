@@ -43,7 +43,7 @@ IDSDEF= ../../../xml/IDSDef.xml
 XSDDIR= $(dir $(IDSDEF))
 
 # ids_path equals to this dir:
-ids_path=$(AL)/models/mdsplus
+ids_path=$(AL)/lowlevel/models/mdsplus
 
 # Shorthand for ids_model.* files
 IDS_MODEL=ids_model.characteristics ids_model.datafile ids_model.tree
