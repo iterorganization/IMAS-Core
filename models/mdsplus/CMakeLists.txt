@@ -10,6 +10,7 @@ include(FetchContent)
 
 # Load common assets
 ################################################################################
+set( AL_PARENT_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../../ )
 if( ${AL_DOWNLOAD_DEPENDENCIES} )
   # Download common assets from the ITER git:
   message( FATAL_ERROR "Not implemented yet" )
@@ -17,7 +18,7 @@ else()
   # Look in ../al-common for common files
   FetchContent_Declare(
     al-common
-    SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/../al-common
+    SOURCE_DIR      ${AL_PARENT_FOLDER}/al-common
   )
 endif()
 FetchContent_MakeAvailable( al-common )
@@ -67,7 +68,7 @@ execute_process(
 # Output should be either "CompileTree.class\n" or
 # "mds/jtraverser/CompileTree.class\n". What we need is "CompileTree" or
 # "mds.jtraverser.CompileTree"
-string( STRIP ${COMPILETREE_CLASS} COMPILETREE_CLASS )
+string( STRIP "${COMPILETREE_CLASS}" COMPILETREE_CLASS )
 string( REGEX REPLACE "[.]class$" "" COMPILETREE_CLASS ${COMPILETREE_CLASS})
 string( REPLACE "/" "." COMPILETREE_CLASS ${COMPILETREE_CLASS})
 
