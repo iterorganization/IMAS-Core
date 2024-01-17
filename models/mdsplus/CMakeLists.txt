@@ -41,7 +41,7 @@ if( NOT JTRAVERSER_JAR )
     else()
       # Check if it's the jTraverser.jar
       if( CLASSPATH_ITEM MATCHES "(^|/)(jTraverser|jtraverser).jar" )
-        set( JTRAVERSER_JAR CACHE FILEPATH "Path to MDSPLUS jTraverser.jar" ${CLASSPATH_ITEM} )
+        set( JTRAVERSER_JAR ${CLASSPATH_ITEM} CACHE FILEPATH "Path to MDSPLUS jTraverser.jar" )
         break()
       endif()
     endif()
@@ -69,8 +69,8 @@ execute_process(
 # "mds/jtraverser/CompileTree.class\n". What we need is "CompileTree" or
 # "mds.jtraverser.CompileTree"
 string( STRIP "${COMPILETREE_CLASS}" COMPILETREE_CLASS )
-string( REGEX REPLACE "[.]class$" "" COMPILETREE_CLASS ${COMPILETREE_CLASS})
-string( REPLACE "/" "." COMPILETREE_CLASS ${COMPILETREE_CLASS})
+string( REGEX REPLACE "[.]class$" "" COMPILETREE_CLASS "${COMPILETREE_CLASS}")
+string( REPLACE "/" "." COMPILETREE_CLASS "${COMPILETREE_CLASS}")
 
 if( NOT COMPILETREE_CLASS )
   message( FATAL_ERROR "Could not determine the MDSplus CompileTree class name, cannot build MDSplus models.")
