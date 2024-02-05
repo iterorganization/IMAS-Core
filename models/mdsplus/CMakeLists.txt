@@ -3,8 +3,11 @@ cmake_minimum_required( VERSION 3.16 )
 
 # Configuration options for common assets
 ################################################################################
-option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" OFF )
-# set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common")
+option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" ON )
+set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common" )
+set( AL_COMMON_VERSION "3426d73f3e5fc5b6a500043d9d9c663e10a67f91" CACHE STRING "Git commit/tag/branch of AL-common" )
+set( DD_GIT_REPOSITORY "ssh://git@git.iter.org/imas/data-dictionary.git" CACHE STRING "Git repository of the Data Dictionary" )
+set( DD_VERSION "master/3" CACHE STRING "Data dictionary version (tag or branch name) to use for this build" )
 
 include(FetchContent)
 
@@ -13,7 +16,11 @@ include(FetchContent)
 set( AL_PARENT_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../../ )
 if( ${AL_DOWNLOAD_DEPENDENCIES} )
   # Download common assets from the ITER git:
-  message( FATAL_ERROR "Not implemented yet" )
+  FetchContent_Declare(
+    al-common
+    GIT_REPOSITORY "${AL_COMMON_GIT_REPOSITORY}"
+    GIT_TAG "${AL_COMMON_VERSION}"
+  )
 else()
   # Look in ../al-common for common files
   FetchContent_Declare(
