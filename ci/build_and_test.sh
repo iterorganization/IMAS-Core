@@ -9,25 +9,23 @@ echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
 . /usr/share/Modules/init/sh
-
 module purge
-module load CMake/3.18.4-GCCcore-10.2.0
-# Load modules required for building the lowlevel:
-module load \
-    Boost/1.74.0-GCCcore-10.2.0 \
-    HDF5/1.10.7-GCCcore-10.2.0-serial \
-    MDSplus/7.96.17-GCCcore-10.2.0 \
+# Load modules:
+MODULES=(
+    CMake/3.18.4-GCCcore-10.2.0
+    # Required for building the lowlevel and backends
+    Boost/1.74.0-GCCcore-10.2.0
+    HDF5/1.10.7-GCCcore-10.2.0-serial
+    MDSplus/7.96.17-GCCcore-10.2.0
     UDA/2.7.4-GCCcore-10.2.0
-
-# Load modules required for building MDSplus models
-module load \
-    Saxon-HE/11.4-Java-11 \
+    # Required for building MDSplus models
+    Saxon-HE/11.4-Java-11
     MDSplus-Java/7.96.17-GCCcore-10.2.0-Java-11
-
-# Load modules required for building the lowlevel python bindings
-module load \
-    Python/3.8.6-GCCcore-10.2.0 \
+    # Python lowlevel bindings
+    Python/3.8.6-GCCcore-10.2.0
     SciPy-bundle/2020.11-intel-2020b
+)
+module load "${MODULES[@]}"
 
 # Debuggging:
 echo "Done loading modules"
