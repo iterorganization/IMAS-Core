@@ -63,4 +63,4 @@ make -C build -j8 all
 make -C build install
 
 # List installed files
-ls -lR install
+ls -lR test-install
