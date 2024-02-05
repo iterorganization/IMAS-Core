@@ -127,9 +127,9 @@ add_custom_target( al-mdsplus-model ALL
 ################################################################################
 
 install( FILES
-  ids_model.characteristics
-  ids_model.datafile
-  ids_model.tree
+  ${CMAKE_CURRENT_BINARY_DIR}/ids_model.characteristics
+  ${CMAKE_CURRENT_BINARY_DIR}/ids_model.datafile
+  ${CMAKE_CURRENT_BINARY_DIR}/ids_model.tree
   DESTINATION models/mdsplus
 )
 
