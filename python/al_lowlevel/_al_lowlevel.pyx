@@ -1,15 +1,18 @@
-from .hli_exception import ALException
-from cython.view cimport array as cvarray
-import numpy as np
 import logging
 import sys
-from libc.stdlib cimport *
-from libc.string cimport *
+
+from cython.view cimport array as cvarray
 from cython cimport view
 from cython cimport *
 from cpython cimport *
+from libc.stdlib cimport *
+from libc.string cimport *
+import numpy as np
 cimport numpy as np
+
 from . cimport al_lowlevel_interface as ll
+from .exception import ALException
+
 cdef extern from "Python.h":
     const char * PyUnicode_AsUTF8(object unicode)
 

@@ -65,13 +65,9 @@ from typing import Any
 import numpy as np
 from .al_defs import *
 
-try:
-    # In Python 2, basestring is a base class for str and unicode
-    string_types = basestring
-except NameError:
-    # This is Python 3 --> the default string type is str (always unicode)
-    # The bytes type is equivalent to str in Python 2
-    string_types = (str, bytes)
+# This is Python 3 --> the default string type is str (always unicode)
+# The bytes type is equivalent to str in Python 2
+string_types = (str, bytes)
 
 # Not all of the constants can be gotten from the Access Layer yet.
 # redefine the missing ones here

@@ -36,6 +36,7 @@ option( AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF )
 option( AL_BACKEND_HDF5 "Build the HDF5 backend" ON )
 option( AL_BACKEND_UDA "Build the UDA backend" OFF )
 option( AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF )
+option( AL_PYTHON_BINDINGS "Build Python bindings" OFF )
 
 include( CMakeDependentOption )
 cmake_dependent_option( AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON AL_BACKEND_MDSPLUS OFF )
@@ -127,10 +128,12 @@ configure_file( pkgconfig/al-lowlevel.pc.in al-lowlevel.pc @ONLY )
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgconfig )
 
 
-# Tests
+# Python bindings
 ################################################################################
 
-# Tests were disabled in the Makefile as well
+if( AL_PYTHON_BINDINGS )
+  add_subdirectory( python )
+endif()
 
 
 # MDSplus models?
