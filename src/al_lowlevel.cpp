@@ -1268,15 +1268,20 @@ al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const
 
   status.code = 0;
 
+  std::string dataobjectnameStr(dataobjectname);
+  if(dataobjectnameStr.size() >= 2 && dataobjectnameStr.substr(dataobjectnameStr.size() - 2) == "/0") {
+    dataobjectnameStr.erase(dataobjectnameStr.size() - 2);
+  }
+
   try {
-    status = al_plugin_begin_global_action(pctxID, dataobjectname, datapath, rwmode, octxID);
+    status = al_plugin_begin_global_action(pctxID, dataobjectnameStr.c_str(), datapath, rwmode, octxID);
     if (status.code != 0)
         return status;
     std::set<std::string> pluginsNames;
-    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
+    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-           LLplugin::beginGlobalActionPlugin(pluginName, pctxID, dataobjectname, datapath, rwmode, *octxID);
+           LLplugin::beginGlobalActionPlugin(pluginName, pctxID, dataobjectnameStr.c_str(), datapath, rwmode, *octxID);
     }
   }
   catch (const ALContextException& e) {
@@ -1304,15 +1309,21 @@ al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rw
   al_status_t status;
 
   status.code = 0;
+
+  std::string dataobjectnameStr(dataobjectname);
+  if(dataobjectnameStr.size() >= 2 && dataobjectnameStr.substr(dataobjectnameStr.size() - 2) == "/0") {
+    dataobjectnameStr.erase(dataobjectnameStr.size() - 2);
+  }
+
   try {
-    status = al_plugin_begin_slice_action(pctxID, dataobjectname, rwmode, time, interpmode, octxID);
+    status = al_plugin_begin_slice_action(pctxID, dataobjectnameStr.c_str(), rwmode, time, interpmode, octxID);
     if (status.code != 0)
      return status;
     std::set<std::string> pluginsNames;
-    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectname, pluginsNames);
+    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
-		   LLplugin::beginSliceActionPlugin(pluginName, pctxID, dataobjectname, rwmode, time, interpmode, *octxID);
+		   LLplugin::beginSliceActionPlugin(pluginName, pctxID, dataobjectnameStr.c_str(), rwmode, time, interpmode, *octxID);
 	}
    }
   catch (const ALContextException& e) {
