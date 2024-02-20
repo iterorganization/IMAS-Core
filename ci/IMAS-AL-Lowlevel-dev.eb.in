@@ -1,0 +1,56 @@
+easyblock = 'CMakeMake'
+
+name = 'IMAS-AL-Lowlevel'
+version = 'develop'
+
+description = 'IMAS Access Layer lowlevel library'
+homepage = 'https://imas.iter.org/'
+
+toolchain = @TOOLCHAIN@
+
+builddependencies = [
+    ('CMake', '3.20.1'),
+    ('IMAS-AL-Common', 'develop', '', SYSTEM),
+]
+
+dependencies = [
+    ('Boost', '1.74.0'),
+    ('HDF5', '1.10.7'),
+    ('MDSplus', '7.96.17'),
+    ('UDA', '2.7.4'),
+]
+
+source_urls = ['.']
+sources = ['al-lowlevel-dev.tar.gz']
+
+# CMakeMake configuration
+# See: https://docs.easybuild.io/version-specific/generic-easyblocks/#cmakemake
+
+build_type = 'RelWithDebInfo'
+configopts = (
+    # Don't download dependencies
+    '-D AL_DOWNLOAD_DEPENDENCIES=OFF '
+    # Enable all backends
+    '-D AL_BACKEND_HDF5=ON '
+    '-D AL_BACKEND_MDSPLUS=ON '
+    '-D AL_BACKEND_UDA=ON '
+    # Don't build MDSplus models or Python bindings:
+    '-D AL_BUILD_MDSPLUS_MODELS=OFF '
+    '-D AL_PYTHON_BINDINGS=OFF '
+    # Don't build tests and examples
+    '-D AL_EXAMPLES=OFF '
+    '-D AL_TESTS=OFF '
+)
+
+sanity_check_paths = {
+    'dirs': ['lib', 'include'],
+    'files': [],
+}
+
+moduleclass = 'tools'
+
+modextravars = {
+    'IMAS_HOME': '/work/imas',
+    'AL_VERSION': '%(version)s',
+    'HDF5_USE_FILE_LOCKING': 'FALSE',
+}
