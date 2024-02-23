@@ -10,7 +10,7 @@ toolchain = {'name': 'intel', 'version': '2020b'}
 
 builddependencies = [
     ('CMake', '3.20.1'),
-    ('IMAS-AL-Common', 'develop', '', SYSTEM),
+    ('IMAS-AL-Common', version, '', SYSTEM),
 ]
 
 dependencies = [
