@@ -17,9 +17,7 @@ dependencies = [
     ('HDF5', '1.10.7'),
     ('MDSplus', '7.131.6'),
     ('UDA', '2.7.4'),
-    # UDA also depends on Boost, don't mention Boost here to avoid conflicts with
-    # intel-2020b toolchain:
-    # ('Boost', '1.74.0'),
+    ('Boost', '1.74.0'),
 ]
 
 source_urls = ['.']
