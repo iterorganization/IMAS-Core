@@ -6,7 +6,7 @@ version = 'develop'
 description = 'IMAS Access Layer lowlevel library'
 homepage = 'https://imas.iter.org/'
 
-toolchain = @TOOLCHAIN@
+toolchain = {'name': 'foss', 'version': '2020b'}
 
 builddependencies = [
     ('CMake', '3.20.1'),

@@ -6,7 +6,7 @@ version = 'develop'
 description = 'IMAS Access Layer lowlevel library (Python bindings)'
 homepage = 'https://imas.iter.org/'
 
-toolchain = @TOOLCHAIN@
+toolchain = {'name': 'intel', 'version': '2020b'}
 
 builddependencies = [
     ('CMake', '3.20.1'),

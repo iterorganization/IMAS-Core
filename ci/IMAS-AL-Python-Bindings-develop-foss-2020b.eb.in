@@ -1,0 +1,40 @@
+easyblock = 'CMakePythonPackage'
+
+name = 'IMAS-AL-Python-Bindings'
+version = 'develop'
+
+description = 'IMAS Access Layer lowlevel library (Python bindings)'
+homepage = 'https://imas.iter.org/'
+
+toolchain = {'name': 'foss', 'version': '2020b'}
+
+builddependencies = [
+    ('CMake', '3.20.1'),
+    ('IMAS-AL-Common', 'develop', '', SYSTEM),
+]
+
+dependencies = [
+    ('IMAS-AL-Lowlevel', version),
+    ('SciPy-bundle', '2020.11'),
+]
+
+source_urls = ['.']
+sources = ['al-lowlevel-dev.tar.gz']
+
+# CMakePythonPackage configuration
+# See: https://docs.easybuild.io/version-specific/generic-easyblocks/#cmakepythonpackage
+
+build_type = 'RelWithDebInfo'
+srcdir = 'python'
+configopts = (
+    # Don't download dependencies
+    '-D AL_DOWNLOAD_DEPENDENCIES=OFF '
+)
+
+options = {'modulename': 'al_lowlevel'}
+sanity_check_paths = {
+    'dirs': ['lib'],
+    'files': [],
+}
+
+moduleclass = 'tools'
