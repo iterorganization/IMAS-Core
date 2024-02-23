@@ -15,7 +15,7 @@ builddependencies = [
 
 dependencies = [
     ('HDF5', '1.10.7'),
-    ('MDSplus', '7.96.17'),
+    ('MDSplus', '7.131.6'),
     ('UDA', '2.7.4'),
     # UDA also depends on Boost, don't mention Boost here to avoid conflicts with
     # intel-2020b toolchain:

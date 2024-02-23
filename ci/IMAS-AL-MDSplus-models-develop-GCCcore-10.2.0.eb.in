@@ -13,7 +13,7 @@ toolchain = {'name': 'GCCcore', 'version': '10.2.0'}
 builddependencies = [
     ('CMake', '3.20.1'),
     ('IMAS-AL-Common', 'develop', '', SYSTEM),
-    ('MDSplus-Java', '7.96.17', '-Java-11'),
+    ('MDSplus-Java', '7.131.6', '-Java-11'),
     ('Saxon-HE', '11.4', '-Java-11', SYSTEM),
 ]
 
