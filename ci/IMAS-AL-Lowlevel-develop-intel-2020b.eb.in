@@ -16,10 +16,9 @@ builddependencies = [
 dependencies = [
     ('HDF5', '1.10.7'),
     ('MDSplus', '7.131.6'),
-    ('UDA', '2.7.4'),
-    # UDA also depends on Boost, don't mention Boost here to avoid conflicts with
-    # intel-2020b toolchain:
-    # ('Boost', '1.74.0'),
+    # UDA 2.7.4 is not available for intel-2020b: https://jira.iter.org/browse/IMAS-5014
+    ('UDA', '2.6.0', '', ('iccifort', '2020.4.304')),
+    ('Boost', '1.74.0', '', ('iccifort', '2020.4.304')),
 ]
 
 source_urls = ['.']

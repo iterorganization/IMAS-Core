@@ -16,8 +16,9 @@ builddependencies = [
 dependencies = [
     ('HDF5', '1.10.7'),
     ('MDSplus', '7.131.6'),
-    ('UDA', '2.7.4'),
-    ('Boost', '1.74.0'),
+    # Explicitly use the GCC modules (instead of GCCcore):
+    ('UDA', '2.7.4', '', ('GCC', '10.2.0')),
+    ('Boost', '1.74.0', '', ('GCC', '10.2.0')),
 ]
 
 source_urls = ['.']
