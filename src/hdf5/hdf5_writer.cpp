@@ -45,15 +45,14 @@ void HDF5Writer::closePulse(DataEntryContext * ctx, int mode, hid_t *file_id, st
 void HDF5Writer::close_file_handler(std::string external_link_name, std::unordered_map < std::string, hid_t > &opened_IDS_files)
 {
     std::replace(external_link_name.begin(), external_link_name.end(), '/', '_');
-    HDF5Utils hdf5_utils;
     hid_t pulse_file_id = -1;
     auto got = opened_IDS_files.find(external_link_name);
     if (got != opened_IDS_files.end()) {
         pulse_file_id = got->second;
         if (pulse_file_id != -1) {
-		        /*std::cout << "WRITER:close_file_handler :showing status for pulse file..." << std::endl;
-			    HDF5Utils hdf5_utils;
-	            hdf5_utils.showStatus(pulse_file_id);*/
+            HDF5Utils hdf5_utils;
+		    /*std::cout << "WRITER:close_file_handler :showing status for pulse file ..." << std::endl;    
+	        hdf5_utils.showStatus(pulse_file_id);*/
             hdf5_utils.closeIDSFile(pulse_file_id, external_link_name);
             opened_IDS_files[external_link_name] = -1;
         }
@@ -102,6 +101,7 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
 }
 
 void HDF5Writer::read_homogeneous_time(int* homogenenous_time, hid_t gid) {
+
 	if (gid == -1) {
 		*homogenenous_time = -1;
 		return;
@@ -126,10 +126,11 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
 
 void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
+    HDF5Utils hdf5_utils;
+
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     
-    HDF5Utils hdf5_utils;
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
     hid_t IDS_file_id = -1;
 
@@ -197,8 +198,16 @@ void HDF5Writer::close_group(OperationContext *ctx)
         gid = got->second;
         IDS_group_id.erase(ctx);
     }
-    if (gid >= 0)
-        assert(H5Gclose(gid) >=0);
+    
+    if (gid >= 0) {
+        herr_t status = H5Gclose(gid);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to close HDF5 group: %d\n", gid);
+            throw ALBackendException(error_message, LOG);
+        }
+    }
+        
 }
 
 int HDF5Writer::readTimedAOSShape(Context * ctx, hid_t loc_id, const std::vector < int > &current_arrctx_indices)
@@ -381,7 +390,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     
     bool shapes_dataset = false;
 
-    //std::cout << "Writing data set: " << tensorized_path.c_str() << std::endl;
+    //std::cout << "-->Writing data set: " << tensorized_path.c_str() << std::endl;
 
     std::unique_ptr < HDF5DataSetHandler > data_set;
     
@@ -389,6 +398,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     if (timed_AOS_index == -1 && dim > 0)
        time_vector_length = size[dim - 1];
     int slices_extension = getDynamic_slices_extension(ctx, timed_AOS_index, time_vector_length);
+
     if (slice_mode != SLICE_OP) {
 
 		//std::cout << "WRITER NOT IN SLICE MODE!!! " << std::endl;
@@ -403,7 +413,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             data_set = std::move(got->second);
             opened_data_sets.erase(got);
             data_set->setNonSliceMode();
-	    data_set->setCurrentShapesAndExtend(size, arrctx_shapes.data());
+	        data_set->setCurrentShapesAndExtend(size, arrctx_shapes.data());
         }
     } else {
         //std::cout << "WRITER IN SLICE MODE!!! " << std::endl;
@@ -432,7 +442,7 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
             opened_data_sets.erase(got);
             data_set->setSliceMode(ctx);
             data_set->updateTimeAxisOffset(current_arrctx_indices);
-	    data_set->setCurrentShapesAndExtend(size, arrctx_shapes.data());
+	        data_set->setCurrentShapesAndExtend(size, arrctx_shapes.data());
         }
     }
 

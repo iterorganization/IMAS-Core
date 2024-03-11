@@ -231,7 +231,7 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
         sprintf(error_message, "Unable to create external file for IDS: %s.\n", ctx->getDataobjectName().c_str());
         throw ALBackendException(error_message, LOG);
     }
-    assert(H5Pclose(create_plist) >= 0);
+    H5Pclose(create_plist);
 
     writeHeader(ctx->getDataEntryContext(), *IDS_file_id, IDSpulseFile, backend_version);
 
@@ -383,12 +383,12 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
             message += IDSpulseFile;
             throw ALBackendException(message, LOG);
        
-            if (!od->mode) {
+            /*if (!od->mode) {
                 if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
                     H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
-            }
-            hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
+            }*/
         }
+        hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
     }
     od->link_names[od->count] = (char *) malloc(100);
     strcpy(od->link_names[od->count], IDS_link_name);
@@ -619,17 +619,21 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
 
 void HDF5Utils::showStatus(hid_t file_id) {
   size_t n = H5Fget_obj_count (file_id, H5F_OBJ_GROUP);
- std::cout << "number of groups opened: " << n << std::endl;
-  n = H5Fget_obj_count (file_id, H5F_OBJ_DATASET);
-  std::cout << "number of datasets opened: " << n << std::endl;
+  std::cout << "number of groups opened: " << n << std::endl;
+  if (n >= 0)
+    n = H5Fget_obj_count (file_id, H5F_OBJ_DATASET);
+  if (n >= 0)
+    std::cout << "number of datasets opened: " << n << std::endl;
   n = H5Fget_obj_count (file_id, H5F_OBJ_FILE);
   /*hid_t dataset_ids[10];
   H5Fget_obj_ids(file_id, H5F_OBJ_DATASET, 10, dataset_ids);
   for (int i = 0; i < 10; i++)
     printf("opened datasetid=%d\n", dataset_ids[i]);*/
-  std::cout << "number of files opened: " << n << std::endl;
-   n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
-  std::cout << "number of objects opened: " << n << std::endl;
+  if (n >= 0)
+    std::cout << "number of files opened: " << n << std::endl;
+  n = H5Fget_obj_count (file_id, H5F_OBJ_ALL);
+  if (n >= 0)
+    std::cout << "number of objects opened: " << n << std::endl;
 }
 
 int HDF5Utils::compareShapes(int *first_slice_shape, int *second_slice_shape, int dim) {

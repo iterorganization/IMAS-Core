@@ -78,7 +78,12 @@ void HDF5Reader::close_group(OperationContext *ctx)
         IDS_group_id.erase(ctx);
     }
     if (gid >= 0) {
-        assert(H5Gclose(gid) >=0);
+        herr_t status = H5Gclose(gid);
+        if (status < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to close HDF5 group: %d\n", gid);
+            throw ALBackendException(error_message, LOG);
+        }
     }
 }
 
@@ -284,7 +289,7 @@ double *linear_interpolation_factor, int timed_AOS_index, const std::vector < in
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), alconst::double_data, current_arrctx_indices.size(), &dim);
         hsSelectionReader.allocateInhomogeneousTimeDataSet((void **) &slices_times, timed_AOS_index);
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index!=-1);
-        herr_t status = H5Dread(data_set->dataset_id, hsSelectionReader.dtype_id,
+        herr_t status = H5Dread(data_set->dataset_id, H5Dget_type(data_set->dataset_id),
                                 hsSelectionReader.memspace,
                                 hsSelectionReader.dataspace, H5P_DEFAULT,
                                 slices_times);
@@ -542,23 +547,20 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         int *d = (int *) *data;
         homogeneous_time = *d;
     }
-
+    
     char **p = nullptr;
     if (datatype == alconst::char_data) {
-        
+        p = (char **) data;
         if (*dim == 1) {
-            p = (char **) data;
             if (*p == nullptr) {
                 char ch = '\0';
                 *data = strdup(&ch);
                 size[0] = 1;
             } else {
-                size[0] = strlen(p[0]);
-                char* c = p[0];
-                c[size[0]] = 0;
+                std::string t(p[0]);
+                size[0] = t.length();
             }
         } else {
-            p = (char **) data;
             if (*p == nullptr) {
                 return exit_request(data_set, 0);
             }
@@ -613,9 +615,9 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
 	if (datatype != alconst::char_data)
-           status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+           status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
 	else
-	   status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
+	   status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char**) &next_slice_data);
     
     hsSelectionReader.getSize(size, slice_mode, is_dynamic);
 
@@ -797,7 +799,7 @@ HDF5Reader::readPersistentShapes_GetSlice(Context * ctx,
 	HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
     hsSelectionReader.setHyperSlabs(GLOBAL_OP, false, isTimed, -1, timed_AOS_index, aos_indices);
     hsSelectionReader.allocateBuffer(shapes, GLOBAL_OP, false, isTimed, -1);
-	herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+	herr_t status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
    
 	if (status < 0)
     {
@@ -868,8 +870,9 @@ void HDF5Reader::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unor
     auto got = IDS_group_id.find(ctx);
     if (got != IDS_group_id.end())
         gid = got->second;
-    if (gid == -1)
+    if (gid == -1) {
         hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid);
+    }
     if (gid >= 0)
         IDS_group_id[ctx] = gid;
 }
@@ -880,10 +883,11 @@ void HDF5Reader::close_file_handler(std::string external_link_name, std::unorder
     if (opened_IDS_files.find(external_link_name) != opened_IDS_files.end()) {
         hid_t pulse_file_id = opened_IDS_files[external_link_name];
         if (pulse_file_id != -1) {
+            HDF5Utils hdf5_utils;
 		        /*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
 			    HDF5Utils hdf5_utils;
 	            hdf5_utils.showStatus(pulse_file_id);*/
-            assert(H5Fclose(pulse_file_id)>=0);
+            hdf5_utils.closeIDSFile(pulse_file_id, external_link_name);
             opened_IDS_files[external_link_name] = -1;
         }
     }
