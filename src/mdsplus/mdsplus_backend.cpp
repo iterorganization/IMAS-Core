@@ -3289,9 +3289,11 @@ std::cout<<"FINSCE INFLATE" << std::endl;
 	int numSegments = node->getNumSegments();
 	if(numSegments == 0)
 	{
-	   MDSplus::Apd *apd = new MDSplus::Apd();
+	   return NULL;
+	   /*14/2/2024  Fix wrong size = 1 reported for empty slices
+           MDSplus::Apd *apd = new MDSplus::Apd();
 	   apd->appendDesc(NULL);
-	   return apd; ///XXXXXXXXXXXXXXXXXXXXXXXXXX
+	   return apd; */
 	}
 	//MDSplus::Data *startData, *endData;
 	int segIdx, startIdx, endIdx;

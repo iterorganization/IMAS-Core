@@ -5,7 +5,7 @@ cmake_minimum_required( VERSION 3.16 )
 ################################################################################
 option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" ON )
 set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common" )
-set( AL_COMMON_VERSION "3426d73f3e5fc5b6a500043d9d9c663e10a67f91" CACHE STRING "Git commit/tag/branch of AL-common" )
+set( AL_COMMON_VERSION "b3adf7edd53dbdf731c844779a0a370578b6da86" CACHE STRING "Git commit/tag/branch of AL-common" )
 set( DD_GIT_REPOSITORY "ssh://git@git.iter.org/imas/data-dictionary.git" CACHE STRING "Git repository of the Data Dictionary" )
 set( DD_VERSION "master/3" CACHE STRING "Data dictionary version (tag or branch name) to use for this build" )
 
@@ -22,10 +22,15 @@ if( ${AL_DOWNLOAD_DEPENDENCIES} )
     GIT_TAG "${AL_COMMON_VERSION}"
   )
 else()
-  # Look in ../al-common for common files
+  # Look in $AL_COMMON_PATH or ../al-common for common files
+  if( DEFINED ENV{AL_COMMON_PATH} )
+    set( AL_COMMON_PATH $ENV{AL_COMMON_PATH} )
+  else()
+    set( AL_COMMON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../al-common" )
+  endif()
   FetchContent_Declare(
     al-common
-    SOURCE_DIR      ${AL_PARENT_FOLDER}/al-common
+    SOURCE_DIR      "${AL_COMMON_PATH}"
   )
 endif()
 FetchContent_MakeAvailable( al-common )
