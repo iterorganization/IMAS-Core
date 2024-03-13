@@ -559,6 +559,8 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             } else {
                 std::string t(p[0]);
                 size[0] = t.length();
+                char* c = p[0];
+                c[size[0]] = 0;
             }
         } else {
             if (*p == nullptr) {
@@ -960,7 +962,7 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
     std::vector<int> occurrences;
 
     for (size_t i = 0; i < od.size(); i++) {
-        
+
         std::string found_occurrence_name = od[i];
         std::string::size_type k = found_occurrence_name.find("/");
 
