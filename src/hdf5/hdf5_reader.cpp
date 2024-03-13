@@ -942,8 +942,7 @@ void HDF5Reader::setSliceMode(int slice_mode) {
 }
 
 void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, int* size, hid_t master_file_id) {
-    printf("TESTING!!!\n");
-    printf("-->  ids_name=%s\n", ids_name);
+
     assert(master_file_id > 0);
     if (master_file_id <= 0) {
         char error_message[200];
