@@ -942,6 +942,8 @@ void HDF5Reader::setSliceMode(int slice_mode) {
 }
 
 void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, int* size, hid_t master_file_id) {
+    printf("TESTING!!!\n");
+    printf("-->  ids_name=%s\n", ids_name);
     assert(master_file_id > 0);
     if (master_file_id <= 0) {
         char error_message[200];
@@ -958,13 +960,27 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
     std::vector<int> occurrences;
 
     for (size_t i = 0; i < od.size(); i++) {
+        
         std::string found_occurrence_name = od[i];
+        std::string::size_type k = found_occurrence_name.find("/");
+
+        bool match = false;
+        if (k == std::string::npos) {
+            if (found_occurrence_name == ids_name_str)
+                match = true;
+        }
+        else {
+            if (found_occurrence_name.substr(0, k) == ids_name_str)
+                match = true;
+        }
+
         std::string::size_type j = found_occurrence_name.find(ids_name_str);
-        //printf("searching %s in occurrence = %s\n", ids_name, found_occurrence_name.c_str());
-        if (j != std::string::npos) { //found occurrence of this IDS
-            //printf("found occurrence... for %s\n", ids_name);
+
+        if (match && (j != std::string::npos)) { //found occurrence of this IDS
+
             int occ;
             found_occurrence_name.erase(j, ids_name_str.length());
+
             if (found_occurrence_name.length() == 0) {
                 occ = 0;
             }
