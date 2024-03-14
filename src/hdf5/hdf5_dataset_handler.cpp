@@ -1133,12 +1133,13 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         for (int i = 0; i < strings_count; i++) {
              strs[i] = t[i];
              //printf("strs[%d]=%s\n", i, strs[i].c_str());
-             if ((int) strs[i].length() + 1 > maxlength)
-                maxlength = strs[i].length() + 1;  // 1 extra for the null char to terminate each string
+             if ((int) strs[i].length() > maxlength)
+                maxlength = strs[i].length();
         }
-        *data = (void*) malloc(sizeof(char) * strings_count * maxlength);
+        // allocate 1 additional char so all strings are definitely null-terminated:
+        *data = (void*) malloc(sizeof(char) * (strings_count * maxlength + 1));
         char* p = (char *) *data;
-        memset(p, 0, strings_count * maxlength);
+        memset(p, 0, strings_count * maxlength + 1);
         for(int i=0; i < strings_count; i++)
 		{
 			char* q = const_cast<char *> (strs[i].data());
