@@ -840,6 +840,8 @@ def al_read_data_array_string(ctx, fieldPath, pTimebasePath, dataType, dim):
 
     retArray = convertCBufferToStringArray(cStringData, npSizeArray)
 
+    free(cStringData)
+
     return al_status.code, retArray
 
 
@@ -867,6 +869,9 @@ def al_read_data_string(ctx, fieldPath, pTimebasePath, dataType, dim):
     if cSize == 0:
         return al_status.code, ''
     retString = cStringData[0:cSize].decode('UTF-8', errors='replace')
+    
+    free(cStringData)
+    
     return al_status.code, retString
 
 
