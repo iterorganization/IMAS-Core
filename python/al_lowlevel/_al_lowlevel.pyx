@@ -235,8 +235,12 @@ def al_build_uri_from_legacy_parameters(backendID, pulse, run, user, tokamak, ve
     if al_status.code < 0:
         logging.error(al_status.message)
         return al_status.code, -1
+    
+    py_uri = cStringUri.decode('UTF-8', errors='replace')
+    
+    free(cStringUri)
 
-    return al_status.code, cStringUri.decode('UTF-8', errors='replace')
+    return al_status.code, py_uri
 
 ###########################################################################################
 
