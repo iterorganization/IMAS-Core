@@ -963,7 +963,7 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
     for (size_t i = 0; i < od.size(); i++) {
 
         std::string found_occurrence_name = od[i];
-        std::string::size_type k = found_occurrence_name.find("/");
+        std::string::size_type k = found_occurrence_name.find("_");
 
         bool match = false;
         if (k == std::string::npos) {
