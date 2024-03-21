@@ -967,7 +967,12 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
         
         // Searching index of last occurrence '_'
         auto it = std::find(found_occurrence_name.rbegin(), found_occurrence_name.rend(), ch); //using inverse iterator
-        size_t lastOccurrenceIndex = std::distance(found_occurrence_name.begin(), (it + 1).base());
+
+        size_t lastOccurrenceIndex = -1;
+
+        if (it != found_occurrence_name.rend())
+            lastOccurrenceIndex = std::distance(found_occurrence_name.begin(), (it + 1).base());
+
         int occ = 0;
         if (lastOccurrenceIndex > 0) {
 
