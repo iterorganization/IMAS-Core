@@ -961,37 +961,39 @@ void HDF5Reader::get_occurrences(const char* ids_name, int** occurrences_list, i
     std::vector<int> occurrences;
 
     for (size_t i = 0; i < od.size(); i++) {
-
+        
         std::string found_occurrence_name = od[i];
-        std::string::size_type k = found_occurrence_name.find("_");
+        char ch = '_';
+        
+        // Searching index of last occurrence '_'
+        auto it = std::find(found_occurrence_name.rbegin(), found_occurrence_name.rend(), ch); //using inverse iterator
+        size_t lastOccurrenceIndex = std::distance(found_occurrence_name.begin(), (it + 1).base());
+        int occ = 0;
+        if (lastOccurrenceIndex > 0) {
 
-        bool match = false;
-        if (k == std::string::npos) {
+            // Extract substring of the last occurrence
+            std::string subStr = found_occurrence_name.substr(lastOccurrenceIndex + 1);
+            std::string ids_name_from_hdf5_metadata = found_occurrence_name.substr(0, lastOccurrenceIndex);
+
+            // Check if the substring is an integer (occurrence)
+            try {
+                occ = std::stoi(subStr);
+
+                if (ids_name_from_hdf5_metadata == ids_name_str) 
+                    occurrences.push_back(occ);
+                
+            } catch (const std::invalid_argument&) { //the '_' is a part of the ids_name, it' not the separator of the occurrence (integer) from the IDS name
+                //No integer found, so maybe it's occurrence 0; we check if ids_name matches
+                if (found_occurrence_name == ids_name_str)
+                    occurrences.push_back(occ);
+
+            }
+        }
+        else { //No '_' found at all, maybe it's the occurrence 0, so we check only the ids_name matches
             if (found_occurrence_name == ids_name_str)
-                match = true;
-        }
-        else {
-            if (found_occurrence_name.substr(0, k) == ids_name_str)
-                match = true;
+                occurrences.push_back(occ);
         }
 
-        std::string::size_type j = found_occurrence_name.find(ids_name_str);
-
-        if (match && (j != std::string::npos)) { //found occurrence of this IDS
-
-            int occ;
-            found_occurrence_name.erase(j, ids_name_str.length());
-
-            if (found_occurrence_name.length() == 0) {
-                occ = 0;
-            }
-            else {
-                found_occurrence_name.erase(0, 1); //removing char '_' at first position
-                occ = std::stoi(found_occurrence_name); //converting string to int
-            }
-            //printf("found occurrence= %d\n", occ);
-            occurrences.push_back(occ);
-        }
     }
     *size = occurrences.size();
     std::sort (occurrences.begin(), occurrences.end());
