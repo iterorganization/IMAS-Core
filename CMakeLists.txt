@@ -133,6 +133,9 @@ target_include_directories(al PUBLIC
 configure_file( pkgconfig/al-lowlevel.pc.in al-lowlevel.pc @ONLY )
 install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgconfig )
 
+# Install mdsplusIMASDB4to5
+install( PROGRAMS mdsplusIMASDB4to5 DESTINATION bin )
+
 
 # Python bindings
 ################################################################################
