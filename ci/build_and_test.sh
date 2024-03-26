@@ -16,11 +16,11 @@ MODULES=(
     # Required for building the lowlevel and backends
     Boost/1.74.0-GCCcore-10.2.0
     HDF5/1.10.7-GCCcore-10.2.0-serial
-    MDSplus/7.96.17-GCCcore-10.2.0
-    UDA/2.7.4-GCCcore-10.2.0
+    MDSplus/7.131.6-GCCcore-10.2.0
+    UDA/2.7.5-GCCcore-10.2.0
     # Required for building MDSplus models
     Saxon-HE/11.4-Java-11
-    MDSplus-Java/7.96.17-GCCcore-10.2.0-Java-11
+    MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     # Python lowlevel bindings
     Python/3.8.6-GCCcore-10.2.0
     SciPy-bundle/2020.11-intel-2020b
