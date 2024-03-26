@@ -12,7 +12,7 @@ echo "Loading modules..."
 module purge
 # Load modules:
 MODULES=(
-    CMake/3.18.4-GCCcore-10.2.0
+    CMake/3.20.1-GCCcore-10.2.0
     # Required for building the lowlevel and backends
     Boost/1.74.0-GCCcore-10.2.0
     HDF5/1.10.7-GCCcore-10.2.0-serial
