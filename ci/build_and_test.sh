@@ -14,7 +14,7 @@ module purge
 MODULES=(
     CMake/3.20.1-GCCcore-10.2.0
     # Required for building the lowlevel and backends
-    Boost/1.74.0-GCCcore-10.2.0
+    Boost/1.74.0-GCC-10.2.0
     HDF5/1.10.7-GCCcore-10.2.0-serial
     MDSplus/7.131.6-GCCcore-10.2.0
     UDA/2.7.5-GCC-10.2.0
