@@ -31,6 +31,14 @@ module load "${MODULES[@]}"
 echo "Done loading modules"
 set -x
 
+# Create a local git configuration with our access token
+if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
+    mkdir -p git
+    echo "[http \"https://git.iter.org/\"]
+        extraheader = Authorization: Bearer $bamboo_HTTP_AUTH_BEARER_PASSWORD" > git/config
+    export XDG_CONFIG_HOME=$PWD
+    git config -l
+fi
 
 # Ensure the build directory is clean:
 rm -rf build
@@ -46,8 +54,8 @@ CMAKE_ARGS=(
     -D AL_BUILD_MDSPLUS_MODELS=ON
     # "Download" dependencies from repos checked out by Bamboo in the repos/ folder:
     -D AL_DOWNLOAD_DEPENDENCIES=ON
-    -D "AL_COMMON_GIT_REPOSITORY=$(pwd)/repos/al-common/"
-    -D "DD_GIT_REPOSITORY=$(pwd)/repos/data-dictionary/"
+    -D AL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
+    -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
     -D DD_VERSION=master/3
 )
