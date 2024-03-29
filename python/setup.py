@@ -64,6 +64,6 @@ setup(
     packages=["al_lowlevel"],
     keywords="imas, access layer, python interface",
     ext_modules=cythonize(ext_modules),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.6, <4",
     setup_requires=["setuptools"],
 )
