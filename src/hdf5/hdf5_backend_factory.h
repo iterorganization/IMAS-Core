@@ -6,6 +6,7 @@
 #include "hdf5_writer.h"
 #include "hdf5_reader.h"
 #include "hdf5_events_handler.h"
+#include "data_interpolation.h"
 
 #include <memory>
 #include <string>
@@ -27,7 +28,7 @@ class HDF5BackendFactory {
   /**
    Creates a reader instance according to the backend version passed to the factory.
    **/
-    std::unique_ptr < HDF5Reader > createReader();
+    std::unique_ptr < HDF5Reader > createReader(DataInterpolation *data_interpolation_component);
 
   /**
    Creates a events handler instance according to the backend version passed to the factory.

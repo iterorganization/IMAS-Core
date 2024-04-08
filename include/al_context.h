@@ -178,14 +178,15 @@ public:
 };
 
 
-
 /**
    Context class for an operation on a DATAOBJECT.
    The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given DataEntryContext .
 */
 class LIBRARY_API OperationContext : public Context 
 {
+
 public:
+
    /**
      Operation context constructor.
      Requires informations for all global put or get operations on a DATAOBJECT.
@@ -308,6 +309,16 @@ public:
      @result ctx
    */
   DataEntryContext* getDataEntryContext() const;
+
+  struct TimeRange {
+    bool enabled;
+    double tmin;
+    double tmax;
+    double dtime;
+    int interpolation_method;
+   };
+
+   TimeRange time_range;
   
 protected:
   DataEntryContext* pctx;               /**< associated DataEntry context */

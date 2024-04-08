@@ -17,6 +17,7 @@
 #include "al_backend.h"
 #include "al_defs.h"
 #include "al_const.h"
+#include "data_interpolation.h"
 
 #if defined(_WIN32)
 #  define LIBRARY_API __declspec(dllexport)
@@ -59,6 +60,8 @@ class LIBRARY_API MDSplusBackend:public Backend
     std::unordered_map<ArraystructContext *, MDSplus::Apd *> arrayStructCtxDataMap;
     //std::vector<ArraystructContext *>arrayStructContextV;
     //std::vector<MDSplus::Apd *>arrayStructDataV;
+
+    DataInterpolation *data_interpolation_component;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);
@@ -246,6 +249,14 @@ class LIBRARY_API MDSplusBackend:public Backend
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+
+    bool performsTimeDataInterpolation() {
+      return true;
+    }
+
+    void setDataInterpolationComponent(DataInterpolation *component) {
+      this->data_interpolation_component = component;
+    }
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);

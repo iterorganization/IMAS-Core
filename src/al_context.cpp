@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 
+
 std::atomic<unsigned long int> Context::SID(0);
 
 
@@ -264,6 +265,12 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     time = alconst::undefined_time;
     interpmode = alconst::undefined_interp;
 
+    time_range.enabled = false;
+    /*time_range.dtime = -1;
+    time_range.tmin = 2.0;
+    time_range.tmax = 6.0;
+    time_range.interpolation_method = LINEAR_INTERP;*/
+
     try {
         alconst::op_access_list.at(access-OP_ACCESS_0);
     }
@@ -309,6 +316,13 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (accessmode==alconst::read_op && interpmode==alconst::undefined_interp)
 	throw ALContextException("Missing interpmode",LOG);
     }
+
+  time_range.enabled = false;
+  /*time_range.dtime = -1;
+  time_range.tmin = 2.0;
+  time_range.tmax = 6.0;
+  time_range.interpolation_method = LINEAR_INTERP;*/
+  
   this->uid = ++SID;
 }
 

@@ -14,6 +14,9 @@
 #include "uda_backend.h"
 #endif
 
+#include "data_interpolation.h"
+
+
 #if !defined(__GNUC__) && !defined(__clang__)
 #define strcasecmp _stricmp
 #define strtok_r strtok_s
@@ -76,5 +79,8 @@ Backend* Backend::initBackend(int id)
       throw ALBackendException("Wrong backend identifier "+std::to_string(id),LOG);
     }
 
+  if (be->performsTimeDataInterpolation()) 
+     be->setDataInterpolationComponent(new DataInterpolation());
+     
   return be;
 }

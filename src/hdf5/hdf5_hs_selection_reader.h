@@ -9,6 +9,13 @@
 #include <list>
 #include <map>
 
+struct TimeRange {
+    bool enabled;
+    double dtime;
+    int tmin_index;
+    int tmax_index;
+};
+
 class HDF5HsSelectionReader {
   private:
     hid_t dataset_id;
@@ -42,9 +49,11 @@ class HDF5HsSelectionReader {
     hid_t dataspace;
     hid_t memspace;
     size_t buffer_size;
+    TimeRange time_range;
 
     size_t getSize2();
-    void setSize(int *size_, int dim);
+    void setSize(int *size_, int dim, int timed_AOS_index);
+    void setTimeRange(int dim, int timeRange);
     int getDim() const;
     int getRank() const;
     void getSize(int *size, int slice_mode, bool is_dynamic) const;

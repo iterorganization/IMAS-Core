@@ -1147,7 +1147,7 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
 
 		}
         size[1] = maxlength;
-        hsSelectionReader.setSize(size, 2);
+        hsSelectionReader.setSize(size, 2, timed_AOS_index);
     }
         
     if (status < 0) {
@@ -1158,8 +1158,15 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
 }
 
 void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
+    HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+
+    if (hsSelectionReader.time_range.enabled) {
+         readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
+         return;
+    }
+
     if (useBuffering) {
-        HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+        
         if (datatype != alconst::char_data) {
             if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
                 if (full_int_data_set_buffer==NULL)
