@@ -489,7 +489,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
 
         if (shapesDataSetExists == 1)
-            hsSelectionReader.setSize(size, hsSelectionReader.getDim(), timed_AOS_index);
+            hsSelectionReader.setSize(size, hsSelectionReader.getDim());
 
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
         data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
@@ -534,7 +534,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
 
         if (shapesDataSetExists)
-            hsSelectionReader->setSize(size, *dim, timed_AOS_index);
+            hsSelectionReader->setSize(size, *dim);
 
         if (time_range_size != -1)
         {

@@ -80,7 +80,7 @@ const hsize_t* HDF5HsSelectionReader::getDataSpaceDims() {
 }
 
 void
- HDF5HsSelectionReader::setSize(int *size_, int dim, int timed_AOS_index)
+ HDF5HsSelectionReader::setSize(int *size_, int dim)
 {
     for (int i = 0; i < dim; i++) {
         size[i] = size_[i];

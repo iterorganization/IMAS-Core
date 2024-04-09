@@ -52,7 +52,7 @@ class HDF5HsSelectionReader {
     TimeRange time_range;
 
     size_t getSize2();
-    void setSize(int *size_, int dim, int timed_AOS_index);
+    void setSize(int *size_, int dim);
     void setTimeRange(int dim, int timeRange);
     int getDim() const;
     int getRank() const;

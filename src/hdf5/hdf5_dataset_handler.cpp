@@ -1147,7 +1147,7 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
 
 		}
         size[1] = maxlength;
-        hsSelectionReader.setSize(size, 2, timed_AOS_index);
+        hsSelectionReader.setSize(size, 2);
     }
         
     if (status < 0) {
