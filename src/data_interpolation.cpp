@@ -126,10 +126,10 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
     return -1;
 }
 
-void DataInterpolation::interpolate(const std::string &field_path, int datatype, std::map<std::string, void*> &y_slices, 
-std::map<std::string, double> &slices_times, double requested_time, void **result, int interp, int shape) {
+void DataInterpolation::interpolate(int datatype, int shape, std::map<std::string, void*> &y_slices, 
+std::map<std::string, double> &slices_times, double requested_time, void **result, int interp) {
 
-    printf("DataInterpolation::interpolate:: performing data interpolation for field_path=%s, requested_time=%f\n", field_path.c_str(), requested_time);
+    //printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f\n", requested_time);
 
     if (shape == 0) {
          throw ALBackendException("Unable to perform interpolation with shape=0.", LOG);
@@ -230,16 +230,14 @@ std::map<std::string, double> &slices_times, double requested_time, void **resul
     
 }
 
-void DataInterpolation::resample_timebasis(OperationContext *opctx, int timed_AOS_index, int datatype, void *data, int *size, int dim, void **result) {
+int DataInterpolation::resample_timebasis(double tmin, double tmax, double dtime, int timed_AOS_index, void *data, void **result) {
 
-    double tmin = opctx->time_range.tmin;
-    double tmax = opctx->time_range.tmax;
-    double dtime = opctx->time_range.dtime;
     //printf("resample_timebasis::timed_AOS_index=%d\n", timed_AOS_index);
     assert (dtime != -1); //this method is used only for resampling a time basis, so dtime should be defined
     free(data);
+    int nb_slices;
     if (timed_AOS_index == -1) {
-        int nb_slices = round((tmax - tmin)/dtime + 1);
+        nb_slices = round((tmax - tmin)/dtime + 1);
         *result = (double*) malloc( nb_slices*sizeof(double));
         double *r = (double*) *result;
         int i = 0;
@@ -248,32 +246,31 @@ void DataInterpolation::resample_timebasis(OperationContext *opctx, int timed_AO
             r[i] = requested_time;
             requested_time += dtime;
         }
-        size[dim - 1] = nb_slices;
     }
     else {
-        int nb_slices = 1;
+        nb_slices = 1;
         *result = (double*) malloc(sizeof(double));
         double *r = (double*) *result;
         double requested_time = tmin + timed_AOS_index*dtime;
         r[0] = requested_time;
-        size[dim - 1] = nb_slices;
     }
-    return;
+    return nb_slices;
 }
 
 
-void DataInterpolation::interpolate_with_resampling(OperationContext *opctx, const std::string &field_path, int datatype, void *data, 
-    int *size, int dim, const std::vector<double> &time_vector, void **result, int interp) {
-
-    //printf("calling interpolate_with_resampling for field=%s\n", field_path.c_str());
-    //data is a pointer to data limited to a time range 
-    double tmin = opctx->time_range.tmin;
-    double tmax = opctx->time_range.tmax;
-    double dtime = opctx->time_range.dtime;
+int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int *size, int dim, void *data, 
+    const std::vector<double> &time_vector, void **result, int interp) {
 
     int time_slice_shape = 1; //shape of a time slice
     for (int i = 0; i < dim - 1; i++) //excluding last dimension (time)
-        time_slice_shape *= size[i];    //the shape along each AOS is 1
+        time_slice_shape *= size[i];    //NOTE: the shape along each AOS is 1
+    return this->interpolate_with_resampling(tmin, tmax, dtime, datatype, time_slice_shape, data, time_vector, result, interp);
+}
+
+  int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int time_slice_shape, void *data, 
+    const std::vector<double> &time_vector, void **result, int interp) {
+        //printf("calling interpolate_with_resampling for field=%s\n", field_path.c_str());
+    //data is a pointer to data limited to a time range 
 
     std::map<std::string, int> times_indices;
     int start = getSlicesTimesIndices(tmin, time_vector, times_indices, interp);
@@ -303,7 +300,9 @@ void DataInterpolation::interpolate_with_resampling(OperationContext *opctx, con
 
         case alconst::char_data:
           {
-                         
+            slice1 = (double*) malloc(time_slice_shape);
+            if (interp == LINEAR_INTERP)
+                slice2 = (double*) malloc(time_slice_shape);             
             break;
           }
 
@@ -365,13 +364,23 @@ void DataInterpolation::interpolate_with_resampling(OperationContext *opctx, con
 
                 case alconst::char_data:
                     {
-                        
+                        int offset = requested_index - start;
+                        assert(offset >= 0);
+                        int n = time_slice_shape;
+                        char *data_str = (char*) data;
+                        memcpy(slice1, data_str + offset*n, n);
+                        y_slices[SLICE_INF] = slice1;
+
+                        if (interp == LINEAR_INTERP) {
+                            memcpy(slice2, data_str + (offset + 1)*n, n);
+                            y_slices[SLICE_SUP] = slice2;
+                        }
                         break;
                     }
             }
         
         void *interpolation_result;
-        interpolate(field_path, datatype, y_slices, slices_times, requested_time, &interpolation_result, interp, time_slice_shape);
+        interpolate(datatype, time_slice_shape, y_slices, slices_times, requested_time, &interpolation_result, interp);
         
         interpolation_results.push_back(interpolation_result);
         requested_time += dtime;
@@ -411,7 +420,5 @@ void DataInterpolation::interpolate_with_resampling(OperationContext *opctx, con
             memcpy(r + i * time_slice_shape, q, time_slice_shape*sizeof(char));
         }
     }
-    size[dim - 1] = nb_slices;
+    return nb_slices;
 }
-
-

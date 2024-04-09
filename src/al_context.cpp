@@ -266,7 +266,7 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     interpmode = alconst::undefined_interp;
 
     time_range.enabled = false;
-    /*time_range.dtime = -1;
+    /*time_range.dtime = 0.2;
     time_range.tmin = 2.0;
     time_range.tmax = 6.0;
     time_range.interpolation_method = LINEAR_INTERP;*/
@@ -318,10 +318,6 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     }
 
   time_range.enabled = false;
-  /*time_range.dtime = -1;
-  time_range.tmin = 2.0;
-  time_range.tmax = 6.0;
-  time_range.interpolation_method = LINEAR_INTERP;*/
   
   this->uid = ++SID;
 }

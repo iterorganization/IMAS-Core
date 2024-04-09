@@ -653,22 +653,27 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             y_slices[SLICE_SUP] = next_slice_data;
 
             //printf("read_ND_Data, performing linear interp for :%s, slice_inf=%d, slice_sup=%d\n", data_set->getName().c_str(), slice_index, slice_sup);
-            this->data_interpolation_component->interpolate(data_set->getName(), datatype, y_slices, slices_times, 
-                requested_time, data, opctx->time_range.interpolation_method, N);
+            this->data_interpolation_component->interpolate(datatype, N, y_slices, slices_times, 
+                requested_time, data, opctx->time_range.interpolation_method);
         }
 
     }
 
     if (opctx->time_range.enabled && opctx->time_range.dtime != -1 && (is_dynamic || isTimed)) {
+        double tmin = opctx->time_range.tmin;
+        double tmax = opctx->time_range.tmax;
+        double dtime = opctx->time_range.dtime;
         std::vector<double> time_basis_vector(time_vector, time_vector + time_vector_shape);
         if (!is_time_basis_dataset && !isTimed) { //no interpolation at this stage for time basis vectors and also data located in dynamic AOS
             //printf("calling interpolate_with_resampling for: %s\n", data_set->getName().c_str());
-            this->data_interpolation_component->interpolate_with_resampling(opctx, data_set->getName(), datatype, 
-        *data, size, *dim, time_basis_vector, data, opctx->time_range.interpolation_method);
+            int nb_slices = this->data_interpolation_component->interpolate_with_resampling(tmin, tmax, dtime, datatype, size, *dim, 
+        *data, time_basis_vector, data, opctx->time_range.interpolation_method);
+            size[*dim - 1] = nb_slices;
         }
         else if (is_time_basis_dataset) { //time basis are not interpolated, but the times values must be modified to the specified time range
             //printf("calling resample_timebasis for: %s\n", data_set->getName().c_str());
-            this->data_interpolation_component->resample_timebasis(opctx, timed_AOS_index_current_value, datatype, *data, size, *dim, data);
+            int nb_slices = this->data_interpolation_component->resample_timebasis(tmin, tmax, dtime, timed_AOS_index_current_value, *data, data);
+            size[*dim - 1] = nb_slices;
         }
     }
 
