@@ -50,6 +50,7 @@ namespace alconst {
 
   const int global_op = GLOBAL_OP;
   const int slice_op = SLICE_OP;
+  const int timerange_op = TIMERANGE_OP;
 
   const int read_op = READ_OP;
   const int write_op = WRITE_OP;
@@ -87,11 +88,12 @@ namespace alconst {
 	UDA_BACKEND
       }
     };
-  const std::array<int,2> op_range_list =
+  const std::array<int,3> op_range_list =
     {
       {
 	GLOBAL_OP,
-	SLICE_OP
+	SLICE_OP,
+  TIMERANGE_OP
       }
     };
   const std::array<int,3> op_access_list =

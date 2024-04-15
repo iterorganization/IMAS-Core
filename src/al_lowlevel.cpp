@@ -423,6 +423,12 @@ void LLplugin::beginSliceActionPlugin(const std::string &plugin_name, int pulseC
   al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
 }
 
+void LLplugin::beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx) {
+  LLplugin &llp = llpluginsStore[plugin_name];
+  access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
+  al_plugin->begin_timerange_action(pulseCtx, dataobjectname, mode, tmin, tmax, dtime, interp, opCtx);
+}
+
 void LLplugin::beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, 
 const char* fieldPath, const char* timeBasePath, int *arraySize) {
   AccessLayerPluginManager alplugin_manager;
@@ -986,6 +992,62 @@ al_status_t al_plugin_begin_slice_action(int pctxID, const char* dataobjectname,
   return status;
 }
 
+al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, 
+				   double tmin, double tmax, double dtime, int interpmode, int *octxID)
+{
+  al_status_t status;
+
+  status.code = 0;
+  try {
+    LLenv lle = Lowlevel::getLLenv(pctxID);
+    DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
+    if (pctx==NULL)
+      throw ALLowlevelException("Wrong Context type stored",LOG);
+
+    OperationContext *octx= new OperationContext(pctx, 
+						 std::string(dataobjectname),
+						 rwmode, 
+						 alconst::timerange_op, 
+						 tmin, 
+             tmax,
+             dtime,
+						 interpmode);
+    lle.backend->beginAction(octx);
+
+    switch (rwmode) {
+    case alconst::write_op:
+      std::pair<int,int> ver = lle.backend->getVersion(NULL);
+      std::pair<int,int> sver = lle.backend->getVersion(pctx);
+      if (ver.second!=sver.second)
+	throw ALLowlevelException("Compatibility between opened file version "+
+				   std::to_string(sver.first)+"."+std::to_string(sver.second)+
+				   " and backend "+pctx->getBackendName()+
+				   " version "+std::to_string(ver.first)+"."+std::to_string(ver.second)+
+				   " can't be ensured (minor versions should match when writing). ABORT.\n",LOG);
+      break;
+    }
+    *octxID = Lowlevel::addLLenv(lle.backend, octx); 
+  }
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const ALBackendException& e) {
+    status.code = alerror::backend_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+
+  return status;
+}
+
 
 al_status_t al_plugin_end_action(int ctxID)
 {
@@ -1324,6 +1386,48 @@ al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rw
     if (isPluginBound) {
 		for (const auto& pluginName : pluginsNames)
 		   LLplugin::beginSliceActionPlugin(pluginName, pctxID, dataobjectnameStr.c_str(), rwmode, time, interpmode, *octxID);
+	}
+   }
+  catch (const ALContextException& e) {
+    status.code = alerror::context_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const ALLowlevelException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const ALPluginException& e) {
+    status.code = alerror::lowlevel_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  catch (const std::exception& e) {
+    status.code = alerror::unknown_err;
+    ALException::registerStatus(status.message, __func__, e);
+  }
+  return status;
+}
+
+al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, 
+                   double tmin, double tmax, double dtime, int interpmode, int *octxID)
+{
+  al_status_t status;
+
+  status.code = 0;
+
+  std::string dataobjectnameStr(dataobjectname);
+  if(dataobjectnameStr.size() >= 2 && dataobjectnameStr.substr(dataobjectnameStr.size() - 2) == "/0") {
+    dataobjectnameStr.erase(dataobjectnameStr.size() - 2);
+  }
+
+  try {
+    status = al_plugin_begin_timerange_action(pctxID, dataobjectnameStr.c_str(), rwmode, tmin, tmax , dtime, interpmode, octxID);
+    if (status.code != 0)
+     return status;
+    std::set<std::string> pluginsNames;
+    bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);
+    if (isPluginBound) {
+		for (const auto& pluginName : pluginsNames)
+		   LLplugin::beginTimeRangeActionPlugin(pluginName, pctxID, dataobjectnameStr.c_str(), rwmode, tmin, tmax, dtime, interpmode, *octxID);
 	}
    }
   catch (const ALContextException& e) {

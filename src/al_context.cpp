@@ -266,10 +266,6 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     interpmode = alconst::undefined_interp;
 
     time_range.enabled = false;
-    /*time_range.dtime = 0.2;
-    time_range.tmin = 2.0;
-    time_range.tmax = 6.0;
-    time_range.interpolation_method = LINEAR_INTERP;*/
 
     try {
         alconst::op_access_list.at(access-OP_ACCESS_0);
@@ -319,6 +315,43 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
 
   time_range.enabled = false;
   
+  this->uid = ++SID;
+}
+
+OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
+				   int range, double tmin, double tmax, double dtime, int interp)
+  : pctx(ctx), dataobjectname(dataobject), time_range()
+{
+  try {
+    alconst::op_range_list.at(range-OP_RANGE_0);
+  } 
+  catch (const std::out_of_range& e) {
+    throw ALContextException("Wrong range mode "+std::to_string(range),LOG);
+  }
+
+  rangemode = range;
+
+  try {
+    alconst::op_access_list.at(access-OP_ACCESS_0);
+  } 
+  catch (const std::out_of_range& e) {
+    throw ALContextException("Wrong access mode "+std::to_string(access),LOG);
+  }
+  accessmode = access;
+
+  // test consistency [missing or wrong expected args, not all possible missmatches!]
+  if (rangemode==alconst::timerange_op)
+    {
+      if (dtime != -1 && interpmode==alconst::undefined_interp)
+	throw ALContextException("Missing interpmode (dtime != -1)",LOG);
+    }
+
+  time_range.enabled = true;
+  time_range.dtime = dtime;
+  time_range.tmin = tmin;
+  time_range.tmax = tmax;
+  time_range.interpolation_method = interp;
+
   this->uid = ++SID;
 }
 
@@ -385,6 +418,14 @@ int OperationContext::getInterpmode() const
 { 
   return interpmode; 
 }
+
+void OperationContext::getTimeRange(double *tmin, double *tmax, double *dtime, int *interp) const {
+  *tmin = time_range.tmin;
+  *tmax = time_range.tmax;
+  *dtime = time_range.dtime;
+  *interp = time_range.interpolation_method;
+}
+
 
 DataEntryContext* OperationContext::getDataEntryContext() const
 {

@@ -224,6 +224,32 @@ public:
   OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
 		   int range, double t, int interp);
 
+     /**
+     Operation context constructor.
+     Requires informations for all possible get/put operations using time range on a DATAOBJECT.
+     @param ctx data-entry context
+     @param dataobject name of the DATAOBJECT
+     @param access access type of the operation 
+     - READ_OP: read operation
+     - WRITE_OP: write operation
+     - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
+     "replace last slice"_]
+     @param range range of the operation [_optional_]
+     - GLOBAL_OP: operation on all slices 
+     - SLICE_OP: operation on a single slice
+     - TIMERANGE_OP: operation on a time range
+     @param tmin tmin
+     @param tmin tmax
+     @param tmin dtime [_optional_]
+     @param interp interpolation mode [_optional_]
+     - CLOSEST_INTERP: consider slice at closest time
+     - PREVIOUS_INTERP: consider slice at previous step
+     - LINEAR_INTERP: interpolating linearly values at previous and next slices
+     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
+  */
+  OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
+		   int range, double tmin, double tmax, double dtime, int interp);
+
   /**
      Operation context destructor.
   */
@@ -303,6 +329,17 @@ public:
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
   */
   int getInterpmode() const;
+
+  /**
+     Returns time range parameters.
+     @result tmin, tmax, dtime
+     @result interp
+     - CLOSEST_INTERP: consider slice at closest time
+     - PREVIOUS_INTERP: consider slice at previous step
+     - LINEAR_INTERP: interpolating linearly values at previous and next slices
+     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
+  */
+  void getTimeRange(double *tmin, double *tmax, double *dtime, int *interp) const;
 
   /**
      Returns the associated DataEntryContext.
