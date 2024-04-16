@@ -1,6 +1,8 @@
 import os
 import logging
+from pathlib import Path
 
+import cmake_build_extension
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
@@ -26,6 +28,12 @@ if "AL_LIBRARY_PATH" in os.environ:
     library_dirs.extend(os.environ["AL_LIBRARY_PATH"].split(":"))
 
 ext_modules = [
+    cmake_build_extension.CMakeExtension(
+        name="al_core",
+        source_dir=str(Path("../")),
+    )
+] 
+ext_modules += cythonize([
     Extension(
         name="al_lowlevel._al_lowlevel",
         sources=["al_lowlevel/_al_lowlevel.pyx"],
@@ -45,10 +53,11 @@ ext_modules = [
         library_dirs=library_dirs,
     ),
 ]
+)
 
 setup(
     name="al-lowlevel",
-    version=VERSION,
+    #version=VERSION,
     description="Python bindings to the IMAS Access Layer lowlevel",
     author="ITER Organization",
     author_email="imas-support@iter.org",
@@ -63,6 +72,7 @@ setup(
     ],
     packages=["al_lowlevel"],
     keywords="imas, access layer, python interface",
+    cmdclass=dict(build_ext=cmake_build_extension.BuildExtension),
     ext_modules=cythonize(ext_modules),
     python_requires=">=3.6, <4",
     setup_requires=["setuptools"],

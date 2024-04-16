@@ -19,3 +19,4 @@ pkgconfig_install
 *.so_install
 /lowlevel
 al_defs.h
+__pycache__/
