@@ -92,6 +92,7 @@ set( PUBLIC_HEADER_FILES
   include/al_context.h
   include/al_exception.h
   include/al_lowlevel.h
+  include/data_interpolation.h
   include/provenance_plugin_feature.h
   include/readback_plugin_feature.h
   include/uri_parser.h
