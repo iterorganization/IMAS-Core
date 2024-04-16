@@ -380,6 +380,45 @@ def al_begin_slice_action(pulseCtx, dataobjectname, rwmode, time, interpmode):
     return al_status.code, sliceOpCtx
 
 
+def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, dtime=None, interpmode=None):
+    """Begin a time range action.
+
+    Args:
+        pulseCtx: data entry context returned by ``al_begin_dataentry_action``
+        dataobjectname: name of the data object (``IDS[/occurrence]``)
+        rwmode: read/write mode, currently only supports ``READ_OP``
+        tmin: lower bound of the requested time range interval
+        tmax: upper bound of the requested time range interval
+        dtime: time increment of the time range interval. If dtime != None,
+            data are resampled on a new homogeneous time vector
+        interpmode: mode for interpolation
+
+    Returns:
+        Created operation context ID
+    """
+    if tmin > tmax:
+        raise ValueError(f"Invalid time range: {tmin=} > {tmax=}")
+    if dtime is not None and interpmode is None:
+        raise ValueError("Interpolation requested (dtime != None) but no interpolation mode provided.")
+
+    cdef int opctx = -1
+    al_status = ll.al_begin_timerange_action(
+        pulseCtx,
+        dataobjectname.encode('UTF-8'),
+        rwmode,
+        tmin,
+        tmax,
+        -1 if dtime is None else dtime,
+        interpmode or 0,
+        &opctx
+    )
+
+    if al_status.code < 0:
+        raise ALException(al_status.message, al_status.code)
+
+    return opctx
+
+
 ###########################################################################################
 """
      Stops an I/O action.
