@@ -339,18 +339,18 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
   }
   accessmode = access;
 
+  // test consistency [missing or wrong expected args, not all possible missmatches!]
+  if (rangemode==alconst::timerange_op)
+    {
+      if (dtime != -1 && interp==alconst::undefined_interp)
+	      throw ALContextException("Missing interpmode (dtime != -1)",LOG);
+    }
+
   time_range.enabled = true;
   time_range.dtime = dtime;
   time_range.tmin = tmin;
   time_range.tmax = tmax;
   time_range.interpolation_method = interp;
-
-  // test consistency [missing or wrong expected args, not all possible missmatches!]
-  if (rangemode==alconst::timerange_op)
-    {
-      if (dtime != -1 && interpmode==alconst::undefined_interp)
-	      throw ALContextException("Missing interpmode (dtime != -1)",LOG);
-    }
 
   this->uid = ++SID;
 }
