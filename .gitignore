@@ -20,3 +20,5 @@ pkgconfig_install
 /lowlevel
 al_defs.h
 __pycache__/
+.py-build-cmake_cache/
+/dist/

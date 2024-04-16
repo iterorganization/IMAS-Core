@@ -68,6 +68,7 @@ else()
   get_target_property( AL_SOURCE_DIR al SOURCE_DIR )
   get_target_property( AL_BINARY_DIR al BINARY_DIR )
   set( AL_INCLUDE_PATH "${AL_SOURCE_DIR}/include:${AL_BINARY_DIR}/include" )
+  set( AL_LIBRARY_PATH "${AL_BINARY_DIR}" )
 endif()
 
 
@@ -126,4 +127,5 @@ install( CODE "
     WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
   )
   "
+  COMPONENT python_bindings
 )

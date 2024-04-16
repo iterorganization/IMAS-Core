@@ -1,0 +1,24 @@
+["project"]
+name="al-lowlevel"
+description="Python bindings to the IMAS Access Layer lowlevel"
+version = "0.0.1"
+#dynamic = ["version"]
+
+[build-system]
+requires = ["build", "cython", "numpy", "py-build-cmake~=0.1.8", "setuptools", "wheel"]
+build-backend = "py_build_cmake.build"
+
+[tool.py-build-cmake.module]
+directory = "python"
+
+[tool.py-build-cmake.sdist]
+include = ["CMakeLists.txt", "GitArchiveDescribe.cmake", "pkgconfig", "include", "python", "src/*"]
+
+[tool.py-build-cmake.cmake]
+minimum_version = "3.17"
+build_type = "RelWithDebInfo"
+source_path = "."
+build_args = ["-j"]
+options = {"AL_PYTHON_BINDINGS" = "ON"}
+install_components = ["python_binaries", "python_bindings"]
+

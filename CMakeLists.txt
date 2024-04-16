@@ -119,7 +119,8 @@ add_subdirectory( src )
 ################################################################################
 
 # Install library (.so)
-install( TARGETS al )
+install( TARGETS al
+         COMPONENT python_binaries )
 
 # TODO: put public heades in a separate directory?
 install( FILES ${PUBLIC_HEADER_FILES} DESTINATION include )
