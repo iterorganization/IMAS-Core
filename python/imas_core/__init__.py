@@ -1,4 +1,4 @@
-"""Access Layer Lowlevel Python bindings.
+"""Access Layer Core Python bindings.
 """
 
 from . import _al_lowlevel

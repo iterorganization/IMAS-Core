@@ -44,7 +44,7 @@ configopts = (
     '-D AL_TESTS=OFF '
 )
 
-options = {'modulename': 'al_lowlevel'}
+options = {'modulename': 'imas_core'}
 sanity_check_paths = {
     'dirs': ['lib', 'include'],
     'files': [],

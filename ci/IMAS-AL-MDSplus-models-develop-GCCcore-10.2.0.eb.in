@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 source_urls = ['.']
-sources = ['al-lowlevel-dev.tar.gz']
+sources = ['al-core-dev.tar.gz']
 
 # CMakeMake configuration
 # See: https://docs.easybuild.io/version-specific/generic-easyblocks/#cmakemake

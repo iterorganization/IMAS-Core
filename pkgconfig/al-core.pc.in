@@ -3,9 +3,9 @@ exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
-Name: al-lowlevel
+Name: al-core
 Version: @PROJECT_VERSION@
-Description: IMAS Access Layer Low Level libraries for C.
+Description: IMAS Access Layer core libraries for C.
 URL: https://imas.iter.org
 Cflags: -I${includedir}
 Libs: -L${libdir} -lal -Wl,--defsym,AL_VER_@PROJECT_VERSION@=0 -Wl,-rpath,${libdir}

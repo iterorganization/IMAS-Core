@@ -1,9 +1,9 @@
-"""Exception classes for the AL Lowlevel Bindings.
+"""Exception classes for the AL Core.
 """
 
 
 class ALException(Exception):
-    """Exception thrown by the Access Layer lowlevel."""
+    """Exception thrown by the Access Layer."""
 
     def __init__(self, message, errorStatus=None):
         self.errorStatus = errorStatus
