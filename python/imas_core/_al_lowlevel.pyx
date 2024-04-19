@@ -11,7 +11,8 @@ import numpy as np
 cimport numpy as np
 
 from . cimport al_lowlevel_interface as ll
-from .exception import ALException
+from . import exception
+from .exception import ALException, ALCoreUnknownException, ALCoreContextException, ALCoreBackendException, ALCoreLowLevelException, raise_error_flag
 
 cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8(object unicode) except NULL
@@ -23,7 +24,11 @@ cdef extern from "al_defs.h":
         INTEGER_DATA
         DOUBLE_DATA
         COMPLEX_DATA
-
+        # alerror:: error codes
+        UNKNOWN_ERR
+        CONTEXT_ERR
+        BACKEND_ERR
+        LOWLEVEL_ERR
 
 ###########################################################################################
 
@@ -149,6 +154,37 @@ def _getDataType(data):
 ###########################################################################################
 #                 NEW LL
 ###########################################################################################
+
+def al_core_config_enable_exceptions():
+# '''Function used to enable Access Layer Core raising exceptions on error, instead of returning status value'''
+    exception.raise_error_flag = True
+
+def al_core_config_disable_exceptions():
+# '''Function used to disable Access Layer Core raising exceptions on error. Functions will return status value on error'''
+    exception.raise_error_flag = False
+
+
+def get_proper_exception_class(exception_message, exception_code):
+    # '''
+    # Helper function used by _al_lowlevel functions.
+    #
+    # Parameters:
+    #     exception_message (str): Exception message to be passed to exception __init__
+    #     exception_code (int): code used to determine type of exception
+    #
+    # Returns:
+    #     exception: Exception instance initialized with exception message and exception code. Ready to be raised.
+    # '''
+    exception_classes = {UNKNOWN_ERR : ALCoreUnknownException,
+                        CONTEXT_ERR : ALCoreContextException,
+                        BACKEND_ERR : ALCoreBackendException,
+                        LOWLEVEL_ERR : ALCoreLowLevelException}
+
+    exception_to_be_raised = exception_classes.get(exception_code,ALException)
+
+    return exception_to_be_raised(exception_message, exception_code)
+
+
 """
      Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either DataEntryContext, OperationContext or ArraystructContext)
@@ -166,8 +202,11 @@ def al_context_info(ctx):
     al_status = ll.al_context_info(ctx, & cContextInfo)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, ""
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     contextInfo = cContextInfo.decode('UTF-8', errors='replace')
     return contextInfo
@@ -188,8 +227,11 @@ def al_get_backendID(ctx):
     al_status = ll.al_get_backendID(ctx, & cBEID)
 
     if al_status.code < 0:
-       logging.error(al_status.message)
-       return al_status.code, ""
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     return cBEID
 
@@ -233,11 +275,14 @@ def al_build_uri_from_legacy_parameters(backendID, pulse, run, user, tokamak, ve
                                            &cStringUri)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
-    
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
+
     py_uri = cStringUri.decode('UTF-8', errors='replace')
-    
+
     free(cStringUri)
 
     return al_status.code, py_uri
@@ -269,8 +314,11 @@ def al_begin_dataentry_action(uri, mode):
     cdef ll.al_status_t al_status
     al_status = ll.al_begin_dataentry_action(uri.encode('UTF-8'), mode,  &deCtx)
     if al_status.code < 0:
-        logging.error(al_status.message)
-    return al_status.code, deCtx
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
 
 ###########################################################################################
@@ -292,7 +340,10 @@ def al_close_pulse(pulseCtx, mode):
 
     al_status = ll.al_close_pulse(pulseCtx, mode)
     if al_status.code < 0:
-        logging.error(al_status.message)
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
     return al_status.code
 
 
@@ -327,8 +378,11 @@ def al_begin_global_action(pulseCtx, dataobjectname, rwmode, datapath=""):
                                             & opCtx)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     return al_status.code, opCtx
 
@@ -374,8 +428,11 @@ def al_begin_slice_action(pulseCtx, dataobjectname, rwmode, time, interpmode):
                                            & sliceOpCtx)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     return al_status.code, sliceOpCtx
 
@@ -401,8 +458,11 @@ def al_end_action(ctx):
 
     al_status = ll.al_end_action(ctx)
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     return al_status.code
 
@@ -645,7 +705,7 @@ def al_write_data(ctx,
         al_status = ll.al_write_data(ctx, pyFieldPath.encode(
         'UTF-8'), pyTimebasePath.encode('UTF-8'), NULL, -1, 0, NULL)
         return al_status.code
-        
+
     alDataType = _getDataType(inputData)
     pyDataType = type(inputData)
 
@@ -873,9 +933,9 @@ def al_read_data_string(ctx, fieldPath, pTimebasePath, dataType, dim):
     if cSize == 0:
         return al_status.code, ''
     retString = cStringData[0:cSize].decode('UTF-8', errors='replace')
-    
+
     free(cStringData)
-    
+
     return al_status.code, retString
 
 
@@ -953,7 +1013,11 @@ def al_begin_arraystruct_action(ctx, path, pyTimebase, size):
                                                  & aosOpCtx)
 
     if al_status.code < 0:
-        return al_status.code, -1, 0
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, al_status.message, 0
 
     return al_status.code, aosOpCtx, cSize
 
