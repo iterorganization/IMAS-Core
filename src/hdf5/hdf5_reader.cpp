@@ -81,7 +81,7 @@ void HDF5Reader::close_group(OperationContext *ctx)
         herr_t status = H5Gclose(gid);
         if (status < 0) {
             char error_message[200];
-            sprintf(error_message, "Unable to close HDF5 group: %d\n", gid);
+            sprintf(error_message, "Unable to close HDF5 group: %ld\n", gid);
             throw ALBackendException(error_message, LOG);
         }
     }
