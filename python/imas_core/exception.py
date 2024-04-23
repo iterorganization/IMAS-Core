@@ -13,22 +13,18 @@ class ALException(Exception):
         else:
             super().__init__(message)
 
-class ALCoreUnknownException(ALException):
-    """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.UNKNOWN_ERR"""
-    def __init__(self, message, errorStatus=None):
-        super().__init__(message, errorStatus)
 
-class ALCoreContextException(ALException):
+class ImasCoreException(ALException):
     """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.CONTEXT_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)
 
-class ALCoreBackendException(ALException):
+class ImasCoreBackendException(ALException):
     """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.BACKEND_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)
 
-class ALCoreLowLevelException(ALException):
+class ImasCoreUnknownException(ALException):
     """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.LOWLEVEL_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)

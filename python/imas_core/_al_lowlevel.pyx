@@ -155,11 +155,11 @@ def _getDataType(data):
 #                 NEW LL
 ###########################################################################################
 
-def al_core_config_enable_exceptions():
+def imas_core_config_enable_exceptions():
     '''Function used to enable Access Layer Core raising exceptions on error, instead of returning status value'''
     exception.raise_error_flag = True
 
-def al_core_config_disable_exceptions():
+def imas_core_config_disable_exceptions():
     '''Function used to disable Access Layer Core raising exceptions on error. Functions will return status value on error'''
     exception.raise_error_flag = False
 
@@ -175,10 +175,10 @@ def get_proper_exception_class(exception_message, exception_code):
     Returns:
         exception: Exception instance initialized with exception message and exception code. Ready to be raised.
     '''
-    exception_classes = {UNKNOWN_ERR : ALCoreUnknownException,
-                        CONTEXT_ERR : ALCoreContextException,
-                        BACKEND_ERR : ALCoreBackendException,
-                        LOWLEVEL_ERR : ALCoreLowLevelException}
+    exception_classes = {UNKNOWN_ERR : ImasCoreUnknownException,
+                        CONTEXT_ERR : ImasCoreException,
+                        BACKEND_ERR : ImasCoreBackendException,
+                        LOWLEVEL_ERR : ImasCoreException}
 
     exception_to_be_raised = exception_classes.get(exception_code,ALException)
 
