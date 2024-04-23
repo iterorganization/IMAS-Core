@@ -40,7 +40,7 @@ FetchContent_MakeAvailable(al-common)
 project(
   ${SKBUILD_PROJECT_NAME}
   VERSION ${SKBUILD_PROJECT_VERSION}
-  DESCRIPTION "Python bindings to the IMAS Access Layer lowlevel"
+  DESCRIPTION "Python bindings to the IMAS Access Layer core"
   HOMEPAGE_URL "https://imas.iter.org/"
   LANGUAGES C)
 if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
@@ -52,4 +52,4 @@ endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 find_package(Cython REQUIRED)
-add_subdirectory(al_lowlevel)
+add_subdirectory(imas_core)

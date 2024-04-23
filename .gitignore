@@ -17,10 +17,9 @@ pkgconfig_install
 *.d.*
 *.a_install
 *.so_install
-/lowlevel
 al_defs.h
 __pycache__/
 .py-build-cmake_cache/
 /dist/
-/python/al_lowlevel/_version.py
+/python/imas_core/_version.py
 *Zone.Identifier

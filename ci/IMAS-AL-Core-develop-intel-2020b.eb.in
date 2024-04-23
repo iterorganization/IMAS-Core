@@ -1,12 +1,12 @@
-easyblock = 'CMakeMake'
+easyblock = 'CMakePythonPackage'
 
-name = 'IMAS-AL-Lowlevel'
+name = 'IMAS-AL-Core'
 version = 'develop'
 
-description = 'IMAS Access Layer lowlevel library'
+description = 'IMAS Access Layer core library'
 homepage = 'https://imas.iter.org/'
 
-toolchain = {'name': 'foss', 'version': '2020b'}
+toolchain = {'name': 'intel', 'version': '2020b'}
 
 builddependencies = [
     ('CMake', '3.20.1'),
@@ -18,10 +18,11 @@ dependencies = [
     ('MDSplus', '7.131.6'),
     ('UDA', '2.7.5'),
     ('Boost', '1.74.0'),
+    ('SciPy-bundle', '2020.11'),
 ]
 
 source_urls = ['.']
-sources = ['al-lowlevel-dev.tar.gz']
+sources = ['al-core-dev.tar.gz']
 
 # CMakeMake configuration
 # See: https://docs.easybuild.io/version-specific/generic-easyblocks/#cmakemake
@@ -34,14 +35,16 @@ configopts = (
     '-D AL_BACKEND_HDF5=ON '
     '-D AL_BACKEND_MDSPLUS=ON '
     '-D AL_BACKEND_UDA=ON '
-    # Don't build MDSplus models or Python bindings:
+    # Don't build MDSplus models
     '-D AL_BUILD_MDSPLUS_MODELS=OFF '
-    '-D AL_PYTHON_BINDINGS=OFF '
+    # Build Python bindings
+    '-D AL_PYTHON_BINDINGS=ON '
     # Don't build tests and examples
     '-D AL_EXAMPLES=OFF '
     '-D AL_TESTS=OFF '
 )
 
+options = {'modulename': 'imas_core'}
 sanity_check_paths = {
     'dirs': ['lib', 'include'],
     'files': [],

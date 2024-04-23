@@ -1,4 +1,4 @@
-# CMake build configuration for Access Layer lowlevel
+# CMake build configuration for Access Layer core
 cmake_minimum_required( VERSION 3.18 )
 
 # Configuration options for common assets
@@ -6,6 +6,7 @@ cmake_minimum_required( VERSION 3.18 )
 option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" ON )
 set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common" )
 set( AL_COMMON_VERSION "main" CACHE STRING "Git commit/tag/branch of AL-common" )
+
 
 include(FetchContent)
 
@@ -32,7 +33,7 @@ else()
 endif()
 FetchContent_MakeAvailable( al-common )
 
-# Lowlevel options
+# Core library options
 ################################################################################
 
 option( BUILD_SHARED_LIBS "Build shared libraries" ON )
@@ -57,14 +58,14 @@ else()
   include( ./GitArchiveDescribe.cmake )
   include( ALDetermineVersion )
 endif()
-project( al-lowlevel
+project( al-core
   VERSION ${VERSION}
-  DESCRIPTION "Lowlevel component of the IMAS Access Layer"
+  DESCRIPTION "Core component of the IMAS Access Layer"
   HOMEPAGE_URL "https://imas.iter.org/"
   LANGUAGES C CXX
 )
 if( NOT PROJECT_VERSION_TWEAK EQUAL 0 )
-  message( "Building a development version of the Access Layer lowlevel" )
+  message( "Building a development version of the Access Layer core" )
 endif()
 
 # Compiler settings
@@ -135,8 +136,8 @@ target_include_directories(al PUBLIC
 )
 
 # Generate and install .pc file
-configure_file( pkgconfig/al-lowlevel.pc.in al-lowlevel.pc @ONLY )
-install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgconfig )
+configure_file( pkgconfig/al-core.pc.in al-core.pc @ONLY )
+install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc DESTINATION lib/pkgconfig )
 
 # Install mdsplusIMASDB4to5
 install( PROGRAMS mdsplusIMASDB4to5 DESTINATION bin )
@@ -157,7 +158,7 @@ if(AL_PYTHON_BINDINGS)
                 ${CMAKE_BINARY_DIR}/dist/)
       install(
 	CODE "execute_process(COMMAND ${Python_EXECUTABLE}
-	                                    -m pip install al_lowlevel
+	                                    -m pip install imas_core
 					    --prefix=${CMAKE_INSTALL_PREFIX}
 					    --find-links ${CMAKE_BINARY_DIR}/dist/
 					    --force-reinstall

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bamboo CI script to build and run tests for all lowlevel components
+# Bamboo CI script to build and run tests for all core components
 #
 # This script expects to be run from the repository root directory
 
@@ -13,7 +13,7 @@ module purge
 # Load modules:
 MODULES=(
     CMake/3.20.1-GCCcore-10.2.0
-    # Required for building the lowlevel and backends
+    # Required for building the core and backends
     Boost/1.74.0-GCC-10.2.0
     HDF5/1.10.7-GCCcore-10.2.0-serial
     MDSplus/7.131.6-GCCcore-10.2.0
@@ -21,7 +21,7 @@ MODULES=(
     # Required for building MDSplus models
     Saxon-HE/11.4-Java-11
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
-    # Python lowlevel bindings
+    # Python bindings
     Python/3.8.6-GCCcore-10.2.0
     SciPy-bundle/2020.11-intel-2020b
 )
@@ -52,6 +52,8 @@ CMAKE_ARGS=(
     -D AL_BACKEND_UDA=ON
     # Build MDSplus models
     -D AL_BUILD_MDSPLUS_MODELS=ON
+    # Build Python bindings
+    -D AL_PYTHON_BINDINGS=ON
     # Download dependencies from HTTPS (using an access token):
     -D AL_DOWNLOAD_DEPENDENCIES=ON
     -D AL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
