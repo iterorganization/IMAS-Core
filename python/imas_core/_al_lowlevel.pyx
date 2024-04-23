@@ -165,16 +165,16 @@ def al_core_config_disable_exceptions():
 
 
 def get_proper_exception_class(exception_message, exception_code):
-    # '''
-    # Helper function used by _al_lowlevel functions.
-    #
-    # Parameters:
-    #     exception_message (str): Exception message to be passed to exception __init__
-    #     exception_code (int): code used to determine type of exception
-    #
-    # Returns:
-    #     exception: Exception instance initialized with exception message and exception code. Ready to be raised.
-    # '''
+    '''
+    Helper function used by _al_lowlevel functions.
+
+    Parameters:
+        exception_message (str): Exception message to be passed to exception __init__
+        exception_code (int): code used to determine type of exception
+
+    Returns:
+        exception: Exception instance initialized with exception message and exception code. Ready to be raised.
+    '''
     exception_classes = {UNKNOWN_ERR : ALCoreUnknownException,
                         CONTEXT_ERR : ALCoreContextException,
                         BACKEND_ERR : ALCoreBackendException,
