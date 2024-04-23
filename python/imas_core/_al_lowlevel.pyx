@@ -156,11 +156,11 @@ def _getDataType(data):
 ###########################################################################################
 
 def al_core_config_enable_exceptions():
-# '''Function used to enable Access Layer Core raising exceptions on error, instead of returning status value'''
+    '''Function used to enable Access Layer Core raising exceptions on error, instead of returning status value'''
     exception.raise_error_flag = True
 
 def al_core_config_disable_exceptions():
-# '''Function used to disable Access Layer Core raising exceptions on error. Functions will return status value on error'''
+    '''Function used to disable Access Layer Core raising exceptions on error. Functions will return status value on error'''
     exception.raise_error_flag = False
 
 
