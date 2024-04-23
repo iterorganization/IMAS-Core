@@ -22,3 +22,5 @@ al_defs.h
 __pycache__/
 .py-build-cmake_cache/
 /dist/
+/python/al_lowlevel/_version.py
+*Zone.Identifier

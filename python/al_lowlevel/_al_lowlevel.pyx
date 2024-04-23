@@ -14,7 +14,7 @@ from . cimport al_lowlevel_interface as ll
 from .exception import ALException
 
 cdef extern from "Python.h":
-    const char * PyUnicode_AsUTF8(object unicode)
+    const char* PyUnicode_AsUTF8(object unicode) except NULL
 
 # directly import a few parameters
 cdef extern from "al_defs.h":

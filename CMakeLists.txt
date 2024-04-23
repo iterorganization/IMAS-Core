@@ -1,5 +1,5 @@
 # CMake build configuration for Access Layer lowlevel
-cmake_minimum_required( VERSION 3.16 )
+cmake_minimum_required( VERSION 3.18 )
 
 # Configuration options for common assets
 ################################################################################
@@ -32,7 +32,6 @@ else()
 endif()
 FetchContent_MakeAvailable( al-common )
 
-
 # Lowlevel options
 ################################################################################
 
@@ -49,9 +48,15 @@ cmake_dependent_option( AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON AL_BAC
 # Define project
 ################################################################################
 
-# Set VERSION and FULL_VERSION from `git describe`:
-include( ./GitArchiveDescribe.cmake )
-include( ALDetermineVersion )
+if(${SKBUILD})
+  # Set VERSION and FULL_VERSION from scikit-build
+  set(VERSION ${SKBUILD_PROJECT_VERSION})
+  set(FULL_VERSION ${SKBUILD_PROJECT_VERSION_FULL})
+else()
+  # Set VERSION and FULL_VERSION from `git describe`:
+  include( ./GitArchiveDescribe.cmake )
+  include( ALDetermineVersion )
+endif()
 project( al-lowlevel
   VERSION ${VERSION}
   DESCRIPTION "Lowlevel component of the IMAS Access Layer"
@@ -100,7 +105,7 @@ set( PUBLIC_HEADER_FILES
 )
 
 # Define library target
-add_library( al )
+add_library(al SHARED)
 # Note: sources are added by the CMakeFiles in the src/ folder
 target_link_libraries( al PRIVATE Boost::filesystem dl )
 set_target_properties( al PROPERTIES VERSION ${PROJECT_VERSION} )
@@ -118,9 +123,8 @@ add_subdirectory( src )
 # Install
 ################################################################################
 
-# Install library (.so)
-install( TARGETS al
-         COMPONENT python_binaries )
+# Install al library 
+install( TARGETS al )
 
 # TODO: put public heades in a separate directory?
 install( FILES ${PUBLIC_HEADER_FILES} DESTINATION include )
@@ -137,12 +141,29 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al-lowlevel.pc DESTINATION lib/pkgcon
 # Install mdsplusIMASDB4to5
 install( PROGRAMS mdsplusIMASDB4to5 DESTINATION bin )
 
-
 # Python bindings
 ################################################################################
 
-if( AL_PYTHON_BINDINGS )
-  add_subdirectory( python )
+if(AL_PYTHON_BINDINGS)
+    if(${SKBUILD})
+      # python -m pip install .
+      add_subdirectory(python) 
+    else() 
+      # cmake build / install
+      find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+      add_custom_target(
+	al-python-bindings ALL
+        COMMAND ${Python_EXECUTABLE} -m pip wheel ${CMAKE_SOURCE_DIR} --wheel-dir
+                ${CMAKE_BINARY_DIR}/dist/)
+      install(
+	CODE "execute_process(COMMAND ${Python_EXECUTABLE}
+	                                    -m pip install al_lowlevel
+					    --prefix=${CMAKE_INSTALL_PREFIX}
+					    --find-links ${CMAKE_BINARY_DIR}/dist/
+					    --force-reinstall
+					 )
+                        ")	 
+    endif()
 endif()
 
 
