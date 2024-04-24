@@ -54,8 +54,14 @@ DataEntryContext::DataEntryContext(std::string uri_) : uri(checkUriHost(uri::par
   setBackendID(uri.path, uri.authority.host);
 
   auto maybe_path = uri.query.get("path");
-  if (!maybe_path) {
+  auto maybe_mapping = uri.query.get("mapping");
+  if (!maybe_path && !maybe_mapping) {
+    // if uri does not contain a path=... or mapping=... argument then treat it as a legacy URI
     uri = buildURIFromLegacy();
+  }
+
+  if (maybe_path && maybe_mapping) {
+      throw ALContextException("URI cannot contain both path and mapping query arguments", LOG);
   }
 
   /* too soon to decide conflicting query options? */
