@@ -120,8 +120,8 @@ public:
             plugin_ = env;
         }
 
-        dd_version_ = getDDVersion();
         doc_ = imas::uda::load_xml();
+        dd_version_ = imas::uda::get_dd_version(doc_);
 
         if (verbose_) {
             std::cout << "UDABackend constructor\n";
