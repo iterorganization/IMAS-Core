@@ -42,6 +42,9 @@ wheel.packages = ["python/imas_core"]
 wheel.license-files = []
 wheel.exclude = ["lib/", "bin/", "include/", "**.pyx", "**.pxd"]
 
+[tool.scikit-build.cmake.define]
+CMAKE_TOOLCHAIN_FILE = {env="CMAKE_TOOLCHAIN_FILE", default=""}
+
 [tool.setuptools_scm] 
 write_to = "python/imas_core/_version.py"
 

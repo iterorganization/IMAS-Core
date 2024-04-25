@@ -23,3 +23,7 @@ __pycache__/
 /dist/
 /python/imas_core/_version.py
 *Zone.Identifier
+CMakeUserPresets.json
+/vcpkg_installed/
+settings.json
+/build*/
