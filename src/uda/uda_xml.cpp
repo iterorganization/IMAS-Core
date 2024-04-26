@@ -95,6 +95,16 @@ std::shared_ptr<pugi::xml_document> imas::uda::load_xml()
     return doc;
 }
 
+std::string get_dd_version(std::shared_ptr<pugi::xml_document> doc)
+{
+    auto root = doc->document_element();
+    auto version_node = root.child("version");
+    if (!version_node) {
+        throw std::runtime_error("Failed to find <version> node in data dictionary XML");
+    }
+    return version_node.text().get();
+}
+
 void imas::uda::get_attributes(imas::uda::AttributeMap& attributes, std::string ids_path, const pugi::xml_node& node)
 {
     std::string dtype = node.attribute("data_type").value();

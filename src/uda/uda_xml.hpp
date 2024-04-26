@@ -58,6 +58,15 @@ pugi::xml_node find_node(const pugi::xml_node& root, const std::string& path, bo
 std::shared_ptr<pugi::xml_document> load_xml();
 
 /**
+ * Read the data dictionary version from the XML document. This is read for the <version> tag directly under the root
+ * <IDSs> tag.
+ *
+ * @param doc the XML document containing the data dictionary
+ * @return the data dictionary version
+ */
+std::string get_dd_version(std::shared_ptr<pugi::xml_document> doc);
+
+/**
  * Generate all the IDS paths required to populate the IDS data tree at and below the specified ids_path.
  *
  * @param requests [OUT] the generated IDS paths

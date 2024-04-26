@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 
 import numpy
 
-logger = logging.getLogger("al_lowlevel")
+logger = logging.getLogger("imas_core")
 
 # For now this environment variable is set by CMake
 # TODO: figure out if this is the best approach
@@ -27,8 +27,8 @@ if "AL_LIBRARY_PATH" in os.environ:
 
 ext_modules = [
     Extension(
-        name="al_lowlevel._al_lowlevel",
-        sources=["al_lowlevel/_al_lowlevel.pyx"],
+        name="imas_core._al_lowlevel",
+        sources=["imas_core/_al_lowlevel.pyx"],
         language="c",
         libraries=["al"],
         extra_link_args=[],
@@ -36,8 +36,8 @@ ext_modules = [
         library_dirs=library_dirs,
     ),
     Extension(
-        name="al_lowlevel.al_defs",
-        sources=["al_lowlevel/al_defs.pyx"],
+        name="imas_core.al_defs",
+        sources=["imas_core/al_defs.pyx"],
         language="c",
         libraries=["al"],
         extra_link_args=[],
@@ -47,9 +47,9 @@ ext_modules = [
 ]
 
 setup(
-    name="al-lowlevel",
+    name="imas_core",
     version=VERSION,
-    description="Python bindings to the IMAS Access Layer lowlevel",
+    description="Python bindings to the IMAS Access Layer core",
     author="ITER Organization",
     author_email="imas-support@iter.org",
     url="https://imas.iter.org/",
@@ -61,9 +61,9 @@ setup(
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Physics",
     ],
-    packages=["al_lowlevel"],
+    packages=["imas_core"],
     keywords="imas, access layer, python interface",
     ext_modules=cythonize(ext_modules),
-    python_requires=">=3.8, <4",
+    python_requires=">=3.6, <4",
     setup_requires=["setuptools"],
 )

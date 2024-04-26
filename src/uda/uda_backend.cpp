@@ -215,6 +215,13 @@ std::string strip_occurrence(const std::string& ids)
     return ids.substr(0, pos);
 }
 
+std::string get_backend(uri::QueryDict& query) {
+    auto maybe_mapping = query.get("mapping");
+    auto maybe_backend = query.get("backend");
+
+    return maybe_backend.value_or(maybe_mapping ? "uda" : "mdsplus");
+}
+
 } // anon namespace
 
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
@@ -312,7 +319,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     }
 
     auto query = ctx->getURI().query;
-    std::string backend = query.get("backend").value_or("mdsplus");
+
+    std::string backend = get_backend(query);
     query.remove("backend");
     query.remove("cache_mode");
     query.remove("verbose");
@@ -353,7 +361,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
     cache_mode_ = imas::uda::CacheMode::None;
 
     auto query = ctx->getURI().query;
-    std::string backend = query.get("backend").value_or("mdsplus");
+    std::string backend = get_backend(query);
     query.remove("backend");
     query.remove("cache_mode");
     query.remove("verbose");
@@ -441,7 +449,7 @@ int UDABackend::readData(Context* ctx,
 //            auto entry_ctx = op_ctx->getDataEntryContext();
 
             auto query = ctx->getURI().query;
-            std::string backend = query.get("backend").value_or("mdsplus");
+            std::string backend = get_backend(query);
             query.remove("backend");
             std::string dd_version = query.get("dd_version").value_or(dd_version_);
             query.set("dd_version", dd_version);
@@ -512,7 +520,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     std::string path = ids + "/ids_properties/homogeneous_time";
 
     auto query = entry_ctx->getURI().query;
-    std::string backend = query.get("backend").value_or("mdsplus");
+    std::string backend = get_backend(query);
     query.remove("backend");
     std::string dd_version = query.get("dd_version").value_or(dd_version_);
     query.set("dd_version", dd_version);
@@ -577,7 +585,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
 
         auto query = entry_ctx->getURI().query;
-        std::string backend = query.get("backend").value_or("mdsplus");
+        std::string backend = get_backend(query);
         query.remove("backend");
         std::string dd_version = query.get("dd_version").value_or(dd_version_);
         query.set("dd_version", dd_version);
@@ -629,7 +637,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
     }
 
     int N = std::stoi(entry_ctx->getURI().query.get("batch_size").value_or("20"));
-    std::string backend = entry_ctx->getURI().query.get("backend").value_or("mdsplus");
+    auto query = entry_ctx->getURI().query;
+    std::string backend = get_backend(query);
     try {
         size_t n = 0;
         while (n < uda_requests.size()) {
