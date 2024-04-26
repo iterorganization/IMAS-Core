@@ -397,7 +397,7 @@ def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, dtim
         Created operation context ID
     """
     if tmin > tmax:
-        raise ValueError(f"Invalid time range: {tmin=} > {tmax=}")
+        raise ValueError(f"Invalid time range: {tmin} > {tmax}")
     if dtime is not None and interpmode is None:
         raise ValueError("Interpolation requested (dtime != None) but no interpolation mode provided.")
 
