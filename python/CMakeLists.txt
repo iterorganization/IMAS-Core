@@ -1,5 +1,5 @@
 # CMake build configuration for the Access Layer lowlevel Python bindings
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.21)
 
 # Configuration options for common assets
 # ##############################################################################
