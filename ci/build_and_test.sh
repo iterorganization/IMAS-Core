@@ -70,5 +70,12 @@ make -C build -j8 all
 # Test install
 make -C build install
 
+# Basic import test (assumes AL_PYTHON_BINDINGS=ON)
+(
+    source $(pwd)/test-install/bin/al_env.sh
+    python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
+
+)
+
 # List installed files
-ls -lR test-install
+find test-install -ls
