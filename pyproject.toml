@@ -26,6 +26,10 @@ dependencies = [
 test = [
     "pytest >= 7.2", 
 ]
+cov = [
+    "pytest-cov",
+    "coverage2clover",
+]
 
 [build-system]
 requires = ["scikit-build-core", "cython", "cython-cmake", "numpy", "setuptools_scm"]

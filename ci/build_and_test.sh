@@ -64,11 +64,17 @@ CMAKE_ARGS=(
 # Note: we don't set CC or CXX compiler, so CMake will pick the default (GCC) compilers
 cmake -B build "${CMAKE_ARGS[@]}"
 
-# Build
-make -C build -j8 all
-
-# Test install
-make -C build install
+# Build and install 
+cmake --build build --target install
 
 # List installed files
 ls -lR test-install
+
+# pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+python -m venv build/pip_install 
+. build/pip_install/bin/activate 
+module purge
+pip install --find_links=build/dist imas-core[test,cov]
+pytest --junitxml results.xml --cov imas-core --cov-report xml --cov-report html coverage2clover -i coverage.xml -o clover.xml
+deactivate
+

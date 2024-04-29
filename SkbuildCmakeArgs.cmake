@@ -32,4 +32,3 @@ endforeach()
 set(SKBUILD_CACHE
     ${SKBUILD_CACHE}
     CACHE STRING "Scikit-build-core cmake.args" FORCE)
-message("skbuild cmake defines: ${SKBUILD_CMAKE_ARGS}")
