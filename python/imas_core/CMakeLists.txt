@@ -9,12 +9,14 @@ target_link_libraries(al_defs PRIVATE Python::NumPy al)
 set_target_properties(al _al_lowlevel al_defs PROPERTIES INSTALL_RPATH
                                                          $ORIGIN/../imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al> DESTINATION imas_core.libs)
-install(
-  TARGETS al
-  COMPONENT al
-  RUNTIME_DEPENDENCIES PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-  POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-  DESTINATION imas_core.libs)
+if(WIN32)
+  install(
+    TARGETS al
+    #COMPONENT al
+    RUNTIME_DEPENDENCIES PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-" "Python"
+    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+    DESTINATION imas_core.libs)
+endif()
 install(FILES $<TARGET_RUNTIME_DLLS:_al_lowlevel> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
 install(TARGETS al DESTINATION imas_core.libs)
