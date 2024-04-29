@@ -169,7 +169,7 @@ if(AL_PYTHON_BINDINGS)
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
-        ${CMAKE_COMMAND} -E env CMAKE_ARGS=CMAKE_ARGS ${Python_EXECUTABLE} 
+        ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS} ${Python_EXECUTABLE} 
       	  -m pip wheel ${CMAKE_SOURCE_DIR}
 	  --wheel-dir ${CMAKE_BINARY_DIR}/dist/
 	  -v 
