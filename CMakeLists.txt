@@ -1,6 +1,12 @@
 # CMake build configuration for Access Layer core
 cmake_minimum_required(VERSION 3.21)
 
+# Capture scikig build cmake.args 
+include(./SkbuildCmakeArgs.cmake)
+
+# Configure VCPKG 
+include(./Vcpkg.cmake)
+
 # Configuration options for common assets
 # ##############################################################################
 option(AL_DOWNLOAD_DEPENDENCIES
@@ -149,7 +155,6 @@ install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
 
 # Python bindings
 # ##############################################################################
-
 if(AL_PYTHON_BINDINGS)
   if(${SKBUILD})
     # python -m pip install .
@@ -158,17 +163,21 @@ if(AL_PYTHON_BINDINGS)
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     add_custom_target(
-      al-python-bindings ALL
-      COMMAND ${Python_EXECUTABLE} -m pip wheel ${CMAKE_SOURCE_DIR} --wheel-dir
-              ${CMAKE_BINARY_DIR}/dist/)
+      al-python-bindinigs ALL
+      COMMAND ${Python_EXECUTABLE} 
+      	        -m pip wheel ${CMAKE_SOURCE_DIR}
+		--config-settings=cmake.args=${SKBUILD_CMAKE_ARGS}
+		--wheel-dir ${CMAKE_BINARY_DIR}/dist/
+		     )
     install(
       CODE "execute_process(COMMAND ${Python_EXECUTABLE}
-	                                    -m pip install imas_core
-					    --prefix=${CMAKE_INSTALL_PREFIX}
-					    --find-links ${CMAKE_BINARY_DIR}/dist/
-              --force-reinstall
-					 )
-                        ")
+	                      -m pip install imas_core
+			      --prefix=${CMAKE_INSTALL_PREFIX}
+			      --find-links ${CMAKE_BINARY_DIR}/dist/
+              		      --force-reinstall
+			   )"
+      DEPENDS al-python-bindings
+      )
   endif()
 endif()
 
