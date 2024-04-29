@@ -164,15 +164,15 @@ if(AL_PYTHON_BINDINGS)
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     set(ENV{AL_COMMON_PATH} ${al-common_SOURCE_DIR})
     set(CMAKE_ARGS ${SKBUILD_CMAKE_ARGS})
-    list(APPEND CMAKE_ARGS AL_DOWNLOAD_DEPENDENCIES=OFF)
+    list(APPEND CMAKE_ARGS -DAL_DOWNLOAD_DEPENDENCIES=OFF)
+    list(FILTER CMAKE_ARGS EXCLUDE REGEX "-DCMAKE_INSTALL_PREFIX=*")
     list(JOIN CMAKE_ARGS " " CMAKE_ARGS)
-    set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
     add_custom_target(
       al-python-bindinigs ALL
-      COMMAND ${Python_EXECUTABLE} 
+      COMMAND ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS} AL_COMMON_PATH=${al-common_SOURCE_DIR} ${Python_EXECUTABLE} 
       	        -m pip wheel ${CMAKE_SOURCE_DIR}
-		#--config-settings cmake.args=${SKBUILD_CMAKE_ARGS}  # requires pip>=23.1 (2023-04-15)
 		--wheel-dir ${CMAKE_BINARY_DIR}/dist/
+		-v
 		     )
     install(
       CODE "execute_process(COMMAND ${Python_EXECUTABLE}
