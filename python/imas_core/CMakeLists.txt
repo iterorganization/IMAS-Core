@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.21)
-
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
+find_package(Cython REQUIRED)
 cython_compile_pyx(_al_lowlevel.pyx OUTPUT_VAR _al_lowlevel_source)
 python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
