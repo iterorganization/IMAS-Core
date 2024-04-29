@@ -74,6 +74,7 @@ ls -lR test-install
 python -m venv build/pip_install 
 . build/pip_install/bin/activate 
 module purge
+module load Python/3.8.6-GCCcore-10.2.0
 pip install --find_links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas-core --cov-report xml --cov-report html coverage2clover -i coverage.xml -o clover.xml
 deactivate
