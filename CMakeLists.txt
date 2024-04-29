@@ -162,12 +162,16 @@ if(AL_PYTHON_BINDINGS)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-    set($ENV{SKBUILD_CMAKE_ARGS} ${SKBUILD_CMAKE_ARGS})  # for pip <23.1
+    set(ENV{AL_COMMON_PATH} ${al-common_SOURCE_DIR})
+    set(CMAKE_ARGS ${SKBUILD_CMAKE_ARGS})
+    list(APPEND CMAKE_ARGS AL_DOWNLOAD_DEPENDENCIES=OFF)
+    list(JOIN CMAKE_ARGS " " CMAKE_ARGS)
+    set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND ${Python_EXECUTABLE} 
       	        -m pip wheel ${CMAKE_SOURCE_DIR}
-		# --config-settings cmake.args=${SKBUILD_CMAKE_ARGS}  # requires pip>=23.1 (2023-04-15)
+		#--config-settings cmake.args=${SKBUILD_CMAKE_ARGS}  # requires pip>=23.1 (2023-04-15)
 		--wheel-dir ${CMAKE_BINARY_DIR}/dist/
 		     )
     install(
