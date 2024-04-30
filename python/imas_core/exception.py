@@ -3,7 +3,7 @@
 raise_error_flag = False
 
 class ALException(Exception):
-    """Exception thrown by the Access Layer."""
+    """Exception thrown by the Access Layer or IMAS Core."""
 
     def __init__(self, message, errorStatus=None):
         self.errorStatus = errorStatus
@@ -15,16 +15,16 @@ class ALException(Exception):
 
 
 class ImasCoreException(ALException):
-    """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.CONTEXT_ERR"""
+    """Exception thrown by the IMAS Core when errorStatus == al_defs.LOWLEVEL_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)
 
 class ImasCoreBackendException(ALException):
-    """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.BACKEND_ERR"""
+    """Exception thrown by the IMAS Core when errorStatus == al_defs.BACKEND_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)
 
-class ImasCoreUnknownException(ALException):
-    """Exception thrown by the Access Layer lowlevel when errorStatus == al_defs.LOWLEVEL_ERR"""
+class ImasCoreContextException(ALException):
+    """Exception thrown by the IMAS Core when errorStatus == al_defs.CONTEXT_ERR"""
     def __init__(self, message, errorStatus=None):
         super().__init__(message, errorStatus)

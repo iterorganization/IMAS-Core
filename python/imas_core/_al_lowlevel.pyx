@@ -12,7 +12,7 @@ cimport numpy as np
 
 from . cimport al_lowlevel_interface as ll
 from . import exception
-from .exception import ALException, ALCoreUnknownException, ALCoreContextException, ALCoreBackendException, ALCoreLowLevelException, raise_error_flag
+from .exception import ALException, ALCoreContextException, ALCoreBackendException, ALCoreLowLevelException, raise_error_flag
 
 cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8(object unicode) except NULL
@@ -175,7 +175,7 @@ def get_proper_exception_class(exception_message, exception_code):
     Returns:
         exception: Exception instance initialized with exception message and exception code. Ready to be raised.
     '''
-    exception_classes = {UNKNOWN_ERR : ImasCoreUnknownException,
+    exception_classes = {UNKNOWN_ERR : ALException,
                         CONTEXT_ERR : ImasCoreException,
                         BACKEND_ERR : ImasCoreBackendException,
                         LOWLEVEL_ERR : ImasCoreException}
