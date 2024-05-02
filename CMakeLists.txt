@@ -163,7 +163,6 @@ if(AL_PYTHON_BINDINGS)
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     set(CMAKE_ARGS ${SKBUILD_CMAKE_ARGS})
-    #list(APPEND CMAKE_ARGS -DAL_DOWNLOAD_DEPENDENCIES=OFF)
     list(FILTER CMAKE_ARGS EXCLUDE REGEX "-DCMAKE_INSTALL_PREFIX=*")
     list(JOIN CMAKE_ARGS " " CMAKE_ARGS)
     add_custom_target(

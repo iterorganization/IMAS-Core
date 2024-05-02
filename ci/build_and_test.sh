@@ -71,11 +71,11 @@ cmake --build build --target install
 ls -lR test-install
 
 # pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+module purge
+module load Python/3.8.6-GCCcore-10.2.0
 python -m venv build/pip_install 
 source build/pip_install/bin/activate 
 pip install --find-links=build/dist imas-core[test,cov]
-module purge
-module load Python/3.8.6-GCCcore-10.2.0
-pytest --junitxml results.xml --cov imas-core --cov-report xml --cov-report html 
+pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
 coverage2clover -i coverage.xml -o clover.xml
 
