@@ -163,11 +163,10 @@ if(AL_PYTHON_BINDINGS)
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "-DCMAKE_INSTALL_PREFIX=*")
-    list(PREPEND CMAKE_ARGS -B${CMAKE_BINARY_DIR} -G${CMAKE_GENERATOR})
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
-      ${CMAKE_COMMAND} -E env SKBUILD_CMAKE_ARGS=${SKBUILD_CMAKE_ARGS} ${Python_EXECUTABLE} 
+      ${CMAKE_COMMAND} -E env SKBUILD_CMAKE_ARGS="${SKBUILD_CMAKE_ARGS}" ${Python_EXECUTABLE} 
         -m pip wheel ${CMAKE_SOURCE_DIR}
         --wheel-dir ${CMAKE_BINARY_DIR}/dist/
       )
