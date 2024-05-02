@@ -4,7 +4,7 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-set -e -o pipefail
+#set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
@@ -22,14 +22,15 @@ MODULES=(
     Saxon-HE/11.4-Java-11
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     # Python bindings
-    Python/3.8.6-GCCcore-10.2.0
-    SciPy-bundle/2020.11-intel-2020b
+    Python/3.9.5-GCCcore-10.2.0-bare
+    #Python/3.8.6-GCCcore-10.2.0
+    #SciPy-bundle/2020.11-intel-2020b
 )
 module load "${MODULES[@]}"
 
 # Debuggging:
 echo "Done loading modules"
-set -x
+#set -x
 
 # Create a local git configuration with our access token
 if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
@@ -72,7 +73,8 @@ ls -lR test-install
 
 # pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
-module load Python/3.8.6-GCCcore-10.2.0
+#module load Python/3.8.6-GCCcore-10.2.0
+module load Python/3.9.5-GCCcore-10.2.0-bare
 python -m venv build/pip_install 
 source build/pip_install/bin/activate 
 pip install --find-links=build/dist imas-core[test,cov]

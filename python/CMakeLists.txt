@@ -20,11 +20,8 @@ install(
     PRE_EXCLUDE_REGEXES   
       "api-ms-" # VC Redistibutable DLLs
       "ext-ms-" # Windows extension DLLs
-    POST_INCLUDE_REGEXES
-      "libboost_filesystem"
     POST_EXCLUDE_REGEXES 
-      ".*system32\/.*\.dll" # Windows system DLLs
-      #"^\/(lib|usr\/lib|usr\/local\/lib)" # Unix system libraries
-      "^\/lib"
+      ".*system32/.*\\.dll" # Windows system DLLs
+      "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)

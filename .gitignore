@@ -30,3 +30,8 @@ settings.json
 /_deps/
 /CMakeFiles
 CMakeCache.txt
+/test-install/
+coverage.xml
+clover.xml
+results.xml
+.coverage
