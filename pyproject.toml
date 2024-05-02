@@ -44,7 +44,7 @@ cmake.source-dir = "."
 cmake.args = ["-DAL_PYTHON_BINDINGS=ON"]
 wheel.packages = ["python/imas_core"]
 wheel.license-files = []
-wheel.exclude = ["lib/", "bin/", "include/", "**.pyx", "**.pxd", "**CMakeLists.txt"]
+wheel.exclude = ["lib/", "bin/", "include/", "**.pyx", "**.pxd"]
 
 [tool.setuptools_scm] 
 write_to = "python/imas_core/_version.py"
