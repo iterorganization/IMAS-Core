@@ -24,6 +24,7 @@ install(
       "libboost_filesystem"
     POST_EXCLUDE_REGEXES 
       ".*system32\/.*\.dll" # Windows system DLLs
-      "^\/(lib|usr\/lib|usr\/local\/lib)" # Unix system libraries
+      #"^\/(lib|usr\/lib|usr\/local\/lib)" # Unix system libraries
+      "^\/lib"
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
