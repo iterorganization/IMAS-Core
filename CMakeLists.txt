@@ -158,7 +158,7 @@ install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
 if(AL_PYTHON_BINDINGS)
   if(${SKBUILD})
     # python -m pip install .
-    add_subdirectory(python/imas_core)
+    add_subdirectory(python)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
