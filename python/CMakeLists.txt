@@ -18,5 +18,5 @@ install(
   RUNTIME_DEPENDENCIES 
   DIRECTORIES ${LIBRARY_DIRS}
     PRE_EXCLUDE_REGEXES "api-ms-" "et-ms-"
-    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll")
+    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll" "${CMAKE_INSTALL_PREFIX}/lib")
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
