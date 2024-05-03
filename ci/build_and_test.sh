@@ -38,7 +38,7 @@ MODULES=(
     Python/3.11.2-GCCcore-12.2.0-bare 
 )
 module load "${MODULES[@]}"
-pip install --update pip
+pip install --upgrade pip
 pip install build
 # Debuggging:
 echo "Done loading modules"
