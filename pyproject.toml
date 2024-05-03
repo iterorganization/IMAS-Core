@@ -40,7 +40,7 @@ minimum-version = "0.8"
 cmake.version = ">=3.21"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = ["python/imas_core/_version.py"]
-cmake.args = ["-DAL_PYTHON_BINDINGS=ON"]
+cmake.define.AL_PYTHON_BINDINGS = "ON"]
 wheel.packages = ["python/imas_core"]
 wheel.license-files = []
 wheel.exclude = ["lib/", "bin/", "include/", "**.pyx", "**.pxd"]
