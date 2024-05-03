@@ -166,9 +166,9 @@ if(AL_PYTHON_BINDINGS)
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
-      ${CMAKE_COMMAND} -E env 
-        SKBUILD_CMAKE_ARGS="${SKBUILD_CMAKE_ARGS}"
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH} 
+      #${CMAKE_COMMAND} -E env 
+      #  SKBUILD_CMAKE_ARGS="${SKBUILD_CMAKE_ARGS}"
+      #	LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} 
 	${Python_EXECUTABLE} 
           -m build ${CMAKE_SOURCE_DIR} --outdir ${CMAKE_BINARY_DIR}/dist/
           #-m pip wheel ${CMAKE_SOURCE_DIR}
