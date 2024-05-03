@@ -270,8 +270,12 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     rangemode = alconst::global_op;
     time = alconst::undefined_time;
     interpmode = alconst::undefined_interp;
-
     time_range.enabled = false;
+    /*time_range.enabled = true;
+    time_range.dtime = 0.02;
+    time_range.tmin = 0.3;
+    time_range.tmax = 14./31.;
+    time_range.interpolation_method = 3;*/
 
     try {
         alconst::op_access_list.at(access-OP_ACCESS_0);
@@ -318,9 +322,9 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (accessmode==alconst::read_op && interpmode==alconst::undefined_interp)
 	throw ALContextException("Missing interpmode",LOG);
     }
-
-  time_range.enabled = false;
   
+  time_range.enabled = false;
+
   this->uid = ++SID;
 }
 
@@ -351,13 +355,18 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (dtime != -1 && interp==alconst::undefined_interp)
 	      throw ALContextException("Missing interpmode (dtime != -1)",LOG);
     }
-
+  rangemode = alconst::global_op;
   time_range.enabled = true;
   time_range.dtime = dtime;
   time_range.tmin = tmin;
   time_range.tmax = tmax;
   time_range.interpolation_method = interp;
 
+  /*printf("-->time_range.interp=%d\n", time_range.interpolation_method);
+  printf("-->time_range.dtime=%f\n", time_range.dtime);
+  printf("-->time_range.tmin=%f\n", time_range.tmin);
+  printf("-->time_range.tmax=%f\n", time_range.tmax);
+  printf("-->rangemode=%d\n", rangemode);*/
   this->uid = ++SID;
 }
 

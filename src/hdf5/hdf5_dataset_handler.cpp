@@ -1209,10 +1209,12 @@ void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indic
 
 bool HDF5DataSetHandler::isRequestInExtent(const std::vector < int >&current_arrctx_indices)
 {
-    if (current_arrctx_indices.size() == 0)
+    if (current_arrctx_indices.size() == 0) {
         return true;
+    }
     for (int i = 0; i < AOSRank; i++) {
         if (current_arrctx_indices[i] > int (largest_dims[i] - 1)) {
+            printf("current_arrctx_indices[%d]=%d, largest_dims[%d] - 1=%d", i, current_arrctx_indices[i], i, int (largest_dims[i] - 1));
             return false;
 		}
     }
