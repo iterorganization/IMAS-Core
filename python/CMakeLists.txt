@@ -21,13 +21,13 @@ install(
   DESTINATION imas_core.libs
   RUNTIME_DEPENDENCIES	
   DIRECTORIES ${LIBRARY_DIRS}
-    PRE_INCLUDE_REGEXES 
-      "libboost_filesystem"
-      "libhdf5"
-      "libsz"
     PRE_EXCLUDE_REGEXES   
       "api-ms-" # VC Redistibutable DLLs
       "ext-ms-" # Windows extension DLLs
+    POST_INCLUDE_REGEXES 
+      ".*libboost_filesystem.*"
+      ".*libhdf5.*"
+      ".*libsz.*"
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
       "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
