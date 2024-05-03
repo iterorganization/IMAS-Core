@@ -38,7 +38,6 @@ MODULES=(
     Python/3.11.2-GCCcore-12.2.0-bare 
 )
 module load "${MODULES[@]}"
-pip install --upgrade pip
 pip install build
 # Debuggging:
 echo "Done loading modules"
@@ -52,6 +51,9 @@ if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
     export XDG_CONFIG_HOME=$PWD
     git config -l
 fi
+
+# Ensure that the install directory is clean:
+rm -rf test-install
 
 # Ensure the build directory is clean:
 rm -rf build
@@ -88,9 +90,9 @@ module purge
 #module load Python/3.8.6-GCCcore-10.2.0
 #module load Python/3.9.5-GCCcore-10.2.0-bare
 module load Python/3.11.2-GCCcore-12.2.0-bare 
-python -m venv build/pip_install 
+python3.11 -m venv build/pip_install 
 source build/pip_install/bin/activate 
-pip install --find-links=build/dist imas-core[test,cov]
+python3.11 -m pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
 coverage2clover -i coverage.xml -o clover.xml
 
