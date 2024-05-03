@@ -167,7 +167,7 @@ if(AL_PYTHON_BINDINGS)
       al-python-bindinigs ALL
       COMMAND 
       ${CMAKE_COMMAND} -E env 
-        SKBUILD_CMAKE_ARGS=${SKBUILD_CMAKE_ARGS} 
+        SKBUILD_CMAKE_ARGS="${SKBUILD_CMAKE_ARGS}"
 	LD_LIBRARY_PATH=${LD_LIBRARY_PATH} 
 	${Python_EXECUTABLE} 
           -m build ${CMAKE_SOURCE_DIR} --outdir ${CMAKE_BINARY_DIR}/dist/

@@ -14,7 +14,7 @@ install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
 if(DEFINED $ENV{LD_LIBRARY_PATH})
   string(REPLACE ":" ";" LIBRARY_DIRS $ENV{LD_LIBRARY_PATH})
 else()
-  set(LIBRARY_DIRS "")
+  set(LIBRARY_DIRS)
 endif()
 install(
   TARGETS al
