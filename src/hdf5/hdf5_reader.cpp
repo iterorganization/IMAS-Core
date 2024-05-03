@@ -698,6 +698,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
             //printf("read_ND_Data, performing linear interp for :%s, slice_inf=%d, slice_sup=%d\n", data_set->getName().c_str(), slice_index, slice_sup);
             this->data_interpolation_component->interpolate(datatype, N, y_slices, slices_times, 
                 requested_time, data, opctx->time_range.interpolation_method);
+            free(next_slice_data);
         }
 
     }

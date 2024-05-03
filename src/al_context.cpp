@@ -274,7 +274,7 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     /*time_range.enabled = true;
     time_range.dtime = 0.02;
     time_range.tmin = 0.3;
-    time_range.tmax = 14./31.;
+    time_range.tmax = 0.401;
     time_range.interpolation_method = 3;*/
 
     try {
