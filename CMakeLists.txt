@@ -162,6 +162,7 @@ if(AL_PYTHON_BINDINGS)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+    message("SKBUILD: ${SKBUILD_CMAKE_ARGS}")
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
