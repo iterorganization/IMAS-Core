@@ -81,7 +81,7 @@ cmake -B build "${CMAKE_ARGS[@]}"
 cmake --build build --target install
 
 # List installed files
-ls -lR test-install -I numpy
+ls -lR test-install -I numpy*
 
 # pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
