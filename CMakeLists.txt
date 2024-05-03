@@ -163,12 +163,14 @@ if(AL_PYTHON_BINDINGS)
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     message("SKBUILD: ${SKBUILD_CMAKE_ARGS}")
+    string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
+    set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
+    message("CMAKE ARGS: $ENV{CMAKE_ARGS}")
+    message("${CMAKE_ARGS}")
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
-      #${CMAKE_COMMAND} -E env 
-      #  SKBUILD_CMAKE_ARGS="${SKBUILD_CMAKE_ARGS}"
-      #	LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH} 
+        ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
 	${Python_EXECUTABLE} 
           -m build ${CMAKE_SOURCE_DIR} --outdir ${CMAKE_BINARY_DIR}/dist/
           #-m pip wheel ${CMAKE_SOURCE_DIR}

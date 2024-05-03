@@ -77,7 +77,7 @@ CMAKE_ARGS=(
     -D DD_VERSION=master/3
 )
 # Note: we don't set CC or CXX compiler, so CMake will pick the default (GCC) compilers
-cmake -B build "${CMAKE_ARGS[@]}"
+cmake -Bbuild -GNinja "${CMAKE_ARGS[@]}"
 
 # Build and install 
 cmake --build build --target install
