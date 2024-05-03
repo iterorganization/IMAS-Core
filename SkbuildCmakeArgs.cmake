@@ -32,3 +32,4 @@ endforeach()
 set(SKBUILD_CACHE
     ${SKBUILD_CACHE}
     CACHE STRING "Scikit-build-core cmake.args" FORCE)
+set(SKBUILD_CMAKE_ARGS ${SKBUILD_CMAKE_ARGS})

@@ -162,7 +162,6 @@ if(AL_PYTHON_BINDINGS)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-    list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "-DCMAKE_INSTALL_PREFIX=*")
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
