@@ -25,7 +25,8 @@ MODULES=(
     #Python/3.9.5-GCCcore-10.2.0-bare
     #Python/3.8.6-GCCcore-10.2.0
     #SciPy-bundle/2020.11-intel-2020b
-    CMake/3.24.3-GCCcore-12.2.0 
+    CMake/3.24.3-GCCcore-12.2.0
+    Ninja/1.11.1-GCCcore-12.2.0 
     # Required for building the core and backends
     HDF5/1.14.0-GCCcore-12.2.0-serial 
     Boost/1.81.0-GCC-12.2.0 
