@@ -2,10 +2,10 @@
 cmake_minimum_required(VERSION 3.21)
 
 # Capture scikig build cmake.args 
-include(./SkbuildCmakeArgs.cmake)
+include(./skbuild-cmake-args.cmake)
 
 # Configure VCPKG 
-include(./Vcpkg.cmake)
+include(./vcpkg.cmake)
 
 # Configuration options for common assets
 # ##############################################################################
