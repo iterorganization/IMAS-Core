@@ -235,8 +235,8 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
             for (size_t i = 0; i < shape; i++)
                 data_int[i] = (int)round(data_int[i] + (next_slice_data_int[i] - data_int[i]) * interpolation_factor);
         }
-        if (!same_slices)
-            free(next_slice_data_int);
+        /*if (!same_slices)
+            free(next_slice_data_int);*/
         *result = (void *)data_int;
         break;
     }
@@ -254,8 +254,8 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
             for (size_t i = 0; i < shape; i++)
                 data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * interpolation_factor;
         }
-        if (!same_slices)
-            free(next_slice_data_double);
+        /*if (!same_slices)
+            free(next_slice_data_double);*/
         *result = (void *)data_double;
         break;
     }
@@ -268,8 +268,8 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
         {
             strcpy(data_str, ""); //returning an empty string since values from neighboring slices are different
         }
-        if (!same_slices)
-            free(next_data_str);
+        /*if (!same_slices)
+            free(next_data_str);*/
 
         *result = (void *)data_str;
         break;
@@ -488,9 +488,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
         requested_time += dtime;
         nb_slices++;
     }
-    free(slice1);
+    /*free(slice1);
     if (interp == LINEAR_INTERP)
-        free(slice2);
+        free(slice2);*/
     free(data);
     if (datatype == alconst::double_data)
     {
