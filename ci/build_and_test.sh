@@ -12,19 +12,30 @@ echo "Loading modules..."
 module purge
 # Load modules:
 MODULES=(
-    CMake/3.24.3-GCCcore-10.2.0
+    #CMake/3.24.3-GCCcore-10.2.0
     # Required for building the core and backends
-    Boost/1.74.0-GCC-10.2.0
-    HDF5/1.10.7-GCCcore-10.2.0-serial
-    MDSplus/7.131.6-GCCcore-10.2.0
-    UDA/2.7.5-GCC-10.2.0
+    #Boost/1.74.0-GCC-10.2.0
+    #HDF5/1.10.7-GCCcore-10.2.0-serial
+    #MDSplus/7.131.6-GCCcore-10.2.0
+    #UDA/2.7.5-GCC-10.2.0
     # Required for building MDSplus models
-    Saxon-HE/11.4-Java-11
-    MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
+    #Saxon-HE/11.4-Java-11
+    #MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     # Python bindings
-    Python/3.9.5-GCCcore-10.2.0-bare
+    #Python/3.9.5-GCCcore-10.2.0-bare
     #Python/3.8.6-GCCcore-10.2.0
     #SciPy-bundle/2020.11-intel-2020b
+    CMake/3.24.3-GCCcore-12.2.0 
+    # Required for building the core and backends
+    HDF5/1.14.0-GCCcore-12.2.0-serial 
+    Boost/1.81.0-GCC-12.2.0 
+    UDA/2.7.4-GCC-12.2.0 
+    # Required for building MDSplus models
+    Saxon-HE/11.4-Java-17
+    MDSplus/7.132.0-GCCcore-12.2.0 
+    MDSplus-Java/7.132.0-GCCcore-12.2.0-Java-17 
+    # Python bindings
+    Python/3.11.2-GCCcore-12.2.0-bare 
 )
 module load "${MODULES[@]}"
 
@@ -74,7 +85,8 @@ ls -lR test-install
 # pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
 #module load Python/3.8.6-GCCcore-10.2.0
-module load Python/3.9.5-GCCcore-10.2.0-bare
+#module load Python/3.9.5-GCCcore-10.2.0-bare
+module load Python/3.11.2-GCCcore-12.2.0-bare 
 python -m venv build/pip_install 
 source build/pip_install/bin/activate 
 pip install --find-links=build/dist imas-core[test,cov]
