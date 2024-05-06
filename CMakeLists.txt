@@ -170,7 +170,7 @@ if(AL_PYTHON_BINDINGS)
         ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
 	${Python_EXECUTABLE} 
           -m pip wheel ${CMAKE_CURRENT_SOURCE_DIR}
-          --wheel-dir ${CMAKE_BINARY_DIR}/dist/
+	  --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
       )
     set_target_properties(
       al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
