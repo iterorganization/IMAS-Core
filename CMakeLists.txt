@@ -166,7 +166,7 @@ if(AL_PYTHON_BINDINGS)
     string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
     #set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
     add_custom_target(
-      al-python-bindinigs ALL
+      al-python-bindings ALL
       COMMAND 
         ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
 	${Python_EXECUTABLE} 
