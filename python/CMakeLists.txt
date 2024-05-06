@@ -17,22 +17,22 @@ else()
   set(LIBRARY_DIRS)
 endif()
 
-install(CODE [[
-               file(GET_RUNTIME_DEPENDENCIES
-                  EXECUTABLES  $<TARGET_FILE:al>
-                  RESOLVED_DEPENDENCIES_VAR RESOLVED_DEPS
-                  UNRESOLVED_DEPENDENCIES_VAR UNRESOLVED_DEPS
-                  POST_INCLUDE_REGEXES "/libboost_filesystem" "libm"
-                  POST_EXCLUDE_REGEXES "^/lib"
-                  )
-                 foreach(FILE ${RESOLVED_DEPS})
-                  #if(NOT IS_SYMLINK ${FILE})
-                  message(STATUS "Resolved: ${FILE}")
-                 #endif()
-                 endforeach()
-                   foreach(FILE ${UNRESOLVED_DEPS})
-                   message(STATUS "Unresolved: ${FILE}")
-                 endforeach()
-         ]] COMPONENT core)
-
+install(
+  TARGETS al
+  DESTINATION imas_core.libs
+  RUNTIME_DEPENDENCIES	
+  DIRECTORIES ${LIBRARY_DIRS}
+    PRE_EXCLUDE_REGEXES   
+      "api-ms-" # VC Redistibutable DLLs
+      "ext-ms-" # Windows extension DLLs
+    POST_INCLUDE_REGEXES 
+      "/libMds" "/libTdir" "/libTree" "/libXTree"
+      "/libboost_filesystem"
+      "/libcapnp"
+      "/libhdf5"
+      "/libkj" "/libsz" "libuda"
+    POST_EXCLUDE_REGEXES 
+      ".*system32/.*\\.dll" # Windows system DLLs
+      #"^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
+)
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
