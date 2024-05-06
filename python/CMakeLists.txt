@@ -16,7 +16,6 @@ if(DEFINED ENV{LD_LIBRARY_PATH})
 else()
   set(LIBRARY_DIRS)
 endif()
-
 install(
   TARGETS al
   DESTINATION imas_core.libs
@@ -26,11 +25,16 @@ install(
       "api-ms-" # VC Redistibutable DLLs
       "ext-ms-" # Windows extension DLLs
     POST_INCLUDE_REGEXES 
-      "/libMds" "/libTdir" "/libTree" "/libXTree"
-      "/libboost_filesystem"
-      "/libcapnp"
-      "/libhdf5"
-      "/libkj" "/libsz" "libuda"
+      "libMds" 
+      "libTdir" 
+      "libTree" 
+      "libXTree"
+      "libboost_filesystem"
+      "libcapnp"
+      "libhdf5"
+      "libkj" 
+      "libsz" 
+      "libuda"
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
       "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries

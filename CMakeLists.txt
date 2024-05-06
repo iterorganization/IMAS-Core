@@ -170,9 +170,8 @@ if(AL_PYTHON_BINDINGS)
       COMMAND 
         ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
 	${Python_EXECUTABLE} 
-          -m build ${CMAKE_SOURCE_DIR} --outdir ${CMAKE_BINARY_DIR}/dist/
-          #-m pip wheel ${CMAKE_SOURCE_DIR}
-          #--wheel-dir ${CMAKE_BINARY_DIR}/dist/
+          -m pip wheel ${CMAKE_SOURCE_DIR}
+          --wheel-dir ${CMAKE_BINARY_DIR}/dist/
       )
     install(
       CODE "execute_process(COMMAND ${Python_EXECUTABLE}

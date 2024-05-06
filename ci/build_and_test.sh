@@ -4,7 +4,7 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-#set -e -o pipefail
+# set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
@@ -12,19 +12,7 @@ echo "Loading modules..."
 module purge
 # Load modules:
 MODULES=(
-    #CMake/3.24.3-GCCcore-10.2.0
-    # Required for building the core and backends
-    #Boost/1.74.0-GCC-10.2.0
-    #HDF5/1.10.7-GCCcore-10.2.0-serial
-    #MDSplus/7.131.6-GCCcore-10.2.0
-    #UDA/2.7.5-GCC-10.2.0
-    # Required for building MDSplus models
-    #Saxon-HE/11.4-Java-11
-    #MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
-    # Python bindings
-    #Python/3.9.5-GCCcore-10.2.0-bare
-    #Python/3.8.6-GCCcore-10.2.0
-    #SciPy-bundle/2020.11-intel-2020b
+    # Required for configure, build, and install
     CMake/3.24.3-GCCcore-12.2.0
     Ninja/1.11.1-GCCcore-12.2.0 
     # Required for building the core and backends
@@ -42,7 +30,7 @@ module load "${MODULES[@]}"
 pip install build
 # Debuggging:
 echo "Done loading modules"
-#set -x
+# set -x
 
 # Create a local git configuration with our access token
 if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
@@ -91,12 +79,10 @@ cmake --build build --target install
 )
 
 # List installed files
-find test-install -ls
+find test-install -not -path "*/numpy/*" -ls
 
-# pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
-#module load Python/3.8.6-GCCcore-10.2.0
-#module load Python/3.9.5-GCCcore-10.2.0-bare
 module load Python/3.11.2-GCCcore-12.2.0-bare 
 python3.11 -m venv build/pip_install 
 source build/pip_install/bin/activate 
