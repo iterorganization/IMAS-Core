@@ -164,7 +164,6 @@ if(AL_PYTHON_BINDINGS)
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
     list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFEX")
     string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
-    #set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
@@ -173,6 +172,8 @@ if(AL_PYTHON_BINDINGS)
           -m pip wheel ${CMAKE_SOURCE_DIR}
           --wheel-dir ${CMAKE_BINARY_DIR}/dist/
       )
+    set_target_properties(
+      al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
     install(
       CODE "execute_process(COMMAND ${Python_EXECUTABLE}
 	                      -m pip install imas_core
