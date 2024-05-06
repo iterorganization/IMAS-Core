@@ -165,11 +165,11 @@ if(AL_PYTHON_BINDINGS)
     list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFEX")
     string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
     add_custom_target(
-      al-python-bindinigs ALL
+      al-python-bindings ALL
       COMMAND 
         ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
 	${Python_EXECUTABLE} 
-          -m pip wheel ${CMAKE_SOURCE_DIR}
+          -m pip wheel ${CMAKE_CURRENT_SOURCE_DIR}
           --wheel-dir ${CMAKE_BINARY_DIR}/dist/
       )
     set_target_properties(
