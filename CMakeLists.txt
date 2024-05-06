@@ -135,7 +135,7 @@ add_subdirectory(src)
 # ##############################################################################
 
 # Install al library
-install(TARGETS al)
+install(TARGETS al COMPONENT core)
 
 # TODO: put public heades in a separate directory?
 install(FILES ${PUBLIC_HEADER_FILES} DESTINATION include)
@@ -162,11 +162,9 @@ if(AL_PYTHON_BINDINGS)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-    message("SKBUILD: ${SKBUILD_CMAKE_ARGS}")
+    list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFEX")
     string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
-    set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
-    message("CMAKE ARGS: $ENV{CMAKE_ARGS}")
-    message("${CMAKE_ARGS}")
+    #set(ENV{CMAKE_ARGS} ${CMAKE_ARGS})
     add_custom_target(
       al-python-bindinigs ALL
       COMMAND 
