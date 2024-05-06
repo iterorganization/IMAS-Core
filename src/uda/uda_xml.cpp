@@ -95,7 +95,7 @@ std::shared_ptr<pugi::xml_document> imas::uda::load_xml()
     return doc;
 }
 
-std::string get_dd_version(std::shared_ptr<pugi::xml_document> doc)
+std::string imas::uda::get_dd_version(std::shared_ptr<pugi::xml_document> doc)
 {
     auto root = doc->document_element();
     auto version_node = root.child("version");

@@ -83,8 +83,15 @@ cmake -Bbuild -GNinja "${CMAKE_ARGS[@]}"
 # Build and install 
 cmake --build build --target install
 
+# Basic import test (assumes AL_PYTHON_BINDINGS=ON)
+(
+    source $(pwd)/test-install/bin/al_env.sh
+    python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
+
+)
+
 # List installed files
-ls -lR test-install -I numpy*
+find test-install -ls
 
 # pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
