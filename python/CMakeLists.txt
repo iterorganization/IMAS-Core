@@ -11,7 +11,7 @@ set_target_properties(_al_lowlevel al_defs PROPERTIES INSTALL_RPATH $ORIGIN/../i
 install(FILES $<TARGET_RUNTIME_DLLS:al> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:_al_lowlevel> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
-if(DEFINED $ENV{LD_LIBRARY_PATH})
+if(DEFINED ENV{LD_LIBRARY_PATH})
   string(REPLACE ":" ";" LIBRARY_DIRS $ENV{LD_LIBRARY_PATH})
 else()
   set(LIBRARY_DIRS)
@@ -33,6 +33,6 @@ install(
       "/libkj" "/libsz" "libuda"
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
-      #"^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
+      "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
