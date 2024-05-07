@@ -20,7 +20,7 @@ MODULES=(
     Boost/1.83.0-GCC-13.2.0
     UDA/2.7.5-GCC-13.2.0
     # Required for building MDSplus models
-    Saxon-HE/11.4-Java-17
+    Saxon-HE/12.4-Java-21
     MDSplus/7.132.0-GCCcore-13.2.0
     # Python bindings
     Python/3.11.5-GCCcore-13.2.0
