@@ -43,8 +43,8 @@ fi
 # Ensure that the install directory is clean:
 rm -rf test-install
 
-# Ensure the build directory is clean:
-rm -rf build
+# Ensure the build and dist directories are clean:
+rm -rf build dist
 
 # CMake configuration:
 CMAKE_ARGS=(
@@ -82,7 +82,7 @@ find test-install -not -path "*/numpy/*" -ls
 
 # Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
 module purge
-module load Python/3.11.2-GCCcore-12.2.0-bare 
+module load Python/3.11.5-GCCcore-13.2.0
 python3.11 -m venv build/pip_install 
 source build/pip_install/bin/activate 
 python3.11 -m pip install --find-links=dist imas-core[test,cov]
