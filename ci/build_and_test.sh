@@ -85,7 +85,7 @@ module purge
 module load Python/3.11.2-GCCcore-12.2.0-bare 
 python3.11 -m venv build/pip_install 
 source build/pip_install/bin/activate 
-python3.11 -m pip install --find-links=build/dist imas-core[test,cov]
+PYTHONPATH= python3.11 -m pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
 coverage2clover -i coverage.xml -o clover.xml
 
