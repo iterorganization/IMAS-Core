@@ -50,3 +50,7 @@ write_to = "python/imas_core/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
+
+[tool.coverage.run]
+branch = true
+omit = ["python/imas_core/_version.py"]
