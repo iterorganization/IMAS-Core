@@ -175,12 +175,12 @@ if(AL_PYTHON_BINDINGS)
     set_target_properties(
       al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
     install(
-      CODE "execute_process(COMMAND ${Python_EXECUTABLE}
-	                      -m pip install imas_core
-			      --prefix=${CMAKE_INSTALL_PREFIX}
-			      --find-links ${CMAKE_BINARY_DIR}/dist/
-              		      --force-reinstall
-			   )"
+      CODE "execute_process(COMMAND ${Python_EXECUTABLE} -E env PYTHONPATH=
+            -m pip install imas_core
+            --prefix=${CMAKE_INSTALL_PREFIX}
+            --find-links ${CMAKE_BINARY_DIR}/dist/
+            --force-reinstall
+	    )"
       DEPENDS al-python-bindings
       )
   endif()
