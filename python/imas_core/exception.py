@@ -1,5 +1,4 @@
-"""Exception classes for the AL Core.
-"""
+"""Exception classes for the AL Core."""
 
 
 class ALException(Exception):
