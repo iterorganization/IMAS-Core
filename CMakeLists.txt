@@ -48,11 +48,11 @@ option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
 option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
+option(CMAKE_INSTALL_RPATH_USE_LINK_PATH "Append the runtime search path (rpath) to external installed binaries" TRUE)
 
 include(CMakeDependentOption)
 cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
                        AL_BACKEND_MDSPLUS OFF)
-
 # Define project
 # ##############################################################################
 
