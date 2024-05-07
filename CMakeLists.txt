@@ -171,15 +171,15 @@ if(AL_PYTHON_BINDINGS)
 	${Python_EXECUTABLE} 
           -m pip wheel ${CMAKE_CURRENT_SOURCE_DIR}
 	  --no-deps
-	  --wheel-dir ${CMAKE_CURRENT_SOURCE_DIR}/dist/
+	  --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
       )
     set_target_properties(
-	    al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/dist/)
+	    al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
     install(
       CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
             -m pip install imas_core
             --prefix=${CMAKE_INSTALL_PREFIX}
-	    --find-links ${CMAKE_CURRENT_SOURCE_DIR}/dist/
+	    --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
             --force-reinstall
 	    )"
       DEPENDS al-python-bindings
