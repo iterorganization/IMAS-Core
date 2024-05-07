@@ -22,7 +22,6 @@ MODULES=(
     # Required for building MDSplus models
     Saxon-HE/11.4-Java-17
     MDSplus/7.132.0-GCCcore-13.2.0
-    #MDSplus-Java/7.132.0-GCCcore-12.2.0-Java-17  # TODO update to 13.2.0 when available
     # Python bindings
     Python/3.11.5-GCCcore-13.2.0
 )
