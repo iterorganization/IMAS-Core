@@ -13,18 +13,18 @@ module purge
 # Load modules:
 MODULES=(
     # Required for configure, build, and install
-    CMake/3.24.3-GCCcore-12.2.0
-    Ninja/1.11.1-GCCcore-12.2.0 
+    CMake/3.27.6-GCCcore-13.2.0
+    Ninja/1.11.1-GCCcore-13.2.0
     # Required for building the core and backends
-    HDF5/1.14.0-GCCcore-12.2.0-serial 
-    Boost/1.81.0-GCC-12.2.0 
-    UDA/2.7.4-GCC-12.2.0 
+    HDF5/1.14.3-iimpi-2023b
+    Boost/1.83.0-GCC-13.2.0
+    UDA/2.7.5-GCC-13.2.0
     # Required for building MDSplus models
     Saxon-HE/11.4-Java-17
-    MDSplus/7.132.0-GCCcore-12.2.0 
-    MDSplus-Java/7.132.0-GCCcore-12.2.0-Java-17 
+    MDSplus/7.132.0-GCCcore-13.2.0
+    #MDSplus-Java/7.132.0-GCCcore-12.2.0-Java-17  # TODO update to 13.2.0 when available
     # Python bindings
-    Python/3.11.2-GCCcore-12.2.0-bare 
+    Python/3.11.5-GCCcore-13.2.0
 )
 module load "${MODULES[@]}"
 pip install build
