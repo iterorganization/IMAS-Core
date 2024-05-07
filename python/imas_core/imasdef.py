@@ -1,4 +1,4 @@
-"""This module contains all constants defined by IMAS.
+"""All constants defined by IMAS.
 
 .. data:: CLOSEST_INTERP
 
@@ -60,9 +60,6 @@
     opens it at the same time.
 """
 
-from typing import Any
-
-import numpy as np
 from .al_defs import *
 
 # This is Python 3 --> the default string type is str (always unicode)
@@ -97,11 +94,6 @@ EMPTY_COMPLEX = complex(EMPTY_DOUBLE, EMPTY_DOUBLE)
 NON_TIMED = 0
 TIMED = 1
 TIMED_CLEAR = 2
-# printing level defines, can be changed at runtime
-PRINT_DEBUG = 0
-VERBOSE_DEBUG = 0
-DEVEL_DEBUG = 0
-
 
 IDS_TIME_MODE_UNKNOWN = -999999999
 IDS_TIME_MODE_HETEROGENEOUS = 0
@@ -119,48 +111,3 @@ IDS_TIME_MODE_INDEPENDENT = 2
 """Time mode indicating that no dynamic nodes are filled in the IDS.
 """
 IDS_TIME_MODES = [0, 1, 2]
-
-
-def check_status(status):
-    if PRINT_DEBUG:
-        if status:
-            pass
-            # print(ull.imas_last_errmsg()) # this function does not exist anymore.
-
-
-def verb():
-    return VERBOSE_DEBUG
-
-
-def dev():
-    return DEVEL_DEBUG
-
-
-def isFieldValid(field: Any) -> bool:
-    """Test if a field in an IDS is valid (not empty or unset).
-
-    Args:
-        field: A field in an IDS.
-
-    Returns:
-        True iff the field is not empty or unset.
-
-    Example:
-        >>> import imas
-        >>> ids = imas.core_profiles()
-        >>> imas.imasdef.isFieldValid(ids.ids_properties.homogeneous_time)
-        False
-    """
-    if isinstance(field, np.ndarray):
-        return field.size > 0
-    if isinstance(field, string_types):
-        return len(field) > 0
-    if isinstance(field, list):
-        return len(field) > 0
-    if isinstance(field, int):
-        return field != EMPTY_INT
-    if isinstance(field, float):
-        return field != EMPTY_FLOAT
-    if isinstance(field, complex):
-        return field != EMPTY_COMPLEX
-    return False

@@ -162,20 +162,21 @@ if(AL_PYTHON_BINDINGS)
   else()
     # cmake build / install
     find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-    list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFEX")
+    list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFIX")
     string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
     add_custom_target(
       al-python-bindings ALL
       COMMAND 
-        ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
+        ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS} 
 	${Python_EXECUTABLE} 
           -m pip wheel ${CMAKE_CURRENT_SOURCE_DIR}
+	  --no-deps
 	  --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
       )
     set_target_properties(
       al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
     install(
-      CODE "execute_process(COMMAND ${Python_EXECUTABLE} -E env PYTHONPATH=
+      CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
             -m pip install imas_core
             --prefix=${CMAKE_INSTALL_PREFIX}
             --find-links ${CMAKE_BINARY_DIR}/dist/

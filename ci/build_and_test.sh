@@ -16,7 +16,7 @@ MODULES=(
     CMake/3.27.6-GCCcore-13.2.0
     Ninja/1.11.1-GCCcore-13.2.0
     # Required for building the core and backends
-    HDF5/1.14.3-iimpi-2023b
+    HDF5/1.14.3-gompi-2023b
     Boost/1.83.0-GCC-13.2.0
     UDA/2.7.5-GCC-13.2.0
     # Required for building MDSplus models
