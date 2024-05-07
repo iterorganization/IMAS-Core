@@ -18,9 +18,9 @@ classifiers = [
 
 dynamic = ["version"]
 
-dependencies = [
-    "numpy", 
-]
+#dependencies = [
+#    "numpy", 
+#]
 
 [project.optional-dependencies] 
 test = [
