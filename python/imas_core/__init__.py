@@ -3,7 +3,7 @@
 import os
 import pathlib
 
-if os.name == "nt":
+if os.name == "nt":  # pragma: no cover
     os.add_dll_directory(pathlib.Path(__file__).parents[1] / "imas_core.libs")
 
 from . import _al_lowlevel

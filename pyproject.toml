@@ -53,4 +53,6 @@ testpaths = ["python/tests"]
 
 [tool.coverage.run]
 branch = true
-omit = ["python/imas_core/_version.py"]
+omit = [
+    "_version.py",
+]
