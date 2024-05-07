@@ -4,11 +4,9 @@ import pytest
 import imas_core
 
 
-@pytest.mark.parametrize(
-    "name, value", (["EMPTY_INT", -999999999], ["EMPTY_FLOAT", -9e40])
-)
-def test_constants(name, value):
-    assert np.isclose(getattr(imas_core.imasdef, name), value)
+def test_constants():
+    assert imas_core.imasdef.EMPTY_INT == -999_999_999
+    assert imas_core.imasdef.EMPTY_FLOAT == -9e40
 
 
 def test_DD_version():
