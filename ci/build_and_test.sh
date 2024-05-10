@@ -24,9 +24,10 @@ MODULES=(
     MDSplus/7.132.0-GCCcore-13.2.0
     # Python bindings
     Python/3.11.5-GCCcore-13.2.0
+    build/1.0.3-GCCcore-13.2.0
 )
 module load "${MODULES[@]}"
-pip install build
+
 # Debuggging:
 echo "Done loading modules"
 # set -x
