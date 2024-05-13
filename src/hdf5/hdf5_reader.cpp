@@ -105,7 +105,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
         *size = 0;
         return;
     }
-    //std::cout << "beginReadArraystructAction called for: " << ctx->getPath().c_str() << std::endl;
+    std::cout << "beginReadArraystructAction called for: " << ctx->getPath().c_str() << std::endl;
     std::string tensorized_path;
     std::vector < std::string > tensorized_paths;
     
@@ -157,17 +157,23 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
     int time_range_count = -1; //number of time slices in optional specified time range
     if ( (slice_mode == SLICE_OP && isTimed) || (opCtx->time_range.enabled && isTimed) ) {
         std::string time_dataset_name = getTimeVectorDataSetName(timed_AOS_index, tensorized_paths);
+        printf("time_dataset_name=%s\n", time_dataset_name.c_str());
         std::unique_ptr < HDF5DataSetHandler > time_data_set = std::move(getTimeVectorDataSet(opCtx, gid, time_dataset_name)); //get time_data_set from the opened_data_sets map if it exists or create it
+        printf("TEST100\n");
         assert(time_data_set);
+        printf("TEST101\n");
         size_t time_vector_shape = 0;
         std::map<std::string, int> times_indices;
         double *time_vector_p = NULL;
         getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, &time_vector_p, &time_vector_shape);
+        printf("TEST102\n");
         std::vector<double> time_basis_vector(time_vector_p, time_vector_p + time_vector_shape);
+        printf("TEST103\n");
         if (slice_mode == SLICE_OP) {
             slice_index = data_interpolation_component->getSlicesTimesIndices(opctx->getTime(), time_basis_vector, times_indices, opctx->getInterpmode());
         }
         else if (opCtx->time_range.enabled) { 
+            printf("TEST1\n");
             if (opctx->time_range.dtime != -1) { //resampling
                 double requested_time = opctx->time_range.tmin + current_arrctx_indices[timed_AOS_index]*opctx->time_range.dtime;
                 slice_index = data_interpolation_component->getSlicesTimesIndices(requested_time, time_basis_vector, times_indices, opctx->time_range.interpolation_method);
@@ -179,11 +185,13 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
                 if (isTimed)
                     current_arrctx_indices[timed_AOS_index] = slice_index; //we correct the timed AOS index
             }
+            printf("TEST2\n");
             int time_range_tmin_index;
             int time_range_tmax_index;
             //searching time_range_count value
             data_interpolation_component->getTimeRangeIndices(opctx->time_range.tmin, opctx->time_range.tmax, opctx->time_range.dtime,
                 time_basis_vector, &time_range_tmin_index, &time_range_tmax_index, &time_range_count, opctx->time_range.interpolation_method);
+            printf("TEST3\n");
         }
         opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
         free(time_vector_p);
@@ -193,8 +201,10 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext * ctx, int *size)
 	   *size = 0;
        return;
     }
+     printf("TEST33\n");
     *size = shapes[0];
     free(shapes);
+    printf("TEST4\n");
 
     auto got_arrctx_shapes = arrctx_shapes_per_context.find(ctx);
     if (got_arrctx_shapes != arrctx_shapes_per_context.end()) {
@@ -305,9 +315,12 @@ const std::vector < int > &current_arrctx_indices, double** time_vector, size_t 
     int dataset_rank = data_set->getRank();
     *timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
+    printf("timed_AOS_index=%d\n", timed_AOS_index);
+
     bool homogeneous_time_basis = homogeneous_time == 1 || timebasename.substr(0,1) == "&" || data_set->getName().compare("time") == 0;
 
     if (homogeneous_time_basis) {
+        std::cout << "GETTING THE HOMOGENEOUS TIME BASIS: " << std::endl;
         *time_vector = (double *) malloc((*timeVectorLength) * sizeof(double));
         herr_t status = H5Dread(data_set->dataset_id, H5T_NATIVE_DOUBLE, H5P_DEFAULT, H5P_DEFAULT,
                                 H5P_DEFAULT, (void *) *time_vector);                     
@@ -317,9 +330,11 @@ const std::vector < int > &current_arrctx_indices, double** time_vector, size_t 
             throw ALBackendException(error_message, LOG);
         }
     } else {
-        // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
+        std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
         int dim = -1;
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(), alconst::double_data, current_arrctx_indices.size(), &dim);
+        hsSelectionReader.time_range.enabled = false;
+        hsSelectionReader.time_range.dtime = -1;
         hsSelectionReader.allocateInhomogeneousTimeDataSet((void **) time_vector, timed_AOS_index);
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index!=-1);
         herr_t status = H5Dread(data_set->dataset_id, H5Dget_type(data_set->dataset_id),
@@ -329,6 +344,7 @@ const std::vector < int > &current_arrctx_indices, double** time_vector, size_t 
         if (status < 0) {
             char error_message[200];
             sprintf(error_message, "Unable to read the inhomogeneous time basis: %s\n", data_set->getName().c_str());
+            printf(error_message, "Unable to read the inhomogeneous time basis: %s\n", data_set->getName().c_str());
             throw ALBackendException(error_message, LOG);
         }
     }
@@ -381,7 +397,7 @@ int HDF5Reader::read_ND_Data(Context * ctx, std::string & att_name, std::string 
         }
     }
 
-    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
+    std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
 
     bool is_homogeneous_time_basis_dataset = (tensorized_path == HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
     std::string suffix = std::string("&") + std::string(HOMOGENEOUS_TIME_BASIS_FIELD_NAME);

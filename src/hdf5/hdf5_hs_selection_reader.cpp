@@ -234,7 +234,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
 
-    //printf("timed_AOS_index=%d\n", timed_AOS_index);
+    printf("HDF5HsSelectionReader::setHyperSlabs::timed_AOS_index=%d, AOSRank=%d\n", timed_AOS_index, AOSRank);
 
     for (int i = 0; i < AOSRank; i++) {
 
@@ -268,7 +268,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
         }
     }
 
-    /*std::cout << "-------->file:: dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
+    std::cout << "-------->file:: dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
         for (int i = 0; i < AOSRank; i++) {
         std::cout << "dataspace_dims[" << i << "] = " <<  dataspace_dims[i] << std::endl;
         std::cout << "offset[" << i << "] = " <<  offset[i] << std::endl;
@@ -282,7 +282,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
     std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
     }
-    std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;*/
+    std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;
 
     herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
 
