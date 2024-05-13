@@ -602,8 +602,7 @@ def _al_write_data_array(ctx, fieldname, pyTimebasePath,  np.ndarray inputData, 
     al_status = ll.al_write_data(
         ctx, fieldname, cTimebasePath, cData, cDataType, cDim, cSizeArray)
     if al_status.code < 0:
-        raise ALException('Error while writing data:', al_status.message)
-
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.message)
     return al_status.code
 
 
@@ -634,7 +633,7 @@ def al_write_slice_data(ctx, fieldname, pyTimebasePath, inputData):
     al_status = al_write_data(ctx, fieldname.encode(
         'UTF-8'), pyTimebasePath.encode('UTF-8'), inputData)
     if al_status.code < 0:
-        raise ALException('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.message)
 
     return al_status.code
 
@@ -668,7 +667,7 @@ def _al_write_data_string_array(ctx, fieldname, pyTimebasePath, list stringList,
     al_status = ll.al_write_data(
         ctx, fieldname, pyTimebasePath, cData, CHAR_DATA, 2, cSizeArray)
     if al_status.code < 0:
-        raise ALException('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.message)
 
 
     free(cData)
@@ -690,7 +689,7 @@ def _al_write_data_string(ctx, fieldname, pyTimebasePath, inputString, dataType)
                                    1,
                                    & (cStringSize[0]))
     if al_status.code < 0:
-        raise ALException('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.message)
 
     return al_status.code
 
@@ -794,7 +793,7 @@ def al_read_data_scalar(ctx, fieldPath, pyTimebasePath, dataType):
 
     al_status = ll.al_read_data(ctx, fieldPath, pyTimebasePath, & cData, dataType, 0, & cSize)
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     if dataType == INTEGER_DATA:
         return al_status.code, cIntData
@@ -835,7 +834,7 @@ def al_read_data_array(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   cDim,
                                   & (cSizeArray[0]))
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     if cData is NULL:
         return al_status.code, None
@@ -894,7 +893,7 @@ def al_read_data_array_string(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   dim,
                                   & (cSizeArray[0]))
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     npSizeArray = np.reshape(cSizeArray, (dim))
 
@@ -928,7 +927,7 @@ def al_read_data_string(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   1,
                                   & (cSize))
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     if cSize == 0:
         return al_status.code, ''
@@ -975,7 +974,7 @@ def al_delete_data(ctx, path):
 
     al_status = ll.al_delete_data(ctx, path.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     return al_status.code
 
@@ -1041,7 +1040,7 @@ def al_iterate_over_arraystruct(aosctx, step):
 
     al_status = ll.al_iterate_over_arraystruct(aosctx, step)
     if al_status.code < 0:
-        raise ALException('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.message)
 
     return al_status.code
 
@@ -1050,43 +1049,43 @@ def al_iterate_over_arraystruct(aosctx, step):
 def al_register_plugin(name):
     al_status = ll.al_register_plugin(name.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while registering plugin:', al_status.message)
+        raise get_proper_exception_class('Error while registering plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_unregister_plugin(name):
     al_status = ll.al_unregister_plugin(name.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while unregistering plugin:', al_status.message)
+        raise get_proper_exception_class('Error while unregistering plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_bind_plugin(path, name):
     al_status = ll.al_bind_plugin(path.encode('UTF-8'), name.encode('UTF-8'))
     if al_status.code < 0:
-       raise ALException('Error while binding plugin:', al_status.message)
+        raise get_proper_exception_class('Error while binding plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_unbind_plugin(path, name):
     al_status = ll.al_unbind_plugin(path.encode('UTF-8'), name.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while unbinding plugin:', al_status.message)
+        raise get_proper_exception_class('Error while unbinding plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_bind_readback_plugins(ctx):
     al_status = ll.al_bind_readback_plugins(ctx)
     if al_status.code < 0:
-       raise ALException('Error while binding readback plugins:', al_status.message)
+       raise get_proper_exception_class('Error while binding readback plugins: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_unbind_readback_plugins(ctx):
     al_status = ll.al_unbind_readback_plugins(ctx)
     if al_status.code < 0:
-       raise ALException('Error while unbinding readback plugins:', al_status.message)
+        raise get_proper_exception_class('Error while unbinding readback plugins: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_write_plugins_metadata(ctx):
     al_status = ll.al_write_plugins_metadata(ctx)
     if al_status.code < 0:
-       raise ALException('Error while storing plugins metadata:', al_status.message)
+        raise get_proper_exception_class('Error while storing plugins metadata: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
@@ -1140,7 +1139,7 @@ def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
 
     al_status = ll.al_setvalue_parameter_plugin(parameter_name.encode('UTF-8'), cDataType, cDim, &(cSizeArray[0]), cData, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 
@@ -1149,7 +1148,7 @@ def al_setvalue_int_scalar_parameter_plugin(parameter_name, parameter_value, plu
     cdef int p = parameter_value
     al_status = ll.al_setvalue_int_scalar_parameter_plugin(parameter_name.encode('UTF-8'), p, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 
@@ -1157,7 +1156,7 @@ def al_setvalue_double_scalar_parameter_plugin(parameter_name, parameter_value, 
     cdef double p = parameter_value
     al_status = ll.al_setvalue_double_scalar_parameter_plugin(parameter_name.encode('UTF-8'), p, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise ALException('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.message)
     return al_status.code
 
 def al_get_occurrences(ctx, ids_name):
@@ -1169,7 +1168,7 @@ def al_get_occurrences(ctx, ids_name):
     al_status = ll.al_get_occurrences(ctx, ids_name.encode('UTF-8'), &occurrences_list, &cSize)
 
     if al_status.code < 0:
-        raise ALException('Error while calling al_get_occurrences:', al_status.message)
+        raise get_proper_exception_class('Error while calling al_get_occurrences: ' + al_status.message, al_status.message)
 
     if cSize != 0:
         arrayMemView  = view.array(shape=(cSize,), itemsize = sizeof(int), format = "i",  mode="fortran", allocate_buffer=False)
