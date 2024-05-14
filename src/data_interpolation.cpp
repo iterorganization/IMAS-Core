@@ -129,31 +129,7 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
 
     case LINEAR_INTERP:
     {
-        if (slice_sup == slice_inf)
-        {
-            return slice_inf;
-        }
-        else if (requested_time > time_vector[slice_sup])
-        {
-            return slice_sup;
-        }
-        else if (requested_time < time_vector[slice_inf])
-        {
-            return slice_inf;
-        }
-
-        bool same_slices = (slice_sup == slice_inf);
-        if (!same_slices)
-        {
-            if (std::abs(requested_time - time_vector[slice_inf]) <= std::abs(requested_time - time_vector[slice_sup]))
-                return slice_inf;
-            else
-                return slice_sup;
-        }
-        else
-        {
-            return slice_inf;
-        }
+        return slice_inf;
         break;
     }
     }
@@ -164,7 +140,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
                                     std::map<std::string, double> &slices_times, double requested_time, void **result, int interp)
 {
 
-    //printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f\n", requested_time);
+    //printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f, interp=%d\n", requested_time, interp);
 
     if (shape == 0)
     {
@@ -180,30 +156,21 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
         case alconst::integer_data:
         {
             int *data_int = (int *)y_slices[SLICE_INF];
-            //*result = malloc(shape * sizeof(int));
-            //memcpy(*result, data_int, shape * sizeof(int));
             *result = data_int;
-            //free(y_slices[SLICE_SUP]);
             break;
         }
 
         case alconst::double_data:
         {
             double *data_double = (double *)y_slices[SLICE_INF];
-            //*result = malloc(shape * sizeof(double));
-            //memcpy(*result, data_double, shape * sizeof(double));
             *result = data_double;
-            //free(y_slices[SLICE_SUP]);
             break;
         }
 
         case alconst::char_data:
         {
             char *data_str = (char *)y_slices[SLICE_INF];
-            //*result = malloc(shape * sizeof(char));
-            //memcpy(*result, data_str, shape * sizeof(char));
             *result = data_str;
-            //free(y_slices[SLICE_SUP]);
             break;
         }
         }
@@ -238,12 +205,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
             for (size_t i = 0; i < shape; i++)
                 data_int[i] = (int)round(data_int[i] + (next_slice_data_int[i] - data_int[i]) * interpolation_factor);
         }
-        /*if (!same_slices)
-            free(next_slice_data_int);*/
         *result = (void *)data_int;
-        //free(next_slice_data_int);
-        //*result = malloc(shape * sizeof(double));
-        //memcpy(*result, data_double, shape * sizeof(double));
         break;
     }
 
@@ -251,7 +213,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
     {
         double *data_double = (double *)y_slices[SLICE_INF];
         double *next_slice_data_double = (double *)y_slices[SLICE_SUP];
-         /*for (size_t i = 0; i < shape; i++) {
+        /*for (size_t i = 0; i < shape; i++) {
             printf("dd[%d] = %f\n", i, data_double[i]);
             printf("next dd[%d] = %f\n", i, next_slice_data_double[i]);
          }*/
@@ -260,10 +222,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
             for (size_t i = 0; i < shape; i++)
                 data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * interpolation_factor;
         }
-        /*if (!same_slices)
-            free(next_slice_data_double);*/
         *result = (void *)data_double;
-        //free(next_slice_data_double);
         break;
     }
 
@@ -275,11 +234,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
         {
             strcpy(data_str, ""); //returning an empty string since values from neighboring slices are different
         }
-        /*if (!same_slices)
-            free(next_data_str);*/
-
         *result = (void *)data_str;
-        //free(next_data_str);
         break;
     }
     }
@@ -287,7 +242,6 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
 
 int DataInterpolation::resample_timebasis(double tmin, double tmax, double dtime, int timed_AOS_index, void *data, void **result)
 {
-
     //printf("resample_timebasis::timed_AOS_index=%d\n", timed_AOS_index);
     assert(dtime != -1); //this method is used only for resampling a time basis, so dtime should be defined
     free(data);
@@ -406,7 +360,6 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
         //printf("slices_times[SLICE_INF]=%f, slices_times[SLICE_SUP]=%f\n", slices_times[SLICE_INF], slices_times[SLICE_SUP]);
 
         std::map<std::string, void *> y_slices;
-        //bool same_slices = false;
 
         switch (datatype)
         {
@@ -427,7 +380,6 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
                     y_slices[SLICE_SUP] = slice2;
                 }
                 else {
-                    //same_slices = true;
                     y_slices[SLICE_SUP] = slice1;
                 }
             }
@@ -446,12 +398,12 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 
             if (interp == LINEAR_INTERP)
             {
+                //printf("offset=%d, stop_index - start_index=%d\n", offset, stop_index - start_index);
                 if (offset < (stop_index - start_index) ) {
                     memcpy(slice2, data_double + (offset + 1)* n, n * sizeof(double));
                     y_slices[SLICE_SUP] = slice2;
                 }
                 else {
-                    //same_slices = true;
                     y_slices[SLICE_SUP] = slice1;
                 }
             }
@@ -477,7 +429,6 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
                     y_slices[SLICE_SUP] = slice2;
                 }
                 else {
-                    //same_slices = true;
                     y_slices[SLICE_SUP] = slice1;
                 }
             }
@@ -511,10 +462,6 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
         {
             double *q = (double *)interpolation_results[i];
             double *r = (double *)*result;
-            /*for (size_t j = 0; j < time_slice_shape; j++) {
-            printf("q[%d] = %f\n", j, q[j]);
-            //printf("next dd[%d] = %f\n", i, next_slice_data_double[i]);
-            }*/
             memcpy(r + i * time_slice_shape, q, time_slice_shape * sizeof(double));
             free(q);
         }
@@ -543,5 +490,6 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
             free(q);
         }
     }
+    //printf("nb_slices = %d\n", nb_slices);
     return nb_slices;
 }

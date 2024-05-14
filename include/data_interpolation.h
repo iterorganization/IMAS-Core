@@ -43,7 +43,9 @@ public:
 
   /* This function returns the index of the time vector sample corresponding to the requested time ('requested_time') using the interpolation method 'interp'.
   The 'time_indices' map returns the indices time_indices['SLICE_INF'] and time_indices['SLICE_SUP'] corresponding respectively to the min and
-  max values of the time range which contains the time vector sample index returned by this function.*/
+  max values of the time range which contains the time vector sample index returned by this function. In case of linear interpolation, the index returned is the 
+  smallest one (time_indices['SLICE_INF']).
+  */
   int getSlicesTimesIndices(double requested_time, const std::vector<double> &time_vector, std::map<std::string, int> &times_indices, int interp);
 
   /* This function interpolates (at time 'requested_time') the data of the 2 time slices provided in the map 'y_slices' at the keys 'SLICE_INF' and 'SLICE_SUP' 

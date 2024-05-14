@@ -9,10 +9,10 @@
 HDF5HsSelectionReader::HDF5HsSelectionReader(int dataset_rank_, hid_t dataset_id_, hid_t dataspace_, hsize_t *dims, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(dataset_rank_), AOSRank(AOSRank_), dtype_id(-1), dataspace(dataspace_), memspace(-1), buffer_size(0)
 {
     memcpy(dataspace_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
-    init(dataset_id, datatype_, AOSRank_, dim);
+    init(dataset_id, datatype_, dim);
 }
 
-void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim)
+void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int *dim)
 {
     switch (datatype) {
 
@@ -234,11 +234,11 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
 
-    printf("HDF5HsSelectionReader::setHyperSlabs::timed_AOS_index=%d, AOSRank=%d\n", timed_AOS_index, AOSRank);
+    //printf("HDF5HsSelectionReader::setHyperSlabs::timed_AOS_index=%d, AOSRank=%d\n", timed_AOS_index, AOSRank);
 
     for (int i = 0; i < AOSRank; i++) {
 
-        if (current_arrctx_indices.size() == 0) {       //data are not located in an AOS
+        if (current_arrctx_indices.size() == 0 || count_along_dynamic_aos) {       //data are not located in an AOS
             offset[i] = 0;
         } else {
             offset[i] = current_arrctx_indices[i];
@@ -268,7 +268,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
         }
     }
 
-    std::cout << "-------->file:: dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
+    /*std::cout << "-------->file:: dataspace dimensions in setHyperSlabs for AOSs" << std::endl;
         for (int i = 0; i < AOSRank; i++) {
         std::cout << "dataspace_dims[" << i << "] = " <<  dataspace_dims[i] << std::endl;
         std::cout << "offset[" << i << "] = " <<  offset[i] << std::endl;
@@ -282,7 +282,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     std::cout << "offset[" << i + AOSRank << "] = " <<  offset[i + AOSRank] << std::endl;
     std::cout << "count[" << i + AOSRank << "] = " <<  count[i + AOSRank] << std::endl;
     }
-    std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;
+    std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;*/
 
     herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
 

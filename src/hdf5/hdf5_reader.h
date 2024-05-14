@@ -62,7 +62,7 @@ class HDF5Reader {
 
     std::string getTimeVectorDataSetName(int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string timebasename, int timed_AOS_index);
-    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name);
+    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name, int time_vector_dim);
 
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     DataEntryContext* getDataEntryContext(Context * ctx);

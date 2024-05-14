@@ -37,7 +37,7 @@ class HDF5HsSelectionReader {
     hsize_t count_out[H5S_MAX_RANK];
 
     void setBufferSize();
-    void init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim);
+    void init(hid_t dataset_id, int datatype_, int *dim);
     bool memSpaceHasChanged(hsize_t * dims);
 
   public:
