@@ -7,9 +7,10 @@ if (Test-Path 'build') {
   Remove-Item 'build' -Recurse -Force
 }
 
-$env:VCPKG_ROOT = Join-Path $pwd ..\vcpkg\ -Resolve
+$env:VCPKG_ROOT = Join-Path $pwd ..\vcpkg\
 IF (-Not (Test-Path $env:VCPKG_ROOT)) {
-  git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+  git clone https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
+  $env:VCPKG_ROOT = Resolve-Path $env:VCPKG_ROOT
 }
 
 python -m venv build\pip_install
