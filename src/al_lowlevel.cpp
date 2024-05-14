@@ -802,8 +802,14 @@ al_status_t al_get_backendID(int ctxID, int *beid)
   return status;
 }
 
-
 al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID)
+{
+  std::string uri_str(uri);
+  al_begin_dataentry_action(uri_str, mode, dectxID);
+}
+
+
+al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID)
 {
   al_status_t status = { 0 };
 
