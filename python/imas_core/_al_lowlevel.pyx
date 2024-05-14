@@ -537,7 +537,7 @@ def _al_write_data_scalar(ctx, fieldname, pyTimebasePath,  inputData, dataType):
         'UTF-8'), cTimebasePath.encode('UTF-8'), cData, cDataType, 0, NULL)
 
     if al_status.code < 0:
-        raise get_proper_exception_class(al_status.message, al_status.code)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
