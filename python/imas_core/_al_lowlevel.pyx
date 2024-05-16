@@ -318,7 +318,7 @@ def al_begin_dataentry_action(uri, mode):
             raise get_proper_exception_class(al_status.message, al_status.code)
         else:
             logging.error(al_status.message)
-            return al_status.code, deCtx
+    return al_status.code, deCtx
 
 
 ###########################################################################################
