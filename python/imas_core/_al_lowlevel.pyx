@@ -11,7 +11,8 @@ import numpy as np
 cimport numpy as np
 
 from . cimport al_lowlevel_interface as ll
-from .exception import ALException
+from . import exception
+from .exception import ALException, ImasCoreContextException, ImasCoreBackendException, ImasCoreException, raise_error_flag
 
 cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8(object unicode) except NULL
@@ -23,7 +24,11 @@ cdef extern from "al_defs.h":
         INTEGER_DATA
         DOUBLE_DATA
         COMPLEX_DATA
-
+        # alerror:: error codes
+        UNKNOWN_ERR
+        CONTEXT_ERR
+        BACKEND_ERR
+        LOWLEVEL_ERR
 
 ###########################################################################################
 
@@ -149,6 +154,37 @@ def _getDataType(data):
 ###########################################################################################
 #                 NEW LL
 ###########################################################################################
+
+def imas_core_config_enable_exceptions():
+    '''Function used to enable Access Layer Core raising exceptions on error, instead of returning status value'''
+    exception.raise_error_flag = True
+
+def imas_core_config_disable_exceptions():
+    '''Function used to disable Access Layer Core raising exceptions on error. Functions will return status value on error'''
+    exception.raise_error_flag = False
+
+
+def get_proper_exception_class(exception_message, exception_code):
+    '''
+    Helper function used by _al_lowlevel functions.
+
+    Parameters:
+        exception_message (str): Exception message to be passed to exception __init__
+        exception_code (int): code used to determine type of exception
+
+    Returns:
+        exception: Exception instance initialized with exception message and exception code. Ready to be raised.
+    '''
+    exception_classes = {UNKNOWN_ERR : ALException,
+                        CONTEXT_ERR : ImasCoreContextException,
+                        BACKEND_ERR : ImasCoreBackendException,
+                        LOWLEVEL_ERR : ImasCoreException}
+
+    exception_to_be_raised = exception_classes.get(exception_code,ALException)
+
+    return exception_to_be_raised(exception_message, exception_code)
+
+
 """
      Return all the Context information corresponding to the passed Context identifier.
      @param[in] ctx Context ID (either DataEntryContext, OperationContext or ArraystructContext)
@@ -166,8 +202,11 @@ def al_context_info(ctx):
     al_status = ll.al_context_info(ctx, & cContextInfo)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, ""
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     contextInfo = cContextInfo.decode('UTF-8', errors='replace')
     return contextInfo
@@ -188,8 +227,11 @@ def al_get_backendID(ctx):
     al_status = ll.al_get_backendID(ctx, & cBEID)
 
     if al_status.code < 0:
-       logging.error(al_status.message)
-       return al_status.code, ""
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, ""
 
     return cBEID
 
@@ -233,11 +275,14 @@ def al_build_uri_from_legacy_parameters(backendID, pulse, run, user, tokamak, ve
                                            &cStringUri)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
-    
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, -1
+
     py_uri = cStringUri.decode('UTF-8', errors='replace')
-    
+
     free(cStringUri)
 
     return al_status.code, py_uri
@@ -269,8 +314,11 @@ def al_begin_dataentry_action(uri, mode):
     cdef ll.al_status_t al_status
     al_status = ll.al_begin_dataentry_action(uri.encode('UTF-8'), mode,  &deCtx)
     if al_status.code < 0:
-        logging.error(al_status.message)
-    return al_status.code, deCtx
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, deCtx
 
 
 ###########################################################################################
@@ -292,7 +340,10 @@ def al_close_pulse(pulseCtx, mode):
 
     al_status = ll.al_close_pulse(pulseCtx, mode)
     if al_status.code < 0:
-        logging.error(al_status.message)
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
     return al_status.code
 
 
@@ -327,8 +378,11 @@ def al_begin_global_action(pulseCtx, dataobjectname, rwmode, datapath=""):
                                             & opCtx)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, -1
 
     return al_status.code, opCtx
 
@@ -374,8 +428,11 @@ def al_begin_slice_action(pulseCtx, dataobjectname, rwmode, time, interpmode):
                                            & sliceOpCtx)
 
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, -1
 
     return al_status.code, sliceOpCtx
 
@@ -401,8 +458,11 @@ def al_end_action(ctx):
 
     al_status = ll.al_end_action(ctx)
     if al_status.code < 0:
-        logging.error(al_status.message)
-        return al_status.code, -1
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, -1
 
     return al_status.code
 
@@ -477,7 +537,7 @@ def _al_write_data_scalar(ctx, fieldname, pyTimebasePath,  inputData, dataType):
         'UTF-8'), cTimebasePath.encode('UTF-8'), cData, cDataType, 0, NULL)
 
     if al_status.code < 0:
-        raise Exception('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
@@ -542,8 +602,7 @@ def _al_write_data_array(ctx, fieldname, pyTimebasePath,  np.ndarray inputData, 
     al_status = ll.al_write_data(
         ctx, fieldname, cTimebasePath, cData, cDataType, cDim, cSizeArray)
     if al_status.code < 0:
-        raise Exception('Error while writing data:', al_status.message)
-
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
     return al_status.code
 
 
@@ -574,7 +633,7 @@ def al_write_slice_data(ctx, fieldname, pyTimebasePath, inputData):
     al_status = al_write_data(ctx, fieldname.encode(
         'UTF-8'), pyTimebasePath.encode('UTF-8'), inputData)
     if al_status.code < 0:
-        raise Exception('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
@@ -608,7 +667,7 @@ def _al_write_data_string_array(ctx, fieldname, pyTimebasePath, list stringList,
     al_status = ll.al_write_data(
         ctx, fieldname, pyTimebasePath, cData, CHAR_DATA, 2, cSizeArray)
     if al_status.code < 0:
-        raise Exception('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
 
 
     free(cData)
@@ -630,7 +689,7 @@ def _al_write_data_string(ctx, fieldname, pyTimebasePath, inputString, dataType)
                                    1,
                                    & (cStringSize[0]))
     if al_status.code < 0:
-        raise Exception('Error while writing data:', al_status.message)
+        raise get_proper_exception_class('Error while writing data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
@@ -645,7 +704,7 @@ def al_write_data(ctx,
         al_status = ll.al_write_data(ctx, pyFieldPath.encode(
         'UTF-8'), pyTimebasePath.encode('UTF-8'), NULL, -1, 0, NULL)
         return al_status.code
-        
+
     alDataType = _getDataType(inputData)
     pyDataType = type(inputData)
 
@@ -734,7 +793,7 @@ def al_read_data_scalar(ctx, fieldPath, pyTimebasePath, dataType):
 
     al_status = ll.al_read_data(ctx, fieldPath, pyTimebasePath, & cData, dataType, 0, & cSize)
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     if dataType == INTEGER_DATA:
         return al_status.code, cIntData
@@ -775,7 +834,7 @@ def al_read_data_array(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   cDim,
                                   & (cSizeArray[0]))
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     if cData is NULL:
         return al_status.code, None
@@ -834,7 +893,7 @@ def al_read_data_array_string(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   dim,
                                   & (cSizeArray[0]))
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     npSizeArray = np.reshape(cSizeArray, (dim))
 
@@ -868,14 +927,14 @@ def al_read_data_string(ctx, fieldPath, pTimebasePath, dataType, dim):
                                   1,
                                   & (cSize))
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     if cSize == 0:
         return al_status.code, ''
     retString = cStringData[0:cSize].decode('UTF-8', errors='replace')
-    
+
     free(cStringData)
-    
+
     return al_status.code, retString
 
 
@@ -915,7 +974,7 @@ def al_delete_data(ctx, path):
 
     al_status = ll.al_delete_data(ctx, path.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
@@ -953,7 +1012,11 @@ def al_begin_arraystruct_action(ctx, path, pyTimebase, size):
                                                  & aosOpCtx)
 
     if al_status.code < 0:
-        return al_status.code, -1, 0
+        if exception.raise_error_flag:
+            raise get_proper_exception_class(al_status.message, al_status.code)
+        else:
+            logging.error(al_status.message)
+            return al_status.code, -1, 0
 
     return al_status.code, aosOpCtx, cSize
 
@@ -977,7 +1040,7 @@ def al_iterate_over_arraystruct(aosctx, step):
 
     al_status = ll.al_iterate_over_arraystruct(aosctx, step)
     if al_status.code < 0:
-        raise Exception('Error while reading data:', al_status.message)
+        raise get_proper_exception_class('Error while reading data: ' + al_status.message, al_status.code)
 
     return al_status.code
 
@@ -986,45 +1049,45 @@ def al_iterate_over_arraystruct(aosctx, step):
 def al_register_plugin(name):
     al_status = ll.al_register_plugin(name.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while registering plugin:', al_status.message)
+        raise get_proper_exception_class('Error while registering plugin: ' + al_status.message, al_status.code)
     return al_status.code
-    
+
 def al_unregister_plugin(name):
     al_status = ll.al_unregister_plugin(name.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while unregistering plugin:', al_status.message)
+        raise get_proper_exception_class('Error while unregistering plugin: ' + al_status.message, al_status.code)
     return al_status.code
 
 def al_bind_plugin(path, name):
     al_status = ll.al_bind_plugin(path.encode('UTF-8'), name.encode('UTF-8'))
     if al_status.code < 0:
-       raise Exception('Error while binding plugin:', al_status.message)
+        raise get_proper_exception_class('Error while binding plugin: ' + al_status.message, al_status.code)
     return al_status.code
 
 def al_unbind_plugin(path, name):
     al_status = ll.al_unbind_plugin(path.encode('UTF-8'), name.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while unbinding plugin:', al_status.message)
+        raise get_proper_exception_class('Error while unbinding plugin: ' + al_status.message, al_status.code)
     return al_status.code
-    
+
 def al_bind_readback_plugins(ctx):
     al_status = ll.al_bind_readback_plugins(ctx)
     if al_status.code < 0:
-       raise Exception('Error while binding readback plugins:', al_status.message)
+       raise get_proper_exception_class('Error while binding readback plugins: ' + al_status.message, al_status.code)
     return al_status.code
 
 def al_unbind_readback_plugins(ctx):
     al_status = ll.al_unbind_readback_plugins(ctx)
     if al_status.code < 0:
-       raise Exception('Error while unbinding readback plugins:', al_status.message)
+        raise get_proper_exception_class('Error while unbinding readback plugins: ' + al_status.message, al_status.code)
     return al_status.code
-    
+
 def al_write_plugins_metadata(ctx):
     al_status = ll.al_write_plugins_metadata(ctx)
     if al_status.code < 0:
-       raise Exception('Error while storing plugins metadata:', al_status.message)
+        raise get_proper_exception_class('Error while storing plugins metadata: ' + al_status.message, al_status.code)
     return al_status.code
-    
+
 def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
     cdef int cDataType
     cdef int cDim
@@ -1038,7 +1101,7 @@ def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
 
     # Set data type
     cDataType = _getDataType(inputData)
-    
+
     if cDataType == CHAR_DATA:
         py_byte_string = inputData.encode('UTF-8')
         cStringData = py_byte_string
@@ -1047,18 +1110,18 @@ def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
 
     if np.isscalar(inputData):
         return al_setvalue_int_scalar_parameter_plugin(parameter_name, inputData, pluginName)
-          
+
     npSizeArray = np.asarray((<object> inputData).shape, dtype=np.int32)  # noqa: E225
     # checking if an array is valid
     if np.amin(npSizeArray) < 0:
         raise ALException('Array dimension size cannot be < 0')
-        
+
     cDim = npSizeArray.ndim
-    
+
     cdef int * cSizeArray = <int*> npSizeArray.data
     #if np.amin(npSizeArray) == 0:
     #    return 0
-    
+
     npDataType = inputData.dtype
     if np.issubdtype(npDataType, np.signedinteger):
         normalizedArray = inputData.astype(np.int32)
@@ -1069,31 +1132,31 @@ def al_setvalue_parameter_plugin(parameter_name, inputData, pluginName):
     else:
         raise ALException('UNKNOWN DATA TYPE :' + str(npDataType))
 
-    if not normalizedArray.flags['F_CONTIGUOUS']:    
+    if not normalizedArray.flags['F_CONTIGUOUS']:
         normalizedArray = np.asfortranarray(normalizedArray)
 
     cdef void * cData = <void*> normalizedArray.data
-  
+
     al_status = ll.al_setvalue_parameter_plugin(parameter_name.encode('UTF-8'), cDataType, cDim, &(cSizeArray[0]), cData, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.code)
     return al_status.code
-    
-    
+
+
 def al_setvalue_int_scalar_parameter_plugin(parameter_name, parameter_value, pluginName):
     #cdef int[:] cSizeArray = cvarray(shape=(dim,), itemsize=sizeof(int), format="i")
     cdef int p = parameter_value
     al_status = ll.al_setvalue_int_scalar_parameter_plugin(parameter_name.encode('UTF-8'), p, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.code)
     return al_status.code
-    
-    
+
+
 def al_setvalue_double_scalar_parameter_plugin(parameter_name, parameter_value, pluginName):
     cdef double p = parameter_value
     al_status = ll.al_setvalue_double_scalar_parameter_plugin(parameter_name.encode('UTF-8'), p, pluginName.encode('UTF-8'))
     if al_status.code < 0:
-        raise Exception('Error while setting parameter value for plugin:', al_status.message)
+        raise get_proper_exception_class('Error while setting parameter value for plugin: ' + al_status.message, al_status.code)
     return al_status.code
 
 def al_get_occurrences(ctx, ids_name):
@@ -1105,7 +1168,7 @@ def al_get_occurrences(ctx, ids_name):
     al_status = ll.al_get_occurrences(ctx, ids_name.encode('UTF-8'), &occurrences_list, &cSize)
 
     if al_status.code < 0:
-        raise ALException('Error while calling al_get_occurrences:', al_status.message)
+        raise get_proper_exception_class('Error while calling al_get_occurrences: ' + al_status.message, al_status.code)
 
     if cSize != 0:
         arrayMemView  = view.array(shape=(cSize,), itemsize = sizeof(int), format = "i",  mode="fortran", allocate_buffer=False)
