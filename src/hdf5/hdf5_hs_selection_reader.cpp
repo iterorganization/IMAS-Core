@@ -392,7 +392,7 @@ bool HDF5HsSelectionReader::isRequestInExtent(const std::vector < int >&current_
         return true;
     for (int i = 0; i < AOSRank; i++) {
         if (current_arrctx_indices[i] > int (dataspace_dims[i] - 1)) {
-            printf("current_arrctx_indices[%d]=%d, largest_dims[%d] - 1 = %d\n", i, current_arrctx_indices[i], i, int (dataspace_dims[i] - 1));
+            //printf("current_arrctx_indices[%d]=%d, largest_dims[%d] - 1 = %d\n", i, current_arrctx_indices[i], i, int (dataspace_dims[i] - 1));
             return false;
         }
     }

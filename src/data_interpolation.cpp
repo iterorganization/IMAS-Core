@@ -119,7 +119,6 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
         {
             closest = slice_inf;
         }
-        printf("returning closest index, slice_inf=%d, slice_sup=%d\n", slice_inf, slice_sup);
         return closest;
         break;
     }
@@ -129,7 +128,6 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
         closest = slice_inf;
         if (slice_sup > 0 && ((fabs(requested_time - time_vector[slice_sup]) < std::numeric_limits<double>::epsilon()) || (requested_time > time_vector[slice_sup])))
             closest = slice_sup;
-        printf("returning previous index, slice_inf=%d, slice_sup=%d\n", slice_inf, slice_sup);
         return closest;
         break;
     }
@@ -147,7 +145,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
                                     std::map<std::string, double> &slices_times, double requested_time, void **result, int interp)
 {
 
-    printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f, interp=%d\n", requested_time, interp);
+    //printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f, interp=%d\n", requested_time, interp);
 
     if (shape == 0)
     {

@@ -428,7 +428,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         }
     }
 
-    std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
+    //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
 
     bool is_homogeneous_time_basis_dataset = (tensorized_path == HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
     std::string suffix = std::string("&") + std::string(HOMOGENEOUS_TIME_BASIS_FIELD_NAME);

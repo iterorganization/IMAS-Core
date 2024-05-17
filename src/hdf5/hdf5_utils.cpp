@@ -21,7 +21,7 @@ HDF5Utils::~HDF5Utils()
 {
 }
 
-bool HDF5Utils::debug = true;
+bool HDF5Utils::debug = false;
 
 int
  HDF5Utils::openPulse(DataEntryContext * ctx, int mode, std::string & backend_version, hid_t * file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_paths_strategy, std::string & files_directory, std::string & relative_file_path, std::string &pulseFilePath)
@@ -40,8 +40,8 @@ int
     //H5Eget_auto(current_stack_id, &old_func, &old_client_data); 
 
     /* Turn off error handling */
-    //if (!debug)
-        //H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    if (!debug)
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     assert(mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE);
 
     if (*file_id != -1)
@@ -116,8 +116,8 @@ void
     //H5Eget_auto(current_stack_id, &old_func, &old_client_data);
 
     /* Turn off error handling */
-    //if (!debug)
-    //    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    if (!debug)
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
     
     if (*file_id != -1)
         hdf5_utils.closeMasterFile(file_id);
