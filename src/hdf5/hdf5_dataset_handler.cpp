@@ -1215,7 +1215,6 @@ bool HDF5DataSetHandler::isRequestInExtent(const std::vector < int >&current_arr
     }
     for (int i = 0; i < AOSRank; i++) {
         if (current_arrctx_indices[i] > int (largest_dims[i] - 1)) {
-            //printf("current_arrctx_indices[%d]=%d, largest_dims[%d] - 1=%d", i, current_arrctx_indices[i], i, int (largest_dims[i] - 1));
             return false;
 		}
     }

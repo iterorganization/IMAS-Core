@@ -272,9 +272,9 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     interpmode = alconst::undefined_interp;
     time_range.enabled = false;
     /*time_range.enabled = true;
-    time_range.dtime = 0.02;
-    time_range.tmin = 0.3;
-    time_range.tmax = 0.401;
+    time_range.dtime = 0.05;
+    time_range.tmin = 0.2;
+    time_range.tmax = 0.501;
     time_range.interpolation_method = 3;*/
 
     try {

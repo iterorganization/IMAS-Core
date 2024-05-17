@@ -101,6 +101,11 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
     times_indices[SLICE_INF] = slice_inf;
     times_indices[SLICE_SUP] = slice_sup;
 
+    /*printf("requested_time=%f\n", requested_time);
+    for (int i = 0; i < time_vector.size(); i++) {
+        printf("time_vector[%d]=%f\n", i, time_vector[i]);
+    }*/
+
     switch (interp)
     {
 
@@ -114,6 +119,7 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
         {
             closest = slice_inf;
         }
+        printf("returning closest index, slice_inf=%d, slice_sup=%d\n", slice_inf, slice_sup);
         return closest;
         break;
     }
@@ -123,6 +129,7 @@ int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::v
         closest = slice_inf;
         if (slice_sup > 0 && ((fabs(requested_time - time_vector[slice_sup]) < std::numeric_limits<double>::epsilon()) || (requested_time > time_vector[slice_sup])))
             closest = slice_sup;
+        printf("returning previous index, slice_inf=%d, slice_sup=%d\n", slice_inf, slice_sup);
         return closest;
         break;
     }
@@ -140,7 +147,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
                                     std::map<std::string, double> &slices_times, double requested_time, void **result, int interp)
 {
 
-    //printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f, interp=%d\n", requested_time, interp);
+    printf("DataInterpolation::interpolate:: performing data interpolation at requested_time=%f, interp=%d\n", requested_time, interp);
 
     if (shape == 0)
     {
@@ -190,6 +197,12 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
         interpolation_factor = (requested_time - time_slice_inf) / (time_slice_sup - time_slice_inf);
     }
 
+    if (requested_time < time_slice_inf)
+        interpolation_factor = 0.;
+
+    else if (requested_time > time_slice_sup)
+        interpolation_factor = 1.;
+
     //printf("interpolation_factor=%f, time_slice_inf=%f, time_slice_sup=%f\n", interpolation_factor, time_slice_inf, time_slice_sup);
 
     //Making linear interpolation
@@ -222,6 +235,9 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
             for (size_t i = 0; i < shape; i++)
                 data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * interpolation_factor;
         }
+        /*for (size_t i = 0; i < shape; i++) {
+            printf("result[%d] = %f\n", i, data_double[i]);
+         }*/
         *result = (void *)data_double;
         break;
     }
@@ -234,7 +250,8 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
         {
             strcpy(data_str, ""); //returning an empty string since values from neighboring slices are different
         }
-        *result = (void *)data_str;
+        char* p = (char*) *result;
+        p = data_str;
         break;
     }
     }
@@ -283,7 +300,7 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int time_slice_shape, void *data,
                                                    const std::vector<double> &time_vector, void **result, int interp)
 {
-    //printf("calling interpolate_with_resampling...\n");
+    //printf("calling interpolate_with_resampling using interp=%d...\n", interp);
     //data is a pointer to data limited to a time range
 
     int start_index;
