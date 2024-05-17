@@ -18,6 +18,8 @@ set(AL_COMMON_VERSION
     "main"
     CACHE STRING "Git commit/tag/branch of AL-common")
 
+set(FETCHCONTENT_QUIET, OFF)
+
 include(FetchContent)
 
 # Load common assets
