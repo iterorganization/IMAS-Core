@@ -3,8 +3,9 @@
 
 #include "access_layer_base_plugin.h"
 #include "readback_plugin_feature.h"
+#include "iextended_access_layer_plugin.h"
 
-class access_layer_plugin : public access_layer_base_plugin, public readback_plugin_feature {
+class access_layer_plugin : public access_layer_base_plugin, public readback_plugin_feature, public IExtendedAccessLayerPlugin {
 
     public:
 
@@ -13,7 +14,6 @@ class access_layer_plugin : public access_layer_base_plugin, public readback_plu
     
     virtual void begin_global_action(int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx) = 0;
     virtual void begin_slice_action(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) = 0;
-    virtual void begin_timerange_action(int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx) = 0;
     virtual void begin_arraystruct_action(int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize) = 0;
     virtual void end_action(int ctx) = 0; 
 
@@ -21,6 +21,8 @@ class access_layer_plugin : public access_layer_base_plugin, public readback_plu
     virtual void write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size) = 0;
 
     virtual plugin::OPERATION node_operation(const std::string &path) = 0;
+
+    void begin_timerange_action(int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx);
 };
 
 #endif
