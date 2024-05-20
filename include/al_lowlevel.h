@@ -27,7 +27,7 @@
 #include <map>
 #include <mutex>
 #include <complex>
-
+#include <string>
 
 /**
    Holds a plugin.
@@ -221,20 +221,16 @@ private:
   static int maxStoreElt;                         /**< size of allocated Store */
 };
 
-
-
 extern "C"
 {
 #endif
 
   /******************** DEFINITION OF THE C API ********************/
-
-  typedef struct 
-  {
-    int code;
-    char message[MAX_ERR_MSG_LEN];
-  } al_status_t;
-
+   typedef struct 
+   {
+      int code;
+      char message[MAX_ERR_MSG_LEN];
+   } al_status_t;
 
   /**
      Return all the Context information corresponding to the passed Context identifier.
@@ -266,6 +262,7 @@ extern "C"
      @param[out] dectxID data entry context id [_null context if = 0_] 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
+
   LIBRARY_API al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID);
 
   /**
@@ -488,6 +485,20 @@ extern "C"
 
 #if defined(__cplusplus)
 }
+/**
+   Opens a database entry.
+   This function opens an IMAS data entry.
+   @param[in] uri URI of the IMAS data entry
+   @param[in] mode opening option:
+   - OPEN_PULSE = open an existing pulse (only if exist)
+   - FORCE_OPEN_PULSE = open a pulse (create it if not exist)
+   - CREATE_PULSE = create a new pulse (do not overwrite if already exist)
+   - FORCE_CREATE_PULSE = create a new pulse (erase old one if already exist)
+   @param[out] dectxID data entry context id [_null context if = 0_] 
+   @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+*/
+   LIBRARY_API al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID);
+
 #endif
 
 
