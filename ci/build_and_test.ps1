@@ -1,6 +1,6 @@
 
 IF ($null -ne $env:bamboo_HTTP_AUTH_BEARER_PASSWORD) {
-  git config --local http.https://git.iter.org/.extraheader "Authorization: Bearer $env:bamboo_HTTP_AUTH_BEARER_PASSWORD"
+  git config --global http.https://git.iter.org/.extraheader "Authorization: Bearer $env:bamboo_HTTP_AUTH_BEARER_PASSWORD"
 }
 
 if (Test-Path 'build') {
