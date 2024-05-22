@@ -32,7 +32,7 @@ $CMAKE_ARGS = @(
   "-DDD_VERSION=master/3"
 )
 
-cmake -Bbuild @CMAKE_ARGS --trace-expand
+cmake -Bbuild @CMAKE_ARGS
 cmake --build build --target install
 
 Get-ChildItem build\test-install -Name -Recurse  | select-string "^(?!.*numpy)"
