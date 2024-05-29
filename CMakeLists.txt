@@ -179,8 +179,9 @@ if(AL_PYTHON_BINDINGS)
       CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
             -m pip install imas_core
             --prefix=${CMAKE_INSTALL_PREFIX}
-	    --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
+	        --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
             --force-reinstall
+            --no-deps
 	    )"
       DEPENDS al-python-bindings
       )
