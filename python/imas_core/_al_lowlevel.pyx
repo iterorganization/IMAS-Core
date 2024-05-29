@@ -818,7 +818,6 @@ def al_read_data_array(ctx, fieldPath, pTimebasePath, dataType, dim):
     cdef void * cData
     cdef int[:] cSizeArray = cvarray(shape=(dim,), itemsize=sizeof(int), format="i")
 
-    cdef np.ndarray npSizeArray
     cdef view.array arrayMemView
 
     if not PyBytes_Check(fieldPath):
@@ -838,16 +837,9 @@ def al_read_data_array(ctx, fieldPath, pTimebasePath, dataType, dim):
 
     if cData is NULL:
         return al_status.code, None
-
-    npSizeArray = np.reshape(cSizeArray, (dim))
-
-    # checking if an array is empty
-    if (npSizeArray == 0).all():
-        return al_status.code, None
-
-    # checking if any size is < 1
-    if np.amin(npSizeArray) < 1:
-        return al_status.code, None
+    for dimsize in cSizeArray:
+        if dimsize == <int>0:
+            return al_status.code, None
 
     if dataType == INTEGER_DATA:
         item_size = sizeof(int)
@@ -864,7 +856,7 @@ def al_read_data_array(ctx, fieldPath, pTimebasePath, dataType, dim):
     else:
         raise ALException('UNKNOWN DATA TYPE :' + str(dataType))
 
-    arrayMemView  = view.array(shape = tuple(npSizeArray), itemsize = item_size, format = item_type,  mode="fortran", allocate_buffer=False)
+    arrayMemView  = view.array(shape = tuple(cSizeArray), itemsize = item_size, format = item_type,  mode="fortran", allocate_buffer=False)
     arrayMemView.data = <char*  > cData
     arrayMemView.callback_free_data = free
 
