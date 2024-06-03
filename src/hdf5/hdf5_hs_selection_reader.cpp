@@ -9,10 +9,10 @@
 HDF5HsSelectionReader::HDF5HsSelectionReader(int dataset_rank_, hid_t dataset_id_, hid_t dataspace_, hsize_t *dims, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(dataset_rank_), AOSRank(AOSRank_), dtype_id(-1), dataspace(dataspace_), memspace(-1), buffer_size(0)
 {
     memcpy(dataspace_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
-    init(dataset_id, datatype_, AOSRank_, dim);
+    init(dataset_id, datatype_, dim);
 }
 
-void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, int *dim)
+void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int *dim)
 {
     switch (datatype) {
 
@@ -61,6 +61,7 @@ void HDF5HsSelectionReader::init(hid_t dataset_id, int datatype_, int AOSRank_, 
     }
     setBufferSize();
     this->dim = *dim;
+    this->time_range.enabled = false;
 
 }
 
@@ -84,6 +85,13 @@ void
     for (int i = 0; i < dim; i++) {
         size[i] = size_[i];
     }
+    setBufferSize();
+}
+
+void
+ HDF5HsSelectionReader::setTimeRange(int dim, int timeRange)
+{
+    size[dim - 1] = timeRange;
     setBufferSize();
 }
 
@@ -222,10 +230,15 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     if (slice_mode == SLICE_OP && isTimed && timed_AOS_index < (int) current_arrctx_indices.size()) {
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
+    else if (time_range.enabled && time_range.dtime != -1 && isTimed && timed_AOS_index < (int) current_arrctx_indices.size()) {
+        current_arrctx_indices[timed_AOS_index] = slice_index;
+    }
+
+    //printf("HDF5HsSelectionReader::setHyperSlabs::timed_AOS_index=%d, AOSRank=%d\n", timed_AOS_index, AOSRank);
 
     for (int i = 0; i < AOSRank; i++) {
 
-        if (current_arrctx_indices.size() == 0) {       //data is not located in an AOS
+        if (current_arrctx_indices.size() == 0 || count_along_dynamic_aos) {       //data are not located in an AOS
             offset[i] = 0;
         } else {
             offset[i] = current_arrctx_indices[i];
@@ -245,7 +258,12 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
             offset[i + AOSRank] = slice_index;  // when sliced and not timed, offset_out = slice_index, count_out = 1
             count[i + AOSRank] = 1;
         } else {
-            offset[i + AOSRank] = 0;
+            if (time_range.enabled && timed_AOS_index == -1) {
+                offset[i + AOSRank] = time_range.tmin_index;
+            }
+            else {
+                offset[i + AOSRank] = 0;
+            }
             count[i + AOSRank] = size[dim - i - 1];
         }
     }
@@ -266,9 +284,8 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     }
     std::cout << "---------file:: dataspace dimensions in setHyperSlabs" << std::endl;*/
 
+    herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count, NULL);
 
-    herr_t status = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, offset, NULL, count,
-                                        NULL);
 	/*int n = H5Sget_select_npoints( dataspace );
        std::cout << "n(dataspace) = " << n << std::endl;*/
 
@@ -281,7 +298,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     hsize_t dims[H5S_MAX_RANK];
     hsize_t maxdims[H5S_MAX_RANK];
 
-//creating selection in the memory dataspace
+    //creating selection in the memory dataspace
     for (int i = 0; i < AOSRank; i++) {
         dims[i] = 1;
         offset_out[i] = 0;
@@ -291,11 +308,12 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     bool slicing = (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1);
 
     if (timed_AOS_index != -1 && count_along_dynamic_aos) { //used for getting the inhomogeneous time dataset
-        dims[0] = dataspace_dims[timed_AOS_index];
-        count_out[0] = dims[0];
+            dims[0] = dataspace_dims[timed_AOS_index];
+            count_out[0] = dims[0];
     }
     else {
         for (int i = 0; i < dataset_rank - AOSRank; i++) {
+
             dims[i + AOSRank] = (hsize_t) size[dim - i - 1];
     
             if (slicing && i == 0)       //Taking the slice on the latest dimension (e.g time dimension) if required
@@ -363,15 +381,6 @@ bool HDF5HsSelectionReader::memSpaceHasChanged(hsize_t * dims)
     return false;
 }
 
-/*bool HDF5HsSelectionReader::fileSpaceHasChanged() {
-  for (int i = 0; i < dataset_rank; i++) {
-    if (dataspace_dims[i] != filespace_dims_copy[i]) {
-      return true;
-    }
-  }
-  return false;
-}*/
-
 int HDF5HsSelectionReader::getShape(int axis_index) const
 {
     return dataspace_dims[axis_index];
@@ -382,8 +391,10 @@ bool HDF5HsSelectionReader::isRequestInExtent(const std::vector < int >&current_
     if (current_arrctx_indices.size() == 0)
         return true;
     for (int i = 0; i < AOSRank; i++) {
-        if (current_arrctx_indices[i] > int (dataspace_dims[i] - 1))
+        if (current_arrctx_indices[i] > int (dataspace_dims[i] - 1)) {
+            //printf("current_arrctx_indices[%d]=%d, largest_dims[%d] - 1 = %d\n", i, current_arrctx_indices[i], i, int (dataspace_dims[i] - 1));
             return false;
+        }
     }
     return true;
 }

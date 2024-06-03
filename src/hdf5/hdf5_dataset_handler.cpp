@@ -237,6 +237,7 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
 		
 		if (datatype != alconst::char_data) {
     		this->AOSRank = this->dataset_rank - dim;
+            //printf("HDF5DataSetHandler::open:this->AOSRank=%d, this->dataset_rank=%d, dim=%d\n", this->AOSRank, this->dataset_rank, dim);
 		}
 		else {
 			if (dim == 1) {
@@ -1158,8 +1159,15 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
 }
 
 void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
+    HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+
+    if (hsSelectionReader.time_range.enabled) {
+         readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
+         return;
+    }
+
     if (useBuffering) {
-        HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+        
         if (datatype != alconst::char_data) {
             if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
                 if (full_int_data_set_buffer==NULL)
@@ -1202,8 +1210,9 @@ void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indic
 
 bool HDF5DataSetHandler::isRequestInExtent(const std::vector < int >&current_arrctx_indices)
 {
-    if (current_arrctx_indices.size() == 0)
+    if (current_arrctx_indices.size() == 0) {
         return true;
+    }
     for (int i = 0; i < AOSRank; i++) {
         if (current_arrctx_indices[i] > int (largest_dims[i] - 1)) {
             return false;

@@ -10,6 +10,8 @@
 #include <vector>
 #include <list>
 
+#include "data_interpolation.h"
+
 class HDF5Backend:public Backend {
   private:
     
@@ -36,6 +38,8 @@ class HDF5Backend:public Backend {
 
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
     void beginReadArraystructAction(ArraystructContext * ctx, int *size);
+
+    DataInterpolation *data_interpolation_component;
 
   public:
 
@@ -129,6 +133,14 @@ class HDF5Backend:public Backend {
     void beginAction(OperationContext * ctx) override;
 
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+
+    bool performsTimeDataInterpolation() {
+      return true;
+    }
+
+    void setDataInterpolationComponent(DataInterpolation *component) {
+      this->data_interpolation_component = component;
+    }
 
 };
 

@@ -5,6 +5,7 @@
 #include "al_backend.h"
 #include "hdf5_hs_selection_reader.h"
 #include "hdf5_dataset_handler.h"
+#include "data_interpolation.h"
 
 #include <memory>
 #include <vector>
@@ -34,8 +35,14 @@ class HDF5Reader {
     
     int slice_mode;
 
-    int getSliceIndex(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int *slice_sup, 
-                      double *linear_interpolation_factor, int timed_AOS_index, const std::vector < int > &current_arrctx_indices, bool *ignore_linear_interpolation);
+    DataInterpolation *data_interpolation_component;
+
+    void configureTimeRange(OperationContext *opctx, const std::string &timebasename, 
+      HDF5HsSelectionReader &hsSelectionReader, const std::vector <int> &current_arrctx_indices, hid_t gid, 
+      bool is_dynamic, bool isTimed, int timed_AOS_index, const std::vector<double> &time_basis_vector, int *size, int dim);
+
+    void getTimeVector(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int timed_AOS_index, 
+    const std::vector < int > &current_arrctx_indices, double **time_vector, size_t *timeVectorLength);
     int getPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, 
 			    int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes, 
 			    bool isOpenedShapesDataSet, const std::vector < int > &current_arrctx_indices);
@@ -55,16 +62,18 @@ class HDF5Reader {
 
     std::string getTimeVectorDataSetName(int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string timebasename, int timed_AOS_index);
-    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name);
+    std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name, int time_vector_dim);
 
     int exit_request(std::unique_ptr < HDF5DataSetHandler > &data_set, int exit_status);
     DataEntryContext* getDataEntryContext(Context * ctx);
+
+    int fixCharDataSet(int datatype, void **data, int *size, int dim);
 
     bool INTERPOLATION_WARNING;
 
   public:
 
-     HDF5Reader(std::string backend_version_);
+     HDF5Reader(std::string backend_version_, DataInterpolation *data_interpolation_component_);
     ~HDF5Reader();
 
     

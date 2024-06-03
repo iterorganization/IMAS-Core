@@ -71,6 +71,7 @@ public:
 
   static void beginGlobalActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx);
   static void beginSliceActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
+  static void beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx);
   static void beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
   static void endActionPlugin(int ctxID);
   static void readDataPlugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
@@ -321,6 +322,34 @@ extern "C"
 						 int interpmode,
 						 int *opctx);
 
+   /**
+     Starts an I/O action on a DATAOBJECT over a time range.
+     This function gives a new operation context for the duration of an action on a time range.  
+     @param[in] ctx pulse context (from al_begin_dataentry_action())
+     @param[in] dataobjectname name of the DATAOBJECT
+     @param[in] rwmode mode for this operation:
+     - READ_OP: read operation
+     - WRITE_OP: write operation
+     @param[in] tmin which is the minimum time of the time range interval
+     @param[in] tmax which is the maximum time of the time range interval
+     @param[in] dtime which is the time increment of the time range interval. If dtime != -1, data are resampled on a new homogeneous time vector 
+     @param[in] interpmode mode for interpolation:
+     - CLOSEST_INTERP take the slice at the closest time
+     - PREVIOUS_INTERP take the slice at the previous time
+     - LINEAR_INTERP interpolate the slice between the values of the previous and next slice
+     - UNDEFINED_INTERP if not relevant (for write operations)
+     @param[out] opctx operation context id [_null context if = 0_]
+     @result error status [_success if al_status_t.code = 0 or failure if < 0_]
+  */
+  LIBRARY_API al_status_t al_plugin_begin_timerange_action(int ctx,
+						 const char *dataobjectname,
+						 int rwmode,
+						 double tmin,
+                   double tmax,
+                   double dtime,
+						 int interpmode,
+						 int *opctx);
+
   /**
      Stops an I/O action.
      This function stop the current action designed by the context passed as argument. This context is then 
@@ -446,6 +475,8 @@ extern "C"
   LIBRARY_API al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
 
   LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+
+  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double dtime, int interpmode, int *octxID);
   
   LIBRARY_API al_status_t al_end_action(int ctxID);
 

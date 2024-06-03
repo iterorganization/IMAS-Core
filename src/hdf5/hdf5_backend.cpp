@@ -30,7 +30,7 @@ void
  HDF5Backend::createBackendComponents(std::string backend_version) {
     HDF5BackendFactory backendFactory(backend_version);
     hdf5Writer = backendFactory.createWriter();
-    hdf5Reader = backendFactory.createReader();
+    hdf5Reader = backendFactory.createReader(data_interpolation_component);
     eventsHandler = backendFactory.createEventsHandler();
 }
 
@@ -59,7 +59,7 @@ std::pair<int,int> HDF5Backend::getVersion(DataEntryContext *ctx)
       }
       
       HDF5BackendFactory backendFactory(backend_version);
-      auto hdf5Reader_version = backendFactory.createReader();
+      auto hdf5Reader_version = backendFactory.createReader(data_interpolation_component);
       if (!masterFileAlreadyOpened) //the master pulse file is closed only if it was already closed before to call the getVersion() method
         hdf5Reader_version->closePulse(ctx, OPEN_PULSE, &this->file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     }

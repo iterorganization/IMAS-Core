@@ -92,6 +92,14 @@ public:
 
   void get_occurrences(const  char* ids_name, int** occurrences_list, int* size) override;
 
+  bool performsTimeDataInterpolation() {
+    return false;
+  }
+
+  void setDataInterpolationComponent(DataInterpolation *component) {
+    throw ALBackendException("ASCII backend does not support time slices operations",LOG);
+  }
+
 };
 
 #endif

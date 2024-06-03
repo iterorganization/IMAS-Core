@@ -14,6 +14,7 @@
 
 #define GLOBAL_OP                   OP_RANGE_0
 #define SLICE_OP                    OP_RANGE_0+1
+#define TIMERANGE_OP                OP_RANGE_0+2
 
 #define READ_OP                     OP_ACCESS_0
 #define WRITE_OP                    OP_ACCESS_0+1

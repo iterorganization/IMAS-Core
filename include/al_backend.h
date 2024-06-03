@@ -22,6 +22,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include "data_interpolation.h"
 
 /**
    Abstract Backend class.
@@ -165,13 +166,27 @@ public:
 
    
    /**
-    Return the list of non empty IDS occurrences.
+    Returns the list of non empty IDS occurrences.
     This function returns a list of IDS occurrences (integers) which are non empty in the database
     @param[out] list of non empty IDS occurrences (integers)
     @param[out] size of the list of non empty IDS occurrences (integers)
     @throw BackendException
   **/
   virtual void get_occurrences(const char* ids_name, int** occurrences_list, int* size) = 0;
+
+
+  /**
+    Returns true if the backend performs time data interpolation (e.g time slices operations or IMAS-3885 with data resampling), false otherwise.
+  **/
+  virtual bool performsTimeDataInterpolation() = 0;
+
+  /**
+    Sets the data interpolation component if the backend performs time data interpolation and needs this component.
+    This function is used by the LL framework during backend instanciation. 
+    Throws a backend exception if the backend does not perform time data interpolation.
+    @throw BackendException
+  **/
+  virtual void setDataInterpolationComponent(DataInterpolation *component) = 0;
 
 };
 

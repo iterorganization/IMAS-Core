@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 
+
 std::atomic<unsigned long int> Context::SID(0);
 
 
@@ -269,6 +270,12 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     rangemode = alconst::global_op;
     time = alconst::undefined_time;
     interpmode = alconst::undefined_interp;
+    time_range.enabled = false;
+    /*time_range.enabled = true;
+    time_range.dtime = 0.05;
+    time_range.tmin = 0.2;
+    time_range.tmax = 0.501;
+    time_range.interpolation_method = 3;*/
 
     try {
         alconst::op_access_list.at(access-OP_ACCESS_0);
@@ -315,6 +322,51 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (accessmode==alconst::read_op && interpmode==alconst::undefined_interp)
 	throw ALContextException("Missing interpmode",LOG);
     }
+  
+  time_range.enabled = false;
+
+  this->uid = ++SID;
+}
+
+OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
+				   int range, double tmin, double tmax, double dtime, int interp)
+  : pctx(ctx), dataobjectname(dataobject), time_range()
+{
+  try {
+    alconst::op_range_list.at(range-OP_RANGE_0);
+  } 
+  catch (const std::out_of_range& e) {
+    throw ALContextException("Wrong range mode "+std::to_string(range),LOG);
+  }
+
+  rangemode = range;
+
+  try {
+    alconst::op_access_list.at(access-OP_ACCESS_0);
+  } 
+  catch (const std::out_of_range& e) {
+    throw ALContextException("Wrong access mode "+std::to_string(access),LOG);
+  }
+  accessmode = access;
+
+  // test consistency [missing or wrong expected args, not all possible missmatches!]
+  if (rangemode==alconst::timerange_op)
+    {
+      if (dtime != -1 && interp==alconst::undefined_interp)
+	      throw ALContextException("Missing interpmode (dtime != -1)",LOG);
+    }
+  rangemode = alconst::global_op;
+  time_range.enabled = true;
+  time_range.dtime = dtime;
+  time_range.tmin = tmin;
+  time_range.tmax = tmax;
+  time_range.interpolation_method = interp;
+
+  /*printf("-->time_range.interp=%d\n", time_range.interpolation_method);
+  printf("-->time_range.dtime=%f\n", time_range.dtime);
+  printf("-->time_range.tmin=%f\n", time_range.tmin);
+  printf("-->time_range.tmax=%f\n", time_range.tmax);
+  printf("-->rangemode=%d\n", rangemode);*/
   this->uid = ++SID;
 }
 
@@ -381,6 +433,14 @@ int OperationContext::getInterpmode() const
 { 
   return interpmode; 
 }
+
+void OperationContext::getTimeRange(double *tmin, double *tmax, double *dtime, int *interp) const {
+  *tmin = time_range.tmin;
+  *tmax = time_range.tmax;
+  *dtime = time_range.dtime;
+  *interp = time_range.interpolation_method;
+}
+
 
 DataEntryContext* OperationContext::getDataEntryContext() const
 {

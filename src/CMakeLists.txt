@@ -10,6 +10,7 @@ target_sources( al PRIVATE
     memory_backend.cpp
     ascii_backend.cpp
     access_layer_plugin_manager.cpp
+    data_interpolation.cpp
 )
 
 target_include_directories( al PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
