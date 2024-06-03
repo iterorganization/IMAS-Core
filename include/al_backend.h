@@ -186,7 +186,7 @@ public:
     Throws a backend exception if the backend does not perform time data interpolation.
     @throw BackendException
   **/
-  virtual void setDataInterpolationComponent(DataInterpolation *component) = 0;
+  virtual void initDataInterpolationComponent() = 0;
 
 };
 

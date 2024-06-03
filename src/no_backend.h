@@ -68,7 +68,7 @@ public:
       return false;
     }
 
-  void setDataInterpolationComponent(DataInterpolation *component) {
+  void initDataInterpolationComponent() {
       throw ALBackendException("NoBackend backend does not support time slices operations",LOG);
   }
 

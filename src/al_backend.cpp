@@ -80,7 +80,7 @@ Backend* Backend::initBackend(int id)
     }
 
   if (be->performsTimeDataInterpolation()) 
-     be->setDataInterpolationComponent(new DataInterpolation());
+     be->initDataInterpolationComponent();
      
   return be;
 }

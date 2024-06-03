@@ -254,8 +254,8 @@ class LIBRARY_API MDSplusBackend:public Backend
       return true;
     }
 
-    void setDataInterpolationComponent(DataInterpolation *component) {
-      this->data_interpolation_component = component;
+    void initDataInterpolationComponent() {
+      this->data_interpolation_component = new DataInterpolation;
     }
 
 //Timebase cache

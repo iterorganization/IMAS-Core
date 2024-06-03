@@ -678,7 +678,7 @@ public:
       return false;
     }
 
-    void setDataInterpolationComponent(DataInterpolation *component) {
+    void initDataInterpolationComponent() {
       throw ALBackendException("Memory backend does not support time slices operations",LOG);
     }
 };

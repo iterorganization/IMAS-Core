@@ -174,7 +174,7 @@ public:
       return false;
     }
 
-    void setDataInterpolationComponent(DataInterpolation *component) {
+    void initDataInterpolationComponent() {
       throw ALBackendException("UDA backend does not support time slices operations",LOG);
     }
 
