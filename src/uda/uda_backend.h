@@ -170,12 +170,11 @@ public:
 
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
-    bool performsTimeDataInterpolation() {
-      return false;
-    }
+    bool performsTimeDataInterpolation();
 
     void initDataInterpolationComponent() {
-      throw ALBackendException("UDA backend does not support time slices operations",LOG);
+      // Do nothing, UDA plugin will need to initDataInterpolationComponent on data backend when it knows which backend
+      // is being used, i.e. when a URI is given.
     }
 
     

@@ -5,9 +5,13 @@
 #include <client/udaClient.h>
 #include <clientserver/udaTypes.h>
 
+#include "semver.hpp"
+
 #include "uda_utilities.hpp"
 #include "uda_xml.hpp"
 #include "uda_debug.hpp"
+
+using namespace semver::literals;
 
 namespace {
 
@@ -916,6 +920,39 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
     try {
         uda_client_.get(directive, "");
     } catch (const uda::UDAException& ex) {
+        throw ALException(ex.what(), LOG);
+    }
+}
+
+
+bool UDABackend::performsTimeDataInterpolation()
+{
+    if (verbose_) {
+        std::cout << "UDABackend performsTimeDataInterpolation\n";
+    }
+
+    std::string directive = plugin_ + "::version()";
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+    try {
+        const uda::Result& result = uda_client_.get(directive, "");
+        if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_STRING) {
+            const uda::Data* uda_data = result.data();
+            const uda::String* uda_string = dynamic_cast<const uda::String*>(uda_data);
+            if (uda_string == nullptr) {
+                throw ALException("Invalid string data returned", LOG);
+            }
+            // Return true if plugin is new enough that initDataInterpolationComponent is handled.
+            semver::version version = semver::version::parse(uda_string->str());
+            return version > "1.4.0"_v;
+        } else {
+            throw ALException("Invalid version returned from plugin", LOG);
+        }
+    } catch (const uda::UDAException& ex) {
+        throw ALException(ex.what(), LOG);
+    } catch (const semver::semver_exception& ex) {
         throw ALException(ex.what(), LOG);
     }
 }
