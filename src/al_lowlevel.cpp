@@ -1237,7 +1237,7 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
                          const char *tokamak, 
                          const char *version,
                          const char *options,
-                         char** uri) {
+                         const std::string uri) {
     al_status_t status;
     status.code = 0;
 
@@ -1262,6 +1262,20 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
         ALException::registerStatus(status.message, __func__, e);
     }
     return status;
+}
+
+al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
+                         const char *user, 
+                         const char *tokamak, 
+                         const char *version,
+                         const char *options,
+                         char** uri) {
+
+  std::string uri_str(uri);
+  return al_build_uri_from_legacy_parameters(backendID, pulse, run, user, tokamak, version, options, uri_str);
+
 }
 
 //HLI Wrappers for calling LL functions - Call plugins if required
