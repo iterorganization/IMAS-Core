@@ -166,6 +166,8 @@ int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_d
         buffer /= this->size[dim - 1];
     }
 
+    //printf("buffer size = %d\n", buffer);
+
     if (datatype != alconst::char_data) {
         *data = malloc(buffer);
         if (*data == nullptr) {
@@ -265,6 +267,9 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
                 offset[i + AOSRank] = 0;
             }
             count[i + AOSRank] = size[dim - i - 1];
+            int j = i + AOSRank;
+            if ( (count[j] + offset[j]) > dataspace_dims[j])
+                count[j] = dataspace_dims[j] - offset[j];
         }
     }
 
@@ -323,7 +328,8 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
                 dims[i + AOSRank] = 1;
             } else {
                 offset_out[i + AOSRank] = 0;
-                count_out[i + AOSRank] = size[dim - i - 1];
+                /*count_out[i + AOSRank] = size[dim - i - 1];*/
+                count_out[i + AOSRank] = count[i + AOSRank];
             }
         }
     }

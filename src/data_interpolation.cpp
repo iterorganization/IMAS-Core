@@ -14,11 +14,13 @@ DataInterpolation::DataInterpolation()
 void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, double dtime, const std::vector<double> &time_vector,
                                             int *time_min_index, int *time_max_index, int *range, int interp)
 {
-
+    //printf("tmin=%f, tmax=%f\n", tmin, tmax);
     if (dtime == -1)
     {
 
         *time_min_index = -1;
+        *time_max_index = -1;
+
         for (size_t i = 0; i < time_vector.size(); i++)
         {
             if (time_vector[i] >= tmin)
@@ -27,20 +29,21 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, double dti
                 break;
             }
         }
+        //printf("time_vector.size()=%d\n", time_vector.size());
 
         if (*time_min_index == -1)
         {
-            char message[200];
-            double max_tb_value = time_vector[time_vector.size() - 1];
-            sprintf(message, "Time range: specified time min value (%f) exceeds the largest value of the time basis vector: %f.", tmin, max_tb_value);
-            throw ALBackendException(message, LOG);
+            return;
         }
 
-        *time_max_index = -1;
+        const double default_value = -9.e40;
+
         for (size_t i = time_vector.size() - 1; i >= 0; i--)
         {
-            if (time_vector[i] <= tmax)
+
+            if (time_vector[i] != default_value && time_vector[i] <= tmax)
             {
+                //printf("found i = %d\n", i);
                 *time_max_index = i;
                 break;
             }
@@ -48,10 +51,7 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, double dti
 
         if (*time_max_index == -1)
         {
-            char message[200];
-            double min_tb_value = time_vector[0];
-            sprintf(message, "Time range: specified time max value (%f) lower than the min value of the time basis vector: %f.", tmax, min_tb_value);
-            throw ALBackendException(message, LOG);
+            return;
         }
 
         *range = *time_max_index - *time_min_index + 1;
@@ -230,6 +230,7 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
          }*/
         if (interpolation_factor != 0)
         {
+            //printf("shape = %d\n", shape);
             for (size_t i = 0; i < shape; i++)
                 data_double[i] = data_double[i] + (next_slice_data_double[i] - data_double[i]) * interpolation_factor;
         }
@@ -298,8 +299,10 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int time_slice_shape, void *data,
                                                    const std::vector<double> &time_vector, void **result, int interp)
 {
-    //printf("calling interpolate_with_resampling using interp=%d...\n", interp);
+    //printf("calling interpolate_with_resampling using interp=%d, time_slice_shape=%d, tmin=%f, tmax=%f, dtime=%f\n", interp, time_slice_shape, tmin, tmax, dtime);
     //data is a pointer to data limited to a time range
+    //for (int i = 0; i < time_vector.size(); i++)
+    //    printf("DataInterpolation::interpolate_with_resampling::time_vector[%d] = %f\n", i, time_vector[i]);
 
     int start_index;
     int stop_index;
@@ -345,13 +348,11 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
     int nb_slices = 0;
     double requested_time = tmin;
     //printf("tmax=%f\n", tmax);
-
+    //printf("--> DataInterpolation::interpolate_with_resampling::starting with requested_time=%f\n", requested_time);
 
     while (requested_time <= tmax)
     {
-        
         //printf("--> DataInterpolation::interpolate_with_resampling::requested_time=%f\n", requested_time);
-
         if (tmax > time_vector[time_vector.size() -1]) {
             //printf("time_vector[time_vector.size() -1]=%f\n", time_vector[time_vector.size() -1]);
             break;
@@ -360,7 +361,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
         void *interpolation_result;
 
         int requested_index = getSlicesTimesIndices(requested_time, time_vector, times_indices, interp);
+
         //printf("--> DataInterpolation::interpolate_with_resampling::requested_index=%d\n", requested_index);
+
         slices_times[SLICE_INF] = time_vector[requested_index];
 
         if (requested_index == times_indices[SLICE_SUP])
@@ -390,7 +393,7 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 
             if (interp == LINEAR_INTERP)
             {
-                if (offset < (stop_index - start_index) ) {
+                if (offset < time_vector.size()) {
                     memcpy(slice2, data_int + (offset + 1) * n, n * sizeof(int));
                     y_slices[SLICE_SUP] = slice2;
                 }
@@ -413,8 +416,8 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 
             if (interp == LINEAR_INTERP)
             {
-                //printf("offset=%d, stop_index - start_index=%d\n", offset, stop_index - start_index);
-                if (offset < (stop_index - start_index) ) {
+                //printf("offset=%d, start_index=%d, stop_index=%d, stop_index - start_index=%d\n", offset, start_index, stop_index, stop_index - start_index);
+                if (offset < time_vector.size()) {
                     memcpy(slice2, data_double + (offset + 1)* n, n * sizeof(double));
                     y_slices[SLICE_SUP] = slice2;
                 }
@@ -439,7 +442,7 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, dou
 
             if (interp == LINEAR_INTERP)
             {
-                if (offset < (stop_index - start_index) ) {
+                if (offset < time_vector.size()) {
                     memcpy(slice2, data_str + (offset + 1) * n, n);
                     y_slices[SLICE_SUP] = slice2;
                 }
