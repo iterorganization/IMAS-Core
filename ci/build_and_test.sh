@@ -4,7 +4,7 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-set -e -o pipefail
+# set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
@@ -12,24 +12,25 @@ echo "Loading modules..."
 module purge
 # Load modules:
 MODULES=(
-    CMake/3.20.1-GCCcore-10.2.0
+    # Required for configure, build, and install
+    CMake/3.27.6-GCCcore-13.2.0
+    Ninja/1.11.1-GCCcore-13.2.0
     # Required for building the core and backends
-    Boost/1.74.0-GCC-10.2.0
-    HDF5/1.10.7-GCCcore-10.2.0-serial
-    MDSplus/7.131.6-GCCcore-10.2.0
-    UDA/2.7.5-GCC-10.2.0
+    HDF5/1.14.3-gompi-2023b
+    Boost/1.83.0-GCC-13.2.0
+    UDA/2.7.5-GCC-13.2.0
     # Required for building MDSplus models
-    Saxon-HE/11.4-Java-11
-    MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
+    Saxon-HE/12.4-Java-21
+    MDSplus/7.132.0-GCCcore-13.2.0
     # Python bindings
-    Python/3.8.6-GCCcore-10.2.0
-    SciPy-bundle/2020.11-intel-2020b
+    Python/3.11.5-GCCcore-13.2.0
+    build/1.0.3-GCCcore-13.2.0
 )
 module load "${MODULES[@]}"
 
 # Debuggging:
 echo "Done loading modules"
-set -x
+# set -x
 
 # Create a local git configuration with our access token
 if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
@@ -40,8 +41,11 @@ if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
     git config -l
 fi
 
+# Ensure that the install directory is clean:
+rm -rf test-install
+
 # Ensure the build directory is clean:
-rm -rf build
+rm -rf build 
 
 # CMake configuration:
 CMAKE_ARGS=(
@@ -62,13 +66,27 @@ CMAKE_ARGS=(
     -D DD_VERSION=master/3
 )
 # Note: we don't set CC or CXX compiler, so CMake will pick the default (GCC) compilers
-cmake -B build "${CMAKE_ARGS[@]}"
+cmake -Bbuild -GNinja "${CMAKE_ARGS[@]}"
 
-# Build
-make -C build -j8 all
+# Build and install 
+cmake --build build --target install
 
-# Test install
-make -C build install
+# Basic import test (assumes AL_PYTHON_BINDINGS=ON)
+(
+    source $(pwd)/test-install/bin/al_env.sh
+    python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
+
+)
 
 # List installed files
-ls -lR test-install
+find test-install -not -path "*/numpy/*" -ls
+
+# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+module purge
+module load Python/3.11.5-GCCcore-13.2.0
+python3.11 -m venv build/pip_install 
+source build/pip_install/bin/activate 
+python3.11 -m pip install --find-links=build/dist imas-core[test,cov]
+pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
+coverage2clover -i coverage.xml -o clover.xml
+

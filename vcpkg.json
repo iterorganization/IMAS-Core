@@ -1,0 +1,15 @@
+{
+  "dependencies": [
+    {
+      "name": "dlfcn-win32",
+      "platform": "windows"
+    },
+    "hdf5",
+    {
+      "name": "pthreads",
+      "platform": "windows"
+    },
+    "boost-filesystem",
+    "boost-algorithm"
+  ]
+}
