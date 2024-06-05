@@ -23,10 +23,10 @@ std::unique_ptr < HDF5Writer > HDF5BackendFactory::createWriter()
 
 }
 
-std::unique_ptr < HDF5Reader > HDF5BackendFactory::createReader(DataInterpolation *data_interpolation_component)
+std::unique_ptr < HDF5Reader > HDF5BackendFactory::createReader()
 {
     if (backend_version_.compare("1.0") == 0) {
-        std::unique_ptr < HDF5Reader > reader = std::unique_ptr < HDF5Reader > (new HDF5Reader(backend_version_, data_interpolation_component));
+        std::unique_ptr < HDF5Reader > reader = std::unique_ptr < HDF5Reader > (new HDF5Reader(backend_version_));
         return reader;
     } else {
         std::string message("No backend reader with version: ");

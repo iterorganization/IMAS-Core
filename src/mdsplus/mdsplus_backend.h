@@ -61,7 +61,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     //std::vector<ArraystructContext *>arrayStructContextV;
     //std::vector<MDSplus::Apd *>arrayStructDataV;
 
-    DataInterpolation *data_interpolation_component;
+    DataInterpolation data_interpolation_component;
 
     MDSplus::Apd *getApdFromContext(ArraystructContext *);
     void addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData);
@@ -255,7 +255,6 @@ class LIBRARY_API MDSplusBackend:public Backend
     }
 
     void initDataInterpolationComponent() {
-      this->data_interpolation_component = new DataInterpolation;
     }
 
 //Timebase cache

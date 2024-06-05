@@ -39,8 +39,6 @@ class HDF5Backend:public Backend {
     void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
     void beginReadArraystructAction(ArraystructContext * ctx, int *size);
 
-    DataInterpolation *data_interpolation_component;
-
   public:
 
      HDF5Backend();
@@ -139,7 +137,7 @@ class HDF5Backend:public Backend {
     }
 
     void initDataInterpolationComponent() {
-      this->data_interpolation_component = new DataInterpolation;
+      
     }
 
 };

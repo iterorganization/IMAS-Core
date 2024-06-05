@@ -35,7 +35,7 @@ class HDF5Reader {
     
     int slice_mode;
 
-    DataInterpolation *data_interpolation_component;
+    DataInterpolation data_interpolation_component;
 
     void configureTimeRange(OperationContext *opctx, const std::string &timebasename, 
       HDF5HsSelectionReader &hsSelectionReader, const std::vector <int> &current_arrctx_indices, hid_t gid, 
@@ -74,7 +74,7 @@ class HDF5Reader {
 
   public:
 
-     HDF5Reader(std::string backend_version_, DataInterpolation *data_interpolation_component_);
+     HDF5Reader(std::string backend_version_);
     ~HDF5Reader();
 
     

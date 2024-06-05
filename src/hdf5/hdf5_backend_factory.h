@@ -28,7 +28,7 @@ class HDF5BackendFactory {
   /**
    Creates a reader instance according to the backend version passed to the factory.
    **/
-    std::unique_ptr < HDF5Reader > createReader(DataInterpolation *data_interpolation_component);
+    std::unique_ptr < HDF5Reader > createReader();
 
   /**
    Creates a events handler instance according to the backend version passed to the factory.
