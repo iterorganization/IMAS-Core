@@ -3,7 +3,7 @@
 raise_error_flag = False
 
 class ALException(Exception):
-    """Exception thrown by the Access Layer or IMAS Core."""
+    """Exception thrown by the Access Layer."""
 
     def __init__(self, message, errorStatus=None):
         self.errorStatus = errorStatus

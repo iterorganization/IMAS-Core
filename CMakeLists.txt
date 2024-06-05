@@ -1,7 +1,7 @@
 # CMake build configuration for Access Layer core
 cmake_minimum_required(VERSION 3.21)
 
-# Capture scikig build cmake.args 
+# Capture scikit build cmake.args 
 include(./skbuild-cmake-args.cmake)
 
 # Configure VCPKG 
