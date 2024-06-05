@@ -468,8 +468,6 @@ def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, np.n
         array = dtime.astype(np.float64)
         dtime_array = <double*> array.data
         dtime_size = array.size
-    else:
-        dtime_array = <double*> malloc(sizeof(double));
 
     cdef int opctx = -1
     al_status = ll.al_begin_timerange_action(
@@ -486,9 +484,6 @@ def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, np.n
 
     if al_status.code < 0:
         raise ALException(al_status.message, al_status.code)
-
-    if dtime_size == 0:
-        free(dtime_array);
 
     return opctx
 
