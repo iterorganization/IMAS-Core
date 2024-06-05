@@ -42,7 +42,7 @@ class HDF5Reader {
       bool is_dynamic, bool isTimed, int timed_AOS_index, const std::vector<double> &time_basis_vector, int *size, int dim);
 
     void getTimeVector(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int timed_AOS_index, 
-    const std::vector < int > &current_arrctx_indices, double **time_vector, size_t *timeVectorLength);
+    const std::vector < int > &current_arrctx_indices, std::vector<double> &time_basis_vector);
     int getPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, 
 			    int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes, 
 			    bool isOpenedShapesDataSet, const std::vector < int > &current_arrctx_indices);
@@ -68,6 +68,7 @@ class HDF5Reader {
     DataEntryContext* getDataEntryContext(Context * ctx);
 
     int fixCharDataSet(int datatype, void **data, int *size, int dim);
+    static bool isMatchingDefaultValue(double value);
 
     bool INTERPOLATION_WARNING;
 

@@ -698,7 +698,7 @@ void HDF5DataSetHandler::close()
             }
         }
     }
-    assert(H5Dclose (dataset_id) >=0);
+    H5Dclose (dataset_id);
 }
 
 void HDF5DataSetHandler::setBuffering(bool useBufferingOption) {
@@ -1117,7 +1117,7 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
     hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_index, timed_AOS_index, current_arrctx_indices);
    
     herr_t status = -1;
-    
+    //printf("inside readUsingHyperslabs\n");
     if (!read_strings) {
          hsSelectionReader.allocateBuffer(data, slice_mode, is_dynamic, isTimed, slice_index);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *data);
@@ -1153,7 +1153,7 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         
     if (status < 0) {
         char error_message[200];
-        sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
+        sprintf(error_message, "-->Unable to read dataset: %s\n", getName().c_str());
         throw ALBackendException(error_message, LOG);
     }
 }
@@ -1167,7 +1167,7 @@ void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indic
     }
 
     if (useBuffering) {
-        
+        //printf("using buffering...\n");
         if (datatype != alconst::char_data) {
             if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
                 if (full_int_data_set_buffer==NULL)

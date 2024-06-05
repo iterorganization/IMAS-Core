@@ -38,7 +38,7 @@ public:
   the time range input values tmin, tmax and the specified 'time_vector'. If dtime != -1, the interpolation method ('interp' argument) must be specified. The 
   number of time samples 'range' between 'time_min_index' and 'time_max_index' is also returned. 
   */
-  void getTimeRangeIndices(double tmin, double tmax, double dtime, const std::vector<double> &time_vector, 
+  void getTimeRangeIndices(double tmin, double tmax, std::vector<double> dtime, const std::vector<double> &time_vector, 
    int *time_min_index, int *time_max_index, int *range, int interp=-1);
 
   /* This function returns the index of the time vector sample corresponding to the requested time ('requested_time') using the interpolation method 'interp'.
@@ -59,11 +59,11 @@ public:
   using the interpolation method 'interp'. The times of the 2 slices are provided by slices_times['SLICE_INF'] and slices_times['SLICE_SUP']. The interpolation result 
   is returned in the *result pointer. If resampling is not required (dtime=-1), the interpolation method should be used instead.
   The new number of time slices is returned.*/
-  int interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int *size, int dim, void *data, 
+  int interpolate_with_resampling(double tmin, double tmax, std::vector<double> dtime, int datatype, int *size, int dim, void *data, 
     const std::vector<double> &time_vector, void **result, int interp);
 
   /* Same functionality as the previous function; however the (full) shape of a time slice is passed directly.*/
-  int interpolate_with_resampling(double tmin, double tmax, double dtime, int datatype, int shape, void *data, 
+  int interpolate_with_resampling(double tmin, double tmax, std::vector<double> dtime, int datatype, int shape, void *data, 
     const std::vector<double> &time_vector, void **result, int interp);
 
 /* This function resamples the data of a time basis vector according to the time range parameters.
@@ -72,7 +72,7 @@ If the time basis is located in a dynamic AOS, the value of its current index mu
 If the time basis is located in a static AOS, the 'timed_AOS_index' argument must be set to -1. 
 The resampling data are returned in the *result pointer.
 The new number of time slices is returned.*/
-int resample_timebasis(double tmin, double tmax, double dtime, int timed_AOS_index, void *data, void **result);
+int resample_timebasis(double tmin, double tmax, std::vector<double> dtime, int timed_AOS_index, std::vector<double> &time_basis, void **result);
 
 };
 

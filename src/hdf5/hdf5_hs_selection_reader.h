@@ -11,7 +11,7 @@
 
 struct TimeRange {
     bool enabled;
-    double dtime;
+    std::vector<double> dtime;
     int tmin_index;
     int tmax_index;
 };

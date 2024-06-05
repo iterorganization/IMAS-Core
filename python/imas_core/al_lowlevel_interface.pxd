@@ -18,7 +18,7 @@ cdef extern from "al_lowlevel.h":
 
     al_status_t al_begin_slice_action(int ctx, const char * dataobjectname, int rwmode, double time, int interpmode, int * opctx)
 
-    al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double dtime, int interpmode, int *octxID)
+    al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double * dtime, int * dtime_shape, int interpmode, int *octxID)
 
     al_status_t al_end_action(int ctx)
 

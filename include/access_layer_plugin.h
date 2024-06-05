@@ -13,7 +13,7 @@ class access_layer_plugin : public access_layer_base_plugin, public readback_plu
     
     virtual void begin_global_action(int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx) = 0;
     virtual void begin_slice_action(int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx) = 0;
-    virtual void begin_timerange_action(int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx) = 0;
+    virtual void begin_timerange_action(int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, std::vector<double> dtime, int interp, int opCtx) = 0;
     virtual void begin_arraystruct_action(int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize) = 0;
     virtual void end_action(int ctx) = 0; 
 
