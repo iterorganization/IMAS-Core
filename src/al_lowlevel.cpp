@@ -423,7 +423,7 @@ void LLplugin::beginSliceActionPlugin(const std::string &plugin_name, int pulseC
   al_plugin->begin_slice_action(pulseCtx, dataobjectname, mode, time, interp, opCtx);
 }
 
-void LLplugin::beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx) {
+void LLplugin::beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, std::vector<double> dtime, int interp, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
   access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
   al_plugin->begin_timerange_action(pulseCtx, dataobjectname, mode, tmin, tmax, dtime, interp, opCtx);
@@ -998,16 +998,19 @@ al_status_t al_plugin_begin_slice_action(int pctxID, const char* dataobjectname,
 }
 
 al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, 
-				   double tmin, double tmax, double dtime, int interpmode, int *octxID)
+				   double tmin, double tmax, double* dtime_buffer, int* dtime_shape, int interpmode, int *octxID)
 {
   al_status_t status;
-
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw ALLowlevelException("Wrong Context type stored",LOG);
+
+    std::vector<double> dtime;
+    if (*dtime_shape > 0)
+      dtime = std::vector<double> (dtime_buffer, dtime_buffer + *dtime_shape);
 
     OperationContext *octx= new OperationContext(pctx, 
 						 std::string(dataobjectname),
@@ -1018,7 +1021,6 @@ al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectn
              dtime,
 						 interpmode);
     lle.backend->beginAction(octx);
-
     switch (rwmode) {
     case alconst::write_op:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
@@ -1413,11 +1415,14 @@ al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rw
 }
 
 al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, 
-                   double tmin, double tmax, double dtime, int interpmode, int *octxID)
+                   double tmin, double tmax, double* dtime_buffer, int* dtime_shape, int interpmode, int *octxID)
 {
   al_status_t status;
 
   status.code = 0;
+  std::vector<double> dtime;
+    if (*dtime_shape > 0)
+      dtime = std::vector<double> (dtime_buffer, dtime_buffer + *dtime_shape);
 
   std::string dataobjectnameStr(dataobjectname);
   if(dataobjectnameStr.size() >= 2 && dataobjectnameStr.substr(dataobjectnameStr.size() - 2) == "/0") {
@@ -1425,12 +1430,13 @@ al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, in
   }
 
   try {
-    status = al_plugin_begin_timerange_action(pctxID, dataobjectnameStr.c_str(), rwmode, tmin, tmax , dtime, interpmode, octxID);
+    status = al_plugin_begin_timerange_action(pctxID, dataobjectnameStr.c_str(), rwmode, tmin, tmax, dtime_buffer, dtime_shape, interpmode, octxID);
     if (status.code != 0)
      return status;
     std::set<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);
     if (isPluginBound) {
+    std::vector<double> dtime(dtime_buffer, dtime_buffer + *dtime_shape);
 		for (const auto& pluginName : pluginsNames)
 		   LLplugin::beginTimeRangeActionPlugin(pluginName, pctxID, dataobjectnameStr.c_str(), rwmode, tmin, tmax, dtime, interpmode, *octxID);
 	}

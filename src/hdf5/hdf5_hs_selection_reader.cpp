@@ -232,7 +232,7 @@ int timed_AOS_index, std::vector < int > current_arrctx_indices, bool count_alon
     if (slice_mode == SLICE_OP && isTimed && timed_AOS_index < (int) current_arrctx_indices.size()) {
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
-    else if (time_range.enabled && time_range.dtime != -1 && isTimed && timed_AOS_index < (int) current_arrctx_indices.size()) {
+    else if (time_range.enabled && time_range.dtime.size() != 0 && isTimed && timed_AOS_index < (int) current_arrctx_indices.size()) {
         current_arrctx_indices[timed_AOS_index] = slice_index;
     }
 

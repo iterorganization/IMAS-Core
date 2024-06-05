@@ -248,7 +248,7 @@ public:
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
   */
   OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
-		   int range, double tmin, double tmax, double dtime, int interp);
+		   int range, double tmin, double tmax, std::vector<double> dtime, int interp);
 
   /**
      Operation context destructor.
@@ -339,7 +339,7 @@ public:
      - LINEAR_INTERP: interpolating linearly values at previous and next slices
      - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
   */
-  void getTimeRange(double *tmin, double *tmax, double *dtime, int *interp) const;
+  void getTimeRange(double *tmin, double *tmax, std::vector<double> &dtime, int *interp) const;
 
   /**
      Returns the associated DataEntryContext.
@@ -351,7 +351,7 @@ public:
     bool enabled;
     double tmin;
     double tmax;
-    double dtime;
+    std::vector<double> dtime;
     int interpolation_method;
    };
 

@@ -71,7 +71,7 @@ public:
 
   static void beginGlobalActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, const char* datapath, int mode, int opCtx);
   static void beginSliceActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double time, int interp, int opCtx);
-  static void beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, double dtime, int interp, int opCtx);
+  static void beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, std::vector<double> dtime, int interp, int opCtx);
   static void beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, const char* fieldPath, const char* timeBasePath, int *arraySize);
   static void endActionPlugin(int ctxID);
   static void readDataPlugin(const std::string &plugin_name, int ctx, const char* fieldPath, const char* timeBasePath, void **data, int datatype, int dim, int *size);
@@ -346,7 +346,8 @@ extern "C"
 						 int rwmode,
 						 double tmin,
                    double tmax,
-                   double dtime,
+                   double* dtime,
+                   double* dtime_shape,
 						 int interpmode,
 						 int *opctx);
 
@@ -476,7 +477,7 @@ extern "C"
 
   LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
 
-  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double dtime, int interpmode, int *octxID);
+  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double* dtime_buffer, int* dtime_shape, int interpmode, int *octxID);
   
   LIBRARY_API al_status_t al_end_action(int ctxID);
 

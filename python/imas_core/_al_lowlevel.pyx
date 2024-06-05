@@ -437,7 +437,7 @@ def al_begin_slice_action(pulseCtx, dataobjectname, rwmode, time, interpmode):
     return al_status.code, sliceOpCtx
 
 
-def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, dtime=None, interpmode=None):
+def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, np.ndarray dtime, interpmode=None):
     """Begin a time range action.
 
     Args:
@@ -458,6 +458,19 @@ def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, dtim
     if dtime is not None and interpmode is None:
         raise ValueError("Interpolation requested (dtime != None) but no interpolation mode provided.")
 
+    if dtime is not None and not isinstance(dtime, np.ndarray):
+        raise ValueError("Parameter 'dtime' should be a numpy array.")
+
+    cdef double * dtime_array = NULL;
+    cdef np.ndarray array
+    cdef int dtime_size = 0
+    if (dtime is not None):
+        array = dtime.astype(np.float64)
+        dtime_array = <double*> array.data
+        dtime_size = array.size
+    else:
+        dtime_array = <double*> malloc(sizeof(double));
+
     cdef int opctx = -1
     al_status = ll.al_begin_timerange_action(
         pulseCtx,
@@ -465,13 +478,17 @@ def al_begin_timerange_action(pulseCtx, dataobjectname, rwmode, tmin, tmax, dtim
         rwmode,
         tmin,
         tmax,
-        -1 if dtime is None else dtime,
+        dtime_array,
+        &dtime_size,
         interpmode or 0,
         &opctx
     )
 
     if al_status.code < 0:
         raise ALException(al_status.message, al_status.code)
+
+    if dtime_size == 0:
+        free(dtime_array);
 
     return opctx
 
