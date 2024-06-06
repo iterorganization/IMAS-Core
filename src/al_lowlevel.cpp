@@ -1233,19 +1233,14 @@ al_status_t al_iterate_over_arraystruct(int aosctxID,
 al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
                          const int pulse,
                          const int run, 
-                         const char *user, 
-                         const char *tokamak, 
-                         const char *version,
-                         const char *options,
-                         const std::string uri) {
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri) {
+
     al_status_t status;
     status.code = 0;
-
-    char opt[1024];
-    if (options == nullptr)
-       strcpy(opt, "");
-    else
-       strcpy(opt, options);
 
     try {
        DataEntryContext::build_uri_from_legacy_parameters(backendID, 
@@ -1254,7 +1249,7 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
                          user, 
                          tokamak, 
                          version,
-                         opt,
+                         options,
                          uri);
     }
     catch (const ALContextException& e) {
@@ -1272,10 +1267,32 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
                          const char *version,
                          const char *options,
                          char** uri) {
+    al_status_t status;
+    status.code = 0;
 
-  std::string uri_str(uri);
-  return al_build_uri_from_legacy_parameters(backendID, pulse, run, user, tokamak, version, options, uri_str);
-
+    char opt[1024];
+    if (options == nullptr) {
+      strcpy(opt, "");
+    }
+    else {
+      strcpy(opt, options);
+    }
+    
+    try {
+       DataEntryContext::build_uri_from_legacy_parameters(backendID, 
+                         pulse,
+                         run, 
+                         user, 
+                         tokamak, 
+                         version,
+                         opt,
+                         uri);
+    }
+    catch (const ALContextException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
 }
 
 //HLI Wrappers for calling LL functions - Call plugins if required
