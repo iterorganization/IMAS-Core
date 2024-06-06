@@ -270,9 +270,8 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
     rangemode = alconst::global_op;
     time = alconst::undefined_time;
     interpmode = alconst::undefined_interp;
-    time_range.enabled = false;
 
-    /*time_range.enabled = true;
+    /*
     std::vector<double> d;
     d.push_back(0.05);
     time_range.dtime = d;
@@ -327,8 +326,6 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (accessmode==alconst::read_op && interpmode==alconst::undefined_interp)
 	throw ALContextException("Missing interpmode",LOG);
     }
-  
-  time_range.enabled = false;
 
   this->uid = ++SID;
 }
@@ -360,8 +357,7 @@ OperationContext::OperationContext(DataEntryContext* ctx, std::string dataobject
       if (dtime.size() != 0 && interp==alconst::undefined_interp)
 	      throw ALContextException("Missing interpmode (dtime.size() != 0)",LOG);
     }
-  rangemode = alconst::global_op;
-  time_range.enabled = true;
+  rangemode = alconst::timerange_op;
   time_range.dtime = dtime;
   time_range.tmin = tmin;
   time_range.tmax = tmax;

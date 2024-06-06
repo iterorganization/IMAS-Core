@@ -348,7 +348,6 @@ public:
   DataEntryContext* getDataEntryContext() const;
 
   struct TimeRange {
-    bool enabled;
     double tmin;
     double tmax;
     std::vector<double> dtime;
