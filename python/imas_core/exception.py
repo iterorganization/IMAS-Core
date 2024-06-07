@@ -2,7 +2,7 @@
 
 from imas_core.al_defs import BACKEND_ERR, CONTEXT_ERR, LOWLEVEL_ERR
 
-raise_error_flag = False  # why is this here? If a constant then we should use upper()
+raise_error_flag = False
 
 
 class ALException(Exception):
