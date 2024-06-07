@@ -498,6 +498,14 @@ extern "C"
    @result error status [_success if al_status_t.code = 0 or failure if < 0_]
 */
    LIBRARY_API al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID);
+   LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri);
 
 #endif
 

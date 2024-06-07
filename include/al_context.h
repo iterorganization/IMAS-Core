@@ -27,6 +27,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <atomic>
+#include <string>
 
 #define CTX_TYPE 100
 #define CTX_PULSE_TYPE 101
@@ -157,6 +158,15 @@ public:
      @param[in] options options
      @param[out] uri URI string
    */
+  static void build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri);
+                         
   static void build_uri_from_legacy_parameters(const int backendID, 
                          const int pulse,
                          const int run, 
