@@ -4,33 +4,89 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-# set -e -o pipefail
+set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
 . /usr/share/Modules/init/sh
 module purge
-# Load modules:
+
+# Check for TOOLCHAIN
+TOOLCHAIN=${TOOLCHAIN:-foss-2023b}
+# Load modules that correspond to toolchain
+case "$TOOLCHAIN" in
+  *-2020b)
+echo "... 2020b"
 MODULES=(
-    # Required for configure, build, and install
+    CMake/3.24.3-GCCcore-10.2.0
+    Ninja/1.10.1-GCCcore-10.2.0
+    Boost/1.74.0-GCC-10.2.0
+    Saxon-HE/10.3-Java-11
+    Blitz++/1.0.2-GCCcore-10.2.0
+    Python/3.8.6-GCCcore-10.2.0
+    MDSplus/7.131.6-GCCcore-10.2.0
+    MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
+    UDA/2.7.5-GCC-10.2.0
+)
+  ;;&
+  *foss-2020b)
+echo "... foss-2020b"
+MODULES=(${MODULES[@]}
+    SciPy-bundle/2020.11-foss-2020b
+    HDF5/1.10.7-gompi-2020b
+    build/0.10.0-foss-2020b
+)
+  ;;&
+  *intel-2020b)
+echo "... intel-2020b"
+MODULES=(${MODULES[@]}
+    iccifort/2020.4.304
+    SciPy-bundle/2020.11-intel-2020b
+    HDF5/1.10.7-iimpi-2020b
+    build/0.10.0-intel-2020b
+)
+  ;;
+  *-2023b)
+echo "... 2023b"
+MODULES=(
     CMake/3.27.6-GCCcore-13.2.0
     Ninja/1.11.1-GCCcore-13.2.0
-    # Required for building the core and backends
-    HDF5/1.14.3-gompi-2023b
     Boost/1.83.0-GCC-13.2.0
     UDA/2.7.5-GCC-13.2.0
-    # Required for building MDSplus models
     Saxon-HE/12.4-Java-21
+    Blitz++/1.0.2-GCCcore-13.2.0
     MDSplus/7.132.0-GCCcore-13.2.0
-    # Python bindings
     Python/3.11.5-GCCcore-13.2.0
     build/1.0.3-GCCcore-13.2.0
+    scikit-build/0.17.6-GCCcore-13.2.0
+    Python/3.11.5-GCCcore-13.2.0
+    Python-bundle-PyPI/2023.10-GCCcore-13.2.0
 )
+  ;;&
+  *foss-2023b)
+echo "... foss-2023b"
+MODULES=(${MODULES[@]}
+    HDF5/1.14.3-gompi-2023b
+    SciPy-bundle/2023.11-gfbf-2023b
+)
+  ;;&
+  *intel-2023b)
+echo "... intel-2023b"
+MODULES=(${MODULES[@]}
+    intel/2023b
+    HDF5/1.14.3-iimpi-2023b
+    SciPy-bundle/2023.12-iimkl-2023b
+)
+  ;;
+esac
+echo "${MODULES[@]}" | tr " " "\n"
+
 module load "${MODULES[@]}"
 
 # Debuggging:
-echo "Done loading modules"
-# set -x
+echo "Done loading modules:"
+module list
+#set -x
 
 # Create a local git configuration with our access token
 if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
