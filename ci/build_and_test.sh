@@ -43,6 +43,10 @@ MODULES=(${MODULES[@]}
     HDF5/1.10.7-gompi-2020b
     build/0.10.0-foss-2020b
 )
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
+    -DCMAKE_C_COMPILER=${CC:-gcc}
+    -DCMAKE_CXX_COMPILER=${CXX:-g++}
+)
   ;;&
   *intel-2020b)
 echo "... intel-2020b"
@@ -51,6 +55,10 @@ MODULES=(${MODULES[@]}
     SciPy-bundle/2020.11-intel-2020b
     HDF5/1.10.7-iimpi-2020b
     build/0.10.0-intel-2020b
+)
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
+    -DCMAKE_C_COMPILER=${CC:-icc}
+    -DCMAKE_CXX_COMPILER=${CXX:-icpc}
 )
   ;;
   *-2023b)
@@ -79,6 +87,10 @@ MODULES=(${MODULES[@]}
     HDF5/1.14.3-gompi-2023b
     SciPy-bundle/2023.11-gfbf-2023b
 )
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
+    -DCMAKE_C_COMPILER=${CC:-gcc}
+    -DCMAKE_CXX_COMPILER=${CXX:-g++}
+)
   ;;&
   *intel-2023b)
 echo "... intel-2023b"
@@ -89,6 +101,10 @@ MODULES=(${MODULES[@]}
 )
 MODULES_TEST=(${MODULES_TEST[@]}
     intel/2023b
+)
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
+    -DCMAKE_C_COMPILER=${CC:-icx}
+    -DCMAKE_CXX_COMPILER=${CXX:-icpx}
 )
   ;;
 esac
@@ -124,7 +140,7 @@ rm -rf test-install
 rm -rf build
 
 # CMake configuration:
-CMAKE_ARGS=(
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
     # Enable all backends
     -D AL_BACKEND_HDF5=ON
