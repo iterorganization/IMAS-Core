@@ -8,7 +8,11 @@ set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
+if test -f /etc/profile.d/modules.sh ;then
+. /etc/profile.d/modules.sh
+else
 . /usr/share/Modules/init/sh
+fi
 module purge
 
 # Check for TOOLCHAIN
@@ -28,6 +32,9 @@ MODULES=(
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     UDA/2.7.5-GCC-10.2.0
 )
+MODULES_TEST=(
+    Python/3.8.6-GCCcore-10.2.0
+)
   ;;&
   *foss-2020b)
 echo "... foss-2020b"
@@ -35,10 +42,6 @@ MODULES=(${MODULES[@]}
     SciPy-bundle/2020.11-foss-2020b
     HDF5/1.10.7-gompi-2020b
     build/0.10.0-foss-2020b
-)
-CMAKE_ARGS=(${CMAKE_ARGS[@]}
-    # Work around Boost linker issues on 2020b toolchain
-    -D Boost_NO_BOOST_CMAKE=ON
 )
   ;;&
   *intel-2020b)
@@ -93,10 +96,17 @@ echo "${MODULES[@]}" | tr " " "\n"
 
 module load "${MODULES[@]}"
 
+
+if [ "$TOOLCHAIN" == "intel-2020b" ] ;then
+    # ibimf.so isn't on the LD_LIBRARY_PATH for intel/2020b, so add a path from iccifort to find it:
+    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$EBROOTICCIFORT/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin"
+fi
+
+
 # Debuggging:
 echo "Done loading modules:"
 module list
-#set -x
+set -x
 
 # Create a local git configuration with our access token
 if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
@@ -104,17 +114,17 @@ if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
     echo "[http \"https://git.iter.org/\"]
         extraheader = Authorization: Bearer $bamboo_HTTP_AUTH_BEARER_PASSWORD" > git/config
     export XDG_CONFIG_HOME=$PWD
-    git config -l
+    git config -l |cat
 fi
 
 # Ensure that the install directory is clean:
 rm -rf test-install
 
 # Ensure the build directory is clean:
-rm -rf build 
+rm -rf build
 
 # CMake configuration:
-CMAKE_ARGS=(${CMAKE_ARGS[@]}
+CMAKE_ARGS=(
     -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
     # Enable all backends
     -D AL_BACKEND_HDF5=ON
@@ -130,22 +140,24 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
     -D DD_VERSION=master/3
+    # Work around Boost linker issues on 2020b toolchain
+    -D Boost_NO_BOOST_CMAKE=ON
 )
 # Note: we don't set CC or CXX compiler, so CMake will pick the default (GCC) compilers
 cmake -Bbuild -GNinja "${CMAKE_ARGS[@]}"
 
-# Build and install 
+# Build and install
 cmake --build build --target install
 
+# List installed files
+find test-install -not -path "*/numpy/*" -ls
+
+set +x
 # Basic import test (assumes AL_PYTHON_BINDINGS=ON)
 (
     source $(pwd)/test-install/bin/al_env.sh
     python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
-
 )
-
-# List installed files
-find test-install -not -path "*/numpy/*" -ls
 
 echo "Loading modules for test..."
 module purge
@@ -153,10 +165,11 @@ echo "${MODULES_TEST[@]}" | tr " " "\n"
 module load "${MODULES_TEST[@]}"
 
 echo "Begin test..."
-# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
-python3 -m venv build/pip_install 
-source build/pip_install/bin/activate 
+# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report.
+python3 -m venv build/pip_install
+source build/pip_install/bin/activate
+set -x
 python3 -m pip install --find-links=build/dist imas-core[test,cov]
-pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
+pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
 coverage2clover -i coverage.xml -o clover.xml
 
