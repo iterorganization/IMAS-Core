@@ -36,6 +36,10 @@ MODULES=(${MODULES[@]}
     HDF5/1.10.7-gompi-2020b
     build/0.10.0-foss-2020b
 )
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
+    # Work around Boost linker issues on 2020b toolchain
+    -D Boost_NO_BOOST_CMAKE=ON
+)
   ;;&
   *intel-2020b)
 echo "... intel-2020b"
@@ -62,6 +66,9 @@ MODULES=(
     Python/3.11.5-GCCcore-13.2.0
     Python-bundle-PyPI/2023.10-GCCcore-13.2.0
 )
+MODULES_TEST=(
+    Python/3.11.5-GCCcore-13.2.0
+)
   ;;&
   *foss-2023b)
 echo "... foss-2023b"
@@ -76,6 +83,9 @@ MODULES=(${MODULES[@]}
     intel/2023b
     HDF5/1.14.3-iimpi-2023b
     SciPy-bundle/2023.12-iimkl-2023b
+)
+MODULES_TEST=(${MODULES_TEST[@]}
+    intel/2023b
 )
   ;;
 esac
@@ -104,7 +114,7 @@ rm -rf test-install
 rm -rf build 
 
 # CMake configuration:
-CMAKE_ARGS=(
+CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
     # Enable all backends
     -D AL_BACKEND_HDF5=ON
@@ -137,12 +147,16 @@ cmake --build build --target install
 # List installed files
 find test-install -not -path "*/numpy/*" -ls
 
-# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+echo "Loading modules for test..."
 module purge
-module load Python/3.11.5-GCCcore-13.2.0
-python3.11 -m venv build/pip_install 
+echo "${MODULES_TEST[@]}" | tr " " "\n"
+module load "${MODULES_TEST[@]}"
+
+echo "Begin test..."
+# Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report. 
+python3 -m venv build/pip_install 
 source build/pip_install/bin/activate 
-python3.11 -m pip install --find-links=build/dist imas-core[test,cov]
+python3 -m pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html 
 coverage2clover -i coverage.xml -o clover.xml
 
