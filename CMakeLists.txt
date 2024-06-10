@@ -41,7 +41,7 @@ option(CMAKE_INSTALL_RPATH_USE_LINK_PATH
   
 # Configuration option for automatic download of common third party libraries 
 # ##############################################################################
-option(VCPKG "Download thrid party libraries with VCPKG" OFF)
+option(VCPKG "Download third party libraries with VCPKG" OFF)
 include(./vcpkg.cmake)
 
 
