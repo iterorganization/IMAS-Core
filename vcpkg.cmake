@@ -1,7 +1,7 @@
 if(NOT VCPKG AND DEFINED ENV{VCPKG})
   set(VCPKG $ENV{VCPKG})
 elseif(NOT VCPKG AND WIN32)
- set(VCPKG $ENV{VCPKG})
+ set(VCPKG ON)
 endif() 
 option(VCPKG "Use VCPKG package to download and install 3rd party libraries" OFF)
 if(VCPKG)
