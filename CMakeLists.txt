@@ -4,8 +4,21 @@ cmake_minimum_required(VERSION 3.21)
 # Capture scikit build cmake.args 
 include(./skbuild-cmake-args.cmake)
 
-# Configure VCPKG 
-include(./vcpkg.cmake)
+
+# Configuration options for IMAS Core Backends
+# ##############################################################################
+option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
+option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
+option(AL_BACKEND_UDA "Build the UDA backend" OFF)
+option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON 
+AL_BACKEND_MDSPLUS OFF)
+
+# Configuration options for python bindings
+# ##############################################################################
+option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
+
 
 # Configuration options for common assets
 # ##############################################################################
@@ -18,10 +31,22 @@ set(AL_COMMON_VERSION
     "main"
     CACHE STRING "Git commit/tag/branch of AL-common")
 
-include(FetchContent)
+
+# Configuration options for shared libraries
+# ##############################################################################
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(CMAKE_INSTALL_RPATH_USE_LINK_PATH 
+       "Append the runtime search path (rpath) to external installed binaries" TRUE)
+
+  
+# Configuration option for automatic download of common third party libraries 
+# ##############################################################################
+include(./vcpkg.cmake)
+
 
 # Load common assets
 # ##############################################################################
+include(FetchContent)
 if(AL_DOWNLOAD_DEPENDENCIES)
   # Download common assets from the ITER git:
   FetchContent_Declare(
@@ -39,25 +64,10 @@ else()
 endif()
 FetchContent_MakeAvailable(al-common)
 
-# Core library options
-# ##############################################################################
 
-option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
-option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
-option(AL_BACKEND_UDA "Build the UDA backend" OFF)
-option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
-option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
-option(CMAKE_INSTALL_RPATH_USE_LINK_PATH "Append the runtime search path (rpath) to external installed binaries" TRUE)
-
-include(CMakeDependentOption)
-cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
-                       AL_BACKEND_MDSPLUS OFF)
 # Define project
 # ##############################################################################
-
-if(${SKBUILD})
-  # Set VERSION and FULL_VERSION from scikit-build
+if(SKBUILD)
   set(VERSION ${SKBUILD_PROJECT_VERSION})
   set(FULL_VERSION ${SKBUILD_PROJECT_VERSION_FULL})
 else()
@@ -75,8 +85,6 @@ if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
   message("Building a development version of the Access Layer core")
 endif()
 
-# Compiler settings
-include(ALSetCompilerFlags)
 
 # Dependencies
 # ##############################################################################
@@ -93,8 +101,12 @@ find_package(
   COMPONENTS filesystem
   REQUIRED)
 
+
 # Target
 # ##############################################################################
+
+# Compiler settings
+include(ALSetCompilerFlags)
 
 configure_file("include/al_defs.h.in" "include/al_defs.h" @ONLY)
 
@@ -125,8 +137,7 @@ target_compile_definitions(al PRIVATE -DASCII)
 if(NOT WIN32)
   target_link_libraries(al PRIVATE dl)
 else()
-  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads4W::PThreads4W
-                                   ws2_32)
+  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads4W::PThreads4W ws2_32)
 endif()
 
 add_subdirectory(src)
@@ -153,40 +164,13 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc DESTINATION lib/pkgconfig)
 # Install mdsplusIMASDB4to5
 install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
 
-# Python bindings
+
+# Scikit-build-core entry point for python bindings
 # ##############################################################################
 if(AL_PYTHON_BINDINGS)
-  if(${SKBUILD})
-    # python -m pip install .
-    add_subdirectory(python)
-  else()
-    # cmake build / install
-    find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
-    list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFIX")
-    string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
-    add_custom_target(
-      al-python-bindings ALL
-      COMMAND 
-        ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS} 
-	        ${Python_EXECUTABLE} 
-            -m pip wheel ${CMAKE_CURRENT_SOURCE_DIR}
-	          --no-deps
-	          --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
-      )
-    set_target_properties(
-	    al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
-    install(
-      CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
-            -m pip install imas_core
-            --prefix=${CMAKE_INSTALL_PREFIX}
-	        --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
-            --force-reinstall
-            --no-deps
-	    )"
-      DEPENDS al-python-bindings
-      )
-  endif()
+  include(skbuild.cmake)
 endif()
+
 
 # MDSplus models
 # ##############################################################################
