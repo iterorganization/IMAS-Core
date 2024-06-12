@@ -459,6 +459,20 @@ int UDABackend::readData(Context* ctx,
             query.set("dd_version", dd_version);
             std::string uri = "imas:" + backend + "?" + query.to_string();
 
+            const std::vector<double> &dtime = op_ctx->time_range.dtime;
+            auto dtime_array =  -> std::string {
+                std::string result;
+                result = ", ";
+                for (size_t i = 0; i < dtime.size(); ++i) {
+                    result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                    if (i < dtime.size() - 1) {
+                        result += ", ";
+                    }
+                }
+                return result;
+            };
+            std::string dtime_values = dtime_array(dtime);
+
             std::stringstream ss;
             ss << plugin_
                << "::get("
@@ -473,7 +487,12 @@ int UDABackend::readData(Context* ctx,
                << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(*datatype) << "'"
                << ", rank=" << *dim
                << ", is_homogeneous=" << 0
-               << ", dynamic_flags=" << 0;
+               << ", dynamic_flags=" << 0
+               << ", time_range_tmin=" << op_ctx->time_range.tmin
+               << ", time_range_tmax=" << op_ctx->time_range.tmax
+               << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+               << ", time_range_dtime_shape=" << dtime.size()
+               << dtime_values;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
             ss << ")";
@@ -530,6 +549,20 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
+    const std::vector<double> &dtime = op_ctx->time_range.dtime;
+        auto dtime_array =  -> std::string {
+            std::string result;
+            result = ", ";
+            for (size_t i = 0; i < dtime.size(); ++i) {
+                result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                if (i < dtime.size() - 1) {
+                    result += ", ";
+                }
+            }
+            return result;
+    };    
+    std::string dtime_values = dtime_array(dtime);
+
     std::stringstream ss;
     ss << plugin_
        << "::get("
@@ -544,7 +577,13 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", datatype='integer'"
        << ", rank=0"
        << ", is_homogeneous=0"
-       << ", dynamic_flags=0)";
+       << ", dynamic_flags=0"
+       << ", time_range_tmin=" << op_ctx->time_range.tmin
+       << ", time_range_tmax=" << op_ctx->time_range.tmax
+       << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+       << ", time_range_dtime_shape=" << dtime.size()
+       << dtime_values;
+    ss << ")";
 
     std::string directive = ss.str();
 
@@ -595,6 +634,19 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         query.set("dd_version", dd_version);
         std::string uri = "imas:" + backend + "?" + query.to_string();
 
+        const std::vector<double> &dtime = op_ctx->time_range.dtime;
+        auto dtime_array =  -> std::string {
+            std::string result;
+            result = ", ";
+            for (size_t i = 0; i < dtime.size(); ++i) {
+                result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                if (i < dtime.size() - 1) {
+                    result += ", ";
+                }
+            }
+            return result;
+        };    
+
         std::stringstream ss;
         ss << plugin_
            << "::get("
@@ -610,6 +662,11 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", rank=" << attr.rank
            << ", is_homogeneous=" << is_homogeneous
            << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
+           << ", time_range_tmin=" << op_ctx->time_range.tmin
+           << ", time_range_tmax=" << op_ctx->time_range.tmax
+           << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+           << ", time_range_dtime_shape=" << dtime.size()
+           << dtime_values;
 
         if (!attr.timebase.empty()) {
             ss << ", timebase='" << attr.timebase << "'";
