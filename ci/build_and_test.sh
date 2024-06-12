@@ -141,24 +141,27 @@ rm -rf build
 
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
-    -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
+    -D"CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
     # Enable all backends
-    -D AL_BACKEND_HDF5=ON
-    -D AL_BACKEND_MDSPLUS=ON
-    -D AL_BACKEND_UDA=ON
+    -DAL_BACKEND_HDF5=ON
+    -DAL_BACKEND_MDSPLUS=ON
+    -DAL_BACKEND_UDA=ON
     # Build MDSplus models
-    -D AL_BUILD_MDSPLUS_MODELS=ON
+    -DAL_BUILD_MDSPLUS_MODELS=ON
     # Build Python bindings
-    -D AL_PYTHON_BINDINGS=ON
+    -DAL_PYTHON_BINDINGS=ON
     # Download dependencies from HTTPS (using an access token):
-    -D AL_DOWNLOAD_DEPENDENCIES=ON
-    -D AL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
-    -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
+    -DAL_DOWNLOAD_DEPENDENCIES=ON
+    -DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
+    -DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
-    -D DD_VERSION=master/3
+    -DDD_VERSION=master/3
     # Work around Boost linker issues on 2020b toolchain
-    -D Boost_NO_BOOST_CMAKE=ON
+    -DBoost_NO_BOOST_CMAKE=ON
 )
+echo "CMake args:"
+echo ${CMAKE_ARGS[@]} | tr ' ' '\n'
+
 # Note: we don't set CC or CXX compiler, so CMake will pick the default (GCC) compilers
 cmake -Bbuild -GNinja "${CMAKE_ARGS[@]}"
 
