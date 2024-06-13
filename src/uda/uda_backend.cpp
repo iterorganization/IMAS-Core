@@ -464,7 +464,7 @@ int UDABackend::readData(Context* ctx,
                 std::string result;
                 result = ", ";
                 for (size_t i = 0; i < dtime.size(); ++i) {
-                    result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                    result += std::to_string(dtime[i]);
                     if (i < dtime.size() - 1) {
                         result += ", ";
                     }
@@ -491,7 +491,6 @@ int UDABackend::readData(Context* ctx,
                << ", time_range_tmin=" << op_ctx->time_range.tmin
                << ", time_range_tmax=" << op_ctx->time_range.tmax
                << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-               << ", time_range_dtime_shape=" << dtime.size()
                << dtime_values;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
@@ -554,7 +553,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
             std::string result;
             result = ", ";
             for (size_t i = 0; i < dtime.size(); ++i) {
-                result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                result += std::to_string(dtime[i]);
                 if (i < dtime.size() - 1) {
                     result += ", ";
                 }
@@ -581,7 +580,6 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", time_range_tmin=" << op_ctx->time_range.tmin
        << ", time_range_tmax=" << op_ctx->time_range.tmax
        << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-       << ", time_range_dtime_shape=" << dtime.size()
        << dtime_values;
     ss << ")";
 
@@ -639,7 +637,8 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
             std::string result;
             result = ", ";
             for (size_t i = 0; i < dtime.size(); ++i) {
-                result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                //result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
+                result += std::to_string(dtime[i]);
                 if (i < dtime.size() - 1) {
                     result += ", ";
                 }
@@ -665,7 +664,6 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", time_range_tmin=" << op_ctx->time_range.tmin
            << ", time_range_tmax=" << op_ctx->time_range.tmax
            << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-           << ", time_range_dtime_shape=" << dtime.size()
            << dtime_values;
 
         if (!attr.timebase.empty()) {
