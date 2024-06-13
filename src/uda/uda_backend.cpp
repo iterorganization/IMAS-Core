@@ -11,6 +11,8 @@
 #include "uda_xml.hpp"
 #include "uda_debug.hpp"
 
+#include <string>
+
 using namespace semver::literals;
 
 namespace {
