@@ -462,18 +462,11 @@ int UDABackend::readData(Context* ctx,
             std::string uri = "imas:" + backend + "?" + query.to_string();
 
             const std::vector<double> &dtime = op_ctx->time_range.dtime;
-            auto dtime_array =  -> std::string {
-                std::string result;
-                result = ", ";
-                for (size_t i = 0; i < dtime.size(); ++i) {
-                    result += std::to_string(dtime[i]);
-                    if (i < dtime.size() - 1) {
-                        result += ", ";
-                    }
-                }
-                return result;
-            };
-            std::string dtime_values = dtime_array(dtime);
+
+            std::ostringstream output;
+            const char* delim = ";";
+            std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
+            uri += "&dtime=" + output.str();
 
             std::stringstream ss;
             ss << plugin_
@@ -493,7 +486,6 @@ int UDABackend::readData(Context* ctx,
                << ", time_range_tmin=" << op_ctx->time_range.tmin
                << ", time_range_tmax=" << op_ctx->time_range.tmax
                << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-               << dtime_values;
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
             ss << ")";
@@ -551,18 +543,10 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
     const std::vector<double> &dtime = op_ctx->time_range.dtime;
-        auto dtime_array =  -> std::string {
-            std::string result;
-            result = ", ";
-            for (size_t i = 0; i < dtime.size(); ++i) {
-                result += std::to_string(dtime[i]);
-                if (i < dtime.size() - 1) {
-                    result += ", ";
-                }
-            }
-            return result;
-    };    
-    std::string dtime_values = dtime_array(dtime);
+    std::ostringstream output;
+    const char* delim = ";";
+    std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
+    uri += "&dtime=" + output.str();
 
     std::stringstream ss;
     ss << plugin_
@@ -635,18 +619,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         std::string uri = "imas:" + backend + "?" + query.to_string();
 
         const std::vector<double> &dtime = op_ctx->time_range.dtime;
-        auto dtime_array =  -> std::string {
-            std::string result;
-            result = ", ";
-            for (size_t i = 0; i < dtime.size(); ++i) {
-                //result += "val" +  std::to_string(i) + "=" + std::to_string(dtime[i]);
-                result += std::to_string(dtime[i]);
-                if (i < dtime.size() - 1) {
-                    result += ", ";
-                }
-            }
-            return result;
-        };    
+        std::ostringstream output;
+        const char* delim = ";";
+        std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
+        uri += "&dtime=" + output.str();    
 
         std::stringstream ss;
         ss << plugin_
