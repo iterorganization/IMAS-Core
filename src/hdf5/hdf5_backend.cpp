@@ -1,6 +1,5 @@
 #include "hdf5_backend.h"
 
-#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -75,9 +74,7 @@ void
  HDF5Backend::openPulse(DataEntryContext * ctx, int mode)
 {
     access_mode = mode;
-    /*hid_t fapl = H5Pcreate(H5P_FILE_ACCESS);
-    assert(fapl>= 0);
-    H5Pset_alignment(fapl, 0, 16);*/
+
     std::string backend_version;
     
     files_path_strategy = HDF5Utils::MODIFIED_MDSPLUS_STRATEGY;
@@ -106,7 +103,8 @@ void
 
 void HDF5Backend::closePulse(DataEntryContext * ctx, int mode)
 {
-    assert(ctx != nullptr);
+    if (ctx == nullptr)
+        throw ALBackendException("HDF5Backend: unexpected null context in HDF5Backend::closePulse()", LOG);
     if (access_mode == OPEN_PULSE || access_mode == FORCE_OPEN_PULSE) {
         hdf5Reader->closePulse(ctx, mode, &file_id, opened_IDS_files, files_path_strategy, files_directory, relative_file_path);
     } else if (access_mode == CREATE_PULSE || access_mode == FORCE_CREATE_PULSE) {
@@ -160,6 +158,7 @@ void HDF5Backend::endAction(Context * ctx)
 
 void HDF5Backend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
 {
-    assert(file_id != -1); //master file not opened
+    if (file_id == -1) //master file not opened
+        throw ALBackendException("HDF5Backend: master file not opened while calling HDF5Backend::get_occurrences()", LOG); 
     hdf5Reader->get_occurrences(ids_name, occurrences_list, size, file_id);
 }

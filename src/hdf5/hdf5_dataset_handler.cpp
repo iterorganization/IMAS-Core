@@ -1,6 +1,5 @@
 #include "hdf5_dataset_handler.h"
 
-#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -87,12 +86,14 @@ bool HDF5DataSetHandler::isShapeDataset() const
 }
 
 void HDF5DataSetHandler::setTimedAOSShape(int timedAOS_shape) {
-    assert(slice_mode);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::setTimedAOSShape()!", LOG);
     this->timedAOS_shape = timedAOS_shape;
 }
 
 int HDF5DataSetHandler::getTimedAOSShape() const {
-    assert(slice_mode);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::getTimedAOSShape()!", LOG);
     return this->timedAOS_shape;
 }
 
@@ -149,13 +150,15 @@ int HDF5DataSetHandler::getSize() const
 
 size_t HDF5DataSetHandler::getMaxShape(int axis) const
 {
-	assert(axis < dataset_rank);
+    if (! (axis < dataset_rank))
+        throw ALBackendException("HDF5Backend: unexpected axis value for HDF5DataSetHandler::getMaxShape(int axis)", LOG);
 	return largest_dims[axis];
 }
 
 int HDF5DataSetHandler::getShape(int axis) const
 {
-    assert(axis < dataset_rank);
+    if (! (axis < dataset_rank))
+        throw ALBackendException("HDF5Backend: unexpected axis value for HDF5DataSetHandler::getShape(int axis)", LOG);
     return dims[axis];
 }
 
@@ -172,7 +175,8 @@ int HDF5DataSetHandler::getTimedShape(int *timed_AOS_index_)
 }
 
 int HDF5DataSetHandler::getTimeWriteOffset() const {
-    assert(slice_mode);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::getTimeWriteOffset()!", LOG);
     return timeWriteOffset;
 }
 
@@ -206,8 +210,10 @@ int *size, int datatype, bool shape_dataset, bool create_chunk_cache, uri::Uri u
         if (*dataset_id < 0) {
             
 			if (slice_mode && H5Lexists(loc_id, dataset_name, H5P_DEFAULT) == 0) {
-					assert(AOSRank != -1);
-					assert(AOSSize != NULL);
+                    if (! (AOSRank != -1))
+                         throw ALBackendException("HDF5Backend: unexpected AOSRank value in HDF5DataSetHandler::open()", LOG);
+                    if (AOSSize == NULL)
+                         throw ALBackendException("HDF5Backend: unexpected AOSSize (NULL) value in HDF5DataSetHandler::open()", LOG);
 					std::unique_ptr < HDF5DataSetHandler > data_set(new HDF5DataSetHandler(true, uri));
 					data_set->create(dataset_name, dataset_id, datatype, loc_id, dim, size, AOSRank, AOSSize, shape_dataset, create_chunk_cache);
 			}
@@ -511,13 +517,16 @@ int HDF5DataSetHandler::setType() {
 }
 
 void HDF5DataSetHandler::storeInitialDims() {
-    assert(slice_mode);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::storeInitialDims()", LOG);
     memcpy(initial_dims, dims, H5S_MAX_RANK * sizeof(hsize_t));
 }
 
 void HDF5DataSetHandler::setTimeAxisOffset(const std::vector < int > &current_arrctx_indices, int dynamic_AOS_slices_extension) {
-    assert(slice_mode);
-    assert(dataset_id > 0);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::setTimeAxisOffset()", LOG);
+    if (! (dataset_id > 0))
+        throw ALBackendException("HDF5Backend: unexpected value for dataset_id in HDF5DataSetHandler::setTimeAxisOffset()", LOG);
     int dim = dataset_rank - AOSRank;
     if (!shape_dataset && datatype != alconst::char_data && dynamic_AOS_slices_extension == 0 && (dim > 0 && !isTimed && timed_AOS_index == -1)) { //datasets for shapes arrays management are not concerned by this update
         timeWriteOffset = initial_dims[AOSRank];
@@ -534,8 +543,11 @@ void HDF5DataSetHandler::setTimeAxisOffset(const std::vector < int > &current_ar
 }
 
 void HDF5DataSetHandler::updateTimeAxisOffset(const std::vector < int > &current_arrctx_indices) {
-	assert(slice_mode);
-	assert(dataset_id > 0);
+    if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::updateTimeAxisOffset()", LOG);
+	if (! (dataset_id > 0))
+        throw ALBackendException("HDF5Backend: unexpected value for dataset_id in HDF5DataSetHandler::updateTimeAxisOffset()", LOG);
+
 	if (isTimed && timed_AOS_index != -1 && timed_AOS_index <= AOSRank) { // shapes datasets are also concerned by this 
         int slice_index = current_arrctx_indices[timed_AOS_index];
         dims[timed_AOS_index] = initial_dims[timed_AOS_index] + slice_index + 1; //update coordinate along the time axis, initial_dims were the dims at beginning of the put_slice
@@ -543,15 +555,18 @@ void HDF5DataSetHandler::updateTimeAxisOffset(const std::vector < int > &current
 }
 
 void HDF5DataSetHandler::setTimeAxisOffsetForAOSDataSet() {
-	assert(slice_mode);
-	assert(dataset_id > 0);
+	if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::setTimeAxisOffsetForAOSDataSet()", LOG);
+	if (! (dataset_id > 0))
+        throw ALBackendException("HDF5Backend: unexpected value for dataset_id in HDF5DataSetHandler::setTimeAxisOffsetForAOSDataSet()", LOG);
 	if (isTimed && timed_AOS_index != -1 && timed_AOS_index < AOSRank) { // shapes datasets are also concerned by this update
 		dims[timed_AOS_index]++; //increase coordinate along the time axis, done once after opening a dataset in slice mode
 	}
 }
 
 void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes, int dynamic_AOS_slices_extension) {
-	assert(slice_mode);
+	if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::extendDataSpaceForTimeSlices()!", LOG);
 	setCurrentShapes(size, AOSShapes);
 	int dim = dataset_rank - AOSRank;
 
@@ -569,7 +584,8 @@ void HDF5DataSetHandler::extendDataSpaceForTimeSlices(int *size, int *AOSShapes,
 }
 
 void HDF5DataSetHandler::extendDataSpaceForTimeSlicesForAOSDataSet(int *size, int *AOSShapes, int dynamic_AOS_slices_extension) {
-	assert(slice_mode);
+	if (!slice_mode) //slice mode only is supported here
+        throw ALBackendException("HDF5Backend: only slice operation is supported by HDF5DataSetHandler::extendDataSpaceForTimeSlicesForAOSDataSet()!", LOG);
 	setCurrentShapes(size, AOSShapes);
 
     if (isTimed && timed_AOS_index != -1 && timed_AOS_index < AOSRank) {
@@ -652,7 +668,8 @@ void HDF5DataSetHandler::setCurrentShapesForAOSDataSet(int *size, int *AOSShapes
 
 void HDF5DataSetHandler::setExtent()
 {
-	assert(dataset_rank > 0);
+    if (! (dataset_rank > 0))
+        throw ALBackendException("HDF5Backend: unexpected value for dataset_rank in HDF5DataSetHandler::setExtent()", LOG);
 	herr_t status = (int) H5Dset_extent(dataset_id, largest_dims);
 
     if (status < 0) {
@@ -777,8 +794,11 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (buffers.size() == 0)
                 break;
 
-            assert(requests_arrctx_indices.size() == buffers.size());
-            assert(requests_arrctx_indices.size() == requests_shapes.size());
+            if (requests_arrctx_indices.size() != buffers.size())
+                throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
+
+            if (requests_arrctx_indices.size() != requests_shapes.size())
+                throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
 
             int* v = (int*) malloc(getSize()* sizeof(int));
             herr_t status = H5Dread(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
@@ -791,7 +811,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
             int request = 0;
             HDF5Utils hdf5_utils;
             while (it != requests_arrctx_indices.end()) {
-                assert(request < (int) buffers.size());
+                if (! (request < (int) buffers.size()) )
+                    throw ALBackendException("HDF5Backend: unexpected error on request index in HDF5DataSetHandler::fillFullBuffers()", LOG);
                 const std::vector<int> &request_arrctx_indices = *it;
                 int* buffer = buffers[request];
                 int shape = computeShapeFromDimsVector(requests_shapes[request]);
@@ -829,8 +850,11 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (buffers.size() == 0)
                 break;
 
-            assert(requests_arrctx_indices.size() == buffers.size());
-            assert(requests_arrctx_indices.size() == requests_shapes.size());
+            if (requests_arrctx_indices.size() != buffers.size())
+                throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
+
+            if (requests_arrctx_indices.size() != requests_shapes.size())
+                throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
 
             double* v = (double*) malloc(getSize()* sizeof(double));
             herr_t status = H5Dread(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
@@ -843,6 +867,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
             int request = 0;
             HDF5Utils hdf5_utils;
             while (it != requests_arrctx_indices.end()) {
+                if (! (request < (int) buffers.size()) )
+                    throw ALBackendException("HDF5Backend: unexpected error on request index in HDF5DataSetHandler::fillFullBuffers()", LOG);
                 const std::vector<int> &request_arrctx_indices = *it;
                 double* buffer = buffers[request];
                 int shape = computeShapeFromDimsVector(requests_shapes[request]);
@@ -884,7 +910,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 break;
             }
 
-            assert(requests_arrctx_indices.size() == buffers.size());
+            if (requests_arrctx_indices.size() != buffers.size())
+                throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
 
             full_data_sets_buffers.resize(getSize());
             for (int i = 0; i < (int) full_data_sets_buffers.size(); i++) {
@@ -896,9 +923,11 @@ void HDF5DataSetHandler::fillFullBuffers() {
             HDF5Utils hdf5_utils;
             while (it != requests_arrctx_indices.end()) {
                 const std::vector<int> &request_arrctx_indices = *it;
-                assert(request < (int) buffers.size());
+                if (! (request < (int) buffers.size()) )
+                    throw ALBackendException("HDF5Backend: unexpected error on request index in HDF5DataSetHandler::fillFullBuffers()", LOG);
                 char* buffer = buffers[request];
-                assert(buffer != NULL);
+                if (buffer == NULL)
+                    throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::fillFullBuffers()", LOG);
                 if (getRank() != 0) {
                     int index = hdf5_utils.indices_to_flat_index(request_arrctx_indices, getLargestDims());
                     free(full_data_sets_buffers[index]);
@@ -1024,7 +1053,8 @@ void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelecti
 
 void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     int *v = full_int_data_set_buffer;
-    assert(full_int_data_set_buffer != NULL);
+    if (full_int_data_set_buffer == NULL)
+        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readInt0DFromBuffer()", LOG);
     *data = (void*) malloc(sizeof(int));
     int* data_int = (int*) *data;
     if (hsSelectionReader.getRank() != 0) {
@@ -1039,7 +1069,8 @@ void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelection
 
 void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     int *v = full_int_data_set_buffer;
-    assert(full_int_data_set_buffer != NULL);
+    if (full_int_data_set_buffer == NULL)
+        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readIntNDFromBuffer()", LOG);
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
@@ -1061,7 +1092,8 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
 
 void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
     double *v = full_double_data_set_buffer;
-    assert(full_double_data_set_buffer != NULL);
+    if (full_double_data_set_buffer == NULL)
+        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readDoubleNDFromBuffer()", LOG);
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
