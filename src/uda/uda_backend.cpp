@@ -620,7 +620,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type) << "'"
            << ", rank=" << attr.rank
            << ", is_homogeneous=" << is_homogeneous
-           << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request);
+           << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, request)
            << ", time_range_tmin=" << op_ctx->time_range.tmin
            << ", time_range_tmax=" << op_ctx->time_range.tmax
            << ", time_range_interp=" << op_ctx->time_range.interpolation_method
