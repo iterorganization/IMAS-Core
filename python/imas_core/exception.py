@@ -36,7 +36,3 @@ class ImasCoreContextException(ALException):
 
     def __init__(self, message, errorStatus=CONTEXT_ERR):
         super().__init__(message, errorStatus)
-
-
-if __name__ == "__main__":
-    raise ImasCoreContextException("")
