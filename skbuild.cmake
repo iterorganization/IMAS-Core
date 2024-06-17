@@ -17,7 +17,7 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^[Ee]$|^[Ee][Dd]$|EDITABLE|[Ee]ditable")
           --no-build-isolation
           --config-settings=editable.rebuild=true
           --verbose
-          -Cbuild-dir=${CMAKE_CURRENT_BINARY_DIR}
+          -Cbuild-dir=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
           --editable=${CMAKE_CURRENT_SOURCE_DIR}
   )
   return()
@@ -31,7 +31,7 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}
         --no-deps
         --verbose
-        -Cbuild-dir=${CMAKE_CURRENT_BINARY_DIR}
+        -Cbuild-dir=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
         --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
 )
 add_custom_target(al-python-bindings DEPENDS al)
