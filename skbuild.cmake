@@ -35,8 +35,8 @@ endif()
 
 add_custom_command(
   TARGET al POST_BUILD
-    COMMAND
-      ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
+    COMMAND 
+      ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS} 
       ${Python_EXECUTABLE}
         -m venv --system-site-packages ${PYTHON_VENV}
     COMMAND
@@ -53,7 +53,7 @@ add_custom_command(
 add_custom_target(al-python-bindings DEPENDS al)
 set_target_properties(
   al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
-install(CODE "execute_process(COMMAND ${Python_EXECUTABLE}
+install(CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
 -m pip install imas_core
 --no-deps
 --prefix=${CMAKE_INSTALL_PREFIX}
