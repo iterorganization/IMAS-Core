@@ -147,6 +147,15 @@ std::string convert_imas_to_uda(int i)
     return T()(i);
 }
 
+inline std::string convert_dtime(const std::vector<double>& dtime)
+{
+    std::ostringstream output;
+    const char* delim = ";";
+    std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim),
+            [](double v){ return std::to_string(v); });
+    return output.str();
+}
+
 }} // namespace imas::uda
 
 #endif // IMAS_UDA_UTILITIES_HPP

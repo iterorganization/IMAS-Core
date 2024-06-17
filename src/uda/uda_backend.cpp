@@ -461,13 +461,6 @@ int UDABackend::readData(Context* ctx,
             query.set("dd_version", dd_version);
             std::string uri = "imas:" + backend + "?" + query.to_string();
 
-            const std::vector<double> &dtime = op_ctx->time_range.dtime;
-
-            std::ostringstream output;
-            const char* delim = ";";
-            std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
-            uri += "&dtime=" + output.str();
-
             std::stringstream ss;
             ss << plugin_
                << "::get("
@@ -486,6 +479,7 @@ int UDABackend::readData(Context* ctx,
                << ", time_range_tmin=" << op_ctx->time_range.tmin
                << ", time_range_tmax=" << op_ctx->time_range.tmax
                << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+               << ", dtime=" << imas::uda::convert_dtime(op_ctx->time_range.dtime);
 //               << ", is_homogeneous=" << is_homogeneous
 //               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
             ss << ")";
@@ -542,12 +536,6 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
     query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
 
-    const std::vector<double> &dtime = op_ctx->time_range.dtime;
-    std::ostringstream output;
-    const char* delim = ";";
-    std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
-    uri += "&dtime=" + output.str();
-
     std::stringstream ss;
     ss << plugin_
        << "::get("
@@ -566,6 +554,7 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", time_range_tmin=" << op_ctx->time_range.tmin
        << ", time_range_tmax=" << op_ctx->time_range.tmax
        << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+       << ", dtime=" << imas::uda::convert_dtime(op_ctx->time_range.dtime);
     ss << ")";
 
     std::string directive = ss.str();
@@ -617,12 +606,6 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
         query.set("dd_version", dd_version);
         std::string uri = "imas:" + backend + "?" + query.to_string();
 
-        const std::vector<double> &dtime = op_ctx->time_range.dtime;
-        std::ostringstream output;
-        const char* delim = ";";
-        std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim), [](double v){ return std::to_string(v); });
-        uri += "&dtime=" + output.str();    
-
         std::stringstream ss;
         ss << plugin_
            << "::get("
@@ -641,6 +624,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", time_range_tmin=" << op_ctx->time_range.tmin
            << ", time_range_tmax=" << op_ctx->time_range.tmax
            << ", time_range_interp=" << op_ctx->time_range.interpolation_method
+           << ", dtime=" << imas::uda::convert_dtime(op_ctx->time_range.dtime);
 
         if (!attr.timebase.empty()) {
             ss << ", timebase='" << attr.timebase << "'";
