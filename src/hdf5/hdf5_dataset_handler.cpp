@@ -698,7 +698,14 @@ void HDF5DataSetHandler::close()
             }
         }
     }
-    H5Dclose (dataset_id);
+
+    herr_t status = H5Dclose (dataset_id);
+    if (status < 0) {
+        char error_message[200];
+        sprintf(error_message, "Unable to close HDF5 dataset: %s\n", getName().c_str());
+        throw ALBackendException(error_message, LOG);
+    }
+
 }
 
 void HDF5DataSetHandler::setBuffering(bool useBufferingOption) {

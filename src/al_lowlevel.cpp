@@ -1297,6 +1297,35 @@ al_status_t al_iterate_over_arraystruct(int aosctxID,
 al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
                          const int pulse,
                          const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri) {
+
+    al_status_t status;
+    status.code = 0;
+
+    try {
+       DataEntryContext::build_uri_from_legacy_parameters(backendID, 
+                         pulse,
+                         run, 
+                         user, 
+                         tokamak, 
+                         version,
+                         options,
+                         uri);
+    }
+    catch (const ALContextException& e) {
+        status.code = alerror::lowlevel_err;
+        ALException::registerStatus(status.message, __func__, e);
+    }
+    return status;
+}
+
+al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
@@ -1306,11 +1335,13 @@ al_status_t al_build_uri_from_legacy_parameters(const int backendID,
     status.code = 0;
 
     char opt[1024];
-    if (options == nullptr)
-       strcpy(opt, "");
-    else
-       strcpy(opt, options);
-
+    if (options == nullptr) {
+      strcpy(opt, "");
+    }
+    else {
+      strcpy(opt, options);
+    }
+    
     try {
        DataEntryContext::build_uri_from_legacy_parameters(backendID, 
                          pulse,

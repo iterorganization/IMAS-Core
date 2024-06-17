@@ -221,6 +221,24 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
                          const int pulse,
                          const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri) {
+
+    std::stringstream desc;
+    std::string backend = getURIBackend(backendID);
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";pulse=" << pulse << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
+    if (!options.empty()) {
+      desc << ";" << options;
+    }
+    uri = desc.str();
+}
+
+void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
                          const char *user, 
                          const char *tokamak, 
                          const char *version,
@@ -230,8 +248,9 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
     desc << "imas:" << backend.c_str() << "?user=" << user << ";pulse=" << pulse << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
-    if (strcmp(options,"")!=0)
+    if (strcmp(options,"")!=0) {
       desc << ";" << options;
+    }
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);
