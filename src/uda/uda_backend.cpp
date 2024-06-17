@@ -566,7 +566,6 @@ bool UDABackend::get_homogeneous_flag(const std::string& ids, DataEntryContext* 
        << ", time_range_tmin=" << op_ctx->time_range.tmin
        << ", time_range_tmax=" << op_ctx->time_range.tmax
        << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-       << dtime_values;
     ss << ")";
 
     std::string directive = ss.str();
@@ -642,7 +641,6 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
            << ", time_range_tmin=" << op_ctx->time_range.tmin
            << ", time_range_tmax=" << op_ctx->time_range.tmax
            << ", time_range_interp=" << op_ctx->time_range.interpolation_method
-           << dtime_values;
 
         if (!attr.timebase.empty()) {
             ss << ", timebase='" << attr.timebase << "'";
