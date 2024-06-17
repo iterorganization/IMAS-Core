@@ -139,6 +139,12 @@ rm -rf test-install
 # Ensure the build directory is clean:
 rm -rf build
 
+# Set up venv to ensure modern pip and friends
+rm -rf venv  # Environment should be clean, but remove directory to be sure
+python -m venv --system-site-packages venv
+source venv/bin/activate
+pip install --upgrade pip wheel
+
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D"CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
@@ -187,8 +193,9 @@ echo "Begin test..."
 # Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report.
 python3 -m venv build/pip_install
 source build/pip_install/bin/activate
+pip install --upgrade pip wheel
 set -x
-python3 -m pip install --find-links=build/dist imas-core[test,cov]
+pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
 coverage2clover -i coverage.xml -o clover.xml
 
