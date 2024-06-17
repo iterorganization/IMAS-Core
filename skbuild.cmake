@@ -29,7 +29,6 @@ add_custom_command(
       COMMAND ${CMAKE_COMMAND} -E env CMAKE_ARGS=${CMAKE_ARGS}
       ${Python_EXECUTABLE} -m pip wheel
         ${CMAKE_CURRENT_SOURCE_DIR}
-        --no-build-isolation
         --no-deps
         --verbose
         -Cbuild-dir=${CMAKE_CURRENT_BINARY_DIR}
