@@ -15,6 +15,7 @@ IF (-Not (Test-Path $env:VCPKG_ROOT)) {
 
 python -m venv build\pip_install
 build\pip_install\Scripts\activate.ps1
+pip install scikit-build-core>=0.9.3 cython>=3 cython-cmake numpy setuptools_scm
 python -m pip install --upgrade pip 
 
 $CMAKE_ARGS = @(
