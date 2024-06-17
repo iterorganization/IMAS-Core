@@ -139,8 +139,8 @@ rm -rf test-install
 # Ensure the build directory is clean:
 rm -rf build
 
-python -m venv build\cmake
-source build\pip_install\bin\activate
+python -m venv build/cmake
+source build/cmake/bin/activate
 pip install scikit-build-core>=0.9.3 cython>=3 cython-cmake numpy setuptools_scm
 python -m pip install --upgrade pip 
 
