@@ -39,7 +39,7 @@ MODULES_TEST=(
   *foss-2020b)
 echo "... foss-2020b"
 MODULES=(${MODULES[@]}
-    SciPy-bundle/2020.11-foss-2020b
+#    SciPy-bundle/2020.11-foss-2020b
     HDF5/1.10.7-gompi-2020b
     build/0.10.0-foss-2020b
 )
@@ -52,7 +52,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
 echo "... intel-2020b"
 MODULES=(${MODULES[@]}
     iccifort/2020.4.304
-    SciPy-bundle/2020.11-intel-2020b
+#    SciPy-bundle/2020.11-intel-2020b
     HDF5/1.10.7-iimpi-2020b
     build/0.10.0-intel-2020b
 )
@@ -75,7 +75,7 @@ MODULES=(
     build/1.0.3-GCCcore-13.2.0
     scikit-build/0.17.6-GCCcore-13.2.0
     Python/3.11.5-GCCcore-13.2.0
-    Python-bundle-PyPI/2023.10-GCCcore-13.2.0
+#    Python-bundle-PyPI/2023.10-GCCcore-13.2.0
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0
@@ -85,7 +85,7 @@ MODULES_TEST=(
 echo "... foss-2023b"
 MODULES=(${MODULES[@]}
     HDF5/1.14.3-gompi-2023b
-    SciPy-bundle/2023.11-gfbf-2023b
+#    SciPy-bundle/2023.11-gfbf-2023b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -97,7 +97,7 @@ echo "... intel-2023b"
 MODULES=(${MODULES[@]}
     intel/2023b
     HDF5/1.14.3-iimpi-2023b
-    SciPy-bundle/2023.12-iimkl-2023b
+#    SciPy-bundle/2023.12-iimkl-2023b
 )
 MODULES_TEST=(${MODULES_TEST[@]}
     intel/2023b
@@ -143,7 +143,7 @@ rm -rf build
 rm -rf venv  # Environment should be clean, but remove directory to be sure
 python -m venv --system-site-packages venv
 source venv/bin/activate
-pip install --upgrade pip wheel
+pip install --upgrade pip scipy 'numpy<2'
 
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
