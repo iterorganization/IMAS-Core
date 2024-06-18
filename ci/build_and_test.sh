@@ -140,7 +140,7 @@ rm -rf test-install
 # Ensure the build directory is clean:
 rm -rf build
 
-python -m venv build/cmake
+python -m venv build/cmake --system-site-packages
 source build/cmake/bin/activate
 python -m pip install --upgrade pip 
 python -m pip install "cython>=3.0.3"
