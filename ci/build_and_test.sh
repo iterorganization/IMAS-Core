@@ -57,7 +57,7 @@ MODULES=(${MODULES[@]}
     iccifort/2020.4.304
     #SciPy-bundle/2020.11-intel-2020b
     HDF5/1.10.7-iimpi-2020b
-    build/0.10.0-intel-2020b
+    #build/0.10.0-intel-2020b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-icc}
