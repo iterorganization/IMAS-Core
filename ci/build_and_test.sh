@@ -142,6 +142,7 @@ rm -rf build
 python -m venv build/cmake
 source build/cmake/bin/activate
 python -m pip install --upgrade pip 
+python -m pip install "cython>=3.0.3"
 
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
