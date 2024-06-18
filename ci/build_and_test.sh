@@ -28,7 +28,7 @@ MODULES=(
     Saxon-HE/10.3-Java-11
     Blitz++/1.0.2-GCCcore-10.2.0
     Python/3.8.6-GCCcore-10.2.0
-    Cython/3.0a5-GCCcore-10.2.0
+    Cython/3.0.10-GCCcore-10.2.0
     MDSplus/7.131.6-GCCcore-10.2.0
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     UDA/2.7.5-GCC-10.2.0
