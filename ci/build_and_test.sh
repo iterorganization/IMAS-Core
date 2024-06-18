@@ -27,14 +27,16 @@ MODULES=(
     Boost/1.74.0-GCC-10.2.0
     Saxon-HE/10.3-Java-11
     Blitz++/1.0.2-GCCcore-10.2.0
-    Python/3.8.6-GCCcore-10.2.0
-    Cython/3.0.10-GCCcore-10.2.0
+    Python/3.9.5-GCCcore-10.2.0-bare
+    # Python/3.8.6-GCCcore-10.2.0
+    # Cython/3.0.10-GCCcore-10.2.0
     MDSplus/7.131.6-GCCcore-10.2.0
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     UDA/2.7.5-GCC-10.2.0
 )
 MODULES_TEST=(
-    Python/3.8.6-GCCcore-10.2.0
+    Python/3.9.5-GCCcore-10.2.0-bare
+    #Python/3.8.6-GCCcore-10.2.0
 )
   ;;&
   *foss-2020b)
@@ -140,10 +142,10 @@ rm -rf test-install
 # Ensure the build directory is clean:
 rm -rf build
 
-python -m venv build/cmake --system-site-packages
+python -m venv build/cmake # --system-site-packages
 source build/cmake/bin/activate
 python -m pip install --upgrade pip 
-python -m pip install "cython>=3.0.3"
+# python -m pip install "cython>=3.0.3"
 
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
