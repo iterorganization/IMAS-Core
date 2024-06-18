@@ -75,7 +75,7 @@ MODULES=(
     Blitz++/1.0.2-GCCcore-13.2.0
     MDSplus/7.132.0-GCCcore-13.2.0
     Python/3.11.5-GCCcore-13.2.0
-    build/1.0.3-GCCcore-13.2.0
+    #build/1.0.3-GCCcore-13.2.0
     #scikit-build/0.17.6-GCCcore-13.2.0
     #Python/3.11.5-GCCcore-13.2.0
     #Python-bundle-PyPI/2023.10-GCCcore-13.2.0
