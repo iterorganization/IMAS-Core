@@ -4,7 +4,6 @@
 #include <algorithm>
 #include "hdf5_utils.h"
 #include "hdf5_dataset_handler.h"
-#include <assert.h>
 
 HDF5HsSelectionReader::HDF5HsSelectionReader(int dataset_rank_, hid_t dataset_id_, hid_t dataspace_, hsize_t *dims, int datatype_, int AOSRank_, int *dim):dataset_id(dataset_id_), immutable(true), datatype(datatype_), dataset_rank(dataset_rank_), AOSRank(AOSRank_), dtype_id(-1), dataspace(dataspace_), memspace(-1), buffer_size(0)
 {

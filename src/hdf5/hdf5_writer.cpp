@@ -1,6 +1,5 @@
 #include "hdf5_writer.h"
 
-#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -61,8 +60,8 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
 
 void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
-    assert(file_id != -1); //the master file is assumed to be opened
-
+    if (file_id == -1)
+        throw ALBackendException("HDF5Backend: master file not opened in HDF5Writer::deleteData()", LOG); //the master file is assumed to be opened
     hid_t gid = -1;
     auto got = IDS_group_id.find(ctx);
     if (got != IDS_group_id.end())
@@ -157,7 +156,9 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
             opened_IDS_files[IDS_link_name] = IDS_file_id;
         }
     }
-    assert(IDS_file_id >= 0);
+
+    if (IDS_file_id < 0)
+        throw ALBackendException("HDF5Backend: IDS file not opened in HDF5Writer::create_IDS_group()", LOG); //the IDS file is assumed to be opened
 
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) == 0) {
         std::string relative_IDSpulseFile = hdf5_utils.getIDSPulseFilePath(".", relative_file_path, IDS_link_name);
@@ -172,7 +173,8 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
     }
     close_group(ctx);
     hid_t loc_id = hdf5_utils.createOrOpenHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
-    assert(loc_id >= 0);
+    if (! (loc_id >= 0))
+        throw ALBackendException("HDF5Backend: unexpected value for loc_id in HDF5Writer::create_IDS_group()", LOG);
     IDS_group_id[ctx] = loc_id;
 }
 
@@ -282,7 +284,9 @@ void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size
     if (got_gid != IDS_group_id.end())
         gid = got_gid->second;
 
-    assert(gid >= 0);
+    if (! (gid >= 0))
+        throw ALBackendException("HDF5Backend: unexpected value for gid in HDF5Writer::beginWriteArraystructAction()", LOG);
+
     //std::cout << "Preparing AOS: " << ctx->getPath().c_str() << std::endl;
     auto got = tensorized_paths_per_context.find(ctx);
     if (got == tensorized_paths_per_context.end()) {
@@ -353,7 +357,8 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     if (got_gid != IDS_group_id.end())
         gid = got_gid->second;
 
-    assert(gid >= 0);
+    if (! (gid >= 0))
+        throw ALBackendException("HDF5Backend: unexpected value for gid in HDF5Writer::write_ND_Data()", LOG);
 
     if (dataset_name == "ids_properties&homogeneous_time") {
         int *v = (int *) data;
