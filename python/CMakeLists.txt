@@ -1,5 +1,5 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
-find_package(Cython REQUIRED)
+find_package(Cython 3.0.3 REQUIRED)
 cython_compile_pyx(imas_core/_al_lowlevel.pyx OUTPUT_VAR _al_lowlevel_source)
 cython_compile_pyx(imas_core/al_defs.pyx OUTPUT_VAR al_defs_source)
 python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
