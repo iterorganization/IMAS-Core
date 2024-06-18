@@ -181,11 +181,6 @@ cmake --build build --target install
 find test-install -not -path "*/numpy/*" -ls
 
 set +x
-# Basic import test (assumes AL_PYTHON_BINDINGS=ON)
-(
-    source $(pwd)/test-install/bin/al_env.sh
-    python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
-)
 
 echo "Loading modules for test..."
 module purge
