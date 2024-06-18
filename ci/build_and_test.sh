@@ -28,23 +28,18 @@ MODULES=(
     Saxon-HE/10.3-Java-11
     Blitz++/1.0.2-GCCcore-10.2.0
     Python/3.9.5-GCCcore-10.2.0-bare
-    # Python/3.8.6-GCCcore-10.2.0
-    # Cython/3.0.10-GCCcore-10.2.0
     MDSplus/7.131.6-GCCcore-10.2.0
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     UDA/2.7.5-GCC-10.2.0
 )
 MODULES_TEST=(
     Python/3.9.5-GCCcore-10.2.0-bare
-    #Python/3.8.6-GCCcore-10.2.0
 )
   ;;&
   *foss-2020b)
 echo "... foss-2020b"
 MODULES=(${MODULES[@]}
-    #SciPy-bundle/2020.11-foss-2020b
     HDF5/1.10.7-gompi-2020b
-    #build/0.10.0-foss-2020b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -55,9 +50,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
 echo "... intel-2020b"
 MODULES=(${MODULES[@]}
     iccifort/2020.4.304
-    #SciPy-bundle/2020.11-intel-2020b
     HDF5/1.10.7-iimpi-2020b
-    #build/0.10.0-intel-2020b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-icc}
@@ -75,10 +68,6 @@ MODULES=(
     Blitz++/1.0.2-GCCcore-13.2.0
     MDSplus/7.132.0-GCCcore-13.2.0
     Python/3.11.5-GCCcore-13.2.0
-    #build/1.0.3-GCCcore-13.2.0
-    #scikit-build/0.17.6-GCCcore-13.2.0
-    #Python/3.11.5-GCCcore-13.2.0
-    #Python-bundle-PyPI/2023.10-GCCcore-13.2.0
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0
@@ -88,7 +77,6 @@ MODULES_TEST=(
 echo "... foss-2023b"
 MODULES=(${MODULES[@]}
     HDF5/1.14.3-gompi-2023b
-    #SciPy-bundle/2023.11-gfbf-2023b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -100,7 +88,6 @@ echo "... intel-2023b"
 MODULES=(${MODULES[@]}
     intel/2023b
     HDF5/1.14.3-iimpi-2023b
-    #SciPy-bundle/2023.12-iimkl-2023b
 )
 MODULES_TEST=(${MODULES_TEST[@]}
     intel/2023b
