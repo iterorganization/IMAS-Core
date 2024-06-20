@@ -16,7 +16,7 @@ classifiers = [
 
 dynamic = ["version"]
 
-dependencies = ["numpy<2"]
+dependencies = ["numpy"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
@@ -25,9 +25,9 @@ cov = ["pytest-cov", "coverage2clover"]
 [build-system]
 requires = [
     "scikit-build-core>=0.9.3",
-    "cython>=3",
+    "cython>=3.0.3",
     "cython-cmake",
-    "numpy<2",
+    "numpy",
     "setuptools_scm",
 ]
 build-backend = "scikit_build_core.build"
