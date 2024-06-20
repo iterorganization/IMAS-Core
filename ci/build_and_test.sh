@@ -35,7 +35,6 @@ MODULES=(
     Cython/3.0.10-GCCcore-10.2.0
     cython-cmake/0.1.0-GCCcore-10.2.0
     # setuptools_scm
-
 )
 MODULES_TEST=(
     Python/3.8.6-GCCcore-10.2.0
@@ -74,9 +73,9 @@ MODULES=(
     MDSplus/7.132.0-GCCcore-13.2.0
     Python/3.11.5-GCCcore-13.2.0
     scikit-build-core/0.9.3-GCCcore-13.2.0
-    # Cython 
+    Cython/3.0.10-GCCcore-13.2.0
     cython-cmake/0.1.0-GCCcore-13.2.0
-    # setuptools_scm
+    setuptools-scm/8.1.0-GCCcore-13.2.0
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0
@@ -148,7 +147,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     # Build MDSplus models
     -DAL_BUILD_MDSPLUS_MODELS=ON
     # Build Python bindings
-    -DAL_PYTHON_BINDINGS=ON  # no-build-isolation
+    -DAL_PYTHON_BINDINGS=no-build-isolation
     # Download dependencies from HTTPS (using an access token):
     -DAL_DOWNLOAD_DEPENDENCIES=ON
     -DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
