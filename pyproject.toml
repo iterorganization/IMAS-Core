@@ -16,7 +16,7 @@ classifiers = [
 
 dynamic = ["version"]
 
-dependencies = ["numpy<2"]
+dependencies = ["numpy"]
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
