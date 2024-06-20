@@ -181,6 +181,7 @@ echo "Begin test..."
 python3 -m venv build/pip_install
 source build/pip_install/bin/activate
 pip install --upgrade pip wheel
+pip install numpy<2 
 set -x
 pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
