@@ -138,14 +138,9 @@ rm -rf test-install
 # Ensure the build directory is clean:
 rm -rf build
 
-python -m venv build/cmake
-source build/cmake/bin/activate
-python -m pip install --upgrade pip 
-
 # CMake configuration:
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D"CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
-    "-DPython_FIND_VIRTUALENV=ONLY"
     # Enable all backends
     -DAL_BACKEND_HDF5=ON
     -DAL_BACKEND_MDSPLUS=ON
