@@ -27,7 +27,7 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
 endif()
 
 
-set(PIP_OPTIONS "--no-deps" "--verbose") 
+set(PIP_OPTIONS "--verbose") 
 if(${AL_PYTHON_BINDINGS} MATCHES "^no-build-isolation$")
   list(APPEND PIP_OPTIONS "--no-build-isolation")
 elseif(NOT ${AL_PYTHON_BINDINGS} MATCHES "[Oo][Nn]")
