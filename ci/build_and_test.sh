@@ -27,10 +27,14 @@ MODULES=(
     Boost/1.74.0-GCC-10.2.0
     Saxon-HE/10.3-Java-11
     Blitz++/1.0.2-GCCcore-10.2.0
-    Python/3.8.6-GCCcore-10.2.0
     MDSplus/7.131.6-GCCcore-10.2.0
     MDSplus-Java/7.131.6-GCCcore-10.2.0-Java-11
     UDA/2.7.5-GCC-10.2.0
+    Python/3.8.6-GCCcore-10.2.0
+    # scikit_build_core
+    Cython/3.0.10-GCCcore-10.2.0
+    cython-cmake/0.1.0-GCCcore-10.2.0
+    # setuptools_scm
 )
 MODULES_TEST=(
     Python/3.8.6-GCCcore-10.2.0
@@ -39,9 +43,7 @@ MODULES_TEST=(
   *foss-2020b)
 echo "... foss-2020b"
 MODULES=(${MODULES[@]}
-    SciPy-bundle/2020.11-foss-2020b
     HDF5/1.10.7-gompi-2020b
-    build/0.10.0-foss-2020b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -52,9 +54,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
 echo "... intel-2020b"
 MODULES=(${MODULES[@]}
     iccifort/2020.4.304
-    SciPy-bundle/2020.11-intel-2020b
     HDF5/1.10.7-iimpi-2020b
-    build/0.10.0-intel-2020b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-icc}
@@ -72,10 +72,10 @@ MODULES=(
     Blitz++/1.0.2-GCCcore-13.2.0
     MDSplus/7.132.0-GCCcore-13.2.0
     Python/3.11.5-GCCcore-13.2.0
-    build/1.0.3-GCCcore-13.2.0
-    scikit-build/0.17.6-GCCcore-13.2.0
-    Python/3.11.5-GCCcore-13.2.0
-    Python-bundle-PyPI/2023.10-GCCcore-13.2.0
+    scikit-build-core/0.9.3-GCCcore-13.2.0
+    Cython/3.0.10-GCCcore-13.2.0
+    cython-cmake/0.1.0-GCCcore-13.2.0
+    setuptools-scm/8.1.0-GCCcore-13.2.0
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0
@@ -85,7 +85,6 @@ MODULES_TEST=(
 echo "... foss-2023b"
 MODULES=(${MODULES[@]}
     HDF5/1.14.3-gompi-2023b
-    SciPy-bundle/2023.11-gfbf-2023b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -97,7 +96,6 @@ echo "... intel-2023b"
 MODULES=(${MODULES[@]}
     intel/2023b
     HDF5/1.14.3-iimpi-2023b
-    SciPy-bundle/2023.12-iimkl-2023b
 )
 MODULES_TEST=(${MODULES_TEST[@]}
     intel/2023b
@@ -149,7 +147,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     # Build MDSplus models
     -DAL_BUILD_MDSPLUS_MODELS=ON
     # Build Python bindings
-    -DAL_PYTHON_BINDINGS=ON
+    -DAL_PYTHON_BINDINGS=no-build-isolation
     # Download dependencies from HTTPS (using an access token):
     -DAL_DOWNLOAD_DEPENDENCIES=ON
     -DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
@@ -172,11 +170,6 @@ cmake --build build --target install
 find test-install -not -path "*/numpy/*" -ls
 
 set +x
-# Basic import test (assumes AL_PYTHON_BINDINGS=ON)
-(
-    source $(pwd)/test-install/bin/al_env.sh
-    python -c 'import imas_core; print(imas_core._al_lowlevel.get_al_version())'
-)
 
 echo "Loading modules for test..."
 module purge
@@ -187,8 +180,10 @@ echo "Begin test..."
 # Pip install imas-core into a bare venv, run unit-tests and generate a clover.xml coverage report.
 python3 -m venv build/pip_install
 source build/pip_install/bin/activate
+pip install --upgrade pip wheel
+pip install "numpy<2" 
 set -x
-python3 -m pip install --find-links=build/dist imas-core[test,cov]
+pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
 coverage2clover -i coverage.xml -o clover.xml
 

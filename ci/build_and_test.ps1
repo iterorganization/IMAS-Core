@@ -10,7 +10,7 @@ if (Test-Path 'build') {
 $env:VCPKG_ROOT = Join-Path $pwd ..\vcpkg\
 IF (-Not (Test-Path $env:VCPKG_ROOT)) {
   git clone https://github.com/microsoft/vcpkg.git $env:VCPKG_ROOT
-  & $env:VCPKG_ROOT\bootstrap-vcpkg.bat
+  & $env:VCPKG_ROOT\bootstrap-vcpkg.bat -disableMetrics
 }
 
 python -m venv build\pip_install
