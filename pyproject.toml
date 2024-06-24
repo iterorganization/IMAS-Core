@@ -1,38 +1,35 @@
 ["project"]
-name="imas-core"
-authors = [
-    { name = "ITER Organization", email = "imas-support@iter.org"},
-]
-description="Python bindings to the IMAS Access Layer core"
+name = "imas-core"
+authors = [{ name = "ITER Organization", email = "imas-support@iter.org" }]
+description = "Python bindings to the IMAS Access Layer core"
 readme = "README.md"
 requires-python = ">=3.6, <4"
 url = "https://imas.iter.org/"
 classifiers = [
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "License :: Other/Proprietary License",
-        "Programming Language :: Python :: 3",
-        "Topic :: Scientific/Engineering :: Physics",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Physics",
 ]
 
 dynamic = ["version"]
 
-dependencies = [
-    "numpy", 
-]
+dependencies = ["numpy"]
 
-[project.optional-dependencies] 
-test = [
-    "pytest >= 7.2", 
-]
-cov = [
-    "pytest-cov",
-    "coverage2clover",
-]
+[project.optional-dependencies]
+test = ["pytest>=8"]
+cov = ["pytest-cov", "coverage2clover"]
 
 [build-system]
-requires = ["scikit-build-core>=0.9.4", "cython>=3", "cython-cmake", "numpy", "setuptools_scm"]
+requires = [
+    "scikit-build-core>=0.9.3",
+    "cython>=3.0.3",
+    "cython-cmake",
+    "numpy",
+    "setuptools_scm",
+]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -41,11 +38,12 @@ cmake.version = ">=3.21"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = ["python/imas_core/_version.py"]
 cmake.define.AL_PYTHON_BINDINGS = "ON"
+build-dir = "build/{wheel_tag}"
 wheel.packages = ["python/imas_core"]
 wheel.license-files = []
 wheel.exclude = ["lib/", "bin/", "include/", "**.pyx", "**.pxd"]
 
-[tool.setuptools_scm] 
+[tool.setuptools_scm]
 write_to = "python/imas_core/_version.py"
 
 [tool.pytest.ini_options]
@@ -53,6 +51,4 @@ testpaths = ["python/tests"]
 
 [tool.coverage.run]
 branch = true
-omit = [
-    "_version.py",
-]
+omit = ["_version.py"]

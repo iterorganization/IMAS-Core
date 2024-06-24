@@ -1,6 +1,5 @@
 #include "hdf5_reader.h"
 
-#include <assert.h>
 #include <string.h>
 #include <algorithm>
 #include "hdf5_utils.h"
@@ -315,7 +314,8 @@ std::string HDF5Reader::getTimeVectorDataSetName(int timed_AOS_index, std::vecto
         dataset_name = "time";
         return dataset_name;
     }
-    assert(timed_AOS_index != -1);
+    if (timed_AOS_index == -1)
+        throw ALBackendException("HDF5Backend: unexpected timed_AOS_index (-1) value in HDF5Reader::getTimeVectorDataSetName()", LOG);
     dataset_name = tensorized_paths[timed_AOS_index] + "&time";
     return dataset_name;
 }
@@ -569,7 +569,8 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     {
         data_set = std::move(got->second);
         opened_data_sets.erase(got);
-        assert(data_set);
+        if (!data_set)
+            throw ALBackendException("HDF5Backend: unexpected NULL data_set in HDF5Reader::read_ND_Data()", LOG);
         dataset_id = data_set->dataset_id;
     }
 
@@ -1036,8 +1037,9 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr<HDF5DataSetHandler> new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         hid_t dataset_id = -1;
-        new_data_set->open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
-        assert(new_data_set->dataset_id >= 0);
+        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
+        if (!(new_data_set->dataset_id >=0))
+            throw ALBackendException("HDF5Backend: unexpected dataset_id value in HDF5Reader::readPersistentShapes_Get()", LOG);
         *dataset_id_shapes = dataset_id;
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr<HDF5HsSelectionReader>(new HDF5HsSelectionReader(new_data_set->getRank(), new_data_set->dataset_id,
@@ -1255,9 +1257,7 @@ void HDF5Reader::setSliceMode(int slice_mode)
 void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, int *size, hid_t master_file_id)
 {
 
-    assert(master_file_id > 0);
-    if (master_file_id <= 0)
-    {
+    if (master_file_id <= 0) {
         char error_message[200];
         sprintf(error_message, "Error calling get_occurrences() for %s, HDF5 master file not opened.\n", ids_name);
         throw ALBackendException(error_message, LOG);
@@ -1265,9 +1265,10 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
     *occurrences_list = nullptr;
     *size = 0;
     std::vector<std::string> od;
-    H5L_iterate1_t file_info = (H5L_iterate1_t)&HDF5Reader::iterate_callback;
-    herr_t status = H5Literate(master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void *)&od);
-    assert(status == 0);
+    H5L_iterate1_t file_info = (H5L_iterate1_t) &HDF5Reader::iterate_callback;
+    herr_t status = H5Literate (master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void*) &od);
+    if (status != 0)
+        throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Reader::get_occurrences()", LOG);
     std::string ids_name_str(ids_name);
     std::vector<int> occurrences;
 
