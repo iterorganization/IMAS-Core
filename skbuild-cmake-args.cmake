@@ -2,11 +2,9 @@
 # SKBUILD_CMAKE_ARGS are forwarded onto python build-backend Extension of
 # https://stackoverflow.com/questions/10205986/how-to-capture-cmake-command-line-arguments
 get_cmake_property(CACHE_VARS CACHE_VARIABLES)
+
 foreach(CACHE_VAR ${CACHE_VARS})
-  get_property(CACHE_VAR_HELPSTRING CACHE ${CACHE_VAR} PROPERTY HELPSTRING)
-  if(CACHE_VAR_HELPSTRING STREQUAL
-     "No help, variable specified on the command line." OR 
-       CACHE_VAR IN_LIST SKBUILD_CACHE)
+  if(NOT CACHE_VAR MATCHES "^CMAKE_|^SKBUILD_")
     if(NOT CACHE_VAR IN_LIST SKBUILD_CACHE)
       list(APPEND SKBUILD_CACHE ${CACHE_VAR})
     endif()

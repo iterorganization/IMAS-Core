@@ -1,5 +1,7 @@
 # CMake build configuration for Access Layer core
 cmake_minimum_required(VERSION 3.21)
+option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
+option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
 
 # Capture scikit build cmake.args 
 include(./skbuild-cmake-args.cmake)
