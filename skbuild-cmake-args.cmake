@@ -8,7 +8,7 @@ foreach(CACHE_VAR ${CACHE_VARS})
   if(CACHE_VAR_HELPSTRING STREQUAL
      "No help, variable specified on the command line." OR 
      CACHE_VAR IN_LIST SKBUILD_CACHE OR 
-     CACHE_VAR MATCHES "^AL_")
+     CACHE_VAR MATCHES "^AL_|^DD_")
     if(NOT CACHE_VAR IN_LIST SKBUILD_CACHE)
       list(APPEND SKBUILD_CACHE ${CACHE_VAR})
     endif()
