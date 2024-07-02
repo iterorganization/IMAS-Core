@@ -5,6 +5,7 @@ if(SKBUILD)
 endif()
 
 find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development.Module)
+list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFIX")
 string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
 cmake_path(SET Python_EXECUTABLE ${Python_EXECUTABLE})
 
