@@ -188,6 +188,12 @@ public:
   **/
   virtual void setDataInterpolationComponent(DataInterpolation *component) = 0;
 
+
+  /**
+    Returns true if the backend supports time range operation (IMAS-3885), false otherwise.
+  **/
+  virtual bool supportsTimeRangeOperation() = 0;
+
 };
 
 

@@ -346,8 +346,8 @@ extern "C"
 						 int rwmode,
 						 double tmin,
                    double tmax,
-                   double* dtime,
-                   double* dtime_shape,
+                   const double* dtime,
+                   const double* dtime_shape,
 						 int interpmode,
 						 int *opctx);
 
@@ -477,7 +477,7 @@ extern "C"
 
   LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
 
-  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double* dtime_buffer, int* dtime_shape, int interpmode, int *octxID);
+  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, const double* dtime_buffer, const int* dtime_shape, int interpmode, int *octxID);
   
   LIBRARY_API al_status_t al_end_action(int ctxID);
 

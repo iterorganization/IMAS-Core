@@ -258,6 +258,8 @@ class LIBRARY_API MDSplusBackend:public Backend
       this->data_interpolation_component = component;
     }
 
+    bool supportsTimeRangeOperation() override;
+
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);
 

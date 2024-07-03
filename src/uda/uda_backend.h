@@ -174,6 +174,10 @@ public:
       return false;
     }
 
+    bool supportsTimeRangeOperation() {
+	  return false;
+	}
+
     void setDataInterpolationComponent(DataInterpolation *component) {
       throw ALBackendException("UDA backend does not support time slices operations",LOG);
     }

@@ -138,6 +138,10 @@ class HDF5Backend:public Backend {
       return true;
     }
 
+    bool supportsTimeRangeOperation() {
+		  return true;
+	  }
+
     void setDataInterpolationComponent(DataInterpolation *component) {
       this->data_interpolation_component = component;
     }
