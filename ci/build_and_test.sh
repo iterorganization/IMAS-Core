@@ -151,7 +151,6 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     # Download dependencies from HTTPS (using an access token):
     -DAL_DOWNLOAD_DEPENDENCIES=ON
     -DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
-    -DAL_COMMON_VERSION='feature/git-archive'
     -DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
     -DDD_VERSION=master/3
