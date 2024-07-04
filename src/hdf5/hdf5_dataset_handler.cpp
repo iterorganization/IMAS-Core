@@ -9,14 +9,17 @@
 
 HDF5DataSetHandler::HDF5DataSetHandler(bool writing_mode_, uri::Uri uri):dataset_rank(-1), AOSRank(0), immutable(true), 
 shape_dataset(false), slice_mode(false), slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), datatype(-1), dataset_id(-1), 
-dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useBuffering(true), chunk_cache_size(READ_CHUNK_CACHE_SIZE), write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(NULL), full_double_data_set_buffer(NULL)
+dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useBuffering(true), chunk_cache_size(READ_CHUNK_CACHE_SIZE), 
+write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(NULL), full_double_data_set_buffer(NULL)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
     HDF5Utils hdf5_utils;
     bool readBuffering;
 	bool writeBuffering;
 	hdf5_utils.setDefaultOptions(&chunk_cache_size, &write_chunk_cache_size, &readBuffering, &writeBuffering);
-	hdf5_utils.readOptions(uri, &compression_enabled, &readBuffering, &chunk_cache_size,  &writeBuffering,  &write_chunk_cache_size, &HDF5Utils::debug);
+	hdf5_utils.readOptions(uri, &compression_enabled, &readBuffering, &chunk_cache_size,  &writeBuffering,  &write_chunk_cache_size, 
+    &HDF5Utils::debug);
+
 	if (writing_mode_) {
 		useBuffering = writeBuffering;
 	}

@@ -40,6 +40,7 @@ private:
   static void addPluginHandler(const char* name, void *plugin_handler);
   static void addDestroyPlugin(const char* name, void *destroy_plugin);
   static void addPlugin(const char* name, void *plugin);
+  static void bind_plugin(const char* pluginName, const std::string &path, std::map<std::string, std::vector<std::string>>& bound_plugins);
 
 public:
 
@@ -50,14 +51,13 @@ public:
   static std::map<std::string, LLplugin>  llpluginsStore;                            /**< plugins */
   static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
   static std::map<std::string, std::vector<std::string>>  boundReadbackPlugins;
+  static std::map<std::string, std::vector<std::string>>  boundToFullPathPlugins;
   static std::vector<std::string> readbackPlugins;
   static std::string getOperationPath;
   static std::vector<std::string> pluginsNames;
   static std::map<std::string, std::vector<std::string>> get_plugins;
 
   static void getFullPath(int ctxID, const char* fieldPath,  std::string &full_path, std::string &fullDataObjectName);
-  static void getFullPath(int opctxID, const char* fieldPath,  std::string &full_path);
-  static void getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path);
   static bool pluginsFrameworkEnabled();
   static void checkIfPluginsFrameworkIsEnabled();
 
@@ -84,6 +84,7 @@ public:
   static bool registerPlugin(const char* plugin_name);
   static void unregisterPlugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
+  static void register_core_plugins(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
   static void bindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* pluginName, std::map<std::string, std::vector<std::string>> &boundPlugins_);
