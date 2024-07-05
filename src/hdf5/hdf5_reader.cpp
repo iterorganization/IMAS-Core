@@ -843,19 +843,19 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         std::vector<double> dtime = opctx->time_range.dtime;
         if (!is_time_basis_dataset && !isTimed)
         { //no interpolation at this stage for time basis vectors and also data located in dynamic AOS
-            printf("calling interpolate_with_resampling for: %s\n", data_set->getName().c_str());
+            //printf("calling interpolate_with_resampling for: %s\n", data_set->getName().c_str());
             int nb_slices = this->data_interpolation_component->interpolate_with_resampling(tmin, tmax, dtime, datatype, size, *dim,
                                                                                             *data, time_basis_vector, data, opctx->time_range.interpolation_method);
-            printf("nb_slices=%d\n", nb_slices);
+            //printf("nb_slices=%d\n", nb_slices);
             size[*dim - 1] = nb_slices;
         }
         //else if (is_time_basis_dataset) { //time basis are not interpolated, but the times values must be modified to the specified time range
         else if (is_homogeneous_time_basis_dataset)
         {
-            printf("calling resample_timebasis for: %s\n", data_set->getName().c_str());
+            //printf("calling resample_timebasis for: %s\n", data_set->getName().c_str());
             free(*data);
             int nb_slices = this->data_interpolation_component->resample_timebasis(tmin, tmax, dtime, timed_AOS_index_current_value, time_basis_vector, data);
-            printf("nb_slices=%d for dataset=%d\n", nb_slices, data_set->getName().c_str());
+            //printf("nb_slices=%d for dataset=%d\n", nb_slices, data_set->getName().c_str());
             size[*dim - 1] = nb_slices;
         }
         else if (is_inhomogeneous_time_basis_dataset && isTimed)
