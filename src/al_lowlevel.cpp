@@ -252,7 +252,8 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
       }
     } else {
         char error_message[200];
-        sprintf(error_message, "bindPlugin: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
+        printf("TEST100\n");
+        sprintf(error_message, "bindPlugin!!!: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
         throw ALLowlevelException(error_message, LOG);
     }
 
@@ -1220,6 +1221,7 @@ al_status_t al_plugin_read_data(int ctxID, const char *field, const char *timeba
   catch (const ALLowlevelException& e) {
     status.code = alerror::lowlevel_err;
     ALException::registerStatus(status.message, __func__, e);
+    printf("-->status.message = %s\n", status.message);
   }
   catch (const std::exception& e) {
     status.code = alerror::unknown_err;
@@ -1710,12 +1712,12 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
-
+  printf("-->calling al_read_data\n");
   status.code = 0;
   try {
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
-    //printf("al_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
+    printf("al_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
     if (isPluginBound) {
 	   for (const auto& pluginName : pluginsNames)
                 LLplugin::readDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
@@ -1732,6 +1734,7 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
   }
   catch (const ALLowlevelException& e) {
     status.code = alerror::lowlevel_err;
+    printf("status.message=%s\n", status.message);
     ALException::registerStatus(status.message, __func__, e);
   }
   catch (const ALPluginException& e) {
