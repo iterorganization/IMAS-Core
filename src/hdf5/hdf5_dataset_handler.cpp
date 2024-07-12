@@ -1162,7 +1162,7 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         int size[H5S_MAX_RANK]; 
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int strings_count = size[0];
-        std::vector<const char*> t(strings_count, NULL);
+        std::vector<char*> t(strings_count, NULL);
         status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) &t[0]);
 
         std::vector<std::string> strs(strings_count);
@@ -1181,8 +1181,9 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
 		{
 			char* q = const_cast<char *> (strs[i].data());
 			memcpy(p + i * maxlength, q, strs[i].length());
-
 		}
+        for (int i = 0; i < strings_count; i++)
+          free(t[i]);
         size[1] = maxlength;
         hsSelectionReader.setSize(size, 2);
     }
