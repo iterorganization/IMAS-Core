@@ -711,7 +711,7 @@ void HDF5Utils::setDefaultOptions(size_t *read_cache, size_t *write_cache, bool 
 }
 
 void HDF5Utils::readOption(uri::Uri uri, bool *open_read_only) {
-    uri::OptionalValue open_read_only_option = uri.query.get("hdf5_open_read_only");
+    uri::OptionalValue open_read_only_option = uri.query.get("open_read_only");
     *open_read_only = false;
     if (open_read_only_option) {
       std::string value = open_read_only_option.value();
