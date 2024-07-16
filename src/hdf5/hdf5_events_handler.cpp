@@ -15,6 +15,17 @@ HDF5EventsHandler::~HDF5EventsHandler()
 void
 HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
+	if (ctx->getAccessmode() == WRITE_OP) {
+		bool open_read_only;
+		HDF5Utils hdf5_utils;
+    	hdf5_utils.readOption(ctx->getDataEntryContext()->getURI(), &open_read_only);
+		if (open_read_only) {
+			char error_message[200];
+            sprintf(error_message, "Data entry opened in Read only: unable to start an action in WRITE_OP mode.\n");
+            throw ALBackendException(error_message, LOG);
+		}
+	}
+
 	if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP) {
 		writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		writer.setSliceMode(GLOBAL_OP);
