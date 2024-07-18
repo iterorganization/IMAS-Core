@@ -131,7 +131,7 @@ void HDF5Backend::deleteData(OperationContext * ctx, std::string path)
 {
     if (file_id == -1) //master file is closed
         return;
-    hdf5Writer->deleteData(ctx, this->file_id, opened_IDS_files, files_directory, relative_file_path);
+    eventsHandler->deleteData(ctx, this->file_id, *hdf5Writer, opened_IDS_files, files_directory, relative_file_path);
 }
 
 void HDF5Backend::beginWriteArraystructAction(ArraystructContext * ctx, int *size)

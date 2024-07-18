@@ -12,81 +12,114 @@ HDF5EventsHandler::~HDF5EventsHandler()
 {
 }
 
-void
-HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode)
+void HDF5EventsHandler::beginAction(OperationContext *ctx, hid_t file_id, std::unordered_map<std::string, hid_t> &opened_IDS_files, HDF5Writer &writer, HDF5Reader &reader, std::string &files_directory, std::string &relative_file_path, int access_mode)
 {
-	if (ctx->getAccessmode() == WRITE_OP) {
+	if (ctx->getAccessmode() == WRITE_OP)
+	{
 		bool open_read_only;
 		HDF5Utils hdf5_utils;
-    	hdf5_utils.readOption(ctx->getDataEntryContext()->getURI(), &open_read_only);
-		if (open_read_only) {
+		hdf5_utils.readOption(ctx->getDataEntryContext()->getURI(), &open_read_only);
+		if (open_read_only)
+		{
 			char error_message[200];
-            sprintf(error_message, "Data entry opened in Read only: unable to start an action in WRITE_OP mode.\n");
-            throw ALBackendException(error_message, LOG);
+			sprintf(error_message, "Data entry opened in Read only: unable to start an action in WRITE_OP mode.\n");
+			throw ALBackendException(error_message, LOG);
 		}
 	}
 
-	if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP) {
+	if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP)
+	{
 		writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		writer.setSliceMode(GLOBAL_OP);
-	} else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP) {
+	}
+	else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP)
+	{
 		std::string IDS_link_name = ctx->getDataobjectName();
 		std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
 		HDF5Utils hdf5_utils;
 		std::string IDS_pulse_file = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
 		bool call_put_required = false;
-		
-		if (hdf5_utils.pulseFileExists(IDS_pulse_file)) {
+
+		if (hdf5_utils.pulseFileExists(IDS_pulse_file))
+		{
 			writer.setSliceMode(SLICE_OP);
 			hid_t loc_id = -1;
 			writer.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &loc_id);
-			if (loc_id == -1) {
+			if (loc_id == -1)
+			{
 				call_put_required = true;
-			} 
-			else {
+			}
+			else
+			{
 				int homogeneous_time = -1;
 				writer.read_homogeneous_time(&homogeneous_time, loc_id);
 				call_put_required = (homogeneous_time == -1);
 			}
 		}
-		else {
+		else
+		{
 			call_put_required = true;
 		}
-		if (call_put_required) {
+		if (call_put_required)
+		{
 			writer.setSliceMode(GLOBAL_OP);
-			writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);	
+			writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		}
-		
-	} else if (ctx->getAccessmode() == READ_OP) {
+	}
+	else if (ctx->getAccessmode() == READ_OP)
+	{
 		reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
 		reader.setSliceMode(ctx->getRangemode());
 	}
 }
 
-void HDF5EventsHandler::endAction(Context * ctx, hid_t file_id, HDF5Writer & writer, HDF5Reader & reader, std::unordered_map < std::string, hid_t > &opened_IDS_files)
+void HDF5EventsHandler::endAction(Context *ctx, hid_t file_id, HDF5Writer &writer, HDF5Reader &reader, std::unordered_map<std::string, hid_t> &opened_IDS_files)
 {
-	if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+	if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
+	{
 		ArraystructContext *aosctx = dynamic_cast<ArraystructContext *>(ctx);
 		OperationContext *opCtx = aosctx->getOperationContext();
-		if (opCtx->getAccessmode() == WRITE_OP) {
+		if (opCtx->getAccessmode() == WRITE_OP)
+		{
 			writer.endAction(ctx);
-		} else if (opCtx->getAccessmode() == READ_OP) {
+		}
+		else if (opCtx->getAccessmode() == READ_OP)
+		{
 			reader.endAction(ctx);
 		}
-	} else if (ctx->getType() == CTX_OPERATION_TYPE) {
-		OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-		if (opCtx->getAccessmode() == WRITE_OP) {
-            if (opCtx->getRangemode() == GLOBAL_OP)
-			    writer.write_buffers();
+	}
+	else if (ctx->getType() == CTX_OPERATION_TYPE)
+	{
+		OperationContext *opCtx = dynamic_cast<OperationContext *>(ctx);
+		if (opCtx->getAccessmode() == WRITE_OP)
+		{
+			if (opCtx->getRangemode() == GLOBAL_OP)
+				writer.write_buffers();
 			H5Fflush(file_id, H5F_SCOPE_LOCAL);
 			writer.close_datasets();
 			writer.close_group(opCtx);
 			writer.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
-		} 
-        else if (opCtx->getAccessmode() == READ_OP) {
+		}
+		else if (opCtx->getAccessmode() == READ_OP)
+		{
 			reader.close_datasets();
-            reader.close_group(opCtx);
+			reader.close_group(opCtx);
 			reader.close_file_handler(opCtx->getDataobjectName(), opened_IDS_files);
 		}
 	}
+}
+
+void HDF5EventsHandler::deleteData(OperationContext *ctx, hid_t file_id, HDF5Writer &writer, std::unordered_map<std::string, hid_t> &opened_IDS_files,
+								   std::string &files_directory, std::string &relative_file_path)
+{
+	bool open_read_only;
+	HDF5Utils hdf5_utils;
+	hdf5_utils.readOption(ctx->getDataEntryContext()->getURI(), &open_read_only);
+	if (open_read_only)
+	{
+		char error_message[200];
+		sprintf(error_message, "Data entry opened in Read only: unable to perform a delete action.\n");
+		throw ALBackendException(error_message, LOG);
+	}
+	writer.deleteData(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
 }

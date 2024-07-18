@@ -32,6 +32,10 @@ class HDF5EventsHandler {
    **/
     virtual void endAction(Context * ctx, hid_t file_id, HDF5Writer & writer, HDF5Reader & reader, std::unordered_map < std::string, hid_t > &opened_IDS_files);
 
+  /**
+   Upon receiving a Low Level deleteData event, send operations to the writer instance.
+   **/
+    virtual void deleteData(OperationContext * ctx, hid_t file_id, HDF5Writer &writer, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
 
 };
 
