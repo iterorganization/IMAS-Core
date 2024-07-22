@@ -546,6 +546,8 @@ int Lowlevel::addLLenv(Backend *be, Context *ctx)
 
 LLenv Lowlevel::getLLenv(int idx)
 {
+  printf("getLLenv called for idx=%d\n", idx);
+  std::cout << "adress of llenvStore: " << &llenvStore << std::endl;
   LLenv lle;
   try {
     lle = llenvStore.at(idx);
@@ -562,6 +564,7 @@ LLenv Lowlevel::getLLenv(int idx)
 
 LLenv Lowlevel::delLLenv(int idx)
 {
+  printf(" called for idx=%d\n", idx);
   // atomic operation
   std::lock_guard<std::mutex> guard(Lowlevel::mutex);
 
@@ -1712,7 +1715,7 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
-  printf("-->calling al_read_data\n");
+  printf("-->calling al_read_data with ctxID=%d\n", ctxID);
   status.code = 0;
   try {
     std::vector<std::string> pluginsNames;
@@ -1723,6 +1726,7 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
                 LLplugin::readDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
+        printf("-->2calling al_read_data with ctxID=%d\n", ctxID);
         status = al_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
         if (status.code != 0)
             return status;

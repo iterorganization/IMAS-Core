@@ -214,11 +214,12 @@ public:
 
   static bool data_has_non_zero_shape(int datatype, void *data, int dim , int *size);
   
+  static std::vector<LLenv> llenvStore;           /**< objects (Backend, Context) storage */
 
 private:
   static std::mutex mutex;                        /**< mutex for thread safe Factory accesses */
 
-  static std::vector<LLenv> llenvStore;           /**< objects (Backend, Context) storage */
+  //static std::vector<LLenv> llenvStore;           /**< objects (Backend, Context) storage */
   static int curStoreElt;                         /**< position of next free slot in Store */
   static int maxStoreElt;                         /**< size of allocated Store */
 };
