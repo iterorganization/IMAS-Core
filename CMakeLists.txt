@@ -129,7 +129,7 @@ set(PUBLIC_HEADER_FILES
 add_library(al SHARED)
 # Note: sources are added by the CMakeFiles in the src/ folder
 target_link_libraries(al PRIVATE Boost::filesystem)
-set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Enable ASCII backend
 target_compile_definitions(al PRIVATE -DASCII)
