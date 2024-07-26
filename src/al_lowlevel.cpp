@@ -1051,6 +1051,10 @@ al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectn
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
+
+    if (!lle.backend->performsTimeDataInterpolation())
+      throw ALLowlevelException("Current backend does not support time range operations.",LOG);
+    
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw ALLowlevelException("Wrong Context type stored",LOG);
