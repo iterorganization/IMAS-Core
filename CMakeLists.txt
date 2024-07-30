@@ -122,6 +122,7 @@ set(PUBLIC_HEADER_FILES
     include/provenance_plugin_feature.h
     include/readback_plugin_feature.h
     include/uri_parser.h
+    include/data_interpolation.h
     # al_defs.h is generated in the binary folder with configure_file:
     ${CMAKE_CURRENT_BINARY_DIR}/include/al_defs.h)
 
