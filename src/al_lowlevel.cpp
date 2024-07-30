@@ -1049,8 +1049,10 @@ al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectn
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
 
-    if (!lle.backend->performsTimeDataInterpolation())
-      throw ALLowlevelException("Current backend does not support time range operations.",LOG);
+    if (!lle.backend->supportsTimeRangeOperation()) {
+      std::string message = "Selected backend does not support time range operations.";
+      throw ALLowlevelException(message.c_str());
+    }
     
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
@@ -1517,11 +1519,7 @@ al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, in
      return status;
 
     LLenv lle = Lowlevel::getLLenv(*octxID);
-    if (!lle.backend->supportsTimeRangeOperation()) {
-      std::string message = "Selected backend does not support time range operations.";
-      throw ALLowlevelException(message.c_str());
-    }
-
+  
     LLplugin::register_core_plugins(pctxID, dataobjectname, rwmode, octxID);
     std::set<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);

@@ -251,7 +251,7 @@ class LIBRARY_API MDSplusBackend:public Backend
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
     bool performsTimeDataInterpolation() {
-      return false;
+      return true;
     }
 
     void setDataInterpolationComponent(DataInterpolation *component) {
