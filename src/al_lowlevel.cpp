@@ -546,8 +546,6 @@ int Lowlevel::addLLenv(Backend *be, Context *ctx)
 
 LLenv Lowlevel::getLLenv(int idx)
 {
-  printf("getLLenv called for idx=%d\n", idx);
-  std::cout << "adress of llenvStore: " << &llenvStore << std::endl;
   LLenv lle;
   try {
     lle = llenvStore.at(idx);
@@ -564,7 +562,6 @@ LLenv Lowlevel::getLLenv(int idx)
 
 LLenv Lowlevel::delLLenv(int idx)
 {
-  printf(" called for idx=%d\n", idx);
   // atomic operation
   std::lock_guard<std::mutex> guard(Lowlevel::mutex);
 
@@ -1719,18 +1716,16 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
-  printf("-->calling al_read_data with ctxID=%d\n", ctxID);
   status.code = 0;
   try {
     std::vector<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(ctxID, field, pluginsNames);
-    printf("al_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
+    //printf("al_read_data::isPluginBound=%d for field = %s\n ", isPluginBound, field);
     if (isPluginBound) {
 	   for (const auto& pluginName : pluginsNames)
                 LLplugin::readDataPlugin(pluginName, ctxID, field, timebase, data, datatype, dim, size);
     }
     else {
-        printf("-->2calling al_read_data with ctxID=%d\n", ctxID);
         status = al_plugin_read_data(ctxID, field, timebase, data, datatype, dim, size);
         if (status.code != 0)
             return status;
@@ -1742,7 +1737,6 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
   }
   catch (const ALLowlevelException& e) {
     status.code = alerror::lowlevel_err;
-    printf("status.message=%s\n", status.message);
     ALException::registerStatus(status.message, __func__, e);
   }
   catch (const ALPluginException& e) {

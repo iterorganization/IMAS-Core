@@ -682,8 +682,7 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
                 return 0;
         }
     }
-    printf("AccessLayerPluginManager:context=%d\n", ctxID);
-    printf("AccessLayerPluginManager:store adress=%p\n", &Lowlevel::llenvStore);
+
     if (al_plugin->node_operation(LLplugin::getOperationPath) != plugin::OPERATION::PUT_ONLY)
         return al_plugin->read_data(ctxID, fieldPath, timeBasePath, data, datatype, dim, size);
     return 0;
