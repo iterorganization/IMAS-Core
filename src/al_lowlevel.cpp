@@ -252,7 +252,8 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
       }
     } else {
         char error_message[200];
-        sprintf(error_message, "bindPlugin: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
+        printf("TEST100\n");
+        sprintf(error_message, "bindPlugin!!!: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
         throw ALLowlevelException(error_message, LOG);
     }
 
@@ -1037,6 +1038,12 @@ al_status_t al_plugin_begin_timerange_action(int pctxID, const char* dataobjectn
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
+
+    if (!lle.backend->supportsTimeRangeOperation()) {
+      std::string message = "Selected backend does not support time range operations.";
+      throw ALLowlevelException(message.c_str());
+    }
+    
     DataEntryContext *pctx= dynamic_cast<DataEntryContext *>(lle.context); 
     if (pctx==NULL)
       throw ALLowlevelException("Wrong Context type stored",LOG);
@@ -1210,6 +1217,7 @@ al_status_t al_plugin_read_data(int ctxID, const char *field, const char *timeba
   catch (const ALLowlevelException& e) {
     status.code = alerror::lowlevel_err;
     ALException::registerStatus(status.message, __func__, e);
+    printf("-->status.message = %s\n", status.message);
   }
   catch (const std::exception& e) {
     status.code = alerror::unknown_err;
@@ -1501,11 +1509,7 @@ al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, in
      return status;
 
     LLenv lle = Lowlevel::getLLenv(*octxID);
-    if (!lle.backend->supportsTimeRangeOperation()) {
-      std::string message = "Selected backend does not support time range operations.";
-      throw ALLowlevelException(message.c_str());
-    }
-
+  
     LLplugin::register_core_plugins(pctxID, dataobjectname, rwmode, octxID);
     std::set<std::string> pluginsNames;
     bool isPluginBound = LLplugin::getBoundPlugins(dataobjectnameStr.c_str(), pluginsNames);
@@ -1700,7 +1704,6 @@ al_status_t al_read_data(int ctxID, const char *field, const char *timebase,
               void **data, int datatype, int dim, int *size)
 {
   al_status_t status;
-
   status.code = 0;
   try {
     std::vector<std::string> pluginsNames;

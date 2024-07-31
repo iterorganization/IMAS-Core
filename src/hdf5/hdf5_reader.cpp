@@ -373,6 +373,7 @@ void HDF5Reader::getTimeVector(OperationContext *opCtx, std::unique_ptr<HDF5Data
         }
         std::vector<double> time_basis(time_vector, time_vector + timeVectorLength);
         time_basis_vector = time_basis;
+        free(time_vector);
     }
     else
     {
@@ -407,6 +408,7 @@ void HDF5Reader::getTimeVector(OperationContext *opCtx, std::unique_ptr<HDF5Data
             time_basis.resize(index);
         } 
         time_basis_vector = time_basis;
+        free(time_vector);
     }
 }
 
