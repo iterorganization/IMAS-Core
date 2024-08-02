@@ -31,17 +31,6 @@ endif()
 ################################################################################
 
 if( AL_DOWNLOAD_DEPENDENCIES )
-  # AL core
-  ##############################################################################
-  set(
-    AL_CORE_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-core.git"
-    CACHE STRING "Git repository of al-core"
-  )
-  set(
-    AL_CORE_VERSION "main"
-    CACHE STRING "al-core version (tag or branch name) to use for this build"
-  )
-
   # AL plugins
   ##############################################################################
   set(

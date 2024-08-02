@@ -6,7 +6,6 @@
             "displayName": "HTTPS git URLs",
             "description": "Use https://git.iter.org/ URLs instead of SSH URLs",
             "cacheVariables": {
-                "AL_COMMON_GIT_REPOSITORY": "https://git.iter.org/scm/imas/al-common.git",
                 "AL_CORE_GIT_REPOSITORY": "https://git.iter.org/scm/imas/al-core.git",
                 "AL_PLUGINS_GIT_REPOSITORY": "https://git.iter.org/scm/imas/al-plugins.git",
                 "DD_GIT_REPOSITORY": "https://git.iter.org/scm/imas/data-dictionary.git"

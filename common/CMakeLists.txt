@@ -17,3 +17,7 @@ configure_file( al_env.sh.in ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh )
 if( AL_DOWNLOAD_DEPENDENCIES OR AL_DEVELOPMENT_LAYOUT )
     install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh DESTINATION bin )
 endif()
+
+# al-common_SOURCE_DIR is used in some scripts in the cmake/ folder to refer to the
+# current source directory:
+set( al-common_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE )

@@ -1,6 +1,6 @@
 # AL-Common
 
-This repository contains shared assets for Access Layer components:
+This folder contains shared assets for Access Layer components:
 
 - Shared documentation assets
 - Shared CMake assets
@@ -8,42 +8,40 @@ This repository contains shared assets for Access Layer components:
 ## How it works
 
 During the CMake configure step of any of the other Access Layer repositories
-(`al-core`, `al-fortran`, etc.) this repository is automatically cloned and
-imported by CMake (if the option `AL_DOWNLOAD_DEPENDENCIES=ON`, which it is by
-default). Look for the following lines in the CMakeLists.txt in each of
-the AL components:
+(`al-core`, `al-fortran`, etc.) this folder is imported by CMake:
 
 ```cmake
 # Configuration options for common assets
 ################################################################################
-option( AL_DOWNLOAD_DEPENDENCIES "Automatically download common assets from the AL git repository" ON )
-set( AL_COMMON_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-common.git" CACHE STRING "Git repository of AL-common" )
-set( AL_COMMON_VERSION "main" CACHE STRING "Git commit/tag/branch of AL-common" )
+option( AL_DOWNLOAD_DEPENDENCIES "Automatically download assets from the AL git repository" ON )
+set( AL_CORE_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-core.git" CACHE STRING "Git repository of AL-core" )
+set( AL_CORE_VERSION "main" CACHE STRING "Git commit/tag/branch of AL-core" )
 
 include(FetchContent)
 
 # Load common assets
 ################################################################################
-if( ${AL_DOWNLOAD_DEPENDENCIES} )
-  # Download common assets from the ITER git:
-  FetchContent_Declare(
-    al-common
-    GIT_REPOSITORY "${AL_COMMON_GIT_REPOSITORY}"
-    GIT_TAG "${AL_COMMON_VERSION}"
-  )
+if( DEFINED ENV{AL_COMMON_PATH} )
+  # Take common assets from the path in this environment variable instead of al-core
+  set( AL_COMMON_PATH $ENV{AL_COMMON_PATH} )
 else()
-  # Look in $AL_COMMON_PATH or ../al-common for common files
-  if( DEFINED ENV{AL_COMMON_PATH} )
-    set( AL_COMMON_PATH $ENV{AL_COMMON_PATH} )
+  if( ${AL_DOWNLOAD_DEPENDENCIES} )
+    # Download common assets from the ITER git:
+    FetchContent_Declare(
+      al-core
+      GIT_REPOSITORY "${AL_CORE_GIT_REPOSITORY}"
+      GIT_TAG "${AL_CORE_VERSION}"
+    )
   else()
-    set( AL_COMMON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../al-common" )
+    FetchContent_Declare(
+      al-core
+      SOURCE_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/../al-core"
+    )
   endif()
-  FetchContent_Declare(
-    al-common
-    SOURCE_DIR      "${AL_COMMON_PATH}"
-  )
+  FetchContent_MakeAvailable( al-core )
+  set( AL_COMMON_PATH "${al-core_SOURCE_DIR}/common" )
 endif()
-FetchContent_MakeAvailable( al-common )
+add_subdirectory( ${AL_COMMON_PATH} _common )
 ```
 
 Contrary to what the name implies, the `GIT_TAG` can be a branch name, tag

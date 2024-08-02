@@ -95,8 +95,8 @@ Standard environments:
         .. caution::
 
             When using the HDF5 backend within MATLAB, depending on the HDF5 library being used
-	    you may need to add `LD_PRELOAD=<hdf5_install_dir>/lib/libhdf5_hl.so`__ when starting
-	    MATLAB.
+            you may need to add ``LD_PRELOAD=<hdf5_install_dir>/lib/libhdf5_hl.so`` when starting
+            MATLAB.
 
     .. md-tab-item:: Ubuntu 22.04
 
@@ -162,8 +162,6 @@ overview of configuration options.
     CMake will automatically fetch dependencies from other Access Layer GIT repositories
     for you. You may need to provide credentials to clone the following repositories:
 
-    -   `al-common (ssh://git@git.iter.org/imas/al-common.git)
-        <https://git.iter.org/projects/IMAS/repos/al-common/browse>`__
     -   `al-core (ssh://git@git.iter.org/imas/al-core.git)
         <https://git.iter.org/projects/IMAS/repos/al-core/browse>`__
     -   `al-plugins (ssh://git@git.iter.org/imas/al-plugins.git)
@@ -179,7 +177,7 @@ overview of configuration options.
     .. code-block:: text
         :caption: Use explicit options to download dependent repositories over HTTPS
 
-        cmake -B build -D AL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git \
+        cmake -B build \
             -D AL_CORE_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-core.git \
             -D AL_PLUGINS_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-plugins.git \
             -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
@@ -270,11 +268,11 @@ Configuration options
     When ``AL_DOWNLOAD_DEPENDENCIES`` is enabled, the following settings can be used to
     configure the location and/or version of the dependencies that should be used.
     
-    -   ``AL_COMMON_GIT_REPOSITORY``, ``AL_CORE_GIT_REPOSITORY``,
+    -   ``AL_CORE_GIT_REPOSITORY``,
         ``AL_PLUGINS_GIT_REPOSITORY``, ``DD_GIT_REPOSITORY``. Configure the git URLs
-        where the ``al-common``, ``al-core``, ``al-plugins`` c.q.
+        where the ``al-core``, ``al-plugins`` c.q.
         ``data-dictionary`` repositories should be fetched from.
-    -   ``AL_COMMON_VERSION``, ``AL_CORE_VERSION``, ``AL_PLUGINS_VERSION``,
+    -   ``AL_CORE_VERSION``, ``AL_PLUGINS_VERSION``,
         ``DD_VERSION``. Configure the version of the repository that should be used.
         This can point to any valid branch name, tag or commit hash.
 
@@ -284,9 +282,6 @@ Configuration options
 
     .. code-block:: text
         :caption: Default values for ``*_GIT_REPOSITORY`` and ``*_VERSION`` options
-
-        AL_COMMON_GIT_REPOSITORY:   ssh://git@git.iter.org/imas/al-common.git
-        AL_COMMON_VERSION:          main
 
         AL_CORE_GIT_REPOSITORY:     ssh://git@git.iter.org/imas/al-core.git
         AL_CORE_VERSION:            main

@@ -8,12 +8,6 @@ Access Layer repositories
 The IMAS Access Layer consists of a number of components which are developed in separate
 repositories:
 
--   `al-common <https://git.iter.org/projects/IMAS/repos/al-common/browse>`__: common
-    files used by other repositories
-
-    This includes build scripts (in the ``cmake`` folder) and common documentation
-    templates (in the ``doc_common`` folder).
-
 -   `al-core <https://git.iter.org/projects/IMAS/repos/al-core/browse>`__: the
     Access Layer core repository, MDSplus model generator and Python lowlevel
     bindings.
@@ -83,7 +77,7 @@ development folders.
 
 The additional option ``-D AL_DEVELOPMENT_LAYOUT=ON`` may be required when you have set
 the environment variable ``$AL_COMMON_PATH``. This environment variable is set by the
-easybuild module ``IMAS-AL-Common`` and is used in the CMake configuration to build
+easybuild module ``IMAS-AL-Core`` and is used in the CMake configuration to build
 easybuild modules.
 
 .. important::
@@ -107,27 +101,25 @@ between the different repositories:
 
     flowchart
         core[al-core] -->|"MDSplus<br>models"| dd[data-dictionary]
-        core[al-core] -->|"CMake<br>configuration"| common[al-common]
         plugins[al-plugins] --> core
         hli["al-{hli}"] --> core
-        hli --> common
         hli --> dd
         hli --> plugins
 
 To manage the "correct" version of each of the dependencies, the CMake configuration
 specifies which branch to use from each repository:
 
--   Each HLI indicates which commit to use from the ``al-common`` repository. This is
-    defined by the ``AL_COMMON_VERSION`` cache string in the main ``CMakeLists.txt`` of
+-   Each HLI indicates which commit to use from the ``al-core`` repository. This is
+    defined by the ``AL_CORE_VERSION`` cache string in the main ``CMakeLists.txt`` of
     the repository.
 
     The default version used is ``main``, which is the last stable release of
-    ``al-common``.
--   Inside the ``al-common`` repository, the commits to use for the ``al-core``,
+    ``al-core``.
+-   Inside the ``al-core`` repository, the commits to use for the
     ``al-plugins`` and ``data-dictionary`` are set in `ALCommonConfig.cmake
-    <https://git.iter.org/projects/IMAS/repos/al-common/browse/cmake/ALCommonConfig.cmake>`__.
+    <https://git.iter.org/projects/IMAS/repos/al-core/browse/common/cmake/ALCommonConfig.cmake>`__.
 
-    The default versions used are ``main`` for ``al-core``, and ``master/3`` for
+    The default versions used are ``main`` for ``al-plugins``, and ``master/3`` for
     ``data-dictionary``.
 
 
@@ -161,10 +153,8 @@ configured with CMake. For more information on Sphinx, see the `Sphinx docs
 Documentation of the HLI is inside the ``doc`` folder of the repository. This folder
 contains the configuration (``conf.py``), and documentation pages (``*.rst``).
 Documentation that is common to all High Level Interfaces (such as this developer guide)
-is in the `doc_common folder in the al-common repository
-<https://git.iter.org/projects/IMAS/repos/al-common/browse/doc_common>`__. If you need
-to update the common documentation, then don't forget to update the
-``AL_COMMON_VERSION`` tag in the HLI repositories.
+is in the `common/doc_common folder in the al-core repository
+<https://git.iter.org/projects/IMAS/repos/al-core/browse/common/doc_common>`__.
 
 
 Building the documentation

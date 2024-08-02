@@ -27,7 +27,6 @@ $CMAKE_ARGS = @(
   "-DAL_BUILD_MDSPLUS_MODELS=OFF"
   "-DAL_PYTHON_BINDINGS=ON"
   "-DAL_DOWNLOAD_DEPENDENCIES=ON"
-  "-DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git"
   "-DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git"
   "-DDD_VERSION=master/3"
 )
