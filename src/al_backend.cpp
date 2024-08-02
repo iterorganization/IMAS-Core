@@ -13,6 +13,7 @@
 #ifdef UDA
 #include "uda_backend.h"
 #endif
+#include "serialize_backend.h"
 
 #if !defined(__GNUC__) && !defined(__clang__)
 #define strcasecmp _stricmp
@@ -70,6 +71,10 @@ Backend* Backend::initBackend(int id)
       throw ALBackendException("UDA backend is not available within current install",LOG);
 #endif
     }
+  else if (id==alconst::serialize_backend) {
+      SerializeBackend *tbe = new SerializeBackend();
+      be = tbe;
+    } 
   else
     {
       std::cerr << "Non-identified backend ID (" << id << ")\n";

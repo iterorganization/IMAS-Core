@@ -210,6 +210,8 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
         backend_id = ASCII_BACKEND;
     } else if (path =="memory") {
         backend_id = MEMORY_BACKEND;
+    } else if (path =="serialize") {
+        backend_id = SERIALIZE_BACKEND;
     } else if (path == "uda" || !host.empty()) {
         backend_id = UDA_BACKEND;
     } else {
