@@ -8,8 +8,7 @@ set( DD_VERSION "master/3" CACHE STRING "Data dictionary version (tag or branch 
 
 # Load common assets
 ################################################################################
-set( AL_PARENT_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../../ )
-add_subdirectory( "${AL_PARENT_FOLDER}/common" _common )
+add_subdirectory( "${CMAKE_CURRENT_SOURCE_DIR}/../../common" _common )
 
 project( al-models-mdsplus )
 
