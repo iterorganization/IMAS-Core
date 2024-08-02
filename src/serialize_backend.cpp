@@ -127,6 +127,13 @@ void SerializeBackend::writeData(
         if (!_vector_starts.empty())
             throw ALBackendException("Incomplete vectors present", LOG);
         uint8_t *buffer = reinterpret_cast<uint8_t*>(data);
+        if (*buffer != FLEXBUFFERS_SERIALIZER_PROTOCOL) {
+            throw ALBackendException(
+                "Serialize Backend: Unknown serializer protocol: "
+                + std::to_string(int(*buffer)),
+                LOG
+            );
+        }
         _buffer = std::vector<uint8_t>(buffer, buffer + (*size));
         return;
     }
@@ -190,10 +197,13 @@ int SerializeBackend::readData(
         auto & buffer = _builder->GetBuffer();
         *datatype = CHAR_DATA;
         *dim = 1;
-        *size = buffer.size();
+        *size = buffer.size() + 1;
         // allocate C memory for the data:
-        *data = malloc(buffer.size());
-        memcpy(*data, buffer.data(), buffer.size());
+        int8_t *tmp = reinterpret_cast<int8_t *>(malloc(*size));
+        tmp[0] = static_cast<int8_t>(FLEXBUFFERS_SERIALIZER_PROTOCOL);
+        memcpy(tmp + 1, buffer.data(), buffer.size());
+        // Assign to data
+        *data = tmp;
         return 1;
     } 
     if (_builder)
