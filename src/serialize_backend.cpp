@@ -45,6 +45,11 @@ void SerializeBackend::beginArraystructAction(
     ArraystructContext* ctx, int* size
 ) {
     _cur_ctxid.push(ctx->getUid());
+    if (ctx->getParent() != NULL) {
+        // A nested AoS action can be in a different index than we're
+        // currently in:
+        _check_aos_index(ctx->getParent());
+    }
     _cur_aos_index.push(0);
 
     if (_serializing) {
@@ -143,13 +148,7 @@ void SerializeBackend::writeData(
         throw ALBackendException("Writing data, but no builder available", LOG);
 
     // Check if we're in an AoS and have increased our index
-    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-        ArraystructContext *aos = dynamic_cast<ArraystructContext *>(ctx);
-        for (auto &idx = _cur_aos_index.top(); idx < aos->getIndex(); ++idx) {
-            _end_vector();
-            _start_vector();
-        }
-    }
+    _check_aos_index(ctx);
 
     _builder->Key(fieldname);
     _builder->Int(datatype);
@@ -211,17 +210,7 @@ int SerializeBackend::readData(
 
     // deserializing
     // First check if we're still looking at the correct AoS
-    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
-        ArraystructContext *aos = dynamic_cast<ArraystructContext *>(ctx);
-        if (_cur_aos_index.top() != aos->getIndex()) {
-            // Update cur index
-            _cur_aos_index.top() = aos->getIndex();
-            // Update the flexbuffers::Vector to match the current aos index
-            _element_map.pop();
-            _cur_vector.pop();
-            _push_element_map(_cur_vector.top()[aos->getIndex()].AsVector());
-        }
-    }
+    _check_aos_index(ctx);
 
     auto idx = _element_map.top().find(fieldname);
     if (idx == _element_map.top().end()) {
@@ -278,4 +267,26 @@ void SerializeBackend::_push_element_map(flexbuffers::Vector vector) {
         }
     }
     _element_map.push(element_map);
+}
+
+void SerializeBackend::_check_aos_index(Context *ctx) {
+    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
+        ArraystructContext *aos = dynamic_cast<ArraystructContext *>(ctx);
+
+        if (_serializing) {
+            for (auto &idx = _cur_aos_index.top(); idx < aos->getIndex(); ++idx) {
+                _end_vector();
+                _start_vector();
+            }
+        } else {
+            if (_cur_aos_index.top() != aos->getIndex()) {
+                // Update cur index
+                _cur_aos_index.top() = aos->getIndex();
+                // Update the flexbuffers::Vector to match the current aos index
+                _element_map.pop();
+                _cur_vector.pop();
+                _push_element_map(_cur_vector.top()[aos->getIndex()].AsVector());
+            }
+        }
+    }
 }

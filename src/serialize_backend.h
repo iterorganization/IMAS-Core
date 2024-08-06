@@ -79,6 +79,9 @@ class LIBRARY_API SerializeBackend : public Backend
      * contained in the provided vector
      */
     void _push_element_map(flexbuffers::Vector vector);
+    /** Helper method to check if the current AoS index has changed and act
+     * accordingly */
+    void _check_aos_index(Context* ctx);
 };
 
 #endif  // SERIALIZE_BACKEND_H
