@@ -77,7 +77,7 @@ namespace alconst {
 
   const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
   const int flexbuffers_serializer_protocol = FLEXBUFFERS_SERIALIZER_PROTOCOL;
-  const int default_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
+  const int default_serializer_protocol = DEFAULT_SERIALIZER_PROTOCOL;
 
   const std::array<int,6> backend_id_list =
     {
@@ -131,10 +131,11 @@ namespace alconst {
        COMPLEX_DATA
       }
     };
-  const std::array<int,1> serializer_protocol_list =
+  const std::array<int,2> serializer_protocol_list =
     {
       {
-	ASCII_SERIALIZER_PROTOCOL
+	ASCII_SERIALIZER_PROTOCOL,
+  FLEXBUFFERS_SERIALIZER_PROTOCOL
       }
     };
   
@@ -166,7 +167,8 @@ namespace alconst {
       {INTEGER_DATA, "INTEGER_DATA"},
       {DOUBLE_DATA, "DOUBLE_DATA"},
       {COMPLEX_DATA, "COMPLEX_DATA"},
-      {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"}
+      {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"},
+      {FLEXBUFFERS_SERIALIZER_PROTOCOL, "FLEXBUFFERS_SERIALIZER_PROTOCOL"}
     };
 }
 
