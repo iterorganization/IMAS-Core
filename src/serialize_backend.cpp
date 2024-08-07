@@ -1,6 +1,9 @@
 #include "serialize_backend.h"
 
 #include <algorithm>
+#include <sstream>
+
+#define ENDIAN_MARKER_VALUE uint32_t(0x01020304)
 
 std::pair<int, int> SerializeBackend::getVersion(DataEntryContext* ctx) {
   return std::pair<int, int>(1, 0);
@@ -35,9 +38,22 @@ void SerializeBackend::beginAction(OperationContext* ctx) {
         _builder->Clear();
         // start a vector to store the IDS children in
         _start_vector();
+        uint32_t endian_marker = ENDIAN_MARKER_VALUE;
+        _builder->Blob(reinterpret_cast<void*>(&endian_marker), 4);
     } else {
         auto root = flexbuffers::GetRoot(_buffer);
         _push_element_map(root.AsVector());
+        // Check that we have the same endian-ness as the machine that
+        // serialized
+        uint32_t endian_marker = *reinterpret_cast<const uint32_t*>(_cur_vector.top()[0].AsBlob().data());
+        if (endian_marker != ENDIAN_MARKER_VALUE) {
+            std::stringstream ss;
+            ss << "Error when deserializing data: expected endian marker 0x";
+            ss << std::hex << ENDIAN_MARKER_VALUE;
+            ss << ", got 0x" << std::hex << endian_marker << ".";
+            _cur_ctxid.pop();
+            throw ALBackendException(ss.str());
+        }
     }
 }
 
