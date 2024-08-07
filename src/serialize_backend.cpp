@@ -5,6 +5,127 @@
 
 #define ENDIAN_MARKER_VALUE uint32_t(0x01020304)
 
+
+/**
+ * IMAS Flexbuffers serialization format
+ * =====================================
+ *
+ * This serialization format was designed for speed and simplicity. We use the
+ * Flexbuffers schemaless binary serialization format. Compared to schema-full
+ * alternatives (like flatbuffers, Cap'n'proto and others) this adds some
+ * overhead to store data types. This overhead is typically negligible compared
+ * to the actual data transferred. The main benefit of Flexbuffers is that it's
+ * a library-only header, making this more portable solution with a small binary
+ * footprint.
+ *
+ * IDSs are serialized as nested Flexbuffer Vectors, mimicking the structures
+ * and arrays of structures that IDSs consist of.
+ *
+ * An IDS is serialized as:
+ *      [endian_marker, fieldname1, {field1}, fieldname2, {field2}, ...],
+ * where:
+ * 
+ * - endian_marker is the binary representation (flexbuffers::Blob) of the
+ *   integer 0x01020304. The serializer backend does not support byte swapping.
+ *   Instead an error is raised if the endianness is not as expected.
+ * - fieldname1, fieldname2, etc. are flexbuffers::Keys indicating the fieldname
+ *   of the data that follows. These can be, for example
+ *   "ids_properties/comment", "profiles_1d", etc.
+ * - {field1}, {field2}, etc. depend on the type of data stored:
+ *      - If the field is a data node, this expands to three items:
+ *          1. datatype (flexbuffers::Int), one of CHAR_DATA, INTEGER_DATA,
+ *             DOUBLE_DATA or COMPLEX_DATA
+ *          2. size array (flexbuffers::TypedVector of type int), indicating the
+ *             dimensionality and size in each dimension of the value.
+ *          3. data (flexbuffers::Blob), the binary representation of the
+ *             underlying data (array)
+ *      - If the field is an array of structures, this is a single item: a
+ *        flexbuffers::Vector with one item per structure in the AoS.
+ * 
+ *        The structure is another Vector, with a similar structure as the root
+ *        IDS, except that the endian_marker is omitted.
+ * 
+ * Example:
+ * --------
+ * 
+ * For a very small example core_profiles IDS
+ *      core_profiles
+ *      ├── ids_properties
+ *      │   ├── comment: 'Example IDS for serialization'
+ *      │   ├── homogeneous_time: 1
+ *      │   └── ids_properties/version_put
+ *      │       ├── data_dictionary: '3.41.0'
+ *      │       ├── access_layer: '5.2.7'
+ *      │       └── access_layer_language: 'imaspy 1.0.0+208.g80b0611'
+ *      ├── profiles_1d[0]
+ *      │   ├── profiles_1d[0]/grid
+ *      │   │   └── rho_tor_norm: array([0. , 0.5, 1. ])
+ *      │   └── t_i_average: array([3., 2., 1.])
+ *      ├── profiles_1d[1]
+ *      │   ├── profiles_1d[1]/grid
+ *      │   │   └── rho_tor_norm: array([0. , 0.5, 1. ])
+ *      │   └── t_i_average: array([4., 3., 2.])
+ *      └── time: array([0.])
+ * 
+ * The serialized format can be inspected with the Python API of flexbuffers.
+ * The output is annotated to highlight different elements
+ *      $ python
+ *      >>> data = ids.serialize()
+ *      >>> import flatbuffers.flexbuffers
+ *      >>> flatbuffers.flexbuffers.GetRoot(data).Value
+ *      [
+ *          b'\x04\x03\x02\x01',                #< The endian marker, little-endian representation of 0x01020304
+ *          'ids_properties/comment',           #< Field name of the first data field
+ *          50,                                 #< Data type (CHAR_DATA)
+ *          [29],                               #< Size array, 1D with length 29
+ *          b'Example IDS for serialization',   #< Blob representation of the data
+ *          'ids_properties/homogeneous_time',  #< Field name of the second data field
+ *          51,                                 #< Data type (INTEGER_DATA)
+ *          [],                                 #< Size array, 0D element
+ *          b'\x01\x00\x00\x00',                #< Blob representation of 1
+ *          'ids_properties/version_put/data_dictionary',
+ *          50,
+ *          [6],
+ *          b'3.41.0',
+ *          'ids_properties/version_put/access_layer',
+ *          50,
+ *          [5],
+ *          b'5.2.7',
+ *          'ids_properties/version_put/access_layer_language',
+ *          50,
+ *          [25],
+ *          b'imaspy 1.0.0+208.g80b0611',
+ *          'profiles_1d',                      #< Field name of profiles_1d array of structures
+ *          [                                   #< This Vector marks the start of the AoS, with two containing structures
+ *              [                               #< Structure serializing profiles_1d[0]
+ *                  'grid/rho_tor_norm',        #< First data node in profiles_1d[0]
+ *                  52,                         #< Data type (DOUBLE_DATA)
+ *                  [3],                        #< Size array, 1D with shape (3,)
+ *                  b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0?\x00\x00\x00\x00\x00\x00\xf0?',
+ *                  't_i_average',
+ *                  52,
+ *                  [3],
+ *                  b'\x00\x00\x00\x00\x00\x00\x08@\x00\x00\x00\x00\x00\x00\x00@\x00\x00\x00\x00\x00\x00\xf0?'
+ *              ],
+ *              [                               #< Structure serializing profiles_1d[1]
+ *                  'grid/rho_tor_norm',
+ *                  52,
+ *                  [3],
+ *                  b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe0?\x00\x00\x00\x00\x00\x00\xf0?',
+ *                  't_i_average',
+ *                  52,
+ *                  [3],
+ *                  b'\x00\x00\x00\x00\x00\x00\x10@\x00\x00\x00\x00\x00\x00\x08@\x00\x00\x00\x00\x00\x00\x00@'
+ *              ]
+ *          ],
+ *          'time',
+ *          52,
+ *          [1],
+ *          b'\x00\x00\x00\x00\x00\x00\x00\x00'
+ *      ]
+ */
+
+
 std::pair<int, int> SerializeBackend::getVersion(DataEntryContext* ctx) {
   return std::pair<int, int>(1, 0);
 }
