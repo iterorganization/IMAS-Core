@@ -138,9 +138,9 @@ void SerializeBackend::openPulse(DataEntryContext* ctx, int mode) {
     if (_serializing) {
         // Initialize internal buffer to 1 MB
         const std::size_t initial_size = 1 * 1024 * 1024;
-        _builder = std::make_unique<flexbuffers::Builder>(
+        _builder = std::unique_ptr<flexbuffers::Builder>(new flexbuffers::Builder(
             initial_size, flexbuffers::BUILDER_FLAG_NONE
-        );
+        ));
     }
 }
 
