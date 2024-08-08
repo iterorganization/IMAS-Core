@@ -132,6 +132,7 @@ void LLplugin::getFullPathFromOperationContext(OperationContext *opctx, const ch
 
 bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames) {
 	if(!pluginsFrameworkEnabled()) return false;
+  if(std::string(fieldPath) == "<buffer>") return false;  // Skip plugins when storing serialized buffer in Serialization Backend
   std::string fullPath;
   std::string dataObjectName;
   getFullPath(ctxID, fieldPath, fullPath, dataObjectName);
