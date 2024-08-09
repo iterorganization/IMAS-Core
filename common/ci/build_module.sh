@@ -21,7 +21,7 @@ if [ ! -d al-core ]; then
 fi
 
 # Export repositories:
-for repo in al-common al-core al-cpp al-fortran al-java al-matlab al-python data-dictionary
+for repo in al-core al-cpp al-fortran al-java al-matlab al-python data-dictionary
 do
     pushd $repo
     git archive --output ../$repo-dev.tar.gz HEAD
