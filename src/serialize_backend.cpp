@@ -190,8 +190,11 @@ void SerializeBackend::beginArraystructAction(
     _cur_aos_index.push(0);
 
     if (_serializing) {
-        if (*size <= 0) return;
-        // serializing
+        if (*size <= 0){
+            // set _cur_aos_index to -1 to signal that there's no vectors pushed
+            -- _cur_aos_index.top();
+            return;
+        }
         _builder->Key(ctx->getPath());
         // Start a vector to contain all AoS elements
         _start_vector();
@@ -226,10 +229,16 @@ void SerializeBackend::endAction(Context* ctx) {
     if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
         // End of an AoS
         if (_serializing) {
-            // close structure vector
-            _end_vector();
-            // close the vector containing all aos structures
-            _end_vector();
+            if (_cur_aos_index.top() >= 0) {
+                // close structure vector
+                _end_vector();
+                // close the vector containing all aos structures
+                _end_vector();
+            } else {
+                // _cur_aos_index.top() is negative if the AoS is of zero size, see
+                // beginArrayStructAction.
+                // In this case, no vectors were started, so we don't end them either.
+            }
         } else if (_cur_aos_index.top() >= 0) {
             // Pop structure vector and its element map
             _element_map.pop();
