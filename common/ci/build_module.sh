@@ -73,7 +73,6 @@ else
 fi
 
 eb $EBOPTIONS Data-Dictionary-develop-*.eb
-eb $EBOPTIONS IMAS-AL-Common-develop.eb
 eb $EBOPTIONS IMAS-AL-Core-develop-*.eb
 eb $EBOPTIONS IMAS-AL-MDSplus-models-develop-*.eb
 eb $EBOPTIONS IMAS-AL-Cpp-develop-*.eb
