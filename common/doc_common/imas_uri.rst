@@ -57,16 +57,18 @@ Backend comparison
     :header-rows: 1
     :stub-columns: 1
 
-    , :ref:`HDF5 <hdf5 backend>`, :ref:`MDSplus <mdsplus backend>`, :ref:`UDA <uda backend>`, :ref:`Memory <memory backend>`, :ref:`ASCII <ascii backend>`
-    :ref:`get <Load an entire IDS>`, Yes, Yes, Yes, Yes, Yes
-    :ref:`get_slice <Load a single \`time slice\` of an IDS>`, Yes, Yes, Yes, Yes, \-
-    :ref:`put <Store an entire IDS>`, Yes, Yes, \-, Yes, Yes
-    :ref:`put_slice <Append a time slice to an already-stored IDS>`, Yes, Yes, \-, Yes, \-
-    Persistent storage, Yes, Yes, Yes [#uda]_, \-, Yes [#ascii]_
+    , :ref:`HDF5 <hdf5 backend>`, :ref:`MDSplus <mdsplus backend>`, :ref:`UDA <uda backend>`, :ref:`Memory <memory backend>`, :ref:`ASCII <ascii backend>`, :ref:`Flexbuffers <flexbuffers backend>`
+    :ref:`get <Load an entire IDS>`, Yes, Yes, Yes, Yes, Yes, Yes [#fb_get]_
+    :ref:`get_slice <Load a single \`time slice\` of an IDS>`, Yes, Yes, Yes, Yes, \-, \-
+    :ref:`put <Store an entire IDS>`, Yes, Yes, \-, Yes, Yes, Yes [#fb_put]_
+    :ref:`put_slice <Append a time slice to an already-stored IDS>`, Yes, Yes, \-, Yes, \-, \-
+    Persistent storage, Yes, Yes, Yes [#uda]_, \-, Yes [#ascii]_, \-
 
 .. [#uda] The UDA backend is read-only.
 .. [#ascii] Suitable for tests and small data, but not recommended for large
     datasets or long-term storage.
+.. [#fb_get] Only when using ``OPEN_PULSE`` mode
+.. [#fb_put] Only when not using ``OPEN_PULSE`` mode
 
 
 HDF5 backend
@@ -126,6 +128,16 @@ The ASCII backend is identified by ``ascii`` in the IMAS URI. The ASCII backend
 can be used to store IDS data in a plain-text human readable format. The
 performance and size of the stored data is worse than the other backends, so
 this is typically only used for debugging.
+
+
+Flexbuffers backend
+'''''''''''''''''''
+
+The Flexbuffers backend is identified by ``flexbuffers`` in the IMAS URI. The
+Flexbuffers backend is used when (de)serializing IDSs with the
+``FLEXBUFFERS_SERIALIZER_PROTOCOL``. It is optimized for (de)serialization speed and
+therefore has very limited functionality. It is not intended to be used outside of IDS
+serialization.
 
 
 Query keys
