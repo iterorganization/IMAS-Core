@@ -20,18 +20,6 @@ AL_BACKEND_MDSPLUS OFF)
 option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 
-# Configuration options for common assets
-# ##############################################################################
-option(AL_DOWNLOAD_DEPENDENCIES
-       "Automatically download common assets from the AL git repository" ON)
-set(AL_COMMON_GIT_REPOSITORY
-    "ssh://git@git.iter.org/imas/al-common.git"
-    CACHE STRING "Git repository of AL-common")
-set(AL_COMMON_VERSION
-    "main"
-    CACHE STRING "Git commit/tag/branch of AL-common")
-
-
 # Configuration options for shared libraries
 # ##############################################################################
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
@@ -46,24 +34,7 @@ include(./vcpkg.cmake)
 
 # Load common assets
 # ##############################################################################
-include(FetchContent)
-if(AL_DOWNLOAD_DEPENDENCIES)
-  # Download common assets from the ITER git:
-  FetchContent_Declare(
-    al-common
-    GIT_REPOSITORY "${AL_COMMON_GIT_REPOSITORY}"
-    GIT_TAG "${AL_COMMON_VERSION}")
-else()
-  # Look in $AL_COMMON_PATH or ../al-common for common files
-  if(DEFINED ENV{AL_COMMON_PATH})
-    set(AL_COMMON_PATH $ENV{AL_COMMON_PATH})
-  else()
-    set(AL_COMMON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../al-common")
-  endif()
-  FetchContent_Declare(al-common SOURCE_DIR "${AL_COMMON_PATH}")
-endif()
-FetchContent_MakeAvailable(al-common)
-
+add_subdirectory(common)
 
 # Define project
 # ##############################################################################
@@ -130,7 +101,7 @@ set(PUBLIC_HEADER_FILES
 add_library(al SHARED)
 # Note: sources are added by the CMakeFiles in the src/ folder
 target_link_libraries(al PRIVATE Boost::filesystem)
-set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Enable ASCII backend
 target_compile_definitions(al PRIVATE -DASCII)
@@ -164,6 +135,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc DESTINATION lib/pkgconfig)
 
 # Install mdsplusIMASDB4to5
 install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
+
+# Install common files (these are used by EB modules)
+# Note: EB module has to point the env variable $AL_COMMON_PATH to this installed dir: 
+install(DIRECTORY common TYPE DATA)
 
 
 # Scikit-build-core entry point for python bindings

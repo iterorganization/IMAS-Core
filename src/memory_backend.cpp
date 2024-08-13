@@ -802,7 +802,7 @@ else
 	{
 	    ALAoS *currAos = aosField.second;
 	    ALAoS *newAos;
-	    if(currAos->timebase != "")
+	    if (currAos->timebase != "" && currAos->aos.size() > 0)
 	    {
 	    	int sliceIdx1, sliceIdx2;
 

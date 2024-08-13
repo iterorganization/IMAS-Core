@@ -28,7 +28,8 @@ enum BACKEND
 	MDSPLUS_BACKEND = BACKEND_ID_0+2,
 	HDF5_BACKEND    = BACKEND_ID_0+3,
 	MEMORY_BACKEND  = BACKEND_ID_0+4,
-	UDA_BACKEND     = BACKEND_ID_0+5
+	UDA_BACKEND     = BACKEND_ID_0+5,
+	FLEXBUFFERS_BACKEND = BACKEND_ID_0+6
 };
 
 
@@ -47,6 +48,7 @@ namespace alconst {
   const int hdf5_backend    = BACKEND::HDF5_BACKEND;
   const int memory_backend  = BACKEND::MEMORY_BACKEND;
   const int uda_backend     = BACKEND::UDA_BACKEND;
+  const int flexbuffers_backend = BACKEND::FLEXBUFFERS_BACKEND;
 
   const int global_op = GLOBAL_OP;
   const int slice_op = SLICE_OP;
@@ -75,7 +77,8 @@ namespace alconst {
   const int complex_data = COMPLEX_DATA;
 
   const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
-  const int default_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
+  const int flexbuffers_serializer_protocol = FLEXBUFFERS_SERIALIZER_PROTOCOL;
+  const int default_serializer_protocol = DEFAULT_SERIALIZER_PROTOCOL;
 
   const std::array<int,6> backend_id_list =
     {
@@ -130,10 +133,11 @@ namespace alconst {
        COMPLEX_DATA
       }
     };
-  const std::array<int,1> serializer_protocol_list =
+  const std::array<int,2> serializer_protocol_list =
     {
       {
-	ASCII_SERIALIZER_PROTOCOL
+	ASCII_SERIALIZER_PROTOCOL,
+  FLEXBUFFERS_SERIALIZER_PROTOCOL
       }
     };
   
@@ -165,7 +169,8 @@ namespace alconst {
       {INTEGER_DATA, "INTEGER_DATA"},
       {DOUBLE_DATA, "DOUBLE_DATA"},
       {COMPLEX_DATA, "COMPLEX_DATA"},
-      {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"}
+      {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"},
+      {FLEXBUFFERS_SERIALIZER_PROTOCOL, "FLEXBUFFERS_SERIALIZER_PROTOCOL"}
     };
 }
 

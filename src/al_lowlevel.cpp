@@ -119,6 +119,7 @@ void LLplugin::checkIfPluginsFrameworkIsEnabled(){
 
 bool LLplugin::getBoundPlugins(int ctxID, const char* fieldPath, std::vector<std::string> &pluginsNames) {
 	if(!pluginsFrameworkEnabled()) return false;
+  if(std::string(fieldPath) == "<buffer>") return false;  // Skip plugins when storing serialized buffer in Serialization Backend
   std::string fullPath;
   std::string dataObjectName;
   getFullPath(ctxID, fieldPath, fullPath, dataObjectName);
@@ -735,22 +736,12 @@ int Lowlevel::beginUriAction(const std::string &uri)
   DataEntryContext *pctx=NULL;
   Backend *be=NULL;
 
-  try {
-    pctx = new DataEntryContext(uri);
+  pctx = new DataEntryContext(uri);
+  if (pctx != NULL) {
+    be = Backend::initBackend(pctx->getBackendID());
+    // store reference of this object 
+    ctxID = Lowlevel::addLLenv(be, pctx);
   }
-  catch (const ALContextException& e) {
-    std::cerr << e.what() << "\n";
-    ctxID = alerror::context_err;
-    pctx = NULL;
-  }
-
-
-  if (pctx != NULL) 
-    {
-      be = Backend::initBackend(pctx->getBackendID());
-      // store reference of this object 
-      ctxID = Lowlevel::addLLenv(be, pctx);
-    }
 
   return ctxID;
 }

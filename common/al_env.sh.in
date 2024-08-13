@@ -1,0 +1,21 @@
+export PATH="${CMAKE_INSTALL_PREFIX}/bin:$PATH"
+export LD_LIBRARY_PATH="${CMAKE_INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="${CMAKE_INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH"
+export HDF5_USE_FILE_LOCKING=FALSE
+
+if [ -f "${CMAKE_INSTALL_PREFIX}/jar/imas.jar" ]; then
+    export CLASSPATH="${CMAKE_INSTALL_PREFIX}/jar/imas.jar:$CLASSPATH"
+fi
+if [ -d "${CMAKE_INSTALL_PREFIX}/mex" ]; then
+    export MATLABPATH="${CMAKE_INSTALL_PREFIX}/mex:$MATLABPATH"
+fi
+if [ -d "${CMAKE_INSTALL_PREFIX}/lib/python${PYVER}/site-packages" ]; then
+    export PYTHONPATH="${CMAKE_INSTALL_PREFIX}/lib/python${PYVER}/site-packages:$PYTHONPATH"
+fi
+if [ -d "${CMAKE_INSTALL_PREFIX}/models/mdsplus" ]; then
+    export ids_path="${CMAKE_INSTALL_PREFIX}/models/mdsplus"
+fi
+if [ -f "${CMAKE_INSTALL_PREFIX}/include/IDSDef.xml" ]; then
+    export IDSDEF_PATH="${CMAKE_INSTALL_PREFIX}/include/IDSDef.xml"
+    export IMAS_VERSION="$( grep -Pom 1 '(?<=<version>)[^<]*' $IDSDEF_PATH )"
+fi
