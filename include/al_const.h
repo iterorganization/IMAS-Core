@@ -29,7 +29,7 @@ enum BACKEND
 	HDF5_BACKEND    = BACKEND_ID_0+3,
 	MEMORY_BACKEND  = BACKEND_ID_0+4,
 	UDA_BACKEND     = BACKEND_ID_0+5,
-	SERIALIZE_BACKEND = BACKEND_ID_0+6
+	FLEXBUFFERS_BACKEND = BACKEND_ID_0+6
 };
 
 
@@ -48,7 +48,7 @@ namespace alconst {
   const int hdf5_backend    = BACKEND::HDF5_BACKEND;
   const int memory_backend  = BACKEND::MEMORY_BACKEND;
   const int uda_backend     = BACKEND::UDA_BACKEND;
-  const int serialize_backend = BACKEND::SERIALIZE_BACKEND;
+  const int flexbuffers_backend = BACKEND::FLEXBUFFERS_BACKEND;
 
   const int global_op = GLOBAL_OP;
   const int slice_op = SLICE_OP;

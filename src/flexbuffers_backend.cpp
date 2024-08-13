@@ -1,4 +1,4 @@
-#include "serialize_backend.h"
+#include "flexbuffers_backend.h"
 
 #include <algorithm>
 #include <sstream>
@@ -126,11 +126,11 @@
  */
 
 
-std::pair<int, int> SerializeBackend::getVersion(DataEntryContext* ctx) {
+std::pair<int, int> FlexbuffersBackend::getVersion(DataEntryContext* ctx) {
   return std::pair<int, int>(1, 0);
 }
 
-void SerializeBackend::openPulse(DataEntryContext* ctx, int mode) {
+void FlexbuffersBackend::openPulse(DataEntryContext* ctx, int mode) {
     _cur_ctxid.push(ctx->getUid());
 
     _serializing = (mode != OPEN_PULSE);
@@ -144,13 +144,13 @@ void SerializeBackend::openPulse(DataEntryContext* ctx, int mode) {
     }
 }
 
-void SerializeBackend::closePulse(DataEntryContext* ctx, int mode) {
+void FlexbuffersBackend::closePulse(DataEntryContext* ctx, int mode) {
     // clear buffers
     if (_builder) _builder->Clear();
     _buffer.clear();
 }
 
-void SerializeBackend::beginAction(OperationContext* ctx) {
+void FlexbuffersBackend::beginAction(OperationContext* ctx) {
     if (ctx->getRangemode() == SLICE_OP)
         throw ALBackendException("Serialize Backend does not support slice mode", LOG);
     _cur_ctxid.push(ctx->getUid());
@@ -178,7 +178,7 @@ void SerializeBackend::beginAction(OperationContext* ctx) {
     }
 }
 
-void SerializeBackend::beginArraystructAction(
+void FlexbuffersBackend::beginArraystructAction(
     ArraystructContext* ctx, int* size
 ) {
     _cur_ctxid.push(ctx->getUid());
@@ -217,7 +217,7 @@ void SerializeBackend::beginArraystructAction(
     }
 }
 
-void SerializeBackend::endAction(Context* ctx) {
+void FlexbuffersBackend::endAction(Context* ctx) {
     if (ctx->getUid() != _cur_ctxid.top())
         throw ALBackendException(
             "Unexpected nesting of contexts: ending " + std::to_string(ctx->getUid())
@@ -264,7 +264,7 @@ void SerializeBackend::endAction(Context* ctx) {
     }
 }
 
-void SerializeBackend::writeData(
+void FlexbuffersBackend::writeData(
     Context* ctx,
     std::string fieldname,
     std::string timebasename,
@@ -326,7 +326,7 @@ void SerializeBackend::writeData(
     }
 }
 
-int SerializeBackend::readData(
+int FlexbuffersBackend::readData(
     Context* ctx,
     std::string fieldname,
     std::string timebasename,
@@ -381,12 +381,12 @@ int SerializeBackend::readData(
     return 1;
 }
 
-void SerializeBackend::deleteData(OperationContext* ctx, std::string path) {
+void FlexbuffersBackend::deleteData(OperationContext* ctx, std::string path) {
     // NOOP for serialization
 }
 
 
-void SerializeBackend::get_occurrences(
+void FlexbuffersBackend::get_occurrences(
     const char* ids_name,
     int** occurrences_list,
     int* size
@@ -394,16 +394,16 @@ void SerializeBackend::get_occurrences(
     throw ALBackendException("get_occurrences is not implemented in the Serialize Backend", LOG);
 }
 
-void SerializeBackend::_start_vector() {
+void FlexbuffersBackend::_start_vector() {
     _vector_starts.push(_builder->StartVector());
 }
 
-void SerializeBackend::_end_vector() {
+void FlexbuffersBackend::_end_vector() {
     _builder->EndVector(_vector_starts.top(), false, false);
     _vector_starts.pop();
 }
 
-void SerializeBackend::_push_element_map(flexbuffers::Vector vector) {
+void FlexbuffersBackend::_push_element_map(flexbuffers::Vector vector) {
     _cur_vector.push(vector);
     std::unordered_map<std::string, int> element_map;
     for (int i=0; i < vector.size(); ++i) {
@@ -415,7 +415,7 @@ void SerializeBackend::_push_element_map(flexbuffers::Vector vector) {
     _element_map.push(element_map);
 }
 
-void SerializeBackend::_check_aos_index(Context *ctx) {
+void FlexbuffersBackend::_check_aos_index(Context *ctx) {
     if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE) {
         ArraystructContext *aos = dynamic_cast<ArraystructContext *>(ctx);
 

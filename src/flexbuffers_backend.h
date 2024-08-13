@@ -1,5 +1,5 @@
-#ifndef SERIALIZE_BACKEND_H
-#define SERIALIZE_BACKEND_H
+#ifndef FLEXBUFFERS_BACKEND_H
+#define FLEXBUFFERS_BACKEND_H
 
 #include "al_backend.h"
 
@@ -19,11 +19,11 @@
 #  define LIBRARY_API
 #endif
 
-class LIBRARY_API SerializeBackend : public Backend
+class LIBRARY_API FlexbuffersBackend : public Backend
 {
   public:
-    SerializeBackend() {};
-    virtual ~SerializeBackend() {};
+    FlexbuffersBackend() {};
+    virtual ~FlexbuffersBackend() {};
 
     // Implement Backend functions
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
@@ -84,4 +84,4 @@ class LIBRARY_API SerializeBackend : public Backend
     void _check_aos_index(Context* ctx);
 };
 
-#endif  // SERIALIZE_BACKEND_H
+#endif  // FLEXBUFFERS_BACKEND_H
