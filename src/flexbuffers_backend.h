@@ -48,6 +48,12 @@ class LIBRARY_API FlexbuffersBackend : public Backend
     void deleteData(OperationContext *ctx, std::string path) override;
     void beginArraystructAction(ArraystructContext *ctx, int *size) override;
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+    // timerange (get_sample) API is not supported:
+    bool performsTimeDataInterpolation() override { return false; }
+    bool supportsTimeRangeOperation() override { return false; }
+    void setDataInterpolationComponent(DataInterpolation *component) override {
+      throw ALBackendException("Flexbuffers backend does not support time slices operations",LOG);
+    }
 
   private:
     /* Indicate if we are in serializing mode, or in deserializing */
