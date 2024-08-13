@@ -2,7 +2,7 @@
 # Bamboo CI script to build an EB development module
 #
 # This script expects to be run from the Bamboo build folder with the repository in 
-# the `al-common` sub-folder.
+# the `common` sub-folder.
 
 # Debuggging:
 set -e -o pipefail
