@@ -70,6 +70,7 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
     if (gid == -1)
         return;
     close_datasets();
+    close_group(ctx);
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     HDF5Utils hdf5_utils;
@@ -96,7 +97,6 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
                 hdf5_utils.deleteIDSFile(IDSpulseFile);
         }
     }
-    close_group(ctx);
 }
 
 void HDF5Writer::read_homogeneous_time(int* homogenenous_time, hid_t gid) {
