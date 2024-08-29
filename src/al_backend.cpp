@@ -13,6 +13,7 @@
 #ifdef UDA
 #include "uda_backend.h"
 #endif
+#include "flexbuffers_backend.h"
 
 #include "data_interpolation.h"
 
@@ -73,6 +74,10 @@ Backend* Backend::initBackend(int id)
       throw ALBackendException("UDA backend is not available within current install",LOG);
 #endif
     }
+  else if (id==alconst::flexbuffers_backend) {
+      FlexbuffersBackend *tbe = new FlexbuffersBackend();
+      be = tbe;
+    } 
   else
     {
       std::cerr << "Non-identified backend ID (" << id << ")\n";

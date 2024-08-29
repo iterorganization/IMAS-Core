@@ -612,12 +612,14 @@ def _al_write_data_array(ctx, fieldname, pyTimebasePath,  np.ndarray inputData, 
         raise ALException('Array dimension size cannot be < 0')
 
     npDataType = inputData.dtype
-    if np.issubdtype(npDataType, np.signedinteger):
+    if cDataType == INTEGER_DATA:
         normalizedArray = inputData.astype(np.int32)
-    elif np.issubdtype(npDataType, np.floating):
+    elif cDataType == DOUBLE_DATA:
         normalizedArray = inputData.astype(np.float64)
-    elif np.issubdtype(npDataType, np.complexfloating):
+    elif cDataType == COMPLEX_DATA:
         normalizedArray = inputData.astype(np.complex128)
+    elif cDataType == CHAR_DATA:
+        normalizedArray = inputData.astype(np.int8)
     else:
         raise ALException('UNKNOWN DATA TYPE :' + str(npDataType))
 

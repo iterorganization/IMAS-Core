@@ -150,7 +150,6 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DAL_PYTHON_BINDINGS=no-build-isolation
     # Download dependencies from HTTPS (using an access token):
     -DAL_DOWNLOAD_DEPENDENCIES=ON
-    -DAL_COMMON_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-common.git
     -DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
     -DDD_VERSION=master/3
