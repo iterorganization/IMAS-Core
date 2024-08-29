@@ -40,6 +40,7 @@ private:
   static void addPluginHandler(const char* name, void *plugin_handler);
   static void addDestroyPlugin(const char* name, void *destroy_plugin);
   static void addPlugin(const char* name, void *plugin);
+  static void bind_plugin(const char* pluginName, const std::string &path, std::map<std::string, std::vector<std::string>>& bound_plugins);
 
 public:
 
@@ -50,14 +51,13 @@ public:
   static std::map<std::string, LLplugin>  llpluginsStore;                            /**< plugins */
   static std::map<std::string, std::vector<std::string>>  boundPlugins;           /** key = field path, value=plugins names*/
   static std::map<std::string, std::vector<std::string>>  boundReadbackPlugins;
+  static std::map<std::string, std::vector<std::string>>  boundToFullPathPlugins;
   static std::vector<std::string> readbackPlugins;
   static std::string getOperationPath;
   static std::vector<std::string> pluginsNames;
   static std::map<std::string, std::vector<std::string>> get_plugins;
 
   static void getFullPath(int ctxID, const char* fieldPath,  std::string &full_path, std::string &fullDataObjectName);
-  static void getFullPath(int opctxID, const char* fieldPath,  std::string &full_path);
-  static void getFullPathFromOperationContext(OperationContext *opctx, const char* fieldPath,  std::string &full_path);
   static bool pluginsFrameworkEnabled();
   static void checkIfPluginsFrameworkIsEnabled();
 
@@ -84,6 +84,7 @@ public:
   static bool registerPlugin(const char* plugin_name);
   static void unregisterPlugin(const char* plugin_name);
   static bool isPluginRegistered(const char* name);
+  static void register_core_plugins(int pctxID, const char* dataobjectname, int rwmode, int *octxID);
   static void bindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* name);
   static void unbindPlugin(const char* fieldPath, const char* pluginName, std::map<std::string, std::vector<std::string>> &boundPlugins_);
@@ -346,8 +347,8 @@ extern "C"
 						 int rwmode,
 						 double tmin,
                    double tmax,
-                   double* dtime,
-                   double* dtime_shape,
+                   const double* dtime,
+                   const double* dtime_shape,
 						 int interpmode,
 						 int *opctx);
 
@@ -477,7 +478,7 @@ extern "C"
 
   LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
 
-  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, double* dtime_buffer, int* dtime_shape, int interpmode, int *octxID);
+  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, const double* dtime_buffer, const int* dtime_shape, int interpmode, int *octxID);
   
   LIBRARY_API al_status_t al_end_action(int ctxID);
 
@@ -530,6 +531,14 @@ extern "C"
    @result error status [_success if al_status_t.code = 0 or failure if < 0_]
 */
    LIBRARY_API al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID);
+   LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri);
 
 #endif
 

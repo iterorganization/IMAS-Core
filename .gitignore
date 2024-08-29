@@ -35,3 +35,8 @@ coverage.xml
 clover.xml
 results.xml
 .coverage
+python/bin/
+python/imas_core.libs/
+python/imas_core/*.pyd
+python/include/
+python/lib/

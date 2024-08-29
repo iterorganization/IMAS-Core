@@ -5408,5 +5408,9 @@ void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_lis
 	}
 	return version;
     }
+
+	bool MDSplusBackend::supportsTimeRangeOperation() {
+		return false;
+	}
 		
 		

@@ -158,12 +158,13 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
 
     // binding all plugins to the AOS 'ids_properties/plugins/node' and the nodes below
     std::string aos_path_node;
-    LLplugin::getFullPath(ctxID, PLUGINS_NODE_PATH, aos_path_node);
+    std::string dataObjectName;
+    LLplugin::getFullPath(ctxID, PLUGINS_NODE_PATH, aos_path_node, dataObjectName);
+
     std::string path_get_path = aos_path_node + "/path";
 
-    // std::string aos_path_node = "ids_properties/plugins/node";
     std::string aos_path_get;
-    LLplugin::getFullPath(ctxID, GET_OPERATION_NODE_PATH, aos_path_get);
+    LLplugin::getFullPath(ctxID, GET_OPERATION_NODE_PATH, aos_path_get, dataObjectName);
 
     std::string path_get_name = aos_path_get + "/name";
     std::string path_description_name = aos_path_get + "/description";

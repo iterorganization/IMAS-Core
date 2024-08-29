@@ -40,10 +40,11 @@ int
     //H5Eget_auto(current_stack_id, &old_func, &old_client_data); 
 
     /* Turn off error handling */
-    //if (!debug)
-    //    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    if (!debug)
+        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
-    assert(mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE);
+    if (! (mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE))
+        throw ALBackendException("HDF5Backend: unexepcted mode in HDF5Utils::openPulse()", LOG);
 
     if (*file_id != -1)
         hdf5_utils.closeMasterFile(file_id);
@@ -197,9 +198,7 @@ void HDF5Utils::createMasterFile(DataEntryContext * ctx, std::string &filePath, 
     if (status < 0) {
         throw ALBackendException("createPulse:unable to set a user block.", LOG);
     }
-    /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
-    assert(fap_plist >= 0);
-    assert(H5Pset_fclose_degree(fap_plist, H5F_CLOSE_STRONG) >=0);*/
+
     //Creating master file
     *file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, create_plist, H5P_DEFAULT);
 
@@ -271,11 +270,9 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
         message += filePath;
         throw ALBackendException(message, LOG);
     }
-    /*hid_t fap_plist = H5Pcreate(H5P_FILE_ACCESS);
-    assert(fap_plist >= 0);
-    assert(H5Pset_fclose_degree(fap_plist, H5F_CLOSE_STRONG) >=0);*/
+
     *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT); 
-    //H5Pclose(fap_plist);
+
     if (*file_id < 0) { //have a try now in read only access
         *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         if (*file_id < 0) {
@@ -303,7 +300,8 @@ void HDF5Utils::closeMasterFile(hid_t *file_id) {
 }
 
 void HDF5Utils::initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
-    assert(*file_id > 0);
+    if (! (*file_id > 0))
+        throw ALBackendException("HDF5Backend: unexpected file id in HDF5Utils::initExternalLinks()", LOG);
     struct opdata od;
     od.mode = false;
     od.files_directory = files_directory;
@@ -364,9 +362,7 @@ void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * 
         throw ALBackendException(error_message, LOG);       
     }
     file.seekp(0, std::ios::beg);
-
-    char path[200];
-    strcpy(path, (ctx->getURI().query.get("path").value()).c_str());
+    const char *path = (ctx->getURI().query.get("path").value()).c_str();
     file.write((char *) path, sizeof(path));
     file.close();
 }

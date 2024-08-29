@@ -211,11 +211,31 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
         backend_id = ASCII_BACKEND;
     } else if (path =="memory") {
         backend_id = MEMORY_BACKEND;
+    } else if (path =="flexbuffers") {
+        backend_id = FLEXBUFFERS_BACKEND;
     } else if (path == "uda" || !host.empty()) {
         backend_id = UDA_BACKEND;
     } else {
         throw ALContextException("Unable to identify a backend from the URI",LOG);
     }
+}
+
+void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
+                         const int pulse,
+                         const int run, 
+                         const std::string user, 
+                         const std::string tokamak, 
+                         const std::string version,
+                         const std::string options,
+                         std::string& uri) {
+
+    std::stringstream desc;
+    std::string backend = getURIBackend(backendID);
+    desc << "imas:" << backend.c_str() << "?user=" << user << ";pulse=" << pulse << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
+    if (!options.empty()) {
+      desc << ";" << options;
+    }
+    uri = desc.str();
 }
 
 void DataEntryContext::build_uri_from_legacy_parameters(const int backendID, 
@@ -230,8 +250,9 @@ void DataEntryContext::build_uri_from_legacy_parameters(const int backendID,
     std::stringstream desc;
     std::string backend = getURIBackend(backendID);
     desc << "imas:" << backend.c_str() << "?user=" << user << ";pulse=" << pulse << ";run=" << run << ";database=" << tokamak << ";version=" << version[0];
-    if (strcmp(options,"")!=0)
+    if (strcmp(options,"")!=0) {
       desc << ";" << options;
+    }
     const std::string& tmp = desc.str();
     int size = tmp.length()+1;
     *uri = (char *)malloc(size);

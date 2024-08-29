@@ -170,13 +170,15 @@ public:
 
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
-    bool performsTimeDataInterpolation();
+    bool supportsTimeDataInterpolation();
 
-    void initDataInterpolationComponent() {
-      // Do nothing, UDA plugin will need to initDataInterpolationComponent on data backend when it knows which backend
+    // Do nothing, UDA plugin will need to initDataInterpolationComponent on data backend when it knows which backend
       // is being used, i.e. when a URI is given.
+    void initDataInterpolationComponent() {}
+      
+    bool supportsTimeRangeOperation() {
+        return this->supportsTimeDataInterpolation();
     }
-
     
 };
 

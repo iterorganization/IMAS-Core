@@ -66,9 +66,9 @@ for db in ldb:
                 print(f"mapping pulse={pulse_number} run={run} to {newpulsedir}")
                 if args.dry_run:
                     print(f"make dir {newpulsedir}")
-                    print(f"link {newdatafile} --> {datafile}")
-                    print(f"link {newtreefile} --> {treefile}")
-                    print(f"link {newcharfile} --> {charfile}")
+                    print(f"link {newdatafile} --> ../../{datafile.relative_to(ver)}")
+                    print(f"link {newtreefile} --> ../../{treefile.relative_to(ver)}")
+                    print(f"link {newcharfile} --> ../../{charfile.relative_to(ver)}")
                 else:
                     newpulsedir.mkdir(parents=True,exist_ok=True)
                     if newdatafile.exists():
@@ -80,8 +80,8 @@ for db in ldb:
                             print(f"{newdatafile} exists already, skip")
                             continue
                             
-                    newdatafile.symlink_to(datafile)
-                    newtreefile.symlink_to(treefile)
-                    newcharfile.symlink_to(charfile)
+                    newdatafile.symlink_to(f'../../{datafile.relative_to(ver)}')
+                    newtreefile.symlink_to(f'../../{treefile.relative_to(ver)}')
+                    newcharfile.symlink_to(f'../../{charfile.relative_to(ver)}')
 
 

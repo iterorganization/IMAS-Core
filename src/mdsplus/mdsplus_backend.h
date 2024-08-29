@@ -250,12 +250,14 @@ class LIBRARY_API MDSplusBackend:public Backend
 
     void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
-    bool performsTimeDataInterpolation() {
+    bool supportsTimeDataInterpolation() {
       return true;
     }
 
     void initDataInterpolationComponent() {
     }
+
+    bool supportsTimeRangeOperation() override;
 
 //Timebase cache
     double *getCachedTimebase(std::string timebasePath, int &nSamples);

@@ -674,13 +674,18 @@ public:
 
 	void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
 
-	bool performsTimeDataInterpolation() {
+	bool supportsTimeDataInterpolation() {
       return false;
     }
 
     void initDataInterpolationComponent() {
-      throw ALBackendException("Memory backend does not support time slices operations",LOG);
-    }
+		throw ALBackendException("Memory backend does not support time range and time slices operations",LOG);
+	}
+
+	bool supportsTimeRangeOperation() {
+	  return false;
+	}
+
 };
 
 #endif

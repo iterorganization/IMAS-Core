@@ -940,10 +940,10 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
 }
 
 
-bool UDABackend::performsTimeDataInterpolation()
+bool UDABackend::supportsTimeDataInterpolation()
 {
     if (verbose_) {
-        std::cout << "UDABackend performsTimeDataInterpolation\n";
+        std::cout << "UDABackend supportsTimeDataInterpolation\n";
     }
 
     std::string directive = plugin_ + "::version()";

@@ -178,15 +178,21 @@ public:
   /**
     Returns true if the backend performs time data interpolation (e.g time slices operations or IMAS-3885 with data resampling), false otherwise.
   **/
-  virtual bool performsTimeDataInterpolation() = 0;
+  virtual bool supportsTimeDataInterpolation() = 0;
 
   /**
-    Sets the data interpolation component if the backend performs time data interpolation and needs this component.
+    Sets the data interpolation component if the backend supports time data interpolation or time range features.
     This function is used by the LL framework during backend instanciation. 
     Throws a backend exception if the backend does not perform time data interpolation.
     @throw BackendException
   **/
   virtual void initDataInterpolationComponent() = 0;
+
+
+  /**
+    Returns true if the backend supports time range operation (IMAS-3885), false otherwise.
+  **/
+  virtual bool supportsTimeRangeOperation() = 0;
 
 };
 

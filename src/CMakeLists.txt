@@ -10,6 +10,7 @@ target_sources( al PRIVATE
     memory_backend.cpp
     ascii_backend.cpp
     access_layer_plugin_manager.cpp
+    flexbuffers_backend.cpp
     data_interpolation.cpp
 )
 
