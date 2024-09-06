@@ -914,6 +914,7 @@ void HDF5Reader::configureTimeRange(OperationContext *opctx, const std::string &
     if (!(opctx->getRangemode() == TIMERANGE_OP))
     {
         //printf("time range not enabled!\n");
+        hsSelectionReader.time_range.enabled = false;
         return;
     }
 

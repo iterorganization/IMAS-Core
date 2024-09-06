@@ -514,6 +514,8 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
         else {
             if (nb_slices < dtime.size())
                 requested_time = dtime[nb_slices];
+            else
+                break;
         }
         
     } //end of while
