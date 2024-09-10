@@ -60,7 +60,6 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
     {
         std::map<std::string, int> times_indices;
         if (tmin > time_vector.back() || tmax < time_vector[0]) {
-            printf("test2\n");
             *range = 0;
             *time_min_index = -1;
             *time_max_index = -1;
