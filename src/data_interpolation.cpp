@@ -73,6 +73,9 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
         printf("tmax=%f, tmin=%f\n", tmax, tmin);*/
         if (dtime.size() == 1) {
             *range = round((tmax - tmin) / dtime[0]);
+            double t = ((*range) * dtime[0] + tmin);
+            if (t <= tmax)
+                *range = *range + 1;
         }
         else {
             size_t max_index = dtime.size() - 1;
@@ -290,7 +293,7 @@ int DataInterpolation::resample_timebasis(double tmin, double tmax, std::vector<
 {
     //printf("resample_timebasis::timed_AOS_index=%d\n", timed_AOS_index);
     assert(dtime.size() != 0); //this method is used only for resampling a time basis, so dtime should be defined
-    //free(data);
+
     int nb_slices;
     if (timed_AOS_index == -1)
     {
@@ -393,7 +396,7 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
     }
     }
 
-    int nb_slices = 0;
+    
     double requested_time;
 
 
@@ -416,7 +419,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
     //printf("tmax=%f\n", tmax);
     //printf("--> DataInterpolation::interpolate_with_resampling::starting with requested_time=%f\n", requested_time);
 
-    while (requested_time <= tmax)
+    int nb_slices = 0;
+
+    while (nb_slices < range)
     {
 
         if (requested_time < tmin)
