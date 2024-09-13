@@ -26,7 +26,7 @@ cov = ["pytest-cov", "coverage2clover"]
 requires = [
     "scikit-build-core>=0.9.3",
     "cython>=3.0.3",
-    "cython-cmake",
+    "cython-cmake>=0.2.0",
     "numpy<2",
     "setuptools>=64",
     "setuptools_scm>=8",
