@@ -74,7 +74,7 @@ MODULES=(
     Python/3.11.5-GCCcore-13.2.0
     scikit-build-core/0.9.3-GCCcore-13.2.0
     Cython/3.0.10-GCCcore-13.2.0
-    cython-cmake/0.1.0-GCCcore-13.2.0
+    cython-cmake/0.2.0-GCCcore-13.2.0
     setuptools-scm/8.1.0-GCCcore-13.2.0
 )
 MODULES_TEST=(
