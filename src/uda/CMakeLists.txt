@@ -19,6 +19,11 @@ target_sources( al PRIVATE
     pugixml.cpp
 )
 target_include_directories( al PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} )
-target_compile_definitions( al PRIVATE -DUDA )
+if(uda_VERSION VERSION_GREATER_EQUAL "2.7.6")
+   message(STATUS "Use UDA legacy API (-DUDA_LEGACY_276)")
+   target_compile_definitions( al PRIVATE -DUDA -DUDA_LEGACY_276 -DUDA_CLIENT_FLAGS_API)
+else()
+   target_compile_definitions( al PRIVATE -DUDA )
+endif()
 
 target_link_libraries( al PRIVATE PkgConfig::uda )
