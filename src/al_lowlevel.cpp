@@ -2,6 +2,7 @@
 
 #include "dlfcn.h"
 #include "access_layer_plugin.h"
+#include "extended_access_layer_plugin.h"
 #include "access_layer_plugin_manager.h"
 #include <boost/filesystem.hpp>
 
@@ -470,8 +471,18 @@ void LLplugin::beginSliceActionPlugin(const std::string &plugin_name, int pulseC
 
 void LLplugin::beginTimeRangeActionPlugin(const std::string &plugin_name, int pulseCtx, const char* dataobjectname, int mode, double tmin, double tmax, std::vector<double> dtime, int interp, int opCtx) {
   LLplugin &llp = llpluginsStore[plugin_name];
-  access_layer_plugin* al_plugin = (access_layer_plugin*) llp.al_plugin;
-  al_plugin->begin_timerange_action(pulseCtx, dataobjectname, mode, tmin, tmax, dtime, interp, opCtx);
+  access_layer_plugin* base_plugin = static_cast<access_layer_plugin*>(llp.al_plugin);
+  extended_access_layer_plugin* al_plugin = dynamic_cast<extended_access_layer_plugin*> (base_plugin);
+  if (al_plugin != nullptr) {
+      al_plugin->begin_timerange_action(pulseCtx, dataobjectname, mode, tmin, tmax, dtime, interp, opCtx);
+  } else {
+      // Apparently this plugin does not implement the begin_timerange_action method from the extended_access_layer_plugin interface
+      //char message[200]; 
+      //sprintf(message, "Plugin %s does not implement the new interface for time range operations.", plugin_name.c_str());
+      //throw ALLowlevelException(message,LOG);
+      printf("Plugin %s does not implement the interface including time range operations.", plugin_name.c_str());
+  }
+  
 }
 
 void LLplugin::beginArraystructActionPlugin(const std::string &plugin_name, int ctxID, int *actxID, 
