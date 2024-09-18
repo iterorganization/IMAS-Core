@@ -36,6 +36,11 @@ include(./vcpkg.cmake)
 # ##############################################################################
 add_subdirectory(common)
 
+# Stop here when building documentation only
+if( AL_DOCS_ONLY )
+  return()
+endif()
+
 # Define project
 # ##############################################################################
 if(SKBUILD)

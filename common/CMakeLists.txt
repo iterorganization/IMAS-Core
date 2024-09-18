@@ -8,9 +8,10 @@ if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
     message( FATAL_ERROR "In-source builds not supported. Please use a separate build directory, for example `cmake -B build [...]`" )
 endif()
 
-
-find_package( Python3 )
-set( PYVER "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}" )
+if( AL_PYTHON_BINDINGS )
+    find_package( Python3 )
+    set( PYVER "${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}" )
+endif()
 configure_file( al_env.sh.in ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh )
 
 # Don't generate the environment file when building modules:
