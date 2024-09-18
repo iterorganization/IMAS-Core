@@ -74,7 +74,7 @@ MODULES=(
     Python/3.11.5-GCCcore-13.2.0
     scikit-build-core/0.9.3-GCCcore-13.2.0
     Cython/3.0.10-GCCcore-13.2.0
-    cython-cmake/0.1.0-GCCcore-13.2.0
+    cython-cmake/0.2.0-GCCcore-13.2.0
     setuptools-scm/8.1.0-GCCcore-13.2.0
 )
 MODULES_TEST=(
@@ -85,6 +85,7 @@ MODULES_TEST=(
 echo "... foss-2023b"
 MODULES=(${MODULES[@]}
     HDF5/1.14.3-gompi-2023b
+    SciPy-bundle/2023.11-gfbf-2023b
 )
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DCMAKE_C_COMPILER=${CC:-gcc}
@@ -96,6 +97,7 @@ echo "... intel-2023b"
 MODULES=(${MODULES[@]}
     intel/2023b
     HDF5/1.14.3-iimpi-2023b
+    SciPy-bundle/2023.12-iimkl-2023b
 )
 MODULES_TEST=(${MODULES_TEST[@]}
     intel/2023b
