@@ -507,14 +507,14 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
     std::map<std::string, int> times_indices;
 
-    bool search_slice_index = is_dynamic || isTimed;
+    bool dynamic_case = is_dynamic || isTimed;
 
     double requested_time; //requested time for SLICE_OP or for time range with dtime !=-1 (resampling)
 
     if (ctx->getType() == CTX_OPERATION_TYPE || ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
     {
 
-        if ( (opctx->getRangemode() == SLICE_OP) && search_slice_index)
+        if ( (opctx->getRangemode() == SLICE_OP) && dynamic_case)
         {
             slice_mode = opctx->getRangemode();
             slice_index = data_interpolation_component.getSlicesTimesIndices(opctx->getTime(), time_basis_vector, times_indices, opctx->getInterpmode());
@@ -739,6 +739,10 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         }
     }
 
+    if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && !dynamic_case ) {
+        return exit_request(data_set, 1);
+    }
+
     if (
         ((opctx->getRangemode() == SLICE_OP && opctx->getInterpmode() == LINEAR_INTERP) ||
          (isTimed && !is_time_basis_dataset && opctx->getRangemode() == TIMERANGE_OP && opctx->time_range.dtime.size() != 0 && opctx->time_range.interpolation_method == LINEAR_INTERP)))
@@ -805,7 +809,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
                 printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             return exit_request(data_set, 0);
         }
-        if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && search_slice_index)
+        if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && dynamic_case)
         {
 
             size_t N = buffer / hsSelectionReader.dtype_size; //Number of data points to be interpolated
@@ -830,6 +834,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
                                                             requested_time, data, interp);
             if (slice_inf != slice_sup)
                 free(next_slice_data);
+
 
             if (datatype == alconst::char_data)
             {
