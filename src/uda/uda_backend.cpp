@@ -2,6 +2,10 @@
 
 #include <cstdlib>
 #include <client/accAPI.h>
+/* UDA 2.7.6 introduced a breaking API change in API */
+#ifdef UDA_LEGACY_276
+#include <client/legacy_accAPI.h>
+#endif
 #include <client/udaClient.h>
 #include <clientserver/udaTypes.h>
 

@@ -60,7 +60,6 @@ folder is not important).
 .. code-block:: text
 
     al-dev/                 # Feel free to name this folder however you want
-    ├── al-common/
     ├── al-core/
     ├── al-plugins/         # Optional
     ├── al-cpp/             # Optional
@@ -144,7 +143,7 @@ Documentation overview
 ----------------------
 
 The documentation is generated with Sphinx. Because the documentation of each HLI
-depends on the contents of the ``al-plugins`` and ``al-common`` repositories, it is
+depends on the contents of the ``al-plugins`` and ``al-core`` repositories, it is
 configured with CMake. For more information on Sphinx, see the `Sphinx docs
 <https://www.sphinx-doc.org/en/master/>`__ and the `documentation of the theme
 (sphinx-immaterial) that we're using

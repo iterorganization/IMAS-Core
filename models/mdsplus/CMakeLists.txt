@@ -3,6 +3,7 @@ cmake_minimum_required( VERSION 3.16 )
 
 # Configuration options for common assets
 ################################################################################
+option( AL_DOWNLOAD_DEPENDENCIES "Automatically download assets from the AL git repository" ON )
 set( DD_GIT_REPOSITORY "ssh://git@git.iter.org/imas/data-dictionary.git" CACHE STRING "Git repository of the Data Dictionary" )
 set( DD_VERSION "master/3" CACHE STRING "Data dictionary version (tag or branch name) to use for this build" )
 
