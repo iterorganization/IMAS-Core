@@ -1174,7 +1174,12 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         std::vector<std::string> strs(strings_count);
         int maxlength = 0;
         for (int i = 0; i < strings_count; i++) {
-             strs[i] = t[i];
+             if (t[i] != NULL)
+                strs[i] = std::string(t[i]);
+             else {
+                strs[i] = std::string("");
+                continue;
+             }
              //printf("strs[%d]=%s\n", i, strs[i].c_str());
              if ((int) strs[i].length() > maxlength)
                 maxlength = strs[i].length();
