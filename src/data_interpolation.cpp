@@ -17,7 +17,6 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
     //printf("getTimeRangeIndices::tmin=%f, tmax=%f, interp=%d\n", tmin, tmax, interp);
     if (dtime.size() == 0)
     {
-
         *time_min_index = -1;
         *time_max_index = -1;
 
@@ -59,15 +58,12 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
     else
     {
         std::map<std::string, int> times_indices;
-        if (tmin > time_vector.back() || tmax < time_vector[0]) {
-            *range = 0;
-            *time_min_index = -1;
-            *time_max_index = -1;
-            return;
+
+        if (time_vector.size() > 0) {
+            *time_max_index = getSlicesTimesIndices(tmax, time_vector, times_indices, interp);
+            *time_min_index = getSlicesTimesIndices(tmin, time_vector, times_indices, interp);
         }
 
-        *time_max_index = getSlicesTimesIndices(tmax, time_vector, times_indices, interp);
-        *time_min_index = getSlicesTimesIndices(tmin, time_vector, times_indices, interp);
         /*printf("*time_max_index=%d, *time_min_index=%d\n", *time_max_index, *time_min_index);
         printf("range=%d\n", *time_max_index - *time_min_index + 1);
         printf("tmax=%f, tmin=%f\n", tmax, tmin);*/
@@ -87,7 +83,13 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
                      max_index = i;
             }
             *range = max_index - min_index + 1;
+
         }
+        if (time_vector.size() == 0) {
+            *time_min_index = 0;
+            *time_max_index = *range - 1;
+        }
+
     }
 }
 
@@ -350,7 +352,7 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
 int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std::vector<double> dtime, int datatype, int time_slice_shape, void *data,
                                                    const std::vector<double> &time_vector, void **result, int interp)
 {
-    //printf("calling interpolate_with_resampling using interp=%d, time_slice_shape=%d, tmin=%f, tmax=%f, dtime=%f\n", interp, time_slice_shape, tmin, tmax, dtime);
+    //printf("calling interpolate_with_resampling using interp=%d, time_slice_shape=%d, tmin=%f, tmax=%f\n", interp, time_slice_shape, tmin, tmax);
     //data is a pointer to data limited to a time range
     //for (int i = 0; i < time_vector.size(); i++)
     //    printf("DataInterpolation::interpolate_with_resampling::time_vector[%d] = %f\n", i, time_vector[i]);
