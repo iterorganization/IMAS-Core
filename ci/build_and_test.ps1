@@ -4,10 +4,7 @@ IF ($null -ne $env:bamboo_HTTP_AUTH_BEARER_PASSWORD) {
 }
 
 # Default DD version unless specified in the plan
-$DD_VERSION = "main"
-IF ($null -ne $env:bamboo_DD_VERSION) {
-  $DD_VERSION = $env:$bamboo_DD_VERSION
-}
+$DD_VERSION = $DD_VERSION -or "main"
 
 if (Test-Path 'build') {
   Remove-Item 'build' -Recurse -Force
