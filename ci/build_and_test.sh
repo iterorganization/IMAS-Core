@@ -4,7 +4,7 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-# set -e -o pipefail
+set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
@@ -192,6 +192,7 @@ set -x
 pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
 coverage2clover -i coverage.xml -o clover.xml
-deactivate
 set +x
+deactivate
+
 
