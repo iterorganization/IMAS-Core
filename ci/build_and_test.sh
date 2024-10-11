@@ -134,7 +134,7 @@ if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
 fi
 
 # Default DD version unless specified in the plan
-DD_VERSION=${DD_VERSION:main}
+DD_VERSION=${DD_VERSION:-main}
 
 # Ensure that the install directory is clean:
 rm -rf test-install
