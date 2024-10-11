@@ -3,6 +3,12 @@ IF ($null -ne $env:bamboo_HTTP_AUTH_BEARER_PASSWORD) {
   git config --global http.https://git.iter.org/.extraheader "Authorization: Bearer $env:bamboo_HTTP_AUTH_BEARER_PASSWORD"
 }
 
+# Default DD version unless specified in the plan
+$DD_VERSION = "main"
+IF ($null -ne $env:bamboo_DD_VERSION) {
+  $DD_VERSION = $env:$bamboo_DD_VERSION
+}
+
 if (Test-Path 'build') {
   Remove-Item 'build' -Recurse -Force
 }
@@ -28,7 +34,7 @@ $CMAKE_ARGS = @(
   "-DAL_PYTHON_BINDINGS=ON"
   "-DAL_DOWNLOAD_DEPENDENCIES=ON"
   "-DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git"
-  "-DDD_VERSION=master/3"
+  "-DDD_VERSION=$DD_VERSION"
 )
 
 cmake -Bbuild @CMAKE_ARGS

@@ -4,7 +4,7 @@
 # This script expects to be run from the repository root directory
 
 # Debuggging:
-set -e -o pipefail
+# set -e -o pipefail
 echo "Loading modules..."
 
 # Set up environment such that module files can be loaded
@@ -133,6 +133,11 @@ if [ "x$bamboo_HTTP_AUTH_BEARER_PASSWORD" != "x" ]; then
     git config -l |cat
 fi
 
+# Default DD version unless specified in the plan
+DD_VERSION=main
+if [ "x$bamboo_DD_VERSION" != "x" ]; then
+    DD_VERSION=$bamboo_DD_VERSION
+fi
 # Ensure that the install directory is clean:
 rm -rf test-install
 
@@ -154,7 +159,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DAL_DOWNLOAD_DEPENDENCIES=ON
     -DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
     # DD version:
-    -DDD_VERSION=master/3
+    -DDD_VERSION=$DD_VERSION
     # Work around Boost linker issues on 2020b toolchain
     -DBoost_NO_BOOST_CMAKE=ON
 )
@@ -187,4 +192,6 @@ set -x
 pip install --find-links=build/dist imas-core[test,cov]
 pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
 coverage2clover -i coverage.xml -o clover.xml
+deactivate
+set +x
 
