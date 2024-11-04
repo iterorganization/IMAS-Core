@@ -362,8 +362,8 @@ void HDF5Utils::writeUserBlock(const std::string & filePath, DataEntryContext * 
         throw ALBackendException(error_message, LOG);       
     }
     file.seekp(0, std::ios::beg);
-    const char *path = (ctx->getURI().query.get("path").value()).c_str();
-    file.write((char *) path, sizeof(path));
+    std::string path = ctx->getURI().query.get("path").value();
+    file.write((char *) path.c_str(), path.length());
     file.close();
 }
 
