@@ -149,6 +149,10 @@ std::string convert_imas_to_uda(int i)
 
 inline std::string convert_dtime(const std::vector<double>& dtime)
 {
+    if (dtime.empty()) {
+        return "-1";
+    }
+
     std::ostringstream output;
     const char* delim = ";";
     std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim),
