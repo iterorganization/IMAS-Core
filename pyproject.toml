@@ -1,10 +1,9 @@
-["project"]
+[project]
 name = "imas-core"
 authors = [{ name = "ITER Organization", email = "imas-support@iter.org" }]
 description = "Python bindings to the IMAS Access Layer core"
 readme = "README.md"
 requires-python = ">=3.6, <4"
-url = "https://imas.iter.org/"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -21,6 +20,10 @@ dependencies = ["numpy<2"]
 [project.optional-dependencies]
 test = ["pytest>=8"]
 cov = ["pytest-cov", "coverage2clover"]
+
+[project.urls]
+Homepage = "https://imas.iter.org"
+Repository = "https://git.iter.org/scm/imas/al-python.git"
 
 [build-system]
 requires = [
