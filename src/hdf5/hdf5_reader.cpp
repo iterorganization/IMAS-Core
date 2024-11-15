@@ -478,6 +478,12 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     hid_t dataset_id = -1;
     std::string tensorized_path = dataset_name;
 
+    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
+    {
+        auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext *>(ctx)];
+        tensorized_path = tensorized_paths.back() + "&" + dataset_name;
+    }
+
     bool is_homogeneous_time_basis_dataset = (tensorized_path == HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
     std::string suffix = std::string("&") + std::string(HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
     bool is_time_dataset = ends_with(tensorized_path, suffix); //means time dataset located in 'timed' (dynamic) AOS or inhomogeneous time basis
@@ -485,12 +491,6 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     bool is_inhomogeneous_time_basis_dataset = is_time_dataset && !is_homogeneous_time_basis_dataset;
     bool resampling = opctx->time_range.dtime.size() >=1;
     bool homogeneous_time_basis_dataset_with_resampling = opctx->getRangemode() == TIMERANGE_OP && resampling && is_homogeneous_time_basis_dataset;
-
-    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
-    {
-        auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext *>(ctx)];
-        tensorized_path = tensorized_paths.back() + "&" + dataset_name;
-    }
 
     if ( homogeneous_time_basis_dataset_with_resampling ) {
         existing_data_sets[tensorized_path] = 1; //in TIMERANGE_OP case with resampling, the homogeneous time dataset will be created if the IDS is inhomogeneous 
