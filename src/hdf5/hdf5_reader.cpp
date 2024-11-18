@@ -490,7 +490,8 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     bool is_time_basis_dataset = is_homogeneous_time_basis_dataset || is_time_dataset;
     bool is_inhomogeneous_time_basis_dataset = is_time_dataset && !is_homogeneous_time_basis_dataset;
     bool resampling = opctx->time_range.dtime.size() >=1;
-    bool homogeneous_time_basis_dataset_with_resampling = opctx->getRangemode() == TIMERANGE_OP && resampling && is_homogeneous_time_basis_dataset;
+    bool homogeneous_time_basis_dataset_with_resampling = (opctx->getRangemode() == TIMERANGE_OP) && resampling && is_homogeneous_time_basis_dataset;
+    bool inhomogeneous_time_basis_dataset_with_resampling = (opctx->getRangemode() == TIMERANGE_OP) && resampling && is_inhomogeneous_time_basis_dataset;
 
     if ( homogeneous_time_basis_dataset_with_resampling ) {
         existing_data_sets[tensorized_path] = 1; //in TIMERANGE_OP case with resampling, the homogeneous time dataset will be created if the IDS is inhomogeneous 
@@ -572,7 +573,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         size[*dim - 1] = nb_slices;
         return exit_request(data_set, 1);
     }
-    else if (is_inhomogeneous_time_basis_dataset && isTimed)
+    else if (inhomogeneous_time_basis_dataset_with_resampling && isTimed)
     { //in this case, no value is returned
         return exit_request(data_set, 0);
     }
