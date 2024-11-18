@@ -653,6 +653,9 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         data_set = std::move(new_data_set);
     }
 
+    bool slice_op_linear_interpolation = ((opctx->getRangemode() == SLICE_OP && opctx->getInterpmode() == LINEAR_INTERP) ||
+         (isTimed && !is_time_basis_dataset && opctx->getRangemode() == TIMERANGE_OP && opctx->time_range.dtime.size() != 0 && opctx->time_range.interpolation_method == LINEAR_INTERP));
+
     herr_t status = -1;
     hid_t dataset_id_shapes = -1;
     bool isOpenedShapesDataSet;
@@ -670,8 +673,19 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             return exit_request(data_set, 0);
         }
 
-        bool zero_shape = false;
         isOpenedShapesDataSet = true;
+        if (isTimed & slice_op_linear_interpolation) {
+            int slice_inf = times_indices[SLICE_INF];
+            int slice_sup = times_indices[SLICE_SUP];
+            int check = checkSlicesShapes(ctx, gid, tensorized_path, datatype, slice_mode,
+                                    is_dynamic, slice_inf, slice_sup, hsSelectionReader.getDim(), timed_AOS_index,
+                                    &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, hsSelectionReader);
+            if (check == 0) //we skip this interpolation because of a mismatch between slices shapes or because the first or second slice is not defined at interp. time
+                return exit_request(data_set, 0);
+        }
+
+        bool zero_shape = false;
+        
         int shapesDataSetExists = getPersistentShapes(ctx,
                                                       gid,
                                                       tensorized_path,
@@ -727,6 +741,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             return exit_request(data_set, 0);
         }
 
+    
         //std::cout << "Configuring data set (time range) for : " << tensorized_path.c_str() << std::endl;
         int time_range_size = 0;
 
@@ -742,8 +757,20 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             return exit_request(data_set, 0);
         }
 
-        bool zero_shape = false;
         isOpenedShapesDataSet = false;
+
+        if (isTimed & slice_op_linear_interpolation) {
+            int slice_inf = times_indices[SLICE_INF];
+            int slice_sup = times_indices[SLICE_SUP];
+            int check = checkSlicesShapes(ctx, gid, tensorized_path, datatype, slice_mode,
+                                    is_dynamic, slice_inf, slice_sup, *dim, timed_AOS_index,
+                                    &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, *hsSelectionReader);
+            if (check == 0) //we skip this interpolation because of a mismatch between slices shapes
+                return exit_request(data_set, 0);
+        }
+
+        bool zero_shape = false;
+        
         int shapesDataSetExists = getPersistentShapes(ctx,
                                                       gid,
                                                       tensorized_path,
@@ -810,57 +837,17 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         return exit_request(data_set, 1);
     }
 
-    if (
-        ((opctx->getRangemode() == SLICE_OP && opctx->getInterpmode() == LINEAR_INTERP) ||
-         (isTimed && !is_time_basis_dataset && opctx->getRangemode() == TIMERANGE_OP && opctx->time_range.dtime.size() != 0 && opctx->time_range.interpolation_method == LINEAR_INTERP)))
+    if (slice_op_linear_interpolation)
     {
 
         HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
+
         //Taking the next slide to make the linear interpolation
-        void *next_slice_data = nullptr;
         int slice_inf = times_indices[SLICE_INF];
         int slice_sup = times_indices[SLICE_SUP];
+        void *next_slice_data = nullptr;
 
         //printf("read_ND_Data, Taking the next slide to make the linear interpolation, slice_sup=%d\n", slice_sup);
-
-        if (isTimed)
-        { //checking if neighbour nodes have the same shapes
-            int first_slice_shape[H5S_MAX_RANK];
-            int second_slice_shape[H5S_MAX_RANK];
-
-            for (int i = 0; i < hsSelectionReader.getDim(); i++)
-                first_slice_shape[i] = size[i];
-
-            bool zero_shape = false;
-            getPersistentShapes(ctx,
-                                gid,
-                                tensorized_path,
-                                datatype,
-                                slice_mode,
-                                is_dynamic,
-                                isTimed,
-                                slice_sup,
-                                hsSelectionReader.getDim(),
-                                size,
-                                timed_AOS_index,
-                                &zero_shape,
-                                &dataset_id_shapes,
-                                isOpenedShapesDataSet,
-                                current_arrctx_indices);
-
-            if (datatype != alconst::char_data)
-            {
-                for (int i = 0; i < hsSelectionReader.getDim(); i++)
-                    second_slice_shape[i] = size[i];
-
-                if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, hsSelectionReader.getDim()) != 0)
-                {
-                    if (this->INTERPOLATION_WARNING)
-                        printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_index, slice_index);
-                    return exit_request(data_set, 0);
-                }
-            }
-        }
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         if (datatype != alconst::char_data)
@@ -873,7 +860,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         if (status < 0)
         {
             if (this->INTERPOLATION_WARNING)
-                printf("WARNING: Linear interpolation unable to read data from neighbouring node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
+                printf("WARNING: Linear interpolation not possible for node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             return exit_request(data_set, 0);
         }
         if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && dynamic_case)
@@ -1041,6 +1028,122 @@ int HDF5Reader::exit_request(std::unique_ptr<HDF5DataSetHandler> &data_set, int 
     return exit_status;
 }
 
+int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &tensorized_path, int datatype, int slice_mode,
+                                    bool is_dynamic, int slice_inf, int slice_sup, int dim, int timed_AOS_index,
+                                    hid_t *dataset_id_shapes, const std::vector<int> &current_arrctx_indices, 
+                                    hid_t dataset_id, bool isOpenedShapesDataSet, HDF5HsSelectionReader &hsSelectionReader)
+{
+
+    if (datatype == alconst::char_data) //char datasets are ignored by the interpolation component
+        return 1;
+
+    bool isTimed = true;
+    herr_t status = -1;
+
+    //Checking the first slice exists in the dynamic array (isTimed = True)
+
+    //Checking 0D dataset exists for the first slice
+
+    if (dim == 0) {
+        void *first_slice_data = nullptr;
+        hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_inf, timed_AOS_index, current_arrctx_indices);
+        int buffer = hsSelectionReader.allocateBuffer(&first_slice_data, slice_mode, is_dynamic, isTimed, slice_inf);
+        //if (datatype != alconst::char_data)
+            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, first_slice_data);
+        /*else
+            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&first_slice_data);*/
+
+        if (status < 0)
+        {
+            if (this->INTERPOLATION_WARNING)
+                printf("WARNING: Linear interpolation not possible for node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
+            free(first_slice_data);
+            return 0;
+        } 
+        free(first_slice_data);
+        return 1;   
+    }
+
+    //Checking dataset with dimension > 0 (e.g dim > 0) has a shape defined for the first slice and the second slice
+
+    bool zero_shape_inf = false;
+    bool zero_shape_sup = false;
+    
+    int first_slice_shape[H5S_MAX_RANK];
+    int second_slice_shape[H5S_MAX_RANK];
+
+     for (int i = 0; i < dim; i++) {
+        first_slice_shape[i] = 0;
+        second_slice_shape[i] = 0;
+     }
+
+    int shapesDataSetExists_inf = getPersistentShapes(ctx,
+                                                      gid,
+                                                      tensorized_path,
+                                                      datatype,
+                                                      slice_mode,
+                                                      is_dynamic,
+                                                      isTimed,
+                                                      slice_inf,
+                                                      dim,
+                                                      first_slice_shape,
+                                                      timed_AOS_index,
+                                                      &zero_shape_inf,
+                                                      dataset_id_shapes,
+                                                      isOpenedShapesDataSet,
+                                                      current_arrctx_indices);
+
+
+    int shapesDataSetExists_sup = getPersistentShapes(ctx,
+                                                      gid,
+                                                      tensorized_path,
+                                                      datatype,
+                                                      slice_mode,
+                                                      is_dynamic,
+                                                      isTimed,
+                                                      slice_sup,
+                                                      dim,
+                                                      second_slice_shape,
+                                                      timed_AOS_index,
+                                                      &zero_shape_sup,
+                                                      dataset_id_shapes,
+                                                      isOpenedShapesDataSet,
+                                                      current_arrctx_indices);
+    
+
+    //printf("dataset=%s shapesDataSetExists_inf=%d, shapesDataSetExists_sup=%d zero_shape_inf=%d zero_shape_sup=%d\n", tensorized_path.c_str(),
+    //                        shapesDataSetExists_inf, shapesDataSetExists_sup, zero_shape_inf, zero_shape_sup);
+    
+    HDF5Utils hdf5_utils;
+
+    bool shape_inf_undefined = (shapesDataSetExists_inf == 0) || zero_shape_inf;
+    bool shape_sup_undefined = (shapesDataSetExists_sup == 0) || zero_shape_sup;
+
+    if (shape_inf_undefined == 0 && shape_sup_undefined == 0)
+        return 0;
+
+    if (shape_inf_undefined != shape_sup_undefined) {
+        int slice_index;
+        if (shape_inf_undefined) {
+            slice_index = slice_inf;
+        }
+        else if (shape_sup_undefined) {
+            slice_index = slice_sup;
+        }
+        if (this->INTERPOLATION_WARNING)
+            printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't defined at time index %d.\n", tensorized_path.c_str(), slice_index);
+        return 0;
+    }
+        
+    if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, dim) != 0)
+    {
+        if (this->INTERPOLATION_WARNING)
+            printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_inf, slice_sup);
+            return 0;
+    }
+    return 1;
+}
+
 int HDF5Reader::getPersistentShapes(Context *ctx, hid_t gid, const std::string &tensorized_path, int datatype, int slice_mode,
                                     bool is_dynamic, bool isTimed, int slice_index, int dim, int *size, int timed_AOS_index,
                                     bool *zero_shape, hid_t *dataset_id_shapes, bool isOpenedShapesDataSet, const std::vector<int> &current_arrctx_indices)
@@ -1180,10 +1283,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
 
     if (status < 0)
     {
-        char error_message[200];
-        sprintf(error_message,
-                "Unable to read SHAPE: %s\n", tensorized_path.c_str());
-        throw ALBackendException(error_message, LOG);
+        return 0;
     }
 
     int *shapes_int = (int *)*shapes;
