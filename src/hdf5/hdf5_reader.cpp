@@ -675,6 +675,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
         isOpenedShapesDataSet = true;
         if (isTimed & slice_op_linear_interpolation) {
+
             int slice_inf = times_indices[SLICE_INF];
             int slice_sup = times_indices[SLICE_SUP];
             int check = checkSlicesShapes(ctx, gid, tensorized_path, datatype, slice_mode,
@@ -1119,7 +1120,7 @@ int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &te
     bool shape_inf_undefined = (shapesDataSetExists_inf == 0) || zero_shape_inf;
     bool shape_sup_undefined = (shapesDataSetExists_sup == 0) || zero_shape_sup;
 
-    if (shape_inf_undefined == 0 && shape_sup_undefined == 0)
+    if (shape_inf_undefined && shape_sup_undefined)
         return 0;
 
     if (shape_inf_undefined != shape_sup_undefined) {
