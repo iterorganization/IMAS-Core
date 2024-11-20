@@ -1,0 +1,83 @@
+name: build-wheel
+run-name: run ${{ github.run_id }} ref ${{ github.ref_name }}
+
+on:
+  push:
+      branches:
+          - feature/github-workflow
+          - 'release/**'
+          - 'releases/**'
+  release:
+     # types: [published]
+
+# permissions:
+#   contents: read
+
+jobs:
+  build:
+    name: Build Wheel
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install libboost-all-dev
+        sudo apt-get install libhdf5-serial-dev
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Build a binary wheel
+      run: |
+        python3 -m pip wheel --wheel-dir=wheelhouse .
+
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: wheelhouse/*.whl
+
+    - name: List files
+      run: find -type f -exec ls -l {} +
+
+    - name: pip install wheel
+      run: |
+        rm -rf .venv
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install wheelhouse/*.whl
+        pip list -v
+
+#  publish-to-testpypi:
+#    name: Publish imas-data-dictionary to TestPyPI
+#    # Only run job for specific repository and owner:
+#    #if: github.repository == 'ITER-Organization/imas-data-dictionary'
+#    needs:
+#    - build
+#    runs-on: ubuntu-latest
+#
+#    environment:
+#      name: testpypi
+#      url: https://test.pypi.org/p/imas-data-dictionary
+#
+#    permissions:
+#      id-token: write  # IMPORTANT: mandatory for trusted publishing
+#
+#    steps:
+#    - name: Download all the dists
+#      uses: actions/download-artifact@v3
+#      with:
+#        name: python-package-distributions
+#        path: artifacts/
+#
+#    - name: Publish dist to TestPyPI
+#      uses: pypa/gh-action-pypi-publish@release/v1
+#      with:
+#        packages-dir: artifacts/
+#        repository-url: https://test.pypi.org/legacy/
+#        verbose: trueI
