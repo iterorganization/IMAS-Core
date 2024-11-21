@@ -57,16 +57,21 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
     }
     else
     {
+        if (dtime.size() > 1) {
+            tmin = dtime[0];
+            tmax = dtime.back();
+        }
         std::map<std::string, int> times_indices;
 
         if (time_vector.size() > 0) {
             *time_max_index = getSlicesTimesIndices(tmax, time_vector, times_indices, interp);
+            if (interp == LINEAR_INTERP) {
+                if (times_indices[SLICE_SUP] <= time_vector.size())
+                    *time_max_index = times_indices[SLICE_SUP];
+            }
             *time_min_index = getSlicesTimesIndices(tmin, time_vector, times_indices, interp);
         }
 
-        /*printf("*time_max_index=%d, *time_min_index=%d\n", *time_max_index, *time_min_index);
-        printf("range=%d\n", *time_max_index - *time_min_index + 1);
-        printf("tmax=%f, tmin=%f\n", tmax, tmin);*/
         if (dtime.size() == 1) {
             *range = round((tmax - tmin) / dtime[0]);
             double t = ((*range) * dtime[0] + tmin);
@@ -76,12 +81,6 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
         else {
             size_t max_index = dtime.size() - 1;
             size_t min_index = 0;
-            for (int i = 0; i < dtime.size(); i++) {
-                if (dtime[i] <= tmin) 
-                     min_index = i;
-                if (dtime[i] >= tmax) 
-                     max_index = i;
-            }
             *range = max_index - min_index + 1;
 
         }
@@ -360,6 +359,11 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
     int start_index;
     int stop_index;
     int range;
+
+    if (dtime.size() > 1) {
+        tmin = dtime.front();
+        tmax = dtime.back();
+    }
     getTimeRangeIndices(tmin, tmax, dtime, time_vector, &start_index, &stop_index, &range, interp);
 
     std::map<std::string, int> times_indices;
