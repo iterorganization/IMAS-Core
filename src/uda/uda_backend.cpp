@@ -234,6 +234,37 @@ std::string get_backend(uri::QueryDict& query) {
 
 } // anon namespace
 
+UDABackend::UDABackend(uri::Uri uri)
+        : verbose_(false)
+        , uda_client_{}
+{
+    process_options(uri);
+
+    const char* env = getenv("IMAS_UDA_PLUGIN");
+    if (env != nullptr) {
+        plugin_ = env;
+    }
+
+    doc_ = imas::uda::load_xml();
+    dd_version_ = imas::uda::get_dd_version(doc_);
+
+    if (verbose_) {
+        std::cout << "UDABackend constructor\n";
+        std::cout << "UDA default plugin: " << plugin_ << "\n";
+        std::cout << "IMAS data dictionary version: " << dd_version_ << "\n";
+    }
+
+    std::string host = uri.authority.host;
+    int port = uri.authority.port;
+
+    if (!host.empty()) {
+        uda::Client::setServerHostName(host);
+    }
+    if (port != 0) {
+        uda::Client::setServerPort(port);
+    }
+}
+
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
 {
     std::pair<int, int> version;

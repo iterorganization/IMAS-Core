@@ -39,7 +39,7 @@ public:
      @param[in] id backend identifier
      @result pointer on backend object
   */
-  static Backend* initBackend(int id);
+  static Backend* initBackend(DataEntryContext *ctx);
 
   /**
      Returns version of the backend (pair <major,minor>), to be used for compatibility checks.

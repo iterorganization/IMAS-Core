@@ -109,26 +109,9 @@ public:
     /**
      * Construct a new UDA backend.
      *
-     * @param verb flag to set the verbose mode
+     * @param uri the URI of the data entry that the backend is being used to read
      */
-    explicit UDABackend(bool verb=false)
-        : verbose_(verb)
-        , uda_client_{}
-    {
-        const char* env = getenv("IMAS_UDA_PLUGIN");
-        if (env != nullptr) {
-            plugin_ = env;
-        }
-
-        doc_ = imas::uda::load_xml();
-        dd_version_ = imas::uda::get_dd_version(doc_);
-
-        if (verbose_) {
-            std::cout << "UDABackend constructor\n";
-            std::cout << "UDA default plugin: " << plugin_ << "\n";
-            std::cout << "IMAS data dictionary version: " << dd_version_ << "\n";
-        }
-    }
+    explicit UDABackend(uri::Uri uri);
 
     ~UDABackend() override
     {

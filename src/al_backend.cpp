@@ -24,9 +24,10 @@
 #endif
 
 
-Backend* Backend::initBackend(int id)
+Backend* Backend::initBackend(DataEntryContext *ctx)
 {
   Backend *be = NULL;
+  int id = ctx->getBackendID();
 
   if (id==alconst::no_backend)
     {
@@ -68,7 +69,7 @@ Backend* Backend::initBackend(int id)
   else if (id==alconst::uda_backend)
     {
 #ifdef UDA
-      UDABackend* tbe = new UDABackend(false);
+      UDABackend* tbe = new UDABackend(ctx->getURI());
       be = tbe;
 #else
       throw ALBackendException("UDA backend is not available within current install",LOG);

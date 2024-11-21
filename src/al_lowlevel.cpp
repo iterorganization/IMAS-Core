@@ -749,7 +749,7 @@ int Lowlevel::beginUriAction(const std::string &uri)
 
   pctx = new DataEntryContext(uri);
   if (pctx != NULL) {
-    be = Backend::initBackend(pctx->getBackendID());
+    be = Backend::initBackend(pctx);
     // store reference of this object 
     ctxID = Lowlevel::addLLenv(be, pctx);
   }
