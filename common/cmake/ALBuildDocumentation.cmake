@@ -11,7 +11,7 @@ ln -sfT '${al-plugins_SOURCE_DIR}/' '${CMAKE_CURRENT_SOURCE_DIR}/doc/plugins'
 # Set up python venv
 ${Python3_EXECUTABLE} -m venv --no-site-package '${CMAKE_CURRENT_BINARY_DIR}/doc_venv'
 source '${CMAKE_CURRENT_BINARY_DIR}/doc_venv/bin/activate'
-pip install -r --upgrade '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
+pip install --upgrade -r '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
 
 # Instruct sphinx to treat all warnings as errors
 export SPHINXOPTS='-W --keep-going'
