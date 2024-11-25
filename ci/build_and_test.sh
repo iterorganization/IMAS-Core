@@ -76,6 +76,7 @@ MODULES=(
     Cython/3.0.10-GCCcore-13.2.0
     cython-cmake/0.2.0-GCCcore-13.2.0
     setuptools-scm/8.1.0-GCCcore-13.2.0
+    typing-extensions
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0

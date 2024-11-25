@@ -9,7 +9,6 @@ ln -sf '${al-common_SOURCE_DIR}/doc_common' '${CMAKE_CURRENT_SOURCE_DIR}/doc/'
 ln -sfT '${al-plugins_SOURCE_DIR}/' '${CMAKE_CURRENT_SOURCE_DIR}/doc/plugins'
 
 # Set up python venv
-module load typing-extensions
 ${Python3_EXECUTABLE} -m venv '${CMAKE_CURRENT_BINARY_DIR}/doc_venv'
 source '${CMAKE_CURRENT_BINARY_DIR}/doc_venv/bin/activate'
 pip install -r '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
@@ -18,7 +17,6 @@ pip install -r '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
 export SPHINXOPTS='-W --keep-going'
 # Build HTML documentation
 make -C '${CMAKE_CURRENT_SOURCE_DIR}/doc' clean html
-
 # Add a version file:
 echo ${FULL_VERSION} > ${CMAKE_CURRENT_SOURCE_DIR}/doc/_build/html/version.txt
 "
