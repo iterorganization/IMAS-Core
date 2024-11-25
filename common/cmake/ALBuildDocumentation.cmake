@@ -9,11 +9,10 @@ ln -sf '${al-common_SOURCE_DIR}/doc_common' '${CMAKE_CURRENT_SOURCE_DIR}/doc/'
 ln -sfT '${al-plugins_SOURCE_DIR}/' '${CMAKE_CURRENT_SOURCE_DIR}/doc/plugins'
 
 # Set up python venv
-export PYTHONPATH_BKP=$PYTHONPATH
-${Python3_EXECUTABLE} -m venv --no-site-package '${CMAKE_CURRENT_BINARY_DIR}/doc_venv'
+module load typing-extensions
+${Python3_EXECUTABLE} -m venv '${CMAKE_CURRENT_BINARY_DIR}/doc_venv'
 source '${CMAKE_CURRENT_BINARY_DIR}/doc_venv/bin/activate'
-pip install --upgrade -r '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
-unset PYTHONPATH
+pip install -r '${CMAKE_CURRENT_SOURCE_DIR}/doc/doc_common/requirements.txt'
 
 # Instruct sphinx to treat all warnings as errors
 export SPHINXOPTS='-W --keep-going'
