@@ -67,6 +67,8 @@ class LIBRARY_API UDABackend : public Backend
 {
 private:
     bool verbose_ = false;
+    bool fetch_ = false;
+    bool access_local_ = false;
     std::string plugin_ = "IMAS";
     uda::Client uda_client_;
     std::shared_ptr<pugi::xml_document> doc_ = {};
@@ -74,6 +76,9 @@ private:
     imas::uda::CacheMode cache_mode_ = imas::uda::CacheMode::IDS;
     int open_mode_ = 0;
     std::string dd_version_ = "";
+
+    DataEntryContext* local_ctx_ = nullptr;
+    Backend* backend_ = nullptr;
 
     /**
      * Process any UDA backend specific options found on the DBEntry URI.
@@ -100,9 +105,19 @@ private:
      * @param ids the IDS we are reading the flag for
      * @param pulse_ctx the pulse context
      * @param op_ctx the operation context
-     * @return
+     * @return the homogeneous flag
      */
     bool get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
+
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     *
+     * @param local_path the path to the directory in which to save the data locally
+     * @param remote_path the path to the data on the remote server
+     * @param backend the backend used to access the data on the remote server
+     * @return if the fetch was successful
+     */
+    bool fetch_files(const std::string& local_path, const std::string& remote_path, const std::string& backend);
 
 public:
 

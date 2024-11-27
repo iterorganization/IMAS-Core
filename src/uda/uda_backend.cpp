@@ -280,6 +280,7 @@ void UDABackend::process_options(uri::Uri uri)
 {
     uri::OptionalValue maybe_cache_mode = uri.query.get("cache_mode");
     uri::OptionalValue maybe_verbose = uri.query.get("verbose");
+    uri::OptionalValue maybe_fetch = uri.query.get("fetch");
 
     if (maybe_cache_mode) {
         std::string value = maybe_cache_mode.value();
@@ -302,6 +303,57 @@ void UDABackend::process_options(uri::Uri uri)
             verbose_ = false;
         }
     }
+
+    if (maybe_fetch) {
+        std::string value = maybe_fetch.value();
+        if (value == "1" || value == "true") {
+            fetch_ = true;
+        } else {
+            fetch_ = false;
+        }
+    }
+}
+
+bool UDABackend::fetch_files(const std::string& local_path, const std::string& remote_path, const std::string& backend)
+{
+    std::stringstream ss;
+    ss << plugin_ << "::listFiles(path=" << remote_path << ", backend=" << backend << ")";
+
+    std::string directive = ss.str();
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    try {
+        const uda::Result& result = uda_client_.get(directive, "");
+        auto data = result.data();
+        auto list = dynamic_cast<uda::Array*>(data);
+
+        auto filenames = list->as<std::string>();
+        for (const auto& filename : filenames) {
+            ss.clear();
+            ss << "BYTES::read(path=" << remote_path << "/" << filename << ")";
+            directive = ss.str();
+
+            if (verbose_) {
+                std::cout << "UDABackend request: " << directive << "\n";
+            }
+
+            const uda::Result& bytes_result = uda_client_.get(directive, "");
+
+            std::string local_fullpath = local_path + "/" + filename;
+            FILE* local_file = fopen(local_fullpath.c_str(), "wb");
+
+            fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
+        }
+    } catch (const uda::UDAException& ex) {
+        if (verbose_) {
+            std::cout << "UDA error: " << ex.what() << "\n";
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void UDABackend::openPulse(DataEntryContext* ctx,
@@ -312,11 +364,49 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     if (verbose_) {
         std::cout << "UDABackend openPulse\n";
     }
+
     open_mode_ = mode;
 
     auto maybe_plugin = ctx->getURI().query.get("plugin");
     if (maybe_plugin) {
         plugin_ = maybe_plugin.value();
+    }
+
+    if (fetch_) {
+        auto uri = ctx->getURI();
+        auto maybe_path = uri.query.get("path");
+        auto maybe_backend = uri.query.get("backend");
+        auto maybe_local_cache = uri.query.get("local_cache");
+
+        if (!maybe_path) {
+            throw ALException("No path provided in URI", LOG);
+        }
+
+        if (!maybe_backend) {
+            throw ALException("No backend provided in URI", LOG);
+        }
+
+        std::string remote_path = maybe_path.value();
+        std::string local_path = maybe_local_cache.value_or("/tmp/IMAS") + remote_path;
+        std::string backend = maybe_backend.value();
+
+        access_local_ = fetch_files(local_path, remote_path, backend);
+        if (access_local_) {
+            if (verbose_) {
+                std::cout << "UDABackend files downloaded to " << local_path << "\n";
+            }
+
+            // Files downloaded so all further access will happen via the local backend.
+            std::string new_uri = "imas::" + backend + "?path=" + local_path;
+            local_ctx_ = new DataEntryContext{new_uri};
+            backend_ = Backend::initBackend(local_ctx_);
+
+            if (verbose_) {
+                std::cout << "UDABackend all further requests being forwarded to " << backend << " backend \n";
+            }
+
+            return;
+        }
     }
 
     std::string host = ctx->getURI().authority.host;
@@ -394,6 +484,10 @@ void UDABackend::openPulse(DataEntryContext* ctx,
 void UDABackend::closePulse(DataEntryContext* ctx,
                             int mode)
 {
+    if (access_local_) {
+        return backend_->closePulse(local_ctx_, mode);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend closePulse\n";
     }
@@ -453,6 +547,10 @@ int UDABackend::readData(Context* ctx,
                          int* dim,
                          int* size)
 {
+    if (access_local_) {
+        return backend_->readData(ctx, fieldname, timebasename, data, datatype, dim, size);
+    }
+
     auto path = array_path(ctx) + "/" + fieldname;
 
     if (verbose_) {
@@ -727,6 +825,10 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 {
+    if (access_local_) {
+        return backend_->beginArraystructAction(ctx, size);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend beginArraystructAction\n";
     }
@@ -808,6 +910,10 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 
 void UDABackend::beginAction(OperationContext* op_ctx)
 {
+    if (access_local_) {
+        return backend_->beginAction(op_ctx);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend beginAction\n";
     }
@@ -871,6 +977,10 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
 void UDABackend::endAction(Context* ctx)
 {
+    if (access_local_) {
+        return backend_->endAction(ctx);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend endAction\n";
     }
@@ -901,6 +1011,10 @@ void
 UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasename, void* data, int datatype, int dim,
                       int* size)
 {
+    if (access_local_) {
+        return backend_->writeData(ctx, fieldname, timebasename, data, datatype, dim, size);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend writeData\n";
     }
@@ -951,6 +1065,10 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
 
 void UDABackend::deleteData(OperationContext* ctx, std::string path)
 {
+    if (access_local_) {
+        return backend_->deleteData(ctx, path);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend deleteData\n";
     }
@@ -977,6 +1095,10 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
 
 bool UDABackend::supportsTimeDataInterpolation()
 {
+    if (access_local_) {
+        return backend_->supportsTimeDataInterpolation();
+    }
+
     if (verbose_) {
         std::cout << "UDABackend supportsTimeDataInterpolation\n";
     }
@@ -1047,6 +1169,10 @@ std::vector<int> read_occurrences(NodeReader *node) {
 } // anon namespace
 
 void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
+    if (access_local_) {
+        return backend_->get_occurrences(ids_name, occurrences_list, size);
+    }
+
     if (verbose_) {
         std::cout << "UDABackend get_occurrences\n";
     }
