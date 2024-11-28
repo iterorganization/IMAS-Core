@@ -339,6 +339,9 @@ bool UDABackend::fetch_files(const std::filesystem::path& local_path, const std:
 
         auto filenames = list->as<std::string>();
 
+        if (verbose_) {
+            std::cout << "UDABackend creating local cache directory: " << local_path << "\n";
+        }
         if (!std::filesystem::create_directory(local_path)) {
             throw ALException{"Failed to create local directory"};
         }
