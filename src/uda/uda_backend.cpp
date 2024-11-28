@@ -425,6 +425,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
                 std::cout << "UDABackend all further requests being forwarded to " << backend << " backend \n";
             }
 
+            backend_->openPulse(local_ctx_, mode);
+
             return;
         }
     }
