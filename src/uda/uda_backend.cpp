@@ -417,7 +417,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
             }
 
             // Files downloaded so all further access will happen via the local backend.
-            std::string new_uri = std::string{"imas::"} + backend + "?path=" + local_path.string();
+            std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path.string();
             local_ctx_ = new DataEntryContext{new_uri};
             backend_ = Backend::initBackend(local_ctx_);
 
