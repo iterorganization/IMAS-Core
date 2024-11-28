@@ -79,9 +79,9 @@ Standard environments:
             module load CMake/3.27.6-GCCcore-13.2.0 Saxon-HE/12.4-Java-21 \
                 Boost/1.83.0-GCC-13.2.0 HDF5/1.14.3-gompi-2023b \
                 MDSplus/7.132.0-GCCcore-13.2.0 \
-                UDA/2.7.4-GCC-13.2.0 Blitz++/1.0.2-GCCcore-13.2.0 \
+                UDA/2.8.0-GCC-13.2.0 Blitz++/1.0.2-GCCcore-13.2.0 \
                 MATLAB/2023b-r5 SciPy-bundle/2023.11-gfbf-2023b \
-                Python-bundle-PyPI/2023.10-GCCcore-13.2.0 build/1.0.3-foss-2023b
+                build/1.0.3-foss-2023b
 
         .. admonition:: The MATLAB/2023b-r5 installation is lightly tweaked
 
