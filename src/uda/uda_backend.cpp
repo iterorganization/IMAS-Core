@@ -406,8 +406,8 @@ void UDABackend::openPulse(DataEntryContext* ctx,
         }
 
         auto remote_path = std::filesystem::path{ maybe_path.value()};
-        auto temp_path = std::filesystem::temp_directory_path();
-        auto local_path = std::filesystem::path{maybe_local_cache.value_or(temp_path.string())} / remote_path;
+        auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : std::filesystem::temp_directory_path();
+        auto local_path = cache_path / remote_path.relative_path();
         std::string backend = maybe_backend.value();
 
         access_local_ = fetch_files(local_path, remote_path, backend);
