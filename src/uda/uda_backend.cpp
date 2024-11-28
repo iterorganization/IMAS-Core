@@ -6,7 +6,7 @@
 #ifdef UDA_LEGACY_276
 #include <client/legacy_accAPI.h>
 #endif
-#include <client/udaClient.h>
+#include <uda.h>
 #include <clientserver/udaTypes.h>
 
 #include "semver.hpp"
@@ -326,10 +326,18 @@ bool UDABackend::fetch_files(const std::string& local_path, const std::string& r
 
     try {
         const uda::Result& result = uda_client_.get(directive, "");
+        if (result.errorCode() != 0) {
+            throw ALException("UDA called failed");
+        }
+
         auto data = result.data();
         auto list = dynamic_cast<uda::Array*>(data);
+        if (list == nullptr) {
+            throw ALException("Invalid data returned");
+        }
 
         auto filenames = list->as<std::string>();
+
         for (const auto& filename : filenames) {
             ss.clear();
             ss << "BYTES::read(path=" << remote_path << "/" << filename << ")";
