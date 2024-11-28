@@ -339,7 +339,7 @@ bool UDABackend::fetch_files(const std::string& local_path, const std::string& r
         auto filenames = list->as<std::string>();
 
         for (const auto& filename : filenames) {
-            ss.clear();
+            std::stringstream().swap(ss);
             ss << "BYTES::read(path=" << remote_path << "/" << filename << ")";
             directive = ss.str();
 
