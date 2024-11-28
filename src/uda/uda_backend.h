@@ -13,7 +13,8 @@
 #include <boost/algorithm/string.hpp>
 #include <c++/UDA.hpp>
 #include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
+#include <filesystem>
 #include <boost/cstdlib.hpp>
 
 #include "al_backend.h"
@@ -117,7 +118,7 @@ private:
      * @param backend the backend used to access the data on the remote server
      * @return if the fetch was successful
      */
-    bool fetch_files(const std::string& local_path, const std::string& remote_path, const std::string& backend);
+    bool fetch_files(const std::filesystem::path& local_path, const std::filesystem::path& remote_path, const std::string& backend);
 
 public:
 

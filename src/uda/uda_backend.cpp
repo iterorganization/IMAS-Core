@@ -16,6 +16,7 @@
 #include "uda_debug.hpp"
 
 #include <string>
+#include <random>
 
 using namespace semver::literals;
 
@@ -314,7 +315,7 @@ void UDABackend::process_options(uri::Uri uri)
     }
 }
 
-bool UDABackend::fetch_files(const std::string& local_path, const std::string& remote_path, const std::string& backend)
+bool UDABackend::fetch_files(const std::filesystem::path& local_path, const std::filesystem::path& remote_path, const std::string& backend)
 {
     std::stringstream ss;
     ss << plugin_ << "::listFiles(path=" << remote_path << ", backend=" << backend << ")";
@@ -338,9 +339,16 @@ bool UDABackend::fetch_files(const std::string& local_path, const std::string& r
 
         auto filenames = list->as<std::string>();
 
+        if (!std::filesystem::create_directory(local_path)) {
+            throw ALException{"Failed to create local directory"};
+        }
+
         for (const auto& filename : filenames) {
             std::stringstream().swap(ss);
-            ss << "BYTES::read(path=" << remote_path << "/" << filename << ")";
+
+            auto remote_fullpath = remote_path / filename;
+
+            ss << "BYTES::read(path=" << remote_fullpath << ")";
             directive = ss.str();
 
             if (verbose_) {
@@ -349,7 +357,7 @@ bool UDABackend::fetch_files(const std::string& local_path, const std::string& r
 
             const uda::Result& bytes_result = uda_client_.get(directive, "");
 
-            std::string local_fullpath = local_path + "/" + filename;
+            auto local_fullpath = local_path / filename;
             FILE* local_file = fopen(local_fullpath.c_str(), "wb");
 
             fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
@@ -394,8 +402,9 @@ void UDABackend::openPulse(DataEntryContext* ctx,
             throw ALException("No backend provided in URI", LOG);
         }
 
-        std::string remote_path = maybe_path.value();
-        std::string local_path = maybe_local_cache.value_or("/tmp/IMAS") + remote_path;
+        auto remote_path = std::filesystem::path{ maybe_path.value()};
+        auto temp_path = std::filesystem::temp_directory_path();
+        auto local_path = std::filesystem::path{maybe_local_cache.value_or(temp_path.string())} / remote_path;
         std::string backend = maybe_backend.value();
 
         access_local_ = fetch_files(local_path, remote_path, backend);
@@ -405,7 +414,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
             }
 
             // Files downloaded so all further access will happen via the local backend.
-            std::string new_uri = "imas::" + backend + "?path=" + local_path;
+            std::string new_uri = std::string{"imas::"} + backend + "?path=" + local_path.string();
             local_ctx_ = new DataEntryContext{new_uri};
             backend_ = Backend::initBackend(local_ctx_);
 
