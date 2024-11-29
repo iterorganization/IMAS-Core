@@ -87,7 +87,7 @@ private:
      * @param uri the uri of the DBEntry
      * @throw ALException if any of the passed options have invalid values
      */
-    void process_options(uri::Uri uri);
+    void process_options(const uri::Uri& uri);
 
     /**
      * Generate all requests for the given `ids` starting at the given `path` and send these requests to the UDA server,
@@ -120,6 +120,11 @@ private:
      */
     bool fetch_files(const std::filesystem::path& local_path, const std::filesystem::path& remote_path, const std::string& backend);
 
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     */
+    void fetch_files(const uri::Uri& uri);
+
 public:
 
     /**
@@ -127,7 +132,7 @@ public:
      *
      * @param uri the URI of the data entry that the backend is being used to read
      */
-    explicit UDABackend(uri::Uri uri);
+    explicit UDABackend(const uri::Uri& uri);
 
     ~UDABackend() override
     {

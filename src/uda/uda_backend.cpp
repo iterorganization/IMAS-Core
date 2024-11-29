@@ -6,7 +6,6 @@
 #ifdef UDA_LEGACY_276
 #include <client/legacy_accAPI.h>
 #endif
-#include <uda.h>
 #include <clientserver/udaTypes.h>
 
 #include "semver.hpp"
@@ -235,7 +234,7 @@ std::string get_backend(uri::QueryDict& query) {
 
 } // anon namespace
 
-UDABackend::UDABackend(uri::Uri uri)
+UDABackend::UDABackend(const uri::Uri& uri)
         : verbose_(false)
         , uda_client_{}
 {
@@ -264,12 +263,20 @@ UDABackend::UDABackend(uri::Uri uri)
     if (port != 0) {
         uda::Client::setServerPort(port);
     }
+
+    if (fetch_) {
+        fetch_files(uri);
+    }
 }
 
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
 {
+    if (access_local_) {
+        return backend_->getVersion(local_ctx_);
+    }
+
     std::pair<int, int> version;
-    if (ctx == NULL) {
+    if (ctx == nullptr) {
         version = {UDA_BACKEND_VERSION_MAJOR, UDA_BACKEND_VERSION_MINOR};
     } else {
         version = {0, 0}; // temporary placeholder
@@ -277,7 +284,7 @@ std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
     return version;
 }
 
-void UDABackend::process_options(uri::Uri uri)
+void UDABackend::process_options(const uri::Uri& uri)
 {
     uri::OptionalValue maybe_cache_mode = uri.query.get("cache_mode");
     uri::OptionalValue maybe_verbose = uri.query.get("verbose");
@@ -375,9 +382,51 @@ bool UDABackend::fetch_files(const std::filesystem::path& local_path, const std:
     return true;
 }
 
+void UDABackend::fetch_files(const uri::Uri& uri)
+{
+    auto maybe_path = uri.query.get("path");
+    auto maybe_backend = uri.query.get("backend");
+    auto maybe_local_cache = uri.query.get("local_cache");
+
+    if (!maybe_path) {
+        throw ALException("No path provided in URI", LOG);
+    }
+
+    if (!maybe_backend) {
+        throw ALException("No backend provided in URI", LOG);
+    }
+
+    auto remote_path = std::filesystem::path{ maybe_path.value()};
+    auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : std::filesystem::temp_directory_path();
+    auto local_path = cache_path / remote_path.relative_path();
+    std::string backend = maybe_backend.value();
+
+    access_local_ = fetch_files(local_path, remote_path, backend);
+    if (access_local_) {
+        if (verbose_) {
+            std::cout << "UDABackend files downloaded to " << local_path << "\n";
+        }
+
+        // Files downloaded so all further access will happen via the local backend.
+        std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path.string();
+        local_ctx_ = new DataEntryContext{new_uri};
+        backend_ = Backend::initBackend(local_ctx_);
+
+        if (verbose_) {
+            std::cout << "UDABackend all further requests being forwarded to " << backend << " backend \n";
+        }
+
+        return;
+    }
+}
+
 void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
+    if (access_local_) {
+        return backend_->openPulse(local_ctx_, mode);
+    }
+
     process_options(ctx->getURI());
 
     if (verbose_) {
@@ -389,46 +438,6 @@ void UDABackend::openPulse(DataEntryContext* ctx,
     auto maybe_plugin = ctx->getURI().query.get("plugin");
     if (maybe_plugin) {
         plugin_ = maybe_plugin.value();
-    }
-
-    if (fetch_) {
-        auto uri = ctx->getURI();
-        auto maybe_path = uri.query.get("path");
-        auto maybe_backend = uri.query.get("backend");
-        auto maybe_local_cache = uri.query.get("local_cache");
-
-        if (!maybe_path) {
-            throw ALException("No path provided in URI", LOG);
-        }
-
-        if (!maybe_backend) {
-            throw ALException("No backend provided in URI", LOG);
-        }
-
-        auto remote_path = std::filesystem::path{ maybe_path.value()};
-        auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : std::filesystem::temp_directory_path();
-        auto local_path = cache_path / remote_path.relative_path();
-        std::string backend = maybe_backend.value();
-
-        access_local_ = fetch_files(local_path, remote_path, backend);
-        if (access_local_) {
-            if (verbose_) {
-                std::cout << "UDABackend files downloaded to " << local_path << "\n";
-            }
-
-            // Files downloaded so all further access will happen via the local backend.
-            std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path.string();
-            local_ctx_ = new DataEntryContext{new_uri};
-            backend_ = Backend::initBackend(local_ctx_);
-
-            if (verbose_) {
-                std::cout << "UDABackend all further requests being forwarded to " << backend << " backend \n";
-            }
-
-            backend_->openPulse(local_ctx_, mode);
-
-            return;
-        }
     }
 
     std::string host = ctx->getURI().authority.host;
