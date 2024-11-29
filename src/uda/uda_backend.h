@@ -81,6 +81,11 @@ private:
     DataEntryContext* local_ctx_ = nullptr;
     Backend* backend_ = nullptr;
 
+    // Cached values used to read HDF5 files on demand
+    std::filesystem::path remote_path_ = {};
+    std::filesystem::path local_path_ = {};
+    std::vector<std::string> ids_filenames_ = {};
+
     /**
      * Process any UDA backend specific options found on the DBEntry URI.
      *
@@ -118,12 +123,14 @@ private:
      * @param backend the backend used to access the data on the remote server
      * @return if the fetch was successful
      */
-    bool fetch_files(const std::filesystem::path& local_path, const std::filesystem::path& remote_path, const std::string& backend);
+    bool fetch_files(const std::string& backend);
 
     /**
      * Fetch the underlying IDS data files and then do all data access locally.
      */
     void fetch_files(const uri::Uri& uri);
+
+    void download_file(const std::string& filename);
 
 public:
 

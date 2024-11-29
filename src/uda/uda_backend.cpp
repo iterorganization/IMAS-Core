@@ -322,10 +322,31 @@ void UDABackend::process_options(const uri::Uri& uri)
     }
 }
 
-bool UDABackend::fetch_files(const std::filesystem::path& local_path, const std::filesystem::path& remote_path, const std::string& backend)
+void UDABackend::download_file(const std::string& filename)
 {
     std::stringstream ss;
-    ss << plugin_ << "::listFiles(path=" << remote_path << ", backend=" << backend << ")";
+
+    auto remote_fullpath = remote_path_ / filename;
+
+    ss << "BYTES::read(path=" << remote_fullpath << ")";
+    std::string directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    const uda::Result& bytes_result = uda_client_.get(directive, "");
+
+    auto local_fullpath = local_path_ / filename;
+    FILE* local_file = fopen(local_fullpath.c_str(), "wb");
+    fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
+    fclose(local_file);
+}
+
+bool UDABackend::fetch_files(const std::string& backend)
+{
+    std::stringstream ss;
+    ss << plugin_ << "::listFiles(path=" << remote_path_ << ", backend=" << backend << ")";
 
     std::string directive = ss.str();
     if (verbose_) {
@@ -347,30 +368,20 @@ bool UDABackend::fetch_files(const std::filesystem::path& local_path, const std:
         auto filenames = list->as<std::string>();
 
         if (verbose_) {
-            std::cout << "UDABackend creating local cache directory: " << local_path << "\n";
+            std::cout << "UDABackend creating local cache directory: " << local_path_ << "\n";
         }
-        if (!std::filesystem::create_directories(local_path)) {
+        if (!std::filesystem::create_directories(local_path_)) {
             throw ALException{"Failed to create local directory"};
         }
 
-        for (const auto& filename : filenames) {
-            std::stringstream().swap(ss);
-
-            auto remote_fullpath = remote_path / filename;
-
-            ss << "BYTES::read(path=" << remote_fullpath << ")";
-            directive = ss.str();
-
-            if (verbose_) {
-                std::cout << "UDABackend request: " << directive << "\n";
+        if (backend == "hdf5") {
+            // For HDF5 backend we can download only when we need it
+            download_file("master.h5");
+            ids_filenames_ = filenames;
+        } else {
+            for (const auto& filename: filenames) {
+                download_file(filename);
             }
-
-            const uda::Result& bytes_result = uda_client_.get(directive, "");
-
-            auto local_fullpath = local_path / filename;
-            FILE* local_file = fopen(local_fullpath.c_str(), "wb");
-            fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
-            fclose(local_file);
         }
     } catch (const uda::UDAException& ex) {
         if (verbose_) {
@@ -396,19 +407,19 @@ void UDABackend::fetch_files(const uri::Uri& uri)
         throw ALException("No backend provided in URI", LOG);
     }
 
-    auto remote_path = std::filesystem::path{ maybe_path.value()};
+    remote_path_ = std::filesystem::path{ maybe_path.value()};
     auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : std::filesystem::temp_directory_path();
-    auto local_path = cache_path / remote_path.relative_path();
+    local_path_ = cache_path / remote_path_.relative_path();
     std::string backend = maybe_backend.value();
 
-    access_local_ = fetch_files(local_path, remote_path, backend);
+    access_local_ = fetch_files(backend);
     if (access_local_) {
         if (verbose_) {
-            std::cout << "UDABackend files downloaded to " << local_path << "\n";
+            std::cout << "UDABackend files downloaded to " << local_path_ << "\n";
         }
 
         // Files downloaded so all further access will happen via the local backend.
-        std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path.string();
+        std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path_.string();
         local_ctx_ = new DataEntryContext{new_uri};
         backend_ = Backend::initBackend(local_ctx_);
 
@@ -941,7 +952,15 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 
 void UDABackend::beginAction(OperationContext* op_ctx)
 {
+    std::string ids = op_ctx->getDataobjectName();
+
     if (access_local_) {
+        if (local_ctx_->getBackendID() == HDF5_BACKEND) {
+            std::string ids_filename = ids + ".h5";
+            if (std::find(ids_filenames_.begin(), ids_filenames_.end(), ids_filename) != ids_filenames_.end()) {
+                download_file(ids_filename);
+            }
+        }
         return backend_->beginAction(op_ctx);
     }
 
@@ -949,7 +968,6 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         std::cout << "UDABackend beginAction\n";
     }
 
-    std::string ids = op_ctx->getDataobjectName();
     auto entry_ctx = op_ctx->getDataEntryContext();
 
     if (cache_mode_ == imas::uda::CacheMode::IDS) {
