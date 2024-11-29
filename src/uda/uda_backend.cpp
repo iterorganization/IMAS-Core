@@ -324,12 +324,16 @@ void UDABackend::process_options(const uri::Uri& uri)
 
 void UDABackend::download_file(const std::string& filename)
 {
-    std::stringstream ss;
+    auto local_fullpath = local_path_ / filename;
+    if (std::filesystem::exists((local_fullpath))) {
+        if (verbose_) {
+            std::cout << "UDABackend cached local file already exists: " << local_fullpath << "\n";
+        }
+        return;
+    }
 
     auto remote_fullpath = remote_path_ / filename;
-
-    ss << "BYTES::read(path=" << remote_fullpath << ")";
-    std::string directive = ss.str();
+    std::string directive = "BYTES::read(path=" + remote_fullpath.string() + ")";
 
     if (verbose_) {
         std::cout << "UDABackend request: " << directive << "\n";
@@ -337,7 +341,6 @@ void UDABackend::download_file(const std::string& filename)
 
     const uda::Result& bytes_result = uda_client_.get(directive, "");
 
-    auto local_fullpath = local_path_ / filename;
     FILE* local_file = fopen(local_fullpath.c_str(), "wb");
     fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
     fclose(local_file);
@@ -367,11 +370,17 @@ bool UDABackend::fetch_files(const std::string& backend)
 
         auto filenames = list->as<std::string>();
 
-        if (verbose_) {
-            std::cout << "UDABackend creating local cache directory: " << local_path_ << "\n";
-        }
-        if (!std::filesystem::create_directories(local_path_)) {
-            throw ALException{"Failed to create local directory"};
+        if (std::filesystem::exists((local_path_))) {
+            if (verbose_) {
+                std::cout << "UDABackend cache directory already exists: " << local_path_ << "\n";
+            }
+        } else {
+            if (verbose_) {
+                std::cout << "UDABackend creating local cache directory: " << local_path_ << "\n";
+            }
+            if (!std::filesystem::create_directories(local_path_)) {
+                throw ALException{"Failed to create local directory"};
+            }
         }
 
         if (backend == "hdf5") {
