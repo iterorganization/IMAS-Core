@@ -88,7 +88,7 @@ else()
   install( FILES ${REAL_IDSDEF} DESTINATION include RENAME IDSDef.xml )
 
   # Populate identifier source xmls
-  file( GLOB DD_IDENTIFIER_FILES "${data-dictionary_SOURCE_DIR}/*/*_identifier.xml" )
+  file( GLOB DD_IDENTIFIER_FILES "${data-dictionary_SOURCE_DIR}/*/*_identifier.xml" "${data-dictionary_SOURCE_DIR}/schemas/*/*_identifier.xml" )
 endif()
 
 # Find out which IDSs exist and populate IDS_NAMES
