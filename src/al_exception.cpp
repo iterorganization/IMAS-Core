@@ -60,7 +60,8 @@ void ALException::registerStatus(char *message, const char *func, const std::exc
     sprintf(message, "%s: %s", func, "Unknown error");
   }
   else if ((strlen(func) + strlen(e.what())) > MAX_ERR_MSG_LEN) {
-    sprintf(message, "%s: %s", func, std::string(e.what()).substr(0, MAX_ERR_MSG_LEN - strlen(func) - 3));
+    std::string excp = std::string(e.what()).substr(0, MAX_ERR_MSG_LEN - strlen(func) - 3);
+    sprintf(message, "%s: %s", func, excp.c_str());
   }
   else
     sprintf(message, "%s: %s", func, e.what());
