@@ -90,12 +90,12 @@ void unpack_data(NodeReader* node,
                  int* dim,
                  int* size)
 {
-    size_t rank = uda_capnp_read_rank(node).value;
+    const size_t rank = uda_capnp_read_rank(node).value;
     std::vector<size_t> size_vec(rank);
     uda_capnp_read_shape(node, size_vec.data());
 
-    size_t node_count = std::accumulate(size_vec.begin(), size_vec.end(), 1, std::multiplies<size_t>());
-    size_t shape_count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+    const size_t node_count = std::accumulate(size_vec.begin(), size_vec.end(), 1, std::multiplies<size_t>());
+    const size_t shape_count = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
 
     if (node_count != shape_count) {
         throw imas::uda::CacheException("Count of data does not match shape");
@@ -106,10 +106,10 @@ void unpack_data(NodeReader* node,
         throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
     }
 
-    size_t num_slices = uda_capnp_read_num_slices(node);
-    size_t buffer_size = node_count * sizeof(T);
+    const size_t num_slices = uda_capnp_read_num_slices(node);
+    const size_t buffer_size = node_count * sizeof(T);
     *data = malloc(buffer_size);
-    auto buffer = reinterpret_cast<char*>(*data);
+    const auto buffer = static_cast<char*>(*data);
     size_t offset = 0;
 
     for (size_t i = 0; i < num_slices; ++i) {
@@ -138,9 +138,10 @@ void unpack_data(NodeReader* node,
  * templated based on the type specified in the node.
  *
  * @param path the data path to check against the name of the node
- * @param node the `NodeReader` from which the data is being unpacked
- * @param shape the shape of the data being unpacked
+ * @param tree [IN] the `TreeReader` from which the capnp tree is being read
+ * @param node [IN] the `NodeReader` from which the data is being unpacked
  * @param data [OUT] a pointer to the buffer which is malloced and then populated with the unpacked data
+ * @param datatype [OUT] the type of the data being returned
  * @param dim [OUT] the rank of the data being returned
  * @param size [OUT] array of dimension sizes
  */
@@ -163,13 +164,13 @@ void unpack_node(const std::string& path,
         throw ALBackendException("Invalid number of children on node: " + std::to_string(num_children));
     }
 
-    auto shape_node = uda_capnp_read_child_n(tree, node, 0);
+    const auto shape_node = uda_capnp_read_child_n(tree, node, 0);
     auto data_node = uda_capnp_read_child_n(tree, node, 1);
 
     std::vector<size_t> shape_shape(1);
     uda_capnp_read_shape(shape_node, shape_shape.data());
 
-    size_t count = std::accumulate(shape_shape.begin(), shape_shape.end(), 1, std::multiplies<size_t>());
+    const size_t count = std::accumulate(shape_shape.begin(), shape_shape.end(), 1, std::multiplies<size_t>());
     std::vector<int> shape(count);
 
     if (count != 0) {
@@ -188,7 +189,7 @@ void unpack_node(const std::string& path,
             throw imas::uda::CacheException("Incorrect amount of data found in shape node slices");
         }
 
-        auto buffer = reinterpret_cast<char*>(shape.data());
+        const auto buffer = reinterpret_cast<char*>(shape.data());
         uda_capnp_read_data(shape_node, 0, buffer);
     }
 
@@ -613,7 +614,7 @@ int UDABackend::readData(Context* ctx,
             std::cout << "UDABackend readData: found in cache\n";
         }
         imas::uda::CacheData& cache_data = cache_.at(path);
-        *dim = cache_data.shape.size();
+        *dim = static_cast<int>(cache_data.shape.size());
 
         switch (*datatype) {
             case INTEGER_DATA:
@@ -625,6 +626,8 @@ int UDABackend::readData(Context* ctx,
             case CHAR_DATA:
                 *data = read_data_from_cache<char>(cache_data, *dim);
                 break;
+            default:
+                throw ALBackendException("unknown data type", LOG);
         }
         std::copy(cache_data.shape.begin(), cache_data.shape.end(), size);
         // clear cache entry to save memory
@@ -697,7 +700,7 @@ int UDABackend::readData(Context* ctx,
             }
 
             return 1;
-        } catch (const uda::UDAException& ex) {
+        } catch (const uda::UDAException&) {
             return 0;
         }
     } else {
@@ -779,7 +782,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
     std::vector<std::string> uda_requests = {};
 
     for (const auto& request: requests) {
-        auto attr = attributes.at(request);
+        const auto& attr = attributes.at(request);
 
         std::string data_type = imas::uda::convert_imas_to_uda<imas::uda::DataType>(attr.data_type);
 
@@ -916,9 +919,9 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
             auto& data = cache_.at(path);
             try {
                 *size = boost::get<std::vector<int>>(data.values).at(0);
-            } catch (boost::bad_get& ex) {
+            } catch (boost::bad_get&) {
                 *size = 0;
-            } catch (std::out_of_range& ex) {
+            } catch (std::out_of_range&) {
                 *size = 0;
             }
         } else {
@@ -1138,7 +1141,7 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
        << ", path='" << path << "'"
        << ")";
 
-    std::string directive = ss.str();
+    const std::string directive = ss.str();
 
     if (verbose_) {
         std::cout << "UDABackend request: " << directive << "\n";
@@ -1161,7 +1164,7 @@ bool UDABackend::supportsTimeDataInterpolation()
         std::cout << "UDABackend supportsTimeDataInterpolation\n";
     }
 
-    std::string directive = plugin_ + "::version()";
+    const std::string directive = plugin_ + "::version()";
 
     if (verbose_) {
         std::cout << "UDABackend request: " << directive << "\n";
@@ -1170,12 +1173,12 @@ bool UDABackend::supportsTimeDataInterpolation()
         const uda::Result& result = uda_client_.get(directive, "");
         if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_STRING) {
             const uda::Data* uda_data = result.data();
-            const uda::String* uda_string = dynamic_cast<const uda::String*>(uda_data);
+            const auto uda_string = dynamic_cast<const uda::String*>(uda_data);
             if (uda_string == nullptr) {
                 throw ALException("Invalid string data returned", LOG);
             }
             // Return true if plugin is new enough that initDataInterpolationComponent is handled.
-            semver::version version = semver::version::parse(uda_string->str());
+            const semver::version version = semver::version::parse(uda_string->str());
             return version > "1.4.0"_v;
         } else {
             throw ALException("Invalid version returned from plugin", LOG);
@@ -1198,7 +1201,7 @@ std::vector<int> read_occurrences(NodeReader *node) {
     std::vector <size_t> size(1);
     uda_capnp_read_shape(node, size.data());
 
-    size_t count = std::accumulate(size.begin(), size.end(), 1, std::multiplies<size_t>());
+    const size_t count = std::accumulate(size.begin(), size.end(), 1, std::multiplies<size_t>());
     std::vector<int> occurrences(count);
 
     if (count != 0) {
@@ -1217,7 +1220,7 @@ std::vector<int> read_occurrences(NodeReader *node) {
             throw imas::uda::CacheException("Incorrect amount of data found in occurrences node slices");
         }
 
-        auto buffer = reinterpret_cast<char *>(occurrences.data());
+        const auto buffer = reinterpret_cast<char *>(occurrences.data());
         uda_capnp_read_data(node, 0, buffer);
     }
 
@@ -1252,7 +1255,7 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
        << ", ids='" << ids_name << "'"
        << ")";
 
-    std::string directive = ss.str();
+    const std::string directive = ss.str();
 
     if (verbose_) {
         std::cout << "UDABackend request: " << directive << "\n";
@@ -1262,13 +1265,13 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
 
         if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
             const char* data = result.raw_data();
-            size_t sz = result.size();
-            auto tree = uda_capnp_deserialise(data, sz);
-            auto root = uda_capnp_read_root(tree);
+            const size_t sz = result.size();
+            const auto tree = uda_capnp_deserialise(data, sz);
+            const auto root = uda_capnp_read_root(tree);
 
             auto occurrences = read_occurrences(root);
-            *size = occurrences.size();
-            *occurrences_list = reinterpret_cast<int*>(malloc(sizeof(int) * occurrences.size()));
+            *size = static_cast<int>(occurrences.size());
+            *occurrences_list = static_cast<int*>(malloc(sizeof(int) * occurrences.size()));
             std::copy(occurrences.begin(), occurrences.end(), *occurrences_list);
         }
     } catch (const uda::UDAException& ex) {

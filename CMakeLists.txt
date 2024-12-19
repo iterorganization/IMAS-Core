@@ -1,6 +1,10 @@
 # CMake build configuration for Access Layer core
 cmake_minimum_required(VERSION 3.21)
 
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.30)
+  cmake_policy(SET CMP0167 NEW) # Use system BoostConfig instead of cmake FindBoost
+endif()
+
 # Capture scikit build cmake.args 
 include(./skbuild-cmake-args.cmake)
 
