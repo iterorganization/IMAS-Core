@@ -639,14 +639,25 @@ int UDABackend::readData(Context* ctx,
         try {
             auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
             auto op_ctx = arr_ctx != nullptr ? arr_ctx->getOperationContext() : dynamic_cast<OperationContext*>(ctx);
-//            auto entry_ctx = op_ctx->getDataEntryContext();
+            auto entry_ctx = op_ctx->getDataEntryContext();
 
             auto query = ctx->getURI().query;
-            std::string backend = get_backend(query);
+            const std::string backend = get_backend(query);
             query.remove("backend");
-            std::string dd_version = query.get("dd_version").value_or(dd_version_);
+            const std::string dd_version = query.get("dd_version").value_or(dd_version_);
             query.set("dd_version", dd_version);
-            std::string uri = "imas:" + backend + "?" + query.to_string();
+            const std::string uri = "imas:" + backend + "?" + query.to_string();
+            const std::string ids = op_ctx->getDataobjectName();
+
+            if (homogeneous_time_.count(uri) == 0) {
+                homogeneous_time_.emplace(uri, get_homogeneous_flag(ids, entry_ctx, op_ctx));
+            }
+            bool is_homogeneous = homogeneous_time_.at(uri);
+
+            // TODO: for non cache reads we might want to read attributes for all nodes once and then store them
+            imas::uda::AttributeMap attributes;
+            auto node = imas::uda::find_node(doc_->document_element(), path, true);
+            imas::uda::get_attributes(attributes, path, node);
 
             std::stringstream ss;
             ss << plugin_
@@ -661,14 +672,12 @@ int UDABackend::readData(Context* ctx,
                << ", path='" << path << "'"
                << ", datatype='" << imas::uda::convert_imas_to_uda<imas::uda::DataType>(*datatype) << "'"
                << ", rank=" << *dim
-               << ", is_homogeneous=" << 0
-               << ", dynamic_flags=" << 0
+               << ", is_homogeneous=" << is_homogeneous
+               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path)
                << ", time_range_tmin=" << op_ctx->time_range.tmin
                << ", time_range_tmax=" << op_ctx->time_range.tmax
                << ", time_range_interp=" << op_ctx->time_range.interpolation_method
                << ", dtime=" << imas::uda::convert_dtime(op_ctx->time_range.dtime);
-//               << ", is_homogeneous=" << is_homogeneous
-//               << ", dynamic_flags=" << imas::uda::get_dynamic_flags(attributes, path);
             ss << ")";
 
             std::string directive = ss.str();
@@ -929,46 +938,47 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         }
     } else if (cache_mode_ == imas::uda::CacheMode::IDS) {
         *size = 0;
-    } else {
-        OperationContext* octx = ctx->getOperationContext();
-        std::stringstream ss;
-        ss << plugin_
-           << "::beginArraystructAction("
-           << ", size=" << *size
-           << ", dataObject='" << octx->getDataobjectName() << "'"
-           << ", access=" << octx->getAccessmode()
-           << ", range=" << octx->getRangemode()
-           << ", time=" << octx->getTime()
-           << ", interp=" << octx->getInterpmode()
-           << ", path='" << path << "'"
-           << ", timebase='" << ctx->getTimebasePath() << "'"
-           << ")";
-
-        std::string directive = ss.str();
-
-        std::cout << "UDABackend request: " << directive << "\n";
-        const uda::Result& result = uda_client_.get(directive, "");
-        uda::Data* uda_data = result.data();
-
-        if (uda_data->type() == typeid(void)) {
-            *size = 0;
-            return;
-        } else if (uda_data->type() != typeid(int)) {
-            throw ALBackendException(
-                    std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
-                    LOG);
-        }
-        *size = *reinterpret_cast<const int*>(uda_data->byte_data());
     }
+    // else {
+    //     OperationContext* octx = ctx->getOperationContext();
+    //     std::stringstream ss;
+    //     ss << plugin_
+    //        << "::beginArraystructAction("
+    //        << ", size=" << *size
+    //        << ", dataObject='" << octx->getDataobjectName() << "'"
+    //        << ", access=" << octx->getAccessmode()
+    //        << ", range=" << octx->getRangemode()
+    //        << ", time=" << octx->getTime()
+    //        << ", interp=" << octx->getInterpmode()
+    //        << ", path='" << path << "'"
+    //        << ", timebase='" << ctx->getTimebasePath() << "'"
+    //        << ")";
+    //
+    //     std::string directive = ss.str();
+    //
+    //     std::cout << "UDABackend request: " << directive << "\n";
+    //     const uda::Result& result = uda_client_.get(directive, "");
+    //     uda::Data* uda_data = result.data();
+    //
+    //     if (uda_data->type() == typeid(void)) {
+    //         *size = 0;
+    //         return;
+    //     } else if (uda_data->type() != typeid(int)) {
+    //         throw ALBackendException(
+    //                 std::string("Invalid data type returned for beginArraystructAction: ") + uda_data->type().name(),
+    //                 LOG);
+    //     }
+    //     *size = *reinterpret_cast<const int*>(uda_data->byte_data());
+    // }
 }
 
 void UDABackend::beginAction(OperationContext* op_ctx)
 {
-    std::string ids = op_ctx->getDataobjectName();
+    const std::string& ids = op_ctx->getDataobjectName();
 
     if (access_local_) {
         if (local_ctx_->getBackendID() == HDF5_BACKEND) {
-            std::string ids_filename = ids + ".h5";
+            const std::string ids_filename = ids + ".h5";
             if (std::find(ids_filenames_.begin(), ids_filenames_.end(), ids_filename) != ids_filenames_.end()) {
                 download_file(ids_filename);
             }
@@ -980,7 +990,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
         std::cout << "UDABackend beginAction\n";
     }
 
-    auto entry_ctx = op_ctx->getDataEntryContext();
+    const auto entry_ctx = op_ctx->getDataEntryContext();
 
     if (cache_mode_ == imas::uda::CacheMode::IDS) {
         std::string path = op_ctx->getDatapath();
@@ -999,41 +1009,42 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 
             populate_cache(ids, path, entry_ctx, op_ctx);
         }
-    } else {
-        std::stringstream ss;
-        ss << plugin_
-           << "::beginAction("
-           << ", dataObject='" << op_ctx->getDataobjectName() << "'"
-           << ", access=" << op_ctx->getAccessmode()
-           << ", range=" << op_ctx->getRangemode()
-           << ", time=" << op_ctx->getTime()
-           << ", interp=" << op_ctx->getInterpmode();
-
-        auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
-        if (maybe_pff_user) {
-            ss << ", ppfUser='" << maybe_pff_user.value() << "'";
-        }
-        auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
-        if (maybe_pff_sequence) {
-            ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
-        }
-        auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
-        if (maybe_pff_dda) {
-            ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
-        }
-
-        ss << ")";
-        std::string directive = ss.str();
-
-        if (verbose_) {
-            std::cout << "UDABackend request: " << directive << "\n";
-        }
-        try {
-            uda_client_.get(directive, "");
-        } catch (const uda::UDAException& ex) {
-            throw ALException(ex.what(), LOG);
-        }
     }
+    // else {
+    //     std::stringstream ss;
+    //     ss << plugin_
+    //        << "::beginAction("
+    //        << ", dataObject='" << op_ctx->getDataobjectName() << "'"
+    //        << ", access=" << op_ctx->getAccessmode()
+    //        << ", range=" << op_ctx->getRangemode()
+    //        << ", time=" << op_ctx->getTime()
+    //        << ", interp=" << op_ctx->getInterpmode();
+    //
+    //     auto maybe_pff_user = entry_ctx->getURI().query.get("ppf_user");
+    //     if (maybe_pff_user) {
+    //         ss << ", ppfUser='" << maybe_pff_user.value() << "'";
+    //     }
+    //     auto maybe_pff_sequence = entry_ctx->getURI().query.get("ppf_sequence");
+    //     if (maybe_pff_sequence) {
+    //         ss << ", ppfSequence='" << maybe_pff_sequence.value() << "'";
+    //     }
+    //     auto maybe_pff_dda = entry_ctx->getURI().query.get("ppf_dda");
+    //     if (maybe_pff_dda) {
+    //         ss << ", ppfDDA='" << maybe_pff_dda.value() << "'";
+    //     }
+    //
+    //     ss << ")";
+    //     std::string directive = ss.str();
+    //
+    //     if (verbose_) {
+    //         std::cout << "UDABackend request: " << directive << "\n";
+    //     }
+    //     try {
+    //         uda_client_.get(directive, "");
+    //     } catch (const uda::UDAException& ex) {
+    //         throw ALException(ex.what(), LOG);
+    //     }
+    // }
 }
 
 void UDABackend::endAction(Context* ctx)
