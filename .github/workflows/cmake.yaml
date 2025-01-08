@@ -51,7 +51,7 @@ jobs:
 #            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install Linux Dependencies
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: startsWith(matrix.os, 'ubuntu-')
         run: >
           sudo apt update && sudo apt install -y
           git
@@ -70,11 +70,12 @@ jobs:
           python3-dev
           python3-pip
           python3-venv
+          cython3
           libhdf5-serial-dev
 
       - name: pip install
         run: |
-          pip install scikit_build_core setuptools_scm
+          pip install scikit_build_core setuptools_scm Cython
           pip install .[test,cov]
 
 #      - name: Install macos dependencies
@@ -92,7 +93,7 @@ jobs:
 #          capnp
 
       - name: Configure CMake (linux)
-        if: ${{ startsWith(matrix.os, 'ubuntu-') }}
+        if: startsWith(matrix.os, 'ubuntu-')
         # if: matrix.os == 'ubuntu-latest'
         run: >
           cmake -GNinja -Bbuild
