@@ -1,9 +1,11 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
+## old scikit-build incantations require cython-cmake
 find_package(Cython MODULE REQUIRED VERSION 3.0)
 include(UseCython)
 cython_transpile(imas_core/_al_lowlevel.pyx LANGUAGE C OUTPUT_VARIABLE _al_lowlevel_source)
 cython_transpile(imas_core/al_defs.pyx LANGUAGE C OUTPUT_VARIABLE al_defs_source)
-python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
+## end old scikit-build incantations
+python_add_library(_al_lowlevel MODULE imas_core/_al_lowlevel.c WITH_SOABI)
 python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
 target_link_libraries(al_defs PRIVATE Python::NumPy al)
