@@ -127,7 +127,11 @@ jobs:
         run: python -m venv $(pwd)/test-install
 
       - name: Install test
-        run: cmake --build build --target install
+        run: |
+          source $(pwd)/test-install/bin/activate
+          cmake --build build --target install
+          pip list -v
+          python -c "import imas_core ; print(imas_core)"
 
       - name: Run pytest, generate clover
         run: |
