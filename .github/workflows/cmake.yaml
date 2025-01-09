@@ -73,21 +73,12 @@ jobs:
           python3-pip
           python3-venv
 
-      - name: Virtual env test-install
-        if: startsWith(matrix.os, 'ubuntu-')
-        run: python -m venv $(pwd)/test-install
-
       - name: pip install
         run: >
-          source $(pwd)/test-install/bin/activate
-          
           pip install --ignore-installed
-          "coverage2clover"
           "cython-cmake>=0.2.0"
           "cython>=3.0.3"
           "numpy<2"
-          "pytest-cov"
-          "pytest>=8"
           "scikit-build-core>=0.9.3"
           "setuptools>=64"
           "setuptools_scm>=8"
@@ -126,20 +117,18 @@ jobs:
           -DBoost_NO_BOOST_CMAKE=ON
 
       - name: Build
-        run: |
-          source $(pwd)/test-install/bin/activate
-          cmake --build build
+        run: cmake --build build
 
       - name: Install test
-        run: |
-          source $(pwd)/test-install/bin/activate
-          cmake --build build --target install
-          pip list -v
-          python -c "import imas_core ; print(imas_core)"
+        run: cmake --build build --target install
 
       - name: Run pytest, generate clover
         run: |
+          python -m venv --system-site-packages $(pwd)/test-install
           source $(pwd)/test-install/bin/activate
+          pip install --ignore-installed "pytest-cov" "pytest>=8" "coverage2clover"
+          pip list -v
+          python -c "import imas_core ; print(imas_core)"
           pytest  --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
           coverage2clover -i coverage.xml -o clover.xml
 
