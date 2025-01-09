@@ -75,7 +75,7 @@ jobs:
 
       - name: pip install
         run: >
-          pip install
+          pip install --ignore-installed
           "coverage2clover"
           "cython-cmake>=0.2.0"
           "cython>=3.0.3"
@@ -100,7 +100,7 @@ jobs:
 #          ninja
 #          capnp
 
-      - name: Configure CMake (linux)
+      - name: Configure CMake
         if: startsWith(matrix.os, 'ubuntu-')
         # if: matrix.os == 'ubuntu-latest'
         run: >
@@ -121,6 +121,20 @@ jobs:
 
       - name: Build
         run: cmake --build build
+
+      - name: Virtual env test-install
+        if: startsWith(matrix.os, 'ubuntu-')
+        run: python -m venv $(pwd)/test-install
+
+      - name: Install test
+        run: cmake --build build --target install
+
+      - name: Run pytest, generate clover
+        run: |
+          source $(pwd)/test-install/bin/activate
+          pytest  --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
+          coverage2clover -i coverage.xml -o clover.xml
+
 #
 #       - name: Install
 #         if: matrix.os != 'windows-latest'
