@@ -90,17 +90,7 @@ jobs:
 
       - name: Install windows dependencies
         if: matrix.os == 'windows-latest'
-        run: >
-          vcpkg install --triplet x64-mingw-static --binarysource="clear;x-gha,readwrite"
-          boost-program-options
-          boost-format
-          boost-algorithm
-          boost-multi-array
-          dlfcn-win32
-          # capnproto
-          # libxml2
-          # openssl
-          # spdlog
+        run: vcpkg install --triplet x64-mingw-static --binarysource="clear;x-gha,readwrite"
 
       - name: pip install
         run: >
