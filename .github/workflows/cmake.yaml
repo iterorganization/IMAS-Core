@@ -21,7 +21,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         build-type: [RelWithDebInfo]
         docs-only: [OFF]
         backend-mdsplus: [OFF]
@@ -50,28 +50,57 @@ jobs:
 #            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
 #            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Install Linux Dependencies
+      - name: Install linux Dependencies
         if: startsWith(matrix.os, 'ubuntu-')
         run: >
           sudo apt update && sudo apt install -y
           build-essential
-          capnproto
           cmake
           cython3
           git
           libboost-dev
           libboost-filesystem-dev
           libboost-program-options-dev
-          libcapnp-dev
           libhdf5-serial-dev
-          libspdlog-dev
-          libssl-dev
-          libxml2-dev
           ninja-build
           pkg-config
           python3-dev
           python3-pip
           python3-venv
+          # capnproto
+          # libcapnp-dev
+          # libspdlog-dev
+          # libssl-dev
+          # libxml2-dev
+
+      - name: Install macos dependencies
+        if: matrix.os == 'macos-latest'
+        run: >
+          brew update-reset && brew install
+          git
+          boost
+          cmake
+          pkg-config
+          ninja
+          hdf5
+          # capnp
+          # libxml2
+          # openssl
+          # spdlog
+
+      - name: Install windows dependencies
+        if: matrix.os == 'windows-latest'
+        run: >
+          vcpkg install --triplet x64-mingw-static --binarysource="clear;x-gha,readwrite"
+          boost-program-options
+          boost-format
+          boost-algorithm
+          boost-multi-array
+          dlfcn-win32
+          # capnproto
+          # libxml2
+          # openssl
+          # spdlog
 
       - name: pip install
         run: >
@@ -83,23 +112,8 @@ jobs:
           "setuptools>=64"
           "setuptools_scm>=8"
 
-#      - name: Install macos dependencies
-#        if: matrix.os == 'macos-latest'
-#        run: >
-#          brew update-reset && brew install
-#          git
-#          boost
-#          openssl
-#          cmake
-#          pkg-config
-#          libxml2
-#          spdlog
-#          ninja
-#          capnp
-
-      - name: Configure CMake
-        if: startsWith(matrix.os, 'ubuntu-')
-        # if: matrix.os == 'ubuntu-latest'
+      - name: Configure CMake (linux, macos)
+        if: matrix.os != 'windows-latest'
         run: >
           cmake -GNinja -Bbuild
           -DBUILD_SHARED_LIBS=ON
@@ -116,26 +130,41 @@ jobs:
           -DDD_VERSION=${{ env.DD_VERSION }}
           -DBoost_NO_BOOST_CMAKE=ON
 
+      - name: Configure CMake (windows)
+        if: matrix.os == 'windows-latest'
+        run: >
+          XDR_ROOT=extlib/install cmake -G "MinGW Makefiles" -B build
+          -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DBUILD_SHARED_LIBS=ON
+          -D "CMAKE_INSTALL_PREFIX=${{github.workspace}}/test-install"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+          -DDOCS_ONLY=${{ matrix.docs-only }}
+          -DAL_BACKEND_HDF5=${{ matrix.backend-hdf5 }}
+          -DAL_BACKEND_MDSPLUS=${{ matrix.backend-mdsplus }}
+          -DAL_BACKEND_UDA=${{ matrix.backend-uda }}
+          -DAL_BUILD_MDSPLUS_MODELS=${{ matrix.build-mdsplus-models }}
+          -DAL_PYTHON_BINDINGS=${{ matrix.python-bindings }}
+          -DDOWNLOAD_DEPENDENCIES=${{ matrix.download-dependencies }}
+          -DDD_GIT_REPOSITORY=${{ env.DD_GIT_REPOSITORY }}
+          -DDD_VERSION=${{ env.DD_VERSION }}
+          -DBoost_NO_BOOST_CMAKE=ON
+
       - name: Build
         run: cmake --build build
 
-      - name: Install test
+      - name: Install test-install
         run: cmake --build build --target install
 
       - name: Run pytest, generate clover
+        if: matrix.os == 'ubuntu-latest'
         run: |
           python -m venv --system-site-packages $(pwd)/test-install
           source $(pwd)/test-install/bin/activate
           pip install --ignore-installed "pytest-cov" "pytest>=8" "coverage2clover"
           pip list -v
           python -c "import imas_core ; print(imas_core)"
-          pytest  --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
+          pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
           coverage2clover -i coverage.xml -o clover.xml
-
-#
-#       - name: Install
-#         if: matrix.os != 'windows-latest'
-#         run: sudo cmake --install build
 
 #      - name: Test
 #        working-directory: build
