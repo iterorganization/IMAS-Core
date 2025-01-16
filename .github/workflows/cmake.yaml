@@ -128,7 +128,7 @@ jobs:
       - name: Configure CMake (windows)
         if: matrix.os == 'windows-latest'
         run: >
-          XDR_ROOT=extlib/install cmake -G "MinGW Makefiles" -B build
+          XDR_ROOT=extlib/install VCPKG_ROOT=C:/vcpkg cmake -G "MinGW Makefiles" -B build
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
           -DBUILD_SHARED_LIBS=ON
           -D "CMAKE_INSTALL_PREFIX=${{github.workspace}}/test-install"
@@ -145,9 +145,7 @@ jobs:
           -DBoost_NO_BOOST_CMAKE=ON
 
       - name: Build
-        run: |
-          pip list -v
-          cmake --build build
+        run: cmake --build build
 
       - name: Install test-install
         run: cmake --build build --target install
