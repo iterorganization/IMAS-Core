@@ -102,10 +102,14 @@ jobs:
           "setuptools>=64"
           "setuptools_scm>=8"
 
+          pip list -v
+
       - name: Configure CMake (linux, macos)
         if: matrix.os != 'windows-latest'
         run: >
           cmake -GNinja -Bbuild
+          -Wno-deprecated-declarations
+          -Wn-inconsistent-missing-override
           -DBUILD_SHARED_LIBS=ON
           -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install"
           -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
