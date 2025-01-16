@@ -44,6 +44,11 @@ jobs:
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: 'pyproject.toml' # Read python version from a file pyproject.toml
+
       - uses: actions/github-script@v7
         with:
           script: |
@@ -64,9 +69,6 @@ jobs:
           libhdf5-serial-dev
           ninja-build
           pkg-config
-          python3-dev
-          python3-pip
-          python3-venv
           # capnproto
           # libcapnp-dev
           # libspdlog-dev
@@ -108,8 +110,7 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: >
           cmake -GNinja -Bbuild
-          -Wno-deprecated-declarations
-          -Wn-inconsistent-missing-override
+          -Wno-deprecated
           -DBUILD_SHARED_LIBS=ON
           -D "CMAKE_INSTALL_PREFIX=$(pwd)/test-install"
           -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
@@ -144,7 +145,9 @@ jobs:
           -DBoost_NO_BOOST_CMAKE=ON
 
       - name: Build
-        run: cmake --build build
+        run: |
+          pip list -v
+          cmake --build build
 
       - name: Install test-install
         run: cmake --build build --target install
