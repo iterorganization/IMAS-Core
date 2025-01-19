@@ -21,17 +21,18 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         build-type: [RelWithDebInfo]
         docs-only: [OFF]
         backend-mdsplus: [OFF]
         backend-hdf5: [ON]
-        backend-uda: [OFF]
+        backend-uda: [OFF,ON]
         build-mdsplus-models: [ON]
         python-bindings: ['no-build-isolation']
         download-dependencies: [ON]
-        # exclude:
-        #   - os: ubuntu-latest
+        exclude:
+          - os: macos-latest
+            backend-uda: OFF
 
     runs-on: ${{ matrix.os }}
 
