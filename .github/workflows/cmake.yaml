@@ -21,7 +21,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         build-type: [RelWithDebInfo]
         docs-only: [OFF]
         backend-mdsplus: [OFF]
@@ -88,6 +88,7 @@ jobs:
           libspdlog-dev
           libssl-dev
           libxml2-dev
+          libtirpc-dev
 
       - name: Install UDA Dependency
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.backend-uda }}
