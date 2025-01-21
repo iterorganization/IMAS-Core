@@ -21,12 +21,12 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         build-type: [RelWithDebInfo]
         docs-only: [OFF]
-        backend-mdsplus: [OFF]
+        backend-mdsplus: [OFF,ON]
         backend-hdf5: [ON]
-        backend-uda: [ON]
+        backend-uda: [OFF,ON]
         build-mdsplus-models: [ON]
         python-bindings: ['no-build-isolation']
         download-dependencies: [ON]
@@ -136,6 +136,8 @@ jobs:
           "setuptools_scm>=8"
 
           pip list -v
+
+      # TODO: The steps above are suitable for a Docker image...
 
       - name: Configure CMake (linux, macos)
         if: matrix.os != 'windows-latest'
