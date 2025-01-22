@@ -24,9 +24,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         build-type: [RelWithDebInfo]
         docs-only: [OFF]
-        backend-mdsplus: [OFF,ON]
+        backend-mdsplus: [ON]
         backend-hdf5: [ON]
-        backend-uda: [OFF,ON]
+        backend-uda: [ON]
         build-mdsplus-models: [ON]
         python-bindings: ['no-build-isolation']
         download-dependencies: [ON]
@@ -52,6 +52,14 @@ jobs:
           repository: ukaea/uda
           ref: 2.7.6
           path: third-party/uda
+
+      - uses: actions/checkout@v4
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.backend-mdsplus }}
+        with:
+          fetch-depth: 0
+          repository: mdsplus/mdsplus
+          ref: stable_release-7-132-0
+          path: third-party/mdsplus
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -91,6 +99,8 @@ jobs:
           libtirpc-dev
 
       - name: Install UDA Dependency
+        # TODO: This should definitely be cached, or dockerized
+        # TODO: can we invoke easybuild to do this pls?
         if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.backend-uda }}
         working-directory: third-party/uda
         run: >
@@ -105,7 +115,19 @@ jobs:
           cmake --build build
 
           sudo cmake --install build
-        
+
+      - name: Install MDSplus Dependency
+        # TODO: This should definitely be cached, or dockerized
+        # TODO: can we invoke easybuild to do this pls?
+        if: ${{ startsWith(matrix.os, 'ubuntu-') && matrix.backend-mdsplus }}
+        working-directory: third-party/mdsplus
+        run: |
+          mkdir build
+          cd build
+          configure --disable-doxygen-doc --disable-java
+          make
+          sudo make install
+
       - name: Install macos dependencies
         if: matrix.os == 'macos-latest'
         run: >
@@ -137,7 +159,6 @@ jobs:
 
           pip list -v
 
-      # TODO: The steps above are suitable for a Docker image...
 
       - name: Configure CMake (linux, macos)
         if: matrix.os != 'windows-latest'
