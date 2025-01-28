@@ -28,7 +28,7 @@ $AL_BACKEND_UDA = if ($env:AL_BACKEND_UDA) { $env:AL_BACKEND_UDA } else { "OFF" 
 $AL_BUILD_MDSPLUS_MODELS = if ($env:AL_BUILD_MDSPLUS_MODELS) { $env:AL_BUILD_MDSPLUS_MODELS } else { "OFF" }
 $AL_PYTHON_BINDINGS = if ($env:AL_PYTHON_BINDINGS) { $env:AL_PYTHON_BINDINGS } else { "ON" }
 $AL_DOWNLOAD_DEPENDENCIES = if ($env:AL_DOWNLOAD_DEPENDENCIES) { $env:AL_DOWNLOAD_DEPENDENCIES } else { "ON" }
-$DD_GIT_REPOSITORY = if ($env:DD_GIT_REPOSITORY) { $env:DD_GIT_REPOSITORY } else { "https://github.com/iterorganization/IMAS-Data-Dictionary.git" }
+$DD_GIT_REPOSITORY = if ($env:DD_GIT_REPOSITORY) { $env:DD_GIT_REPOSITORY } else { "git@github.com:ITEROrganization/IMAS-Data-Dictionary.git" }
 $DD_VERSION = if ($env:DD_VERSION) { $env:DD_VERSION } else { "main" }
 $CMAKE_CXX_STANDARD = if ($env:CMAKE_CXX_STANDARD) { $env:CMAKE_CXX_STANDARD } else { 17 }
 

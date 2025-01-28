@@ -4,11 +4,11 @@
         {
             "name": "https",
             "displayName": "HTTPS git URLs",
-            "description": "Use https://git.iter.org/ URLs instead of SSH URLs",
+            "description": "Use https://github.com/ and https://git.iter.org/ URLs instead of SSH URLs",
             "cacheVariables": {
-                "AL_CORE_GIT_REPOSITORY": "https://git.iter.org/scm/imas/al-core.git",
+                "AL_CORE_GIT_REPOSITORY": "https://github.com/ITEROrganization/IMAS-Core.git",
                 "AL_PLUGINS_GIT_REPOSITORY": "https://git.iter.org/scm/imas/al-plugins.git",
-                "DD_GIT_REPOSITORY": "https://github.com/iterorganization/IMAS-Data-Dictionary.git"
+                "DD_GIT_REPOSITORY": "https://github.com/ITEROrganization/IMAS-Data-Dictionary.git"
             }
         }
     ]

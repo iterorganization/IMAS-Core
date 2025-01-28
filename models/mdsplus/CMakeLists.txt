@@ -4,7 +4,7 @@ cmake_minimum_required( VERSION 3.16 )
 # Configuration options for common assets
 ################################################################################
 option( AL_DOWNLOAD_DEPENDENCIES "Automatically download assets from the AL git repository" ON )
-set( DD_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-data-Dictionary.git" CACHE STRING "Git repository of the Data Dictionary" )
+set( DD_GIT_REPOSITORY "git@github.com:ITEROrganization/IMAS-Data-Dictionary.git" CACHE STRING "Git repository of the Data Dictionary" )
 set( DD_VERSION "main" CACHE STRING "Data dictionary version (tag or branch name) to use for this build" )
 
 # Load common assets

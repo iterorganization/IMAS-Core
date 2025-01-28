@@ -45,7 +45,7 @@ if( AL_DOWNLOAD_DEPENDENCIES )
   # Data dictionary
   ##############################################################################
   set(
-    DD_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-data-Dictionary.git"
+    DD_GIT_REPOSITORY "git@github.com:ITEROrganization/IMAS-Data-Dictionary.git"
     CACHE STRING "Git repository of the Data Dictionary"
   )
   set(
