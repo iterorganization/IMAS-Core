@@ -68,19 +68,18 @@ endif()
 # Build models
 ################################################################################
 
-find_package( SaxonHE )
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
 add_custom_command(
   OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
+  ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
   COMMAND
-    java -cp ${SaxonHE_CLASSPATH}
-      net.sf.saxon.Transform -threads:4 -t -warnings:fatal
-      "-xsl:${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl"
-      "-s:${IDSDEF}"
-      DD_GIT_DESCRIBE=${DD_VERSION}
-      AL_GIT_DESCRIBE=${AL_VERSION}
-      > ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
+  ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/xsltproc.py"
+    -xsl "${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl"
+    -o "${CMAKE_CURRENT_BINARY_DIR}/ids.xml"
+    -s "${IDSDEF}"
+    DD_GIT_DESCRIBE=${DD_VERSION}
+    AL_GIT_DESCRIBE=${AL_VERSION}
   DEPENDS ${IDSDEF} IDSDef2MDSpreTree.xsl
 )
 

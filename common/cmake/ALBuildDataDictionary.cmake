@@ -10,8 +10,8 @@ if( AL_DOCS_ONLY )
   return()
 endif()
 
-# Find Saxon XSLT processor
-find_package( SaxonHE REQUIRED )
+# Find Python for the xsltproc.py program
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 # Find LibXslt for the xsltproc program
 find_package( LibXslt QUIET )
 if( NOT LIBXSLT_XSLTPROC_EXECUTABLE )
@@ -69,8 +69,11 @@ else()
 
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E env "CLASSPATH=${SaxonHE_CLASSPATH}"
-      make IDSDef.xml
+    COMMAND ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/xsltproc.py"
+      -xsl "dd_data_dictionary.xml.xsl"
+      -o "IDSDef.xml"
+      -s "dd_data_dictionary.xml.xsd"
+      DD_GIT_DESCRIBE=${DD_VERSION}
     WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
     RESULT_VARIABLE _MAKE_DD_EXITCODE
   )
