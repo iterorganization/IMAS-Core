@@ -4856,7 +4856,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
 }
 
-void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+void MDSplusBackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
 	if(!tree) throw ALBackendException("Data entry not open",LOG);
 	std::vector<int> occurrences;
 

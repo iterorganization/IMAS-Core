@@ -1046,15 +1046,23 @@ std::vector<int> read_occurrences(NodeReader *node) {
 
 } // anon namespace
 
-void UDABackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
     if (verbose_) {
         std::cout << "UDABackend get_occurrences\n";
     }
+
+    auto query = ctx->getURI().query;
+    std::string backend = get_backend(query);
+    query.remove("backend");
+    std::string dd_version = query.get("dd_version").value_or(dd_version_);
+    query.set("dd_version", dd_version);
+    std::string uri = "imas:" + backend + "?" + query.to_string();
 
     std::stringstream ss;
 
     ss << plugin_
        << "::getOccurrences("
+       << "uri='" << uri << "'"
        << ", ids='" << ids_name << "'"
        << ")";
 

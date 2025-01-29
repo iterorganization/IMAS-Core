@@ -1758,7 +1758,7 @@ al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrenc
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
-    lle.backend->get_occurrences(ids_name, occurrences_list, size);
+    lle.backend->get_occurrences(lle.context, ids_name, occurrences_list, size);
   }
   catch (const ALBackendException& e) {
     status.code = alerror::backend_err;

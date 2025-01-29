@@ -672,7 +672,7 @@ public:
     ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time);
     ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time, std::vector<double> timebaseV);
 
-	void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+	void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
 
 	bool supportsTimeDataInterpolation() {
       return false;

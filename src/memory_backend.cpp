@@ -1142,7 +1142,7 @@ else
 	return isMapped;
     }	
 
-	void MemoryBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size)
+	void MemoryBackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size)
 	{
 		std::string message("get_occurrences() not implemented in MemoryBackend");
 		throw ALBackendException(message, LOG);

@@ -172,7 +172,7 @@ public:
     @param[out] size of the list of non empty IDS occurrences (integers)
     @throw BackendException
   **/
-  virtual void get_occurrences(const char* ids_name, int** occurrences_list, int* size) = 0;
+  virtual void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) = 0;
 
 
   /**

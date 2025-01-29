@@ -47,7 +47,7 @@ class LIBRARY_API FlexbuffersBackend : public Backend
         int* size) override;
     void deleteData(OperationContext *ctx, std::string path) override;
     void beginArraystructAction(ArraystructContext *ctx, int *size) override;
-    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+    void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
     // timerange (get_sample) API is not supported:
     bool supportsTimeDataInterpolation() override { return false; }
     bool supportsTimeRangeOperation() override { return false; }
