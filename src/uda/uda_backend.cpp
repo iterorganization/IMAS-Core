@@ -1054,6 +1054,8 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
     auto query = ctx->getURI().query;
     std::string backend = get_backend(query);
     query.remove("backend");
+    query.remove("cache_mode");
+    query.remove("verbose");
     std::string dd_version = query.get("dd_version").value_or(dd_version_);
     query.set("dd_version", dd_version);
     std::string uri = "imas:" + backend + "?" + query.to_string();
