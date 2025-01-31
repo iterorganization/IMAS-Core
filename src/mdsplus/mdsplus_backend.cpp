@@ -4478,46 +4478,45 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
           }
 	  
 	  std::string mdsplusBaseStr = ctx->getURI().query.get("path").value();
-	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
-	    try {
-	      create_directories(mdsplusBaseStr.c_str());
-	    } catch (const std::exception& exc) {
-	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
-	    }
-	  
-	  
 	  setDataEnv(ctx); 
     	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, 		if(originalIdsPath == "")
 	  
 	  switch(mode) {
 	    case alconst::open_pulse:
 	    case alconst::force_open_pulse:
-	          try {
-	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
-		  }catch(MDSplus::MdsException &exc)
-		  {
-                    resetIdsPath(szTree);
-		    throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG); 
-		  }
-		  break;
-	    case alconst::create_pulse:
-	    case alconst::force_create_pulse:
-	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
-		      modelTree->createPulse(shotNum);
-		      delete modelTree;
-		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
-		      saveVersion(tree);
-		  }catch(MDSplus::MdsException &exc)
-		  {
-                    resetIdsPath(szTree);
-		    throw ALBackendException(exc.what()+mdsplusBaseStr,LOG); 
-		  }
-		  break;
-	    default:
-              resetIdsPath(szTree);
-	      throw  ALBackendException("Mode not yet supported",LOG);
-	  
+	      try {
+		tree = new MDSplus::Tree(szTree, shotNum, szOption);
+		break;
+	      } catch(MDSplus::MdsException &exc) {
+		if (!mode==alconst::force_open_pulse) {
+		  resetIdsPath(szTree);
+		  throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+		}
+	      }
+	  case alconst::create_pulse:
+	    if (exists(mdsplusBaseStr+"/ids_001.tree")) {
+	      throw  ALBackendException(mdsplusBaseStr+"/ids_001.tree exists already, use a different mode to overwrite",LOG);
+	    }
+	  case alconst::force_create_pulse:
+	    try {
+	      create_directories(mdsplusBaseStr.c_str());
+	    } catch (const std::exception& exc) {
+	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
+	    }
+	    try {
+	      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
+	      modelTree->createPulse(shotNum);
+	      delete modelTree;
+	      tree = new MDSplus::Tree(szTree, shotNum, szOption);
+	      saveVersion(tree);
+	    } catch(MDSplus::MdsException &exc) {
+	      resetIdsPath(szTree);
+	      throw ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+	    }
+	    break;
+	  default:
+	    resetIdsPath(szTree);
+	    throw  ALBackendException("Mode not yet supported",LOG);
 	  }
 	  treeNodeMap.clear();
           resetIdsPath(szTree);
