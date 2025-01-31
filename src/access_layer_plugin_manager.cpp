@@ -1,3 +1,27 @@
+
+/**
+ * @file access_layer_plugin_manager.cpp
+ * @brief Implementation of the AccessLayerPluginManager class.
+ *
+ * This file contains the implementation of the AccessLayerPluginManager class,
+ * which is responsible for managing access layer plugins, including binding
+ * readback plugins, handling plugin metadata, and managing plugin operations.
+ *
+ * The AccessLayerPluginManager class provides methods to:
+ * - Retrieve the name, description, commit identifier, version, and repository path of the plugin manager.
+ * - Bind and unbind readback plugins before and after get() operations.
+ * - Add readback plugins to the manager.
+ * - Find and filter plugins based on specified node operations.
+ * - Write metadata for plugins involved in put operations.
+ * - Handle various plugin operations such as reading and writing data, beginning and ending actions, and managing array structures.
+ *
+ * The class uses several macros to define constants such as the plugin manager name, version, repository path, and various node paths.
+ * It also interacts with the LLplugin class to manage plugin registration, binding, and operations.
+ *
+ * @note This file is part of the IMAS-Core project and is located at:
+ *       IMAS-Core/src/access_layer_plugin_manager.cpp
+ */
+
 #include "access_layer_plugin_manager.h"
 
 #include <string>
@@ -19,36 +43,93 @@
 AccessLayerPluginManager::AccessLayerPluginManager() {}
 AccessLayerPluginManager::~AccessLayerPluginManager() {}
 
+/**
+ * @brief Retrieves the name of the Access Layer Plugin Manager.
+ *
+ * This function returns the name of the Access Layer Plugin Manager as a 
+ * std::string. The name is defined by the PLUGIN_MANAGER_NAME macro.
+ *
+ * @return A std::string containing the name of the Access Layer Plugin Manager.
+ */
 std::string AccessLayerPluginManager::getName()
 {
     return std::string(PLUGIN_MANAGER_NAME);
 }
 
+/**
+ * @brief Retrieves the description of the AccessLayerPluginManager.
+ *
+ * This function returns a string that describes the role of the plugin manager.
+ * The plugin manager is responsible for binding readback plugins and managing
+ * the provenance of these plugins.
+ *
+ * @return A string containing the description of the plugin manager.
+ */
 std::string AccessLayerPluginManager::getDescription()
 {
     return "The plugin manager binds readback plugins and manage the plugins provenance.";
 }
 
+/**
+ * @brief Retrieves the commit identifier.
+ *
+ * This function returns a string representing the commit identifier.
+ * Currently, it returns a placeholder value "0".
+ *
+ * @return A string representing the commit identifier.
+ */
 std::string AccessLayerPluginManager::getCommit()
 {
     return "0";
 }
 
+/**
+ * @brief Retrieves the version of the Access Layer Plugin Manager.
+ *
+ * This function returns the version of the Access Layer Plugin Manager as a string.
+ *
+ * @return A string representing the version of the Access Layer Plugin Manager.
+ */
 std::string AccessLayerPluginManager::getVersion()
 {
     return std::string(PLUGIN_MANAGER_VERSION);
 }
 
+/**
+ * @brief Retrieves the repository path for the plugin manager.
+ * 
+ * This function returns the repository path defined by the macro 
+ * PLUGIN_MANAGER_REPOSITORY as a std::string.
+ * 
+ * @return A std::string containing the repository path.
+ */
 std::string AccessLayerPluginManager::getRepository()
 {
     return std::string(PLUGIN_MANAGER_REPOSITORY);
 }
 
+/**
+ * @brief Retrieves the parameters for the Access Layer Plugin Manager.
+ *
+ * @return A string containing the parameters.
+ */
 std::string AccessLayerPluginManager::getParameters()
 {
     return "";
 }
 
+/**
+ * @brief Binds readback plugins to the data structure before a get() operation.
+ * 
+ * This function is responsible for binding readback plugins to the data structure
+ * before a get() operation is performed. It reads the plugin data from the backend,
+ * verifies the plugin versions and parameters, and binds the plugins to the appropriate
+ * paths in the data structure.
+ * 
+ * @param ctxID The context ID for the current operation.
+ * 
+ * @throws ALBackendException if a plugin is declared PUT_ONLY or if the plugin version does not match the expected version.
+ */
 void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function called before a get()
 {
 
@@ -249,6 +330,17 @@ void AccessLayerPluginManager::bind_readback_plugins(int ctxID) // function call
     }
 }
 
+/**
+ * @brief Adds a readback plugin to the manager.
+ *
+ * This function adds a readback plugin to the `boundReadbackPlugins` map.
+ * If the path already exists in the map, the plugin name is appended to the
+ * list of plugin names associated with that path. Otherwise, a new entry is
+ * created in the map with the given path and plugin name.
+ *
+ * @param plugin_name The name of the plugin to add.
+ * @param path The path associated with the plugin.
+ */
 void AccessLayerPluginManager::addReadbackPlugin(const std::string &plugin_name, const std::string &path)
 {
     auto got = LLplugin::boundReadbackPlugins.find(path);
@@ -265,6 +357,15 @@ void AccessLayerPluginManager::addReadbackPlugin(const std::string &plugin_name,
     }
 }
 
+/**
+ * @brief Unbinds all readback plugins for a given context ID.
+ *
+ * This function is called after a get() operation to unbind the readback plugins.
+ * It clears the list of bound readback plugins and unregisters each readback plugin
+ * from the plugin manager.
+ *
+ * @param ctxID The context ID for which the readback plugins are to be unbound.
+ */
 void AccessLayerPluginManager::unbind_readback_plugins(int ctxID) // function called after a get() to unbind the readback plugins
 {
     LLplugin::boundReadbackPlugins.clear();
@@ -277,6 +378,17 @@ void AccessLayerPluginManager::unbind_readback_plugins(int ctxID) // function ca
 
 bool AccessLayerPluginManager::sortPlugins(const plugin_info &p, const plugin_info &q) { return (p.application_index > q.application_index); }
 
+/**
+ * @brief Finds and filters plugins based on the specified node operation.
+ *
+ * This function searches for plugins in the given path and filters them
+ * based on the provided node operation. The filtered plugins are stored
+ * in the provided plugins vector.
+ *
+ * @param node_operation The operation to filter plugins by.
+ * @param path The path to search for plugins.
+ * @param plugins A reference to a vector where the found and filtered plugins will be stored.
+ */
 void AccessLayerPluginManager::findPlugins(const plugin::OPERATION &node_operation, const std::string &path, std::vector<std::string> &plugins)
 {
     LLplugin::getBoundPlugins(path.c_str(), plugins);
@@ -290,6 +402,16 @@ void AccessLayerPluginManager::findPlugins(const plugin::OPERATION &node_operati
     }
 }
 
+/**
+ * @brief Finds and collects plugins that support GET operations.
+ *
+ * This function iterates through the bound plugins and checks if they support
+ * GET operations (either GET_ONLY or PUT_AND_GET). If a plugin supports GET
+ * operations, it is added to the provided map of plugins.
+ *
+ * @param plugins A map where the key is the plugin path and the value is a vector
+ *                of plugin names that support GET operations for that path.
+ */
 void AccessLayerPluginManager::findGetOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins)
 {
     for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++)
@@ -326,6 +448,16 @@ void AccessLayerPluginManager::findGetOperationPlugins(std::map<std::string, std
     }
 }
 
+/**
+ * @brief Finds and categorizes plugins that support PUT operations.
+ *
+ * This method iterates through all bound plugins and checks if they support
+ * PUT operations (either PUT_ONLY or PUT_AND_GET). It then categorizes these
+ * plugins by their associated paths and stores them in the provided map.
+ *
+ * @param plugins A map where the key is the plugin path and the value is a 
+ *                vector of plugin names that support PUT operations for that path.
+ */
 void AccessLayerPluginManager::findPutOperationPlugins(std::map<std::string, std::vector<std::string>> &plugins)
 {
     for (auto it = LLplugin::boundPlugins.begin(); it != LLplugin::boundPlugins.end(); it++)
@@ -356,6 +488,31 @@ void AccessLayerPluginManager::findPutOperationPlugins(std::map<std::string, std
     }
 }
 
+/**
+ * @brief Writes metadata for plugins involved in put operations.
+ *
+ * This function is called at the end of a put() operation. It collects metadata
+ * from plugins that contributed to the put()/put_slice() operations and writes
+ * this metadata to the appropriate data structures.
+ *
+ * @param ctxID The context ID for the current operation.
+ *
+ * The function performs the following steps:
+ * 1. Checks if there are any bound plugins. If none, it returns immediately.
+ * 2. Searches for plugins that contributed to put operations.
+ * 3. If no such plugins are found, it returns immediately.
+ * 4. Begins an array structure action for the plugins node path.
+ * 5. Iterates over the found plugins and writes their metadata, including name,
+ *    description, commit, version, repository, and parameters.
+ * 6. Collects readback plugins and their application indices.
+ * 7. Checks the validity of application indices and ensures no duplicates.
+ * 8. Sorts the readback plugins in reverse order of application.
+ * 9. Writes the readback plugins' metadata.
+ * 10. Calls a function to write infrastructure information for the plugins.
+ *
+ * @throws ALBackendException if any plugin index is out of bounds or if there
+ *         are duplicate application indices.
+ */
 void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function called at the end of a put()
 {
 
@@ -488,6 +645,15 @@ void AccessLayerPluginManager::write_plugins_metadata(int ctxID) // function cal
     write_plugins_infrastructure_infos(ctxID);
 }
 
+/**
+ * @brief Writes the plugins infrastructure to the specified context.
+ *
+ * This function writes various pieces of information about the plugins' infrastructure
+ * to the given context ID. The information includes the name, description, commit, version,
+ * and repository for both "put" and "get" operations.
+ *
+ * @param ctxID The context ID where the plugin infrastructure information will be written.
+ */
 void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID)
 {
     // printf("calling write_plugins_infrastructure_infos...\n");
@@ -511,6 +677,18 @@ void AccessLayerPluginManager::write_plugins_infrastructure_infos(int ctxID)
     write_field(ctxID, repository_get, getRepository());
 }
 
+/**
+ * @brief Writes a field to the access layer plugin.
+ *
+ * This function writes a given field with a specified value to the access layer plugin
+ * identified by the context ID (ctxID). It allocates memory for the value, copies the
+ * value to the allocated memory, and then writes the data using the plugin's write function.
+ * After writing, it frees the allocated memory and asserts that the write operation was successful.
+ *
+ * @param ctxID The context ID for the access layer plugin.
+ * @param field The name of the field to write.
+ * @param value The value to write to the field.
+ */
 void AccessLayerPluginManager::write_field(int ctxID, const std::string &field, const std::string &value)
 {
     void *ptrData = malloc(value.size() + 1);
@@ -521,6 +699,18 @@ void AccessLayerPluginManager::write_field(int ctxID, const std::string &field, 
     assert(status.code == 0);
 }
 
+/**
+ * @brief Determines whether write access should be skipped for a given context and field path.
+ *
+ * This function checks if the plugins framework is enabled and if the specified field path
+ * corresponds to a GET operation while the access mode for the given context ID is set to WRITE_OP.
+ * If both conditions are met, it returns true, indicating that write access should be skipped.
+ * Otherwise, it returns false.
+ *
+ * @param ctxID The context ID for which the access mode is being checked.
+ * @param fieldPath The field path to be checked.
+ * @return true if write access should be skipped, false otherwise.
+ */
 bool AccessLayerPluginManager::skipWriteAccess(int ctxID, const char *fieldPath)
 {
     if (!LLplugin::pluginsFrameworkEnabled())
@@ -531,6 +721,18 @@ bool AccessLayerPluginManager::skipWriteAccess(int ctxID, const char *fieldPath)
     return false;
 }
 
+/**
+ * @brief Retrieves the access mode for a given context ID.
+ *
+ * This function fetches the low-level environment (LLenv) associated with the provided context ID (ctxID).
+ * Depending on the type of context, it dynamically casts the context to either an ArraystructContext or 
+ * an OperationContext and retrieves the operation context. If the context type is unexpected, it throws 
+ * an ALLowlevelException.
+ *
+ * @param ctxID The context ID for which the access mode is to be retrieved.
+ * @return The access mode of the operation context.
+ * @throws ALLowlevelException If the context type is unexpected.
+ */
 int AccessLayerPluginManager::getAccessmode(int ctxID)
 {
     LLenv lle = Lowlevel::getLLenv(ctxID);
@@ -551,6 +753,22 @@ int AccessLayerPluginManager::getAccessmode(int ctxID)
     return ctx->getAccessmode();
 }
 
+/**
+ * @brief Handles the beginning of an array structure action for a specified plugin.
+ *
+ * This function is responsible for initiating an array structure action based on the provided context and field paths.
+ * It determines the type of context and performs the necessary operations to set up the action, including creating
+ * new contexts and determining array sizes.
+ *
+ * @param plugin_name The name of the plugin for which the action is being initiated.
+ * @param ctxID The context ID of the current operation.
+ * @param actxID A pointer to an integer where the new array structure context ID will be stored.
+ * @param fieldPath The path to the field within the array structure.
+ * @param timeBasePath The base path for time-related operations within the array structure.
+ * @param arraySize A pointer to an integer where the size of the array will be stored.
+ *
+ * @throws ALLowlevelException If an unexpected context type is encountered.
+ */
 void AccessLayerPluginManager::begin_arraystruct_action_handler(const std::string &plugin_name, int ctxID, int *actxID,
                                                                 const char *fieldPath, const char *timeBasePath, int *arraySize)
 {
@@ -615,6 +833,22 @@ void AccessLayerPluginManager::begin_arraystruct_action_handler(const std::strin
     al_plugin->begin_arraystruct_action(ctxID, actxID, fieldPath, timeBasePath, arraySize);
 }
 
+/**
+ * @brief Handles reading data from a plugin.
+ *
+ * This function is responsible for reading data from a specified plugin based on the provided context and field path.
+ * It handles different types of contexts and performs specific operations based on the context type and data type.
+ *
+ * @param plugin_name The name of the plugin from which data is to be read.
+ * @param ctxID The context ID used to retrieve the low-level environment.
+ * @param fieldPath The path to the field from which data is to be read.
+ * @param timeBasePath The base path for time-related data.
+ * @param data A pointer to the data buffer where the read data will be stored.
+ * @param datatype The type of data to be read.
+ * @param dim The dimension of the data to be read.
+ * @param size A pointer to an integer where the size of the read data will be stored.
+ * @return An integer indicating the success or failure of the read operation. Returns 1 on success, 0 on failure.
+ */
 int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin_name, int ctxID, const char *fieldPath, const char *timeBasePath,
                                                        void **data, int datatype, int dim, int *size)
 {
@@ -688,6 +922,24 @@ int AccessLayerPluginManager::read_data_plugin_handler(const std::string &plugin
     return 0;
 }
 
+/**
+ * @brief Reads the provenance information of a plugin based on the specified field.
+ *
+ * This function retrieves the provenance information of a plugin and stores it in the provided data pointer.
+ * The size of the data is also stored in the provided size pointer.
+ *
+ * @param field The field of the provenance information to retrieve. Possible values are:
+ *              - "name": The name of the plugin.
+ *              - "description": The description of the plugin.
+ *              - "commit": The commit hash of the plugin.
+ *              - "version": The version of the plugin.
+ *              - "repository": The repository URL of the plugin.
+ *              - "parameters": The parameters of the plugin.
+ * @param p_plugin A pointer to the plugin object.
+ * @param data A pointer to a pointer where the retrieved data will be stored. The data will be dynamically allocated
+ *             and should be freed by the caller.
+ * @param size A pointer to an integer where the size of the retrieved data will be stored.
+ */
 void AccessLayerPluginManager::read_plugins_provenance_infos(const std::string &field, void *p_plugin, void **data, int *size)
 {
     access_layer_plugin *al_plugin = (access_layer_plugin *)p_plugin;
@@ -723,6 +975,22 @@ void AccessLayerPluginManager::read_plugins_provenance_infos(const std::string &
     }
 }
 
+/**
+ * @brief Handles writing data to a plugin.
+ *
+ * This function writes data to a specified plugin by invoking the plugin's write_data method.
+ * It first retrieves the plugin from the LLplugin store using the provided plugin name.
+ * If the plugin's node operation is not GET_ONLY, it proceeds to write the data.
+ *
+ * @param plugin_name The name of the plugin to which data will be written.
+ * @param ctxID The context ID associated with the data.
+ * @param field The field name where the data will be written.
+ * @param timebase The timebase associated with the data.
+ * @param data A pointer to the data to be written.
+ * @param datatype The type of the data being written.
+ * @param dim The dimension of the data.
+ * @param size An array representing the size of each dimension of the data.
+ */
 void AccessLayerPluginManager::write_data_plugin_handler(const std::string &plugin_name, int ctxID, const char *field, const char *timebase,
                                                          void *data, int datatype, int dim, int *size)
 {
@@ -733,6 +1001,17 @@ void AccessLayerPluginManager::write_data_plugin_handler(const std::string &plug
         al_plugin->write_data(ctxID, field, timebase, data, datatype, dim, size);
 }
 
+/**
+ * @brief Handles the end action for a plugin associated with a given context ID.
+ *
+ * This function retrieves the low-level environment for the specified context ID,
+ * determines the type of context, and retrieves the corresponding operation context.
+ * It then checks if there are any plugins bound to the data object associated with
+ * the operation context. If plugins are found, it iterates through each plugin and
+ * calls the `end_action` method for each plugin.
+ *
+ * @param ctxID The context ID for which the end action is to be handled.
+ */
 void AccessLayerPluginManager::end_action_plugin_handler(int ctxID)
 {
     LLenv lle = Lowlevel::getLLenv(ctxID);

@@ -97,7 +97,7 @@ class HDF5Backend:public Backend {
      This function reads a signal in the database given the passed operation context.
      @param[in] ctx pointer on operation context
      @param[in] fieldname field name
-     @param[in] istimed specify the time-dependency of the field
+     @param[in] timebase specify the timebase of the field
      @param[out] data returned pointer on the read data 
      @param[out] datatype type of data to be read:
      - CHAR_DATA strings

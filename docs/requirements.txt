@@ -1,0 +1,21 @@
+# Sphinx and theme
+sphinx >= 6.0, < 7.0
+sphinx_immaterial >= 0.11.4, < 0.12
+
+# Fortran domain
+sphinx-fortran
+six  # un-listed dependency of sphinx-fortran
+
+# Java domain
+# Note: package is deprecated, but no alternatives exist...
+javasphinx
+
+# Matlab domain
+sphinxcontrib-matlabdomain
+
+# Requirements for the HLI files we import for the Python docs
+numpy
+
+# Sphinx extension that bridges Doxygen and Sphinx.
+breathe
+
