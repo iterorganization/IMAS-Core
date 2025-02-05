@@ -35,7 +35,7 @@ It includes:
    :maxdepth: 2
    :caption: API documentation
 
-   api
+   imas_core/html/index
 
 Indices and tables
 ==================

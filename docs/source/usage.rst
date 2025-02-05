@@ -4,7 +4,7 @@ Usage
 You can use IMAS-Python `IMAS-Python documentation <https://github.com/iterorganization/IMAS-Python>`_.
 once you installed IMAS-Core. It uses low level functions provided by IMAS-Core.
 
-You can have a look at the `IMAS-Python documentation <https://imas-python.readthedocs.io/en/latest/>`_.
+You can have a look at the `Here <https://imas-python.readthedocs.io/en/latest/>`_.
 
 .. note::
 

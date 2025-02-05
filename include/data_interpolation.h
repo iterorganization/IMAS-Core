@@ -1,5 +1,12 @@
 //-*-c++-*-
 
+/**
+ * @file data_interpolation.h
+ * @brief Header file for the DataInterpolation class.
+ * This file contains the declaration of the DataInterpolation class, which provides methods for
+ * interpolating and resampling data based on time vectors and specified interpolation methods.
+ */
+
 #ifndef DATA_INTERPOLATION_H
 #define DATA_INTERPOLATION_H 1
 
@@ -19,10 +26,14 @@
 
 #ifdef __cplusplus
 
-
 /**
-   DataInterpolation class.
-*/
+ * @class DataInterpolation
+ * @brief A class for data interpolation and resampling.
+ *
+ * The DataInterpolation class provides methods to interpolate and resample data based on time vectors
+ * and specified interpolation methods. It supports linear interpolation and other methods as specified
+ * by the user.
+ */
 class LIBRARY_API DataInterpolation
 {
 private:
@@ -30,49 +41,131 @@ private:
 
 public:
   
+  /**
+  * @brief Constructor for the DataInterpolation class.
+  */
   DataInterpolation();
 
+  /**
+  * @brief Destructor for the DataInterpolation class.
+  */
   ~DataInterpolation() {};
 
-  /* This function returns the time vector samples indices 'time_min_index' and 'time_max_index' according to 
-  the time range input values tmin, tmax and the specified 'time_vector'. If dtime != -1, the interpolation method ('interp' argument) must be specified. The 
-  number of time samples 'range' between 'time_min_index' and 'time_max_index' is also returned. 
+  /**
+  * @brief Get the time range indices for the specified time range.
+  *
+  * This function returns the time vector samples indices 'time_min_index' and 'time_max_index' according to 
+  * the time range input values tmin, tmax and the specified 'time_vector'. If dtime != -1, the interpolation method ('interp' argument) must be specified. The 
+  * number of time samples 'range' between 'time_min_index' and 'time_max_index' is also returned.
+  *
+  * @param tmin The minimum time value.
+  * @param tmax The maximum time value.
+  * @param dtime The time step vector.
+  * @param time_vector The time vector.
+  * @param time_min_index Pointer to store the minimum time index.
+  * @param time_max_index Pointer to store the maximum time index.
+  * @param range Pointer to store the number of time samples.
+  * @param interp The interpolation method (default is -1).
   */
   void getTimeRangeIndices(double tmin, double tmax, std::vector<double> dtime, const std::vector<double> &time_vector, 
    int *time_min_index, int *time_max_index, int *range, int interp=-1);
 
-  /* This function returns the index of the time vector sample corresponding to the requested time ('requested_time') using the interpolation method 'interp'.
-  The 'time_indices' map returns the indices time_indices['SLICE_INF'] and time_indices['SLICE_SUP'] corresponding respectively to the min and
-  max values of the time range which contains the time vector sample index returned by this function. In case of linear interpolation, the index returned is the 
-  smallest one (time_indices['SLICE_INF']).
+  /**
+  * @brief Get the indices of the time vector sample corresponding to the requested time.
+  *
+  * This function returns the index of the time vector sample corresponding to the requested time ('requested_time') using the interpolation method 'interp'.
+  * The 'time_indices' map returns the indices time_indices['SLICE_INF'] and time_indices['SLICE_SUP'] corresponding respectively to the min and
+  * max values of the time range which contains the time vector sample index returned by this function. In case of linear interpolation, the index returned is the 
+  * smallest one (time_indices['SLICE_INF']).
+  *
+  * @param requested_time The requested time value.
+  * @param time_vector The time vector.
+  * @param times_indices Map to store the time indices.
+  * @param interp The interpolation method.
+  * @return The index of the time vector sample.
   */
   int getSlicesTimesIndices(double requested_time, const std::vector<double> &time_vector, std::map<std::string, int> &times_indices, int interp);
 
-  /* This function interpolates (at time 'requested_time') the data of the 2 time slices provided in the map 'y_slices' at the keys 'SLICE_INF' and 'SLICE_SUP' 
-  using the interpolation method 'interp'. The times of the 2 slices are provided by slices_times['SLICE_INF'] and slices_times['SLICE_SUP']. The shape of the time slices is
-  passed using the 'shape' argument (number of data points to be interpolated). The interpolation result 
-  is returned in the *result pointer. No resampling is performed, so this function must not be used with dtime != -1. */
+  /**
+  * @brief Interpolate the data of the 2 time slices at the requested time.
+  *
+  * This function interpolates (at time 'requested_time') the data of the 2 time slices provided in the map 'y_slices' at the keys 'SLICE_INF' and 'SLICE_SUP' 
+  * using the interpolation method 'interp'. The times of the 2 slices are provided by slices_times['SLICE_INF'] and slices_times['SLICE_SUP']. The shape of the time slices is
+  * passed using the 'shape' argument (number of data points to be interpolated). The interpolation result 
+  * is returned in the *result pointer. No resampling is performed, so this function must not be used with dtime != -1.
+  *
+  * @param datatype The data type.
+  * @param shape The shape of the time slices.
+  * @param y_slices Map containing the data of the time slices.
+  * @param slices_times Map containing the times of the slices.
+  * @param requested_time The requested time value.
+  * @param result Pointer to store the interpolation result.
+  * @param interp The interpolation method.
+  */
   void interpolate(int datatype, int shape, std::map<std::string, void*> &y_slices, 
   std::map<std::string, double> &slices_times, double requested_time, void **result, int interp);
 
-  /* This function interpolates (at time 'requested_time') and resamples the data of the 2 time slices provided in the map 'y_slices' at the keys 'SLICE_INF' and 'SLICE_SUP' 
-  using the interpolation method 'interp'. The times of the 2 slices are provided by slices_times['SLICE_INF'] and slices_times['SLICE_SUP']. The interpolation result 
-  is returned in the *result pointer. If resampling is not required (dtime=-1), the interpolation method should be used instead.
-  The new number of time slices is returned.*/
+  /**
+  * @brief Interpolate and resample the data of the 2 time slices at the requested time.
+  *
+  * This function interpolates (at time 'requested_time') and resamples the data of the 2 time slices provided in the map 'y_slices' at the keys 'SLICE_INF' and 'SLICE_SUP' 
+  * using the interpolation method 'interp'. The times of the 2 slices are provided by slices_times['SLICE_INF'] and slices_times['SLICE_SUP']. The interpolation result 
+  * is returned in the *result pointer. If resampling is not required (dtime=-1), the interpolation method should be used instead.
+  * The new number of time slices is returned.
+  *
+  * @param tmin The minimum time value.
+  * @param tmax The maximum time value.
+  * @param dtime The time step vector.
+  * @param datatype The data type.
+  * @param size Pointer to store the new number of time slices.
+  * @param dim The dimension of the data.
+  * @param data The data to be interpolated.
+  * @param time_vector The time vector.
+  * @param result Pointer to store the interpolation result.
+  * @param interp The interpolation method.
+  * @return The new number of time slices.
+  */
   int interpolate_with_resampling(double tmin, double tmax, std::vector<double> dtime, int datatype, int *size, int dim, void *data, 
     const std::vector<double> &time_vector, void **result, int interp);
 
-  /* Same functionality as the previous function; however the (full) shape of a time slice is passed directly.*/
+  /**
+  * @brief Interpolate and resample the data of the 2 time slices at the requested time.
+  *
+  * Same functionality as the previous function; however the (full) shape of a time slice is passed directly.
+  *
+  * @param tmin The minimum time value.
+  * @param tmax The maximum time value.
+  * @param dtime The time step vector.
+  * @param datatype The data type.
+  * @param shape The shape of the time slices.
+  * @param data The data to be interpolated.
+  * @param time_vector The time vector.
+  * @param result Pointer to store the interpolation result.
+  * @param interp The interpolation method.
+  * @return The new number of time slices.
+  */
   int interpolate_with_resampling(double tmin, double tmax, std::vector<double> dtime, int datatype, int shape, void *data, 
     const std::vector<double> &time_vector, void **result, int interp);
 
-/* This function resamples the data of a time basis vector according to the time range parameters.
-The parameter dtime must be > 0 (otherwise an assertion occurs). 
-If the time basis is located in a dynamic AOS, the value of its current index must be passed using the 'timed_AOS_index' argument. 
-If the time basis is located in a static AOS, the 'timed_AOS_index' argument must be set to -1. 
-The resampling data are returned in the *result pointer.
-The new number of time slices is returned.*/
-int resample_timebasis(double tmin, double tmax, std::vector<double> dtime, int timed_AOS_index, std::vector<double> &time_basis, void **result);
+  /**
+  * @brief Resample the data of a time basis vector according to the time range parameters.
+  *
+  * This function resamples the data of a time basis vector according to the time range parameters.
+  * The parameter dtime must be > 0 (otherwise an assertion occurs). 
+  * If the time basis is located in a dynamic AOS, the value of its current index must be passed using the 'timed_AOS_index' argument. 
+  * If the time basis is located in a static AOS, the 'timed_AOS_index' argument must be set to -1. 
+  * The resampling data are returned in the *result pointer.
+  * The new number of time slices is returned.
+  *
+  * @param tmin The minimum time value.
+  * @param tmax The maximum time value.
+  * @param dtime The time step vector.
+  * @param timed_AOS_index The index of the time basis in a dynamic AOS.
+  * @param time_basis The time basis vector.
+  * @param result Pointer to store the resampling result.
+  * @return The new number of time slices.
+  */
+  int resample_timebasis(double tmin, double tmax, std::vector<double> dtime, int timed_AOS_index, std::vector<double> &time_basis, void **result);
 
 };
 

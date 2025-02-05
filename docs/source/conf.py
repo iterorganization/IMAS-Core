@@ -3,11 +3,8 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import sys
 import datetime
 import subprocess
-from pathlib import Path
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -30,20 +27,10 @@ language = "en"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = [
-    "sphinx.ext.todo",
-    "sphinx.ext.autosectionlabel",
-    "sphinx.ext.autodoc",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
-    "sphinx_immaterial",
-    "sphinx_immaterial.apidoc.python.apigen",
-    "breathe",
-]
 
-templates_path = ['templates']
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "doc_common", "plugins"]
+
+templates_path = ['_templates']
+exclude_patterns = []
 
 # -- RST snippets to include in every page -----------------------------------
 rst_epilog = """\
@@ -53,9 +40,11 @@ rst_epilog = """\
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-
+extensions = [
+    "sphinx_immaterial",
+]
 html_theme = "sphinx_immaterial"
+html_static_path = ["static"]
 html_theme_options = {
     "repo_url": "https://github.com/iterorganization/IMAS-Core",
     "repo_name": "IMAS-Core",
@@ -104,16 +93,16 @@ html_theme_options = {
             },
         },
     ],
-    "version_dropdown": True,
-    "version_json": "../versions.js",
 }
+
+
+
+
 
 object_description_options = [
     (".*", dict(include_fields_in_toc=False)),
     (".*parameter", dict(include_in_toc=False)),
 ]
-
-html_static_path = ["static"]
 
 sphinx_immaterial_generate_extra_admonitions = True
 sphinx_immaterial_custom_admonitions = [
@@ -125,16 +114,3 @@ sphinx_immaterial_custom_admonitions = [
 
 ]
 
-# Configure Breathe
-breathe_projects = {
-    "al_lowlevel": "./doxygen_output_al_lowlevel/xml",
-    "access_layer_plugin_manager": "./doxygen_output_access_layer_plugin_manager/xml",
-    "ascii_backend": "./doxygen_output_ascii_backend/xml",
-    "hdf5_backend": "./doxygen_output_hdf5_backend/xml",
-    "data_interpolation": "./doxygen_output_data_interpolation/xml",
-    "flexbuffers_backend": "./doxygen_output_flexbuffers_backend/xml",
-    "memory_backend": "./doxygen_output_memory_backend/xml",
-    "mdsplus_backend": "./doxygen_output_mdsplus_backend/xml",
-}
-
-breathe_default_project = "al_lowlevel"

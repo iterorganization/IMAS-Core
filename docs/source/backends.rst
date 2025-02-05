@@ -1,3 +1,5 @@
+.. _imas-core-supported-backends:
+
 IMAS-Core supported backends
 ============================
 
@@ -21,6 +23,8 @@ datasets or long-term storage.
 :ref:`HDF5 backend` Suitable for large datasets and long-term storage.
 :ref:`MDSplus backend` Suitable for storing data in the MDSplus format.
 
+.. _hdf5 backend:
+
 HDF5 backend
 ''''''''''''
 
@@ -28,7 +32,7 @@ The HDF5 backend is identified by ``hdf5`` in the IMAS URI, and stores data in
 the `hdf5 data format <https://en.wikipedia.org/wiki/Hierarchical_Data_Format>`_
 `hdf5 implementation <https://github.com/iterorganization/IMAS-Core/tree/main/src/hdf5>`_.
 
-
+.. _mdsplus backend:
 
 MDSplus backend
 '''''''''''''''
@@ -43,6 +47,8 @@ This backend has been around and stable for a longer time, so most older IMAS
 data is stored in this format.
 `mdsplus implementation <https://github.com/iterorganization/IMAS-Core/tree/main/src/mdsplus>`_.
 
+.. _uda backend:
+
 UDA backend
 '''''''''''
 
@@ -55,6 +61,7 @@ on how UDA has been installed on the local cluster. Therefore it's recommended
 that you contact the IMAS support team when you want to use this functionality.
 `UDA implementation <https://github.com/iterorganization/IMAS-Core/tree/main/src/uda>`_.
 
+.. _memory backend:
 
 Memory backend
 ''''''''''''''
@@ -68,6 +75,7 @@ same program (for example, storing an IDS in C++ and then loading it with the
 Fortran HLI) or to store a number of time slices and then loading all time slices.
 `Memory backend implementation <hhttps://git.iter.org/projects/IMAS/repos/al-core/browse/src/memory_backend.cpp>`_.
 
+.. _ASCII backend:
 
 ASCII backend
 '''''''''''''

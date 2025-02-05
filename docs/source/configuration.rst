@@ -1,3 +1,5 @@
+.. _configuration options:
+
 Configuration
 =============
 
@@ -40,7 +42,7 @@ Environment variables controlling IMAS-Core behaviour
 
 
 .. [#backend_env] These environment variables are not applicable when using
-    :ref:`Support for Data entry URIs`, which explicitly specify the backend. Also not applicable
+    :ref:`Support for Data entry URIs <support-for-data-entry-uris>`, which explicitly specify the backend. Also not applicable
     in the Python HLI.
 
 
@@ -92,7 +94,7 @@ Backend specific environment variables
 
 
 ..  [#uri_precedence] These settings can also be configured in the IMAS URI, see
-    :ref:`Query keys specific for the HDF5 backend`. The URI provided settings
+    :ref:`Query keys specific for the HDF5 backend <query_keys_specific_for_the_hdf5_backend>`. The URI provided settings
     will be used if both are present.
 
 

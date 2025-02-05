@@ -93,6 +93,7 @@ shared library (.so). The ``registerPlugin(...)`` function creates a
 plugin framework to retrieve the plugin later using the name of the plugin as a
 key (``plugin_name`` function argument).
 
+.. _`Plugin activation`:
 
 Plugin activation
 ~~~~~~~~~~~~~~~~~

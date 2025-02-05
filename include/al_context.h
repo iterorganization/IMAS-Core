@@ -1,9 +1,9 @@
 /*-*-c++-*-*/
 
 /**
-   \file al_context.h
-   Contains definition of Context classes and all its subclasses.
-*/
+ * @file al_context.h
+ * @brief Contains definition of Context classes and all its subclasses.
+ */
 
 #ifndef AL_CONTEXT_H
 #define AL_CONTEXT_H 1
@@ -36,474 +36,419 @@
 
 
 /**
-   Generic Context class.
-   The simple generic Context is only associated to a given Back-end.
-*/
+ * @class Context
+ * @brief Generic Context class. The simple generic Context is only associated to a given Back-end.
+ */
 class LIBRARY_API Context 
 {
 public:
-  /**
-    Context destructor.
-  */
-  virtual ~Context() {}
+   /**
+    * @brief Context destructor.
+    */
+   virtual ~Context() {}
 
-  /**
-     Prints content of the context.
-  */
-  virtual std::string print() const; 
+   /**
+    * @brief Prints content of the context.
+    * @return std::string Content of the context.
+    */
+   virtual std::string print() const; 
 
-  /**
-     Returns object unique id.
-     @result uid
-  */
-  virtual unsigned long int getUid() const;
+   /**
+    * @brief Returns object unique id.
+    * @return UID.
+    */
+   virtual unsigned long int getUid() const;
 
-  /**
-     Returns the type of context.
-     @result CTX_TYPE
-  */
-  virtual int getType() const = 0;
+   /**
+    * @brief Returns the type of context.
+    * @return CTX_TYPE(int) Type of context.
+    */
+   virtual int getType() const = 0;
 
-  /**
-     Returns the URI.
-     @result URI string
-  */
-  virtual uri::Uri getURI() const = 0;
+   /**
+    * @brief Returns the URI.
+    * @return uri::Uri URI string.
+    */
+   virtual uri::Uri getURI() const = 0;
 
-  /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  virtual int getBackendID() const = 0;
+   /**
+    * @brief Returns the ID of associated backend.
+    * @return backend_id(int) Backend ID.
+    */
+   virtual int getBackendID() const = 0;
 
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  virtual std::string getBackendName() const = 0;
+   /**
+    * @brief Returns the name of associated backend.
+    * @return std::string Name of the backend.
+    */
+   virtual std::string getBackendName() const = 0;
 
-
-  
 protected:
-  static std::atomic<unsigned long int> SID; /**< a global UID */
-  unsigned long int uid;                     /**< a local ID to identify instances */
+   static std::atomic<unsigned long int> SID; /**< a global UID */
+   unsigned long int uid;                     /**< a local ID to identify instances */
 };
 
 
-
 /**
-   Context class for a given pulse file.
-   The DataEntryContext is a Context associated to a given pulse file.
-*/
+ * @class DataEntryContext
+ * @brief Context class for a given pulse file. The DataEntryContext is a Context associated to a given pulse file.
+ */
 class LIBRARY_API DataEntryContext : public Context 
 {
 public:
-
-  /**
-     Constructor
-     @param uri URI string
-  */
-  DataEntryContext(std::string uri);
-
-
-  /**
-     DataEntryContext destructor.
-  */
-  virtual ~DataEntryContext() {}
-
-  /**
-     Returns full description of the pulse context.
-  */
-  std::string print() const override; 
-
-  /**
-     Returns the type of context.
-     @result CTX_PULSE_TYPE
-  */
-  int getType() const override; 
-
-  /**
-     Returns the URI.
-     @result URI string
-  */
-  uri::Uri getURI() const override;
-
-  /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const override;
-
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const override;
- 
-  /**
-     Builds the URI backend from the backend ID.
-     @param[in] backend_id ID of the backend
-     @return backend string from URI
-  */
-  static std::string getURIBackend(int backend_id);
-
-  /**
-     Builds an URI string using legacy parameters.
-     @param[in] backendID name/ID of the back-end
-     @param[in] pulse pulse number
-     @param[in] run run number
-     @param[in] user username
-     @param[in] tokamak tokamak name
-     @param[in] version data version
-     @param[in] options options
-     @param[out] uri URI string
-   */
-  static void build_uri_from_legacy_parameters(const int backendID, 
-                         const int pulse,
-                         const int run, 
-                         const std::string user, 
-                         const std::string tokamak, 
-                         const std::string version,
-                         const std::string options,
-                         std::string& uri);
-                         
-  static void build_uri_from_legacy_parameters(const int backendID, 
-                         const int pulse,
-                         const int run, 
-                         const char *user, 
-                         const char *tokamak, 
-                         const char *version,
-                         const char *options,
-                         char** uri);
-
- protected:
-  uri::Uri uri;                         /**< URI */
-  int backend_id;                       /**< a backend identifier */
-
- private:
-  uri::Uri checkUriHost(const uri::Uri& uri);
-  void setBackendID(const std::string &path, const std::string &host);
-  uri::Uri buildURIFromLegacy();
-
-};
-
-
-/**
-   Context class for an operation on a DATAOBJECT.
-   The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given DataEntryContext .
-*/
-class LIBRARY_API OperationContext : public Context 
-{
-
-public:
+   /**
+    * @brief Constructor
+    * @param uri URI string
+    */
+   DataEntryContext(std::string uri);
 
    /**
-     Operation context constructor.
-     Requires informations for all global put or get operations on a DATAOBJECT.
-     @param ctx data-entry context
-     @param dataobject name of the DATAOBJECT
-     @param datapath path to data node for partial get operation
-     @param access access type of the operation
-     - READ_OP: read operation
-     - WRITE_OP: write operation
-     - REPLACE_OP: replace operation [_for the moment only in sliced mode for
-     "replace last slice"_]
-  */
-  OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access);
+    * @brief DataEntryContext destructor.
+    */
+   virtual ~DataEntryContext() {}
 
-  /**
-     Operation context constructor.
-     Requires informations for all possible put or get operations on a DATAOBJECT.
-     @param ctx data-entry context
-     @param dataobject name of the DATAOBJECT
-     @param access access type of the operation 
-     - READ_OP: read operation
-     - WRITE_OP: write operation
-     - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
-     "replace last slice"_]
-     @param range range of the operation [_optional_]
-     - GLOBAL_OP: operation on all slices 
-     - SLICE_OP: operation on a single slice
-     @param t time [_optional_]
-     @param interp interpolation mode [_optional_]
-     - CLOSEST_INTERP: consider slice at closest time
-     - PREVIOUS_INTERP: consider slice at previous step
-     - LINEAR_INTERP: interpolating linearly values at previous and next slices
-     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
-  */
-  OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
-		   int range, double t, int interp);
+   /**
+    * @brief Returns full description of the pulse context.
+    * @return std::string Full description of the pulse context.
+    */
+   std::string print() const override; 
 
-     /**
-     Operation context constructor.
-     Requires informations for all possible get/put operations using time range on a DATAOBJECT.
-     @param ctx data-entry context
-     @param dataobject name of the DATAOBJECT
-     @param access access type of the operation 
-     - READ_OP: read operation
-     - WRITE_OP: write operation
-     - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
-     "replace last slice"_]
-     @param range range of the operation [_optional_]
-     - GLOBAL_OP: operation on all slices 
-     - SLICE_OP: operation on a single slice
-     - TIMERANGE_OP: operation on a time range
-     @param tmin tmin
-     @param tmin tmax
-     @param tmin dtime [_optional_]
-     @param interp interpolation mode [_optional_]
-     - CLOSEST_INTERP: consider slice at closest time
-     - PREVIOUS_INTERP: consider slice at previous step
-     - LINEAR_INTERP: interpolating linearly values at previous and next slices
-     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
-  */
-  OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
-		   int range, double tmin, double tmax, std::vector<double> dtime, int interp);
+   /**
+    * @brief Returns the type of context.
+    * @return CTX_PULSE_TYPE(int) Type of context.
+    */
+   int getType() const override; 
 
-  /**
-     Operation context destructor.
-  */
-  virtual ~OperationContext() {}
+   /**
+    * @brief Returns the URI.
+    * @return uri::Uri URI string.
+    */
+   uri::Uri getURI() const override;
 
-  /**
-     Returns full description of the operation context.
-  */
-  std::string print() const override; 
+   /**
+    * @brief Returns the ID of associated backend.
+    * @return int Backend ID.
+    */
+   int getBackendID() const override;
 
-  /**
-     Returns the type of context.
-     @result CTX_OPERATION_TYPE
-  */
-  int getType() const override; 
+   /**
+    * @brief Returns the name of associated backend.
+    * @return std::string Name of the backend.
+    */
+   std::string getBackendName() const override;
 
-  /**
-     Returns the URI.
-     @result URI 
-  */
-  uri::Uri getURI() const override;
+   /**
+    * @brief Builds the URI backend from the backend ID.
+    * @param[in] backend_id ID of the backend
+    * @return std::string Backend string from URI
+    */
+   static std::string getURIBackend(int backend_id);
 
-  /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const override;
+   /**
+    * @brief Builds an URI string using legacy parameters.
+    * @param[in] backendID name/ID of the back-end
+    * @param[in] pulse pulse number
+    * @param[in] run run number
+    * @param[in] user username
+    * @param[in] tokamak tokamak name
+    * @param[in] version data version
+    * @param[in] options options
+    * @param[out] uri URI string
+    */
+   static void build_uri_from_legacy_parameters(const int backendID, 
+                                                                      const int pulse,
+                                                                      const int run, 
+                                                                      const std::string user, 
+                                                                      const std::string tokamak, 
+                                                                      const std::string version,
+                                                                      const std::string options,
+                                                                      std::string& uri);
+                                     
+   static void build_uri_from_legacy_parameters(const int backendID, 
+                                                                      const int pulse,
+                                                                      const int run, 
+                                                                      const char *user, 
+                                                                      const char *tokamak, 
+                                                                      const char *version,
+                                                                      const char *options,
+                                                                      char** uri);
 
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const override;
-
-  /**
-     Returns the name of the DATAOBJECT.
-     @result dataobjectname
-  */
-  std::string getDataobjectName() const;
-
-  /**
-     Returns the path of the requested data for a partial get operation. Will be empty for non-partial gets.
-     @result datapath
-  */
-  std::string getDatapath() const;
-
-  /**
-     Returns access type of the operation.
-     @result accessmode
-     - READ_OP: read operation
-     - WRITE_OP: write operation
-     - REPLACE_OP: replace operation [_for the moment only in sliced mode for 
-     "replace last slice"_]
-  */
-  int getAccessmode() const;
-
-  /**
-     Returns range of the operation.
-     @result rangemode
-     - GLOBAL_OP: operation on all slices [_also in non time-dependent case_]
-     - SLICE_OP: operation on a single slice
-  */
-  int getRangemode() const;
-
-  /**
-     Returns time of the operation.
-     @result time [_=UNDEFINED_TIME when time is not relevant_]
-  */
-  double getTime() const;
-
-  /**
-     Returns type of interpolation selected for the operation.
-     @result interpmode
-     - CLOSEST_INTERP: consider slice at closest time
-     - PREVIOUS_INTERP: consider slice at previous step
-     - LINEAR_INTERP: interpolating linearly values at previous and next slices
-     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
-  */
-  int getInterpmode() const;
-
-  /**
-     Returns time range parameters.
-     @result tmin, tmax, dtime
-     @result interp
-     - CLOSEST_INTERP: consider slice at closest time
-     - PREVIOUS_INTERP: consider slice at previous step
-     - LINEAR_INTERP: interpolating linearly values at previous and next slices
-     - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
-  */
-  void getTimeRange(double *tmin, double *tmax, std::vector<double> &dtime, int *interp) const;
-
-  /**
-     Returns the associated DataEntryContext.
-     @result ctx
-   */
-  DataEntryContext* getDataEntryContext() const;
-
-  struct TimeRange {
-    double tmin;
-    double tmax;
-    std::vector<double> dtime;
-    int interpolation_method;
-   };
-
-   TimeRange time_range;
-  
 protected:
-  DataEntryContext* pctx;               /**< associated DataEntry context */
-  std::string dataobjectname;           /**< DATAOBJECT name */
-  int accessmode;                       /**< operation access type */
-  int rangemode;                        /**< operation range */
-  double time;                          /**< operation time */
-  int interpmode;                       /**< operation interpolation type */
-  std::string datapath;                 /**< path to data node for partial get operations */
+   uri::Uri uri;                         /**< URI */
+   int backend_id;                       /**< a backend identifier */
+
+private:
+   uri::Uri checkUriHost(const uri::Uri& uri);
+   void setBackendID(const std::string &path, const std::string &host);
+   uri::Uri buildURIFromLegacy();
 };
 
 
-
 /**
-   Context class for an array of structures.
-   The ArraystructContext is a Context associated to a given array of structure from a given OperationContext.
-*/
-class LIBRARY_API ArraystructContext : public Context 
+ * @class OperationContext
+ * @brief Context class for an operation on a DATAOBJECT. The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given DataEntryContext.
+ */
+class LIBRARY_API OperationContext : public Context 
 {
- public:
-  /**
-     Array of structure context constructor.
-     Requires informations for describing usage of stand-alone or top-most arrays of structure in a DATAOBJECT.
-     @param ctx operation context
-     @param p path of the array of structure field [_within the DATAOBJECT_]
-     @param tb path of the timebase associated with the array of structure
-  */
-  ArraystructContext(OperationContext* ctx, std::string p, std::string tb);
+public:
+   /**
+    * @brief Operation context constructor.
+    * Requires informations for all global put or get operations on a DATAOBJECT.
+    * @param ctx data-entry context
+    * @param dataobject name of the DATAOBJECT
+    * @param datapath path to data node for partial get operation
+    * @param access access type of the operation
+    * - READ_OP: read operation
+    * - WRITE_OP: write operation
+    * - REPLACE_OP: replace operation [_for the moment only in sliced mode for "replace last slice"_]
+    */
+   OperationContext(DataEntryContext* ctx, std::string dataobject, std::string datapath, int access);
 
-  /**
-     Array of structure context constructor.
-     Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param parent context of the parent array of structure 
-     @param p path of the array of structure field [_within its parent container_]
-     @param tb path of the timebase associated with the array of structure
-  */
-  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb);
+   /**
+    * @brief Operation context constructor.
+    * Requires informations for all possible put or get operations on a DATAOBJECT.
+    * @param ctx data-entry context
+    * @param dataobject name of the DATAOBJECT
+    * @param access access type of the operation 
+    * - READ_OP: read operation
+    * - WRITE_OP: write operation
+    * - REPLACE_OP: replace operation [_for the moment only in sliced mode for "replace last slice"_]
+    * @param range range of the operation [_optional_]
+    * - GLOBAL_OP: operation on all slices 
+    * - SLICE_OP: operation on a single slice
+    * @param t time [_optional_]
+    * @param interp interpolation mode [_optional_]
+    * - CLOSEST_INTERP: consider slice at closest time
+    * - PREVIOUS_INTERP: consider slice at previous step
+    * - LINEAR_INTERP: interpolating linearly values at previous and next slices
+    * - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]
+    */
+   OperationContext(DataEntryContext* ctx, std::string dataobject, int access, 
+                            int range, double t, int interp);
 
-  /**
-     Array of structure context constructor.
-     Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
-     @param parent context of the parent array of structure 
-     @param p path of the array of structure field [_within its parent container_]
-     @param tb path of the timebase associated with the array of structure
-     @param idx index of current element for this new ArraystructContext
-  */
-  explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb, int idx);
+   /**
+    * @brief Operation context destructor.
+    */
+   virtual ~OperationContext() {}
 
-  /**
-     Array of structure context destructor.
-  */
-  virtual ~ArraystructContext() {}
+   /**
+    * @brief Returns full description of the operation context.
+    * @return std::string Full description of the operation context.
+    */
+   std::string print() const override; 
 
-  /**
-     Returns full description of the array of structure context.
-  */
-  std::string print() const override;
+   /**
+    * @brief Returns the type of context.
+    * @return int Type of context CTX_OPERATION_TYPE.
+    */
+   int getType() const override; 
 
-  /**
-     Returns the type of context.
-     @result CTX_ARRAYSTRUCT_TYPE
-  */
-  int getType() const override;
+   /**
+    * @brief Returns the URI.
+    * @return uri::Uri URI 
+    */
+   uri::Uri getURI() const override;
 
-  /**
-     Returns the URI.
-     @result URI 
-  */
-  uri::Uri getURI() const override;
+   /**
+    * @brief Returns the ID of associated backend.
+    * @return int Backend ID.
+    */
+   int getBackendID() const override;
 
-  /**
-     Returns the ID of associated backend.
-     @result backend_id
-  */
-  int getBackendID() const override;
+   /**
+    * @brief Returns the name of associated backend.
+    * @return std::string Name of the backend.
+    */
+   std::string getBackendName() const override;
 
-  /**
-     Returns the name of associated backend.
-     @result name of the backend
-  */
-  std::string getBackendName() const override;
+   /**
+    * @brief Returns the name of the DATAOBJECT.
+    * @return std::string Name of the DATAOBJECT.
+    */
+   std::string getDataobjectName() const;
 
-  /**
-     Returns the path of the array of structure.
-     This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
-     @result path
-  */
-  std::string getPath() const;
+   /**
+    * @brief Returns the path of the requested data for a partial get operation. Will be empty for non-partial gets.
+    * @return std::string Path of the requested data.
+    */
+   std::string getDatapath() const;
 
- /**
-     Returns the timebase path of the array of structure.
-     This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
-     @result path
-  */
-  std::string getTimebasePath() const;
+   /**
+    * @brief Returns access type of the operation.
+    * @return int Access type of the operation.
+    * - READ_OP: read operation
+    * - WRITE_OP: write operation
+    * - REPLACE_OP: replace operation [_for the moment only in sliced mode for "replace last slice"_]
+    */
+   int getAccessmode() const;
 
-  /**
-     Returns whether the array of structure is time-dependent or not.
-     @result timed
-  */
-  bool getTimed() const; 
+   /**
+    * @brief Returns range of the operation.
+    * @return int Range of the operation.
+    * - GLOBAL_OP: operation on all slices [_also in non time-dependent case_]
+    * - SLICE_OP: operation on a single slice
+    */
+   int getRangemode() const;
 
-  /**
-     Returns the context of the container array of structure
-     @result parent
-  */
-  ArraystructContext* getParent();
+   /**
+    * @brief Returns time of the operation.
+    * @return double Time of the operation.
+    */
+   double getTime() const;
 
-  /**
-     Returns the position of the current element of interest within the array of structure.
-     @result index
-  */
-  int getIndex() const;
+   /**
+    * @brief Returns type of interpolation selected for the operation.
+    * @return int Interpolation mode.
+    * - CLOSEST_INTERP: consider slice at closest time
+    * - PREVIOUS_INTERP: consider slice at previous step
+    * - LINEAR_INTERP: interpolating linearly values at previous and next slices
+    * - UNDEFINED_INTERP: if not relevant [_e.g for write operations_]     
+    */
+   int getInterpmode() const;
 
-  /**
-     Updates the position of the current element of interest within the array of structure.
-     @param[in] step step size for setting the next index
-  */
-  void nextIndex(int step);
-
-  /**
-     Returns the associated OperationContext.
-     @result opctx
-   */
-  OperationContext* getOperationContext() const;
-
-  /**
-     Returns the associated DataEntryContext.
-     @result ctx
-   */
-  DataEntryContext* getDataEntryContext() const;
+   /**
+    * @brief Returns the associated DataEntryContext.
+    * @return DataEntryContext* Associated DataEntryContext.
+    */
+   DataEntryContext* getDataEntryContext() const;
 
 protected:
-  std::string path;                     /**< path of the array of structure */
-  std::string timebase;			/**< path of the timebase associated with the array of structure */
-  ArraystructContext* parent;           /**< container of the array of structure */
-  int index = 0;                        /**< position of the current element of interest within the array of structure */
-  OperationContext* opctx;              /**< associated operation context **/
+   DataEntryContext* pctx;               /**< associated DataEntry context */
+   std::string dataobjectname;           /**< DATAOBJECT name */
+   int accessmode;                       /**< operation access type */
+   int rangemode;                        /**< operation range */
+   double time;                          /**< operation time */
+   int interpmode;                       /**< operation interpolation type */
+   std::string datapath;                 /**< path to data node for partial get operations */
+};
 
+
+/**
+ * @class ArraystructContext
+ * @brief Context class for an array of structures. The ArraystructContext is a Context associated to a given array of structure from a given OperationContext.
+ */
+class LIBRARY_API ArraystructContext : public Context 
+{
+public:
+   /**
+    * @brief Array of structure context constructor.
+    * Requires informations for describing usage of stand-alone or top-most arrays of structure in a DATAOBJECT.
+    * @param ctx operation context
+    * @param p path of the array of structure field [_within the DATAOBJECT_]
+    * @param tb path of the timebase associated with the array of structure
+    */
+   ArraystructContext(OperationContext* ctx, std::string p, std::string tb);
+
+   /**
+    * @brief Array of structure context constructor.
+    * Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
+    * @param parent context of the parent array of structure 
+    * @param p path of the array of structure field [_within its parent container_]
+    * @param tb path of the timebase associated with the array of structure
+    */
+   explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb);
+
+   /**
+    * @brief Array of structure context constructor.
+    * Requires informations for describing usage of nested arrays of structure in a DATAOBJECT.
+    * @param parent context of the parent array of structure 
+    * @param p path of the array of structure field [_within its parent container_]
+    * @param tb path of the timebase associated with the array of structure
+    * @param idx index of current element for this new ArraystructContext
+    */
+   explicit ArraystructContext(ArraystructContext* parent, std::string p, std::string tb, int idx);
+
+   /**
+    * @brief Array of structure context destructor.
+    */
+   virtual ~ArraystructContext() {}
+
+   /**
+    * @brief Returns full description of the array of structure context.
+    * @return std::string Full description of the array of structure context.
+    */
+   std::string print() const override;
+
+   /**
+    * @brief Returns the type of context.
+    * @return int Type of context, CTX_ARRAYSTRUCT_TYPE
+    */
+   int getType() const override;
+
+   /**
+    * @brief Returns the URI.
+    * @return uri::Uri URI 
+    */
+   uri::Uri getURI() const override;
+
+   /**
+    * @brief Returns the ID of associated backend.
+    * @return int Backend ID.
+    */
+   int getBackendID() const override;
+
+   /**
+    * @brief Returns the name of associated backend.
+    * @return std::string Name of the backend.
+    */
+   std::string getBackendName() const override;
+
+   /**
+    * @brief Returns the path of the array of structure.
+    * This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
+    * @return std::string Path of the array of structure.
+    */
+   std::string getPath() const;
+
+   /**
+    * @brief Returns the timebase path of the array of structure.
+    * This path corresponds to the absolute path in the DATAOBJECT for the topmost array of structure or in.
+    * @return std::string Timebase path of the array of structure.
+    */
+   std::string getTimebasePath() const;
+
+   /**
+    * @brief Returns whether the array of structure is time-dependent or not.
+    * @return bool True if time-dependent, false otherwise.
+    */
+   bool getTimed() const; 
+
+   /**
+    * @brief Returns the context of the container array of structure.
+    * @return ArraystructContext* Context of the container array of structure.
+    */
+   ArraystructContext* getParent();
+
+   /**
+    * @brief Returns the position of the current element of interest within the array of structure.
+    * @return int Position of the current element.
+    */
+   int getIndex() const;
+
+   /**
+    * @brief Updates the position of the current element of interest within the array of structure.
+    * @param[in] step Step size for setting the next index.
+    */
+   void nextIndex(int step);
+
+   /**
+    * @brief Returns the associated OperationContext.
+    * @return OperationContext* Associated OperationContext.
+    */
+   OperationContext* getOperationContext() const;
+
+   /**
+    * @brief Returns the associated DataEntryContext.
+    * @return DataEntryContext* Associated DataEntryContext.
+    */
+   DataEntryContext* getDataEntryContext() const;
+
+protected:
+   std::string path;                     /**< path of the array of structure */
+   std::string timebase;                 /**< path of the timebase associated with the array of structure */
+   ArraystructContext* parent;           /**< container of the array of structure */
+   int index = 0;                        /**< position of the current element of interest within the array of structure */
+   OperationContext* opctx;              /**< associated operation context **/
 };
 
 LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);

@@ -1,3 +1,5 @@
+.. _support-for-data-entry-uris:
+
 Support for Data entry URIs
 ===========================
 
@@ -23,10 +25,10 @@ Let's break down each of the components:
 2. ``host`` when the data is located at another machine, you use this
    section to indicate the address of that machine. See :ref:`UDA backend` for
    further details.
-3. ``backend`` select the Access Layer backend. See :ref:`IMAS-Core supported backends` for the
+3. ``backend`` select the Access Layer backend. See :ref:`IMAS-Core supported backends <imas-core-supported-backends>` for the
    options.
 4. ``query`` the query consists of ``key=value`` pairs, separated by a
-   semicolon ``;``. See :ref:`Query keys` for further details.
+   semicolon ``;``. See :ref:`Query keys <query-keys>` for further details.
 
 .. 
    Commenting this out, as no backend currently supports URI fragments
@@ -35,6 +37,8 @@ Let's break down each of the components:
       ``fragment`` can be added to the URI. Such ``fragment``, which starts with a
       hash ``#``, is optional and allows to identify a specific IDS, or a part of
       an IDS. See :ref:`URI fragment` for further details.
+
+.. _query-keys:
 
 Query keys
 ----------
@@ -81,6 +85,7 @@ keys are currently recognized.
 .. [#mandatory] Either ``path`` or `all` of the legacy query keys must be
     provided.
 
+.. _query_keys_specific_for_the_hdf5_backend:
 
 Query keys specific for the HDF5 backend
 ''''''''''''''''''''''''''''''''''''''''
@@ -118,7 +123,9 @@ The :ref:`HDF5 backend` also recognizes these backend-specific query keys.
 Query keys specific for the ASCII backend
 '''''''''''''''''''''''''''''''''''''''''
 
-The :ref:`ASCII backend` also recognizes these backend-specific query keys.
+.. _ascii-backend:
+
+The :ref:`ASCII backend <ascii-backend>` also recognizes these backend-specific query keys.
 
 ``filename``
     Specify the exact filename in which the IDS data will be stored, instead

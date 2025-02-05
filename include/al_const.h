@@ -1,9 +1,9 @@
-/*-*-c++-*-*/
 
 /**
-   \file al_const.h
-   Contains all constants used within the AL low-levels.
-*/
+ * @file al_const.h
+ * @brief Contains all constants used within the AL low-levels.
+ */
+
 #ifndef AL_CONST_H
 #define AL_CONST_H 1
 
@@ -15,23 +15,24 @@
 #  define LIBRARY_API
 #endif
 
-/* C defs */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @enum BACKEND
+ * @brief Enumeration of backend types.
+ */
 enum BACKEND
 {
-	NO_BACKEND          = BACKEND_ID_0,
-	ASCII_BACKEND       = BACKEND_ID_0+1,
-	MDSPLUS_BACKEND     = BACKEND_ID_0+2,
-	HDF5_BACKEND        = BACKEND_ID_0+3,
-	MEMORY_BACKEND      = BACKEND_ID_0+4,
-	UDA_BACKEND         = BACKEND_ID_0+5,
-	FLEXBUFFERS_BACKEND = BACKEND_ID_0+6
+  NO_BACKEND = BACKEND_ID_0, /**< No backend */
+  ASCII_BACKEND = BACKEND_ID_0 + 1, /**< ASCII backend */
+  MDSPLUS_BACKEND = BACKEND_ID_0 + 2, /**< MDSPlus backend */
+  HDF5_BACKEND = BACKEND_ID_0 + 3, /**< HDF5 backend */
+  MEMORY_BACKEND = BACKEND_ID_0 + 4, /**< Memory backend */
+  UDA_BACKEND = BACKEND_ID_0 + 5, /**< UDA backend */
+  FLEXBUFFERS_BACKEND = BACKEND_ID_0 + 6 /**< Flexbuffers backend */
 };
-
 
 #ifdef __cplusplus
 }
@@ -42,14 +43,16 @@ enum BACKEND
 
 namespace alconst {
 
-  const int no_backend      = BACKEND::NO_BACKEND;
-  const int ascii_backend   = BACKEND::ASCII_BACKEND;
+  // Constants for backend types
+  const int no_backend = BACKEND::NO_BACKEND;
+  const int ascii_backend = BACKEND::ASCII_BACKEND;
   const int mdsplus_backend = BACKEND::MDSPLUS_BACKEND;
-  const int hdf5_backend    = BACKEND::HDF5_BACKEND;
-  const int memory_backend  = BACKEND::MEMORY_BACKEND;
-  const int uda_backend     = BACKEND::UDA_BACKEND;
+  const int hdf5_backend = BACKEND::HDF5_BACKEND;
+  const int memory_backend = BACKEND::MEMORY_BACKEND;
+  const int uda_backend = BACKEND::UDA_BACKEND;
   const int flexbuffers_backend = BACKEND::FLEXBUFFERS_BACKEND;
 
+  // Constants for operations
   const int global_op = GLOBAL_OP;
   const int slice_op = SLICE_OP;
   const int timerange_op = TIMERANGE_OP;
@@ -57,30 +60,36 @@ namespace alconst {
   const int read_op = READ_OP;
   const int write_op = WRITE_OP;
 
+  // Constants for interpolation types
   const int closest_interp = CLOSEST_INTERP;
   const int previous_interp = PREVIOUS_INTERP;
   const int linear_interp = LINEAR_INTERP;
   const int undefined_interp = UNDEFINED_INTERP;
 
+  // Constants for time
   const double undefined_time = UNDEFINED_TIME;
-  
+
+  // Constants for pulse operations
   const int open_pulse = OPEN_PULSE;
   const int force_open_pulse = FORCE_OPEN_PULSE;
   const int create_pulse = CREATE_PULSE;
   const int force_create_pulse = FORCE_CREATE_PULSE;
   const int close_pulse = CLOSE_PULSE;
   const int erase_pulse = ERASE_PULSE;
-    
+
+  // Constants for data types
   const int char_data = CHAR_DATA;
   const int integer_data = INTEGER_DATA;
   const int double_data = DOUBLE_DATA;
   const int complex_data = COMPLEX_DATA;
 
+  // Constants for serializer protocols
   const int ascii_serializer_protocol = ASCII_SERIALIZER_PROTOCOL;
   const int flexbuffers_serializer_protocol = FLEXBUFFERS_SERIALIZER_PROTOCOL;
   const int default_serializer_protocol = DEFAULT_SERIALIZER_PROTOCOL;
 
-  const std::array<int,6> backend_id_list =
+  // Arrays of constants
+const std::array<int,6> backend_id_list =
     {
       {
 	NO_BACKEND,
@@ -141,6 +150,7 @@ namespace alconst {
       }
     };
   
+  // Maps of constants to strings
   const std::map<int,std::string> constmap =
     {
       {NO_BACKEND, "NO_BACKEND"},
@@ -172,15 +182,17 @@ namespace alconst {
       {ASCII_SERIALIZER_PROTOCOL, "ASCII_SERIALIZER_PROTOCOL"},
       {FLEXBUFFERS_SERIALIZER_PROTOCOL, "FLEXBUFFERS_SERIALIZER_PROTOCOL"}
     };
-}
+} // namespace alconst
 
 namespace alerror {
 
+  // Constants for error types
   const int unknown_err = UNKNOWN_ERR;
   const int context_err = CONTEXT_ERR;
   const int backend_err = BACKEND_ERR;
   const int lowlevel_err = LOWLEVEL_ERR;
 
+  // Maps of errors to strings
   const std::map<int,std::string> errmap =
     {
       {UNKNOWN_ERR, "UNKNOWN_ERR"},
@@ -188,52 +200,55 @@ namespace alerror {
       {BACKEND_ERR, "BACKEND_ERR"},
       {LOWLEVEL_ERR, "LOWLEVEL_ERR"}
     };
-}
+} // namespace alerror
 
-namespace plugin{
+namespace plugin {
 
+  /**
+   * @enum OPERATION
+   * @brief Enumeration of plugin operations.
+   */
   enum OPERATION
   {
-    PUT_ONLY      = 1,
-    GET_ONLY      = 2,
-    PUT_AND_GET   = 3
+  PUT_ONLY = 1, /**< Put only operation */
+  GET_ONLY = 2, /**< Get only operation */
+  PUT_AND_GET = 3 /**< Put and get operation */
   };
-} 
 
-#endif
+} // namespace plugin
+
+#endif // __cplusplus
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @brief Returns the string of the passed constant identifier.
+ * @param[in] id Constant ID
+ * @return String associated with the constant ID
+ */
+LIBRARY_API const char *const2str(int id);
 
-  /**
-     Returns the String of the passed constant identifier.
-     @param[in] id constant ID
-     @result String associated with the constant ID
-  */
-  LIBRARY_API const char * const2str(int id);
-  
-  /**
-     Returns the String of the passed integer error.
-     @param[in] id error ID
-     @result String associated with the error ID
-  */
-  LIBRARY_API const char * err2str(int id);
-  
-  /**
-     Returns the String of the AL version.
-     @result String of the AL version
-  */
-  LIBRARY_API const char * getALVersion();
-  
-  /**
-     Returns the String of Data Dictionary version.
-     @result String of the Data Dictionary version
-  */
-  LIBRARY_API const char * getDDVersion();
-  
-  
+/**
+ * @brief Returns the string of the passed integer error.
+ * @param[in] id Error ID
+ * @return String associated with the error ID
+ */
+LIBRARY_API const char *err2str(int id);
+
+/**
+ * @brief Returns the string of the AL version.
+ * @return String of the AL version
+ */
+LIBRARY_API const char *getALVersion();
+
+/**
+ * @brief Returns the string of the Data Dictionary version.
+ * @return String of the Data Dictionary version
+ */
+LIBRARY_API const char *getDDVersion();
+
 #if defined(__cplusplus)
 }
 #endif

@@ -1,8 +1,8 @@
 /*-*-c++-*-*/
 
 /**
-   \file al_lowlevel.h
-   Contains definition of Lowlevel static class and all C wrappers around back-end API.
+   @file al_lowlevel.h
+   @brief Contains definition of Lowlevel static class and all C wrappers around back-end API.
 */
 
 #ifndef AL_LOWLEVEL_H
@@ -334,6 +334,7 @@ extern "C"
      @param[in] tmin which is the minimum time of the time range interval
      @param[in] tmax which is the maximum time of the time range interval
      @param[in] dtime which is the time increment of the time range interval. If dtime != -1, data are resampled on a new homogeneous time vector 
+     @param[in] dtime_shape shape of the dtime array
      @param[in] interpmode mode for interpolation:
      - CLOSEST_INTERP take the slice at the closest time
      - PREVIOUS_INTERP take the slice at the previous time

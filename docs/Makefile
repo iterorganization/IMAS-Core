@@ -5,21 +5,12 @@
 # from the environment for the first two.
 SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = source
-BUILDDIR      = _build
+SOURCEDIR      = source
+BUILDDIR       = build
 DOXYGEN       ?= doxygen
 DOXYFILE      ?= Doxyfile
-DOXYFILES = Doxyfile_access_layer_plugin_manager \
-			Doxyfile_al_lowlevel \
-			Doxyfile_ascii_backend \
-			Doxyfile_main \
-			Doxyfile_data_interpolation \
-			Doxyfile_flexbuffers_backend \
-			Doxyfile_hdf5_backend \
-			Doxyfile_mdsplus_backend \
-			Doxyfile_memory_backend \
-			Doxyfile_hdf5_backend
-
+DOXYGEN_DIR  = doxygen/imas_core/
+SPHINX_DOXYGEN_DIR  = source/imas_core/
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -32,18 +23,20 @@ help:
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Target to run Doxygen and generate XML files
-doxygen:
-	@for doxyfile in $(DOXYFILES); do \
-		$(DOXYGEN) $$doxyfile; \
-	done
+executedoxygen:
+	@mkdir -p "$(DOXYGEN_DIR)"
+	@doxygen $(DOXYFILE)
+
+doxysphinx: executedoxygen
+	@doxysphinx -v INFO build "$(DOXYGEN_DIR)" "$(BUILDDIR)" "$(DOXYFILE)"
+	@cp -rf "$(DOXYGEN_DIR)" "$(SPHINX_DOXYGEN_DIR)"
 
 # Target to build Sphinx documentation after running Doxygen
-html: doxygen
+html: doxysphinx
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Clean up generated files
 clean:
-	@for doxyfile in $(DOXYFILES); do \
-		@rm -rf $(SOURCEDIR)/$$doxyfile; \
-	done
-	@rm -rf $(BUILDDIR)
+	@rm -rf "$(BUILDDIR)"
+	@rm -rf "$(DOXYGEN_DIR)"
+	@rm -rf "$(SPHINX_DOXYGEN_DIR)" 

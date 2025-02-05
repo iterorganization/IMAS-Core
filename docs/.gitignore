@@ -1,2 +1,3 @@
-_build
-source/generated
+build
+source/imas_core
+doxygen
