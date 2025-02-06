@@ -11,6 +11,7 @@ DOXYGEN       ?= doxygen
 DOXYFILE      ?= Doxyfile
 DOXYGEN_DIR  = doxygen/imas_core/
 SPHINX_DOXYGEN_DIR  = source/imas_core/
+
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -26,6 +27,7 @@ help:
 executedoxygen:
 	@mkdir -p "$(DOXYGEN_DIR)"
 	@doxygen $(DOXYFILE)
+	@cp -rf "$(DOXYGEN)" "$(SOURCEDIR)"/static
 
 doxysphinx: executedoxygen
 	@doxysphinx -v INFO build "$(DOXYGEN_DIR)" "$(BUILDDIR)" "$(DOXYFILE)"
@@ -34,9 +36,12 @@ doxysphinx: executedoxygen
 # Target to build Sphinx documentation after running Doxygen
 html: doxysphinx
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	
 
 # Clean up generated files
 clean:
 	@rm -rf "$(BUILDDIR)"
 	@rm -rf "$(DOXYGEN_DIR)"
 	@rm -rf "$(SPHINX_DOXYGEN_DIR)" 
+	@rm -rf "$(SOURCEDIR)"/static/$(DOXYGEN)
+

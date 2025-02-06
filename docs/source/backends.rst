@@ -73,7 +73,7 @@ therefore not persistent.
 The memory backend can still be useful to transfer data between languages in the
 same program (for example, storing an IDS in C++ and then loading it with the
 Fortran HLI) or to store a number of time slices and then loading all time slices.
-`Memory backend implementation <hhttps://git.iter.org/projects/IMAS/repos/al-core/browse/src/memory_backend.cpp>`_.
+`Memory backend implementation <https://github.com/iterorganization/IMAS-Core/blob/main/src/memory_backend.cpp>`_.
 
 .. _ASCII backend:
 
@@ -84,7 +84,7 @@ The ASCII backend is identified by ``ascii`` in the IMAS URI. The ASCII backend
 can be used to store IDS data in a plain-text human readable format. The
 performance and size of the stored data is worse than the other backends, so
 this is typically only used for debugging.
-`ASCII backend implementation <https://git.iter.org/projects/IMAS/repos/al-core/browse/src/ascii_backend.cpp>`_.
+`ASCII backend implementation <https://github.com/iterorganization/IMAS-Core/blob/main/src/ascii_backend.cpp>`_.
 
 
 Flexbuffers backend
@@ -95,6 +95,6 @@ Flexbuffers backend is used when (de)serializing IDSs with the
 ``FLEXBUFFERS_SERIALIZER_PROTOCOL``. It is optimized for (de)serialization speed and
 therefore has very limited functionality. It is not intended to be used outside of IDS
 serialization.
-`Flexbuffers backend implementation <https://github.com/iterorganization/IMAS-Core/tree/main/src/flatbuffers>`_.
+`Flexbuffers backend implementation <https://github.com/iterorganization/IMAS-Core/blob/main/src/flexbuffers_backend.cpp>`_.
 
 

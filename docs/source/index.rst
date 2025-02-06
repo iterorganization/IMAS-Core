@@ -32,10 +32,12 @@ It includes:
    plugins
 
 .. toctree:: 
-   :maxdepth: 2
-   :caption: API documentation
-
+   :maxdepth: 1
+   :caption: API documentation:
+   
    imas_core/html/index
+   doxygen
+
 
 Indices and tables
 ==================

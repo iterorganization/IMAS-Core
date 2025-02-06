@@ -1,3 +1,4 @@
 build
-source/imas_core
 doxygen
+source/imas_core
+source/static/doxygen/imas_core/

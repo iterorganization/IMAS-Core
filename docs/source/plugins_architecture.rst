@@ -263,8 +263,7 @@ Access Layer plugin provenance
 ==============================
 
 Recent versions of the Data Dictionary store information concerning plugin
-provenance. See https://jira.iter.org/browse/IMAS-4491 and the Pull Request
-https://git.iter.org/projects/IMAS/repos/data-dictionary/pull-requests/534/overview.
+provenance.
 
 To take into account these change, we have defined new plugins requirements with
 the ``provenance_plugin_feature`` and the ``readback_plugin_feature`` interfaces
