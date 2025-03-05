@@ -237,3 +237,17 @@ The :ref:`UDA backend` also recognizes these backend-specific query keys.
 ``verbose``
     UDA verbosity is disabled by default. Set ``verbose=1`` to obtain
     more information and ease debugging.
+
+``cache_mode``
+    UDA cache_mode is ``ids`` by default. Set ``cache_mode=none``or ``cache_mode=ids`` to specify the mode of caching.
+    - ``none``: No caching is performed.
+    - ``ids``: Caches the entire IDS (Integrated Data Structure).
+
+``fetch``
+    UDA ``fetch`` is disabled by default. Set ``fetch=1`` to enable fetching
+    and downloading IDS files to the local ``local_cache`` directory.
+
+``local_cache``
+    UDA ``local_cache`` is set to ``tmp/path_in_uri`` by default. This is used along with ``fetch=1`` in the query.
+    Set ``local_cache=/path/to/local/cache/directory`` and the download directory will be ``local_cache/path_in_uri``.
+    ``local_cache`` specifies the path to the local cache directory where IDSs will be downloaded.
