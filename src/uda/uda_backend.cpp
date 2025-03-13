@@ -1242,7 +1242,7 @@ std::vector<int> read_occurrences(NodeReader *node) {
 
 void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
     if (access_local_) {
-        return backend_->get_occurrences(ids_name, occurrences_list, size);
+        return backend_->get_occurrences(ctx, ids_name, occurrences_list, size);
     }
 
     if (verbose_) {
