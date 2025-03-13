@@ -241,7 +241,7 @@ The :ref:`UDA backend` also recognizes these backend-specific query keys.
 ``cache_mode``
     UDA cache_mode is ``ids`` by default. Set ``cache_mode=none``or ``cache_mode=ids`` to specify the mode of caching.
     - ``none``: No caching is performed.
-    - ``ids``: Caches the entire IDS (Integrated Data Structure).
+    - ``ids``: Caches the entire IDS (Interface Data Structure).
 
 ``fetch``
     UDA ``fetch`` is disabled by default. Set ``fetch=1`` to enable fetching

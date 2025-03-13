@@ -81,7 +81,7 @@ private:
     DataEntryContext* local_ctx_ = nullptr;
     Backend* backend_ = nullptr;
 
-    // Cache for homogenous time value for non cache reads
+    // Cache for homogenous time value for non-cached reads
     std::unordered_map<std::string, bool> homogeneous_time_ = {};
 
     // Cached values used to read HDF5 files on demand
