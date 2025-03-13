@@ -273,7 +273,7 @@ UDABackend::UDABackend(const uri::Uri& uri)
 std::pair<int, int> UDABackend::getVersion(DataEntryContext* ctx)
 {
     if (access_local_) {
-        return backend_->getVersion(local_ctx_);
+        return local_backend_->getVersion(local_ctx_);
     }
 
     std::pair<int, int> version;
@@ -431,7 +431,7 @@ void UDABackend::fetch_files(const uri::Uri& uri)
         // Files downloaded so all further access will happen via the local backend.
         std::string new_uri = std::string{"imas:"} + backend + "?path=" + local_path_.string();
         local_ctx_ = new DataEntryContext{new_uri};
-        backend_ = Backend::initBackend(local_ctx_);
+        local_backend_ = Backend::initBackend(local_ctx_);
 
         if (verbose_) {
             std::cout << "UDABackend all further requests being forwarded to " << backend << " backend \n";
@@ -445,7 +445,7 @@ void UDABackend::openPulse(DataEntryContext* ctx,
                            int mode)
 {
     if (access_local_) {
-        return backend_->openPulse(local_ctx_, mode);
+        return local_backend_->openPulse(local_ctx_, mode);
     }
 
     process_options(ctx->getURI());
@@ -537,7 +537,7 @@ void UDABackend::closePulse(DataEntryContext* ctx,
                             int mode)
 {
     if (access_local_) {
-        return backend_->closePulse(local_ctx_, mode);
+        return local_backend_->closePulse(local_ctx_, mode);
     }
 
     if (verbose_) {
@@ -600,7 +600,7 @@ int UDABackend::readData(Context* ctx,
                          int* size)
 {
     if (access_local_) {
-        return backend_->readData(ctx, fieldname, timebasename, data, datatype, dim, size);
+        return local_backend_->readData(ctx, fieldname, timebasename, data, datatype, dim, size);
     }
 
     auto path = array_path(ctx) + "/" + fieldname;
@@ -889,7 +889,7 @@ void UDABackend::populate_cache(const std::string& ids, const std::string& path,
 void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 {
     if (access_local_) {
-        return backend_->beginArraystructAction(ctx, size);
+        return local_backend_->beginArraystructAction(ctx, size);
     }
 
     if (verbose_) {
@@ -983,7 +983,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
                 download_file(ids_filename);
             }
         }
-        return backend_->beginAction(op_ctx);
+        return local_backend_->beginAction(op_ctx);
     }
 
     if (verbose_) {
@@ -1050,7 +1050,7 @@ void UDABackend::beginAction(OperationContext* op_ctx)
 void UDABackend::endAction(Context* ctx)
 {
     if (access_local_) {
-        return backend_->endAction(ctx);
+        return local_backend_->endAction(ctx);
     }
 
     if (verbose_) {
@@ -1084,7 +1084,7 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
                       int* size)
 {
     if (access_local_) {
-        return backend_->writeData(ctx, fieldname, timebasename, data, datatype, dim, size);
+        return local_backend_->writeData(ctx, fieldname, timebasename, data, datatype, dim, size);
     }
 
     if (verbose_) {
@@ -1138,7 +1138,7 @@ UDABackend::writeData(Context* ctx, std::string fieldname, std::string timebasen
 void UDABackend::deleteData(OperationContext* ctx, std::string path)
 {
     if (access_local_) {
-        return backend_->deleteData(ctx, path);
+        return local_backend_->deleteData(ctx, path);
     }
 
     if (verbose_) {
@@ -1168,7 +1168,7 @@ void UDABackend::deleteData(OperationContext* ctx, std::string path)
 bool UDABackend::supportsTimeDataInterpolation()
 {
     if (access_local_) {
-        return backend_->supportsTimeDataInterpolation();
+        return local_backend_->supportsTimeDataInterpolation();
     }
 
     if (verbose_) {
@@ -1242,7 +1242,7 @@ std::vector<int> read_occurrences(NodeReader *node) {
 
 void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
     if (access_local_) {
-        return backend_->get_occurrences(ctx, ids_name, occurrences_list, size);
+        return local_backend_->get_occurrences(ctx, ids_name, occurrences_list, size);
     }
 
     if (verbose_) {
