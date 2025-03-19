@@ -180,7 +180,7 @@ overview of configuration options.
         cmake -B build \
             -D AL_CORE_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-core.git \
             -D AL_PLUGINS_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-plugins.git \
-            -D DD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git
+            -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
 
     If you use CMake 3.21 or newer, you can also use the ``https`` preset:
 
