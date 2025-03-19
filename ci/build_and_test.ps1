@@ -30,7 +30,7 @@ $CMAKE_ARGS = @(
   "-DAL_BUILD_MDSPLUS_MODELS=OFF"
   "-DAL_PYTHON_BINDINGS=ON"
   "-DAL_DOWNLOAD_DEPENDENCIES=ON"
-  "-DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git"
+  "-DDD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git"
   "-DDD_VERSION=$DD_VERSION"
 )
 
