@@ -31,8 +31,8 @@ $CMAKE_ARGS = @(
   "-DAL_BUILD_MDSPLUS_MODELS=$(${env:AL_BUILD_MDSPLUS_MODELS:-OFF})"
   "-DAL_PYTHON_BINDINGS=$(${env:AL_PYTHON_BINDINGS:-ON})"
   "-DAL_DOWNLOAD_DEPENDENCIES=$(${env:AL_DOWNLOAD_DEPENDENCIES:-ON})"
-  "-DDD_GIT_REPOSITORY=$(${env:DDD_GIT_REPOSITORY:-https://git.iter.org/scm/imas/data-dictionary.git})"
-  "-DDD_VERSION=$(${env:DDD_VERSION:-$DD_VERSION})"
+  "-DDD_GIT_REPOSITORY=$(${env:DD_GIT_REPOSITORY:-https://git.iter.org/scm/imas/data-dictionary.git})"
+  "-DDD_VERSION=$(${env:DD_VERSION:-$DD_VERSION})"
 )
 
 cmake -Bbuild @CMAKE_ARGS
