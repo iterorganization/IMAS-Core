@@ -30,7 +30,7 @@ requires = [
     "scikit-build-core>=0.9.3",
     "cython>=3.0.3",
     "cython-cmake>=0.2.0",
-    "numpy>=2",
+    "numpy",
     "setuptools>=64",
     "setuptools_scm>=8",
 ]
