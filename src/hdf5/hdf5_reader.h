@@ -75,6 +75,7 @@ class HDF5Reader {
     static bool ends_with(const std::string &str, const std::string &suffix);
 
     bool INTERPOLATION_WARNING;
+    std::vector<double> time_basis_vector;
 
   public:
 
