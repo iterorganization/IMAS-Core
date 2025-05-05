@@ -174,8 +174,8 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
     int time_range_count = 0; //number of time slices in optional specified time range
     if ((slice_mode == SLICE_OP && isTimed) || ( (opctx->getRangemode() == TIMERANGE_OP) && isTimed))
     {
-        std::string time_dataset_name = getTimeVectorDataSetName(timed_AOS_index, tensorized_paths);
-        int time_vector_dim = 0;                                                                                                             //isTimed is true
+        std::string time_dataset_name = getTimeVectorDataSetName(ctx->getTimebasePath(), timed_AOS_index, tensorized_paths);
+        int time_vector_dim = 0;                                                                                                           //isTimed is true
         std::unique_ptr<HDF5DataSetHandler> time_data_set = std::move(getTimeVectorDataSet(opCtx, gid, time_dataset_name, time_vector_dim)); //get time_data_set from the opened_data_sets map if it exists or create it
         assert(time_data_set);
 
@@ -271,13 +271,14 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
 {
 
     std::string dataset_name;
-
-    if (homogeneous_time == 1)
+    if ( (timebasename == "time" || timebasename == "/time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
+        homogeneous_time = 1;
         dataset_name = "time";
         return dataset_name;
     }
 
+    homogeneous_time = 0;
     std::string tensorized_path = timebasename;
 
     if (timed_AOS_index != -1)
@@ -315,15 +316,17 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
     return dataset_name;
 }
 
-std::string HDF5Reader::getTimeVectorDataSetName(int timed_AOS_index, std::vector<std::string> &tensorized_paths)
+std::string HDF5Reader::getTimeVectorDataSetName(const std::string &timebasePath, int timed_AOS_index, std::vector<std::string> &tensorized_paths)
 {
 
     std::string dataset_name;
-    if (homogeneous_time == 1)
+    if ( (timebasePath == "time" || timebasePath == "/time") || (timed_AOS_index != -1 && timebasePath.empty()))
     {
+        homogeneous_time = 1;
         dataset_name = "time";
         return dataset_name;
     }
+    homogeneous_time = 0;
     if (timed_AOS_index == -1)
         throw ALBackendException("HDF5Backend: unexpected timed_AOS_index (-1) value in HDF5Reader::getTimeVectorDataSetName()", LOG);
     dataset_name = tensorized_paths[timed_AOS_index] + "&time";
@@ -332,31 +335,12 @@ std::string HDF5Reader::getTimeVectorDataSetName(int timed_AOS_index, std::vecto
 
 std::unique_ptr<HDF5DataSetHandler> HDF5Reader::getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string &dataset_name, int dim)
 {
-
     hid_t dataset_id = -1;
     std::unique_ptr<HDF5DataSetHandler> data_set;
-    /*auto got = opened_data_sets.find(dataset_name);
-    if (got != opened_data_sets.end())
-    {
-        data_set = std::move(got->second);
-        opened_data_sets.erase(got);
-        dataset_id = data_set->dataset_id;
-    }
-    else
-    {*/
-        std::unique_ptr<HDF5DataSetHandler> dataSetHandler(new HDF5DataSetHandler(false, opCtx->getDataEntryContext()->getURI()));
-        dataSetHandler->open(dataset_name.c_str(), gid, &dataset_id, dim, nullptr, alconst::double_data, false, true, opCtx->getDataEntryContext()->getURI());
-        dataset_id = dataSetHandler->dataset_id;
-        data_set = std::move(dataSetHandler);
-    /*}
-
-    if (dataset_id < 0)
-    {
-        char error_message[200];
-        sprintf(error_message, "Unable to open dataset: %s for getting time vector.\n", dataset_name.c_str());
-        throw ALBackendException(error_message, LOG);
-    }*/
-
+    std::unique_ptr<HDF5DataSetHandler> dataSetHandler(new HDF5DataSetHandler(false, opCtx->getDataEntryContext()->getURI()));
+    dataSetHandler->open(dataset_name.c_str(), gid, &dataset_id, dim, nullptr, alconst::double_data, false, true, opCtx->getDataEntryContext()->getURI());
+    dataset_id = dataSetHandler->dataset_id;
+    data_set = std::move(dataSetHandler);
     return data_set;
 }
 
@@ -401,7 +385,7 @@ void HDF5Reader::getTimeVector( OperationContext *opCtx, std::unique_ptr<HDF5Dat
     int dataset_rank = data_set->getRank();
     int timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
-    if (homogeneous_time == 1 || data_set->getName().compare("time") == 0)
+    if (homogeneous_time == 1)
     {
         
         if (time_basis_vector.empty()) {
@@ -467,6 +451,7 @@ bool HDF5Reader::ends_with(const std::string &str, const std::string &suffix) {
 
 int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &timebasename, int datatype, void **data, int *dim, int *size)
 {
+
     OperationContext *opctx = nullptr;
     if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
     {
@@ -555,7 +540,6 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     if (dynamic_case)
     {
         try {
-
             std::string time_dataset_name = getTimeVectorDataSetName(opctx, timebasename, timed_AOS_index);
 
             auto got = opened_data_sets.find(time_dataset_name);
