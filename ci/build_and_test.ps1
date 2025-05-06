@@ -20,17 +20,28 @@ python -m venv build\pip_install
 build\pip_install\Scripts\activate.ps1
 python -m pip install --upgrade pip 
 
+# Retrieve variables from the environment or use default values
+$AL_BACKEND_HDF5 = if ($env:AL_BACKEND_HDF5) { $env:AL_BACKEND_HDF5 } else { "ON" }
+$VCPKG = if ($env:VCPKG) { $env:VCPKG } else { "ON" }
+$AL_BACKEND_MDSPLUS = if ($env:AL_BACKEND_MDSPLUS) { $env:AL_BACKEND_MDSPLUS } else { "OFF" }
+$AL_BACKEND_UDA = if ($env:AL_BACKEND_UDA) { $env:AL_BACKEND_UDA } else { "OFF" }
+$AL_BUILD_MDSPLUS_MODELS = if ($env:AL_BUILD_MDSPLUS_MODELS) { $env:AL_BUILD_MDSPLUS_MODELS } else { "OFF" }
+$AL_PYTHON_BINDINGS = if ($env:AL_PYTHON_BINDINGS) { $env:AL_PYTHON_BINDINGS } else { "ON" }
+$AL_DOWNLOAD_DEPENDENCIES = if ($env:AL_DOWNLOAD_DEPENDENCIES) { $env:AL_DOWNLOAD_DEPENDENCIES } else { "ON" }
+$DD_GIT_REPOSITORY = if ($env:DD_GIT_REPOSITORY) { $env:DD_GIT_REPOSITORY } else { "https://github.com/iterorganization/IMAS-Data-Dictionary.git" }
+$DD_VERSION = if ($env:DD_VERSION) { $env:DD_VERSION } else { "main" }
+
 $CMAKE_ARGS = @(
   "-DCMAKE_INSTALL_PREFIX=$pwd\build\test-install"
   "-DPython_FIND_VIRTUALENV=ONLY"
-  "-DAL_BACKEND_HDF5=ON"
-  "-DVCPKG=ON"
-  "-DAL_BACKEND_MDSPLUS=OFF"
-  "-DAL_BACKEND_UDA=OFF"
-  "-DAL_BUILD_MDSPLUS_MODELS=OFF"
-  "-DAL_PYTHON_BINDINGS=ON"
-  "-DAL_DOWNLOAD_DEPENDENCIES=ON"
-  "-DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git"
+  "-DAL_BACKEND_HDF5=$AL_BACKEND_HDF5"
+  "-DVCPKG=$VCPKG"
+  "-DAL_BACKEND_MDSPLUS=$AL_BACKEND_MDSPLUS"
+  "-DAL_BACKEND_UDA=$AL_BACKEND_UDA"
+  "-DAL_BUILD_MDSPLUS_MODELS=$AL_BUILD_MDSPLUS_MODELS"
+  "-DAL_PYTHON_BINDINGS=$AL_PYTHON_BINDINGS"
+  "-DAL_DOWNLOAD_DEPENDENCIES=$AL_DOWNLOAD_DEPENDENCIES"
+  "-DDD_GIT_REPOSITORY=$DD_GIT_REPOSITORY"
   "-DDD_VERSION=$DD_VERSION"
 )
 

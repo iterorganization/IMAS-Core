@@ -12,7 +12,7 @@ repositories:
     Access Layer core repository, MDSplus model generator and Python lowlevel
     bindings.
 -   `data-dictionary
-    <https://git.iter.org/projects/IMAS/repos/data-dictionary/browse>`__: the IMAS Data
+    <https://github.com/iterorganization/IMAS-data-Dictionary>`__: the IMAS Data
     Dictionary definitions, used for generating MDSplus models and the traditional High
     Level Interfaces.
 -   `al-plugins <https://git.iter.org/projects/IMAS/repos/al-plugins/browse>`__: Access
@@ -118,7 +118,7 @@ specifies which branch to use from each repository:
     ``al-plugins`` and ``data-dictionary`` are set in `ALCommonConfig.cmake
     <https://git.iter.org/projects/IMAS/repos/al-core/browse/common/cmake/ALCommonConfig.cmake>`__.
 
-    The default versions used are ``main`` for ``al-plugins``, and ``master/3`` for
+    The default versions used are ``main`` for ``al-plugins``, and ``main`` for
     ``data-dictionary``.
 
 

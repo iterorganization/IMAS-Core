@@ -94,6 +94,7 @@ set(PUBLIC_HEADER_FILES
     include/access_layer_base_plugin.h
     include/access_layer_plugin.h
     include/access_layer_plugin_manager.h
+    include/extended_access_layer_plugin.h
     include/al_backend.h
     include/al_const.h
     include/al_context.h
