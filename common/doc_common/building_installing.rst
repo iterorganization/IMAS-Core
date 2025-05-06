@@ -166,8 +166,8 @@ overview of configuration options.
         <https://git.iter.org/projects/IMAS/repos/al-core/browse>`__
     -   `al-plugins (ssh://git@git.iter.org/imas/al-plugins.git)
         <https://git.iter.org/projects/IMAS/repos/al-plugins/browse>`__
-    -   `data-dictionary (ssh://git@git.iter.org/imas/data-dictionary.git)
-        <https://git.iter.org/projects/IMAS/repos/data-dictionary/browse>`__
+    -   `data-dictionary (https://github.com/iterorganization/IMAS-data-Dictionary.git)
+        <https://github.com/iterorganization/IMAS-data-Dictionary`__
 
     If you need to change the git repositories, for example to point to a mirror of the
     repository or to use a HTTPS URL instead of the default SSH URLs, you can update the
@@ -180,7 +180,7 @@ overview of configuration options.
         cmake -B build \
             -D AL_CORE_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-core.git \
             -D AL_PLUGINS_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-plugins.git \
-            -D DD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
+            -D DD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git
 
     If you use CMake 3.21 or newer, you can also use the ``https`` preset:
 
@@ -289,8 +289,8 @@ Configuration options
         AL_PLUGINS_GIT_REPOSITORY:  ssh://git@git.iter.org/imas/al-plugins.git
         AL_PLUGINS_VERSION:         main
 
-        DD_GIT_REPOSITORY:          ssh://git@git.iter.org/imas/data-dictionary.git
-        DD_VERSION:                 master/3
+        DD_GIT_REPOSITORY:          https://github.com/iterorganization/IMAS-data-Dictionary.git
+        DD_VERSION:                 main
 
 -   **Useful CMake options**
 
