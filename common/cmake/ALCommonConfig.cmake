@@ -45,11 +45,11 @@ if( AL_DOWNLOAD_DEPENDENCIES )
   # Data dictionary
   ##############################################################################
   set(
-    DD_GIT_REPOSITORY "ssh://git@git.iter.org/imas/data-dictionary.git"
+    DD_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-data-Dictionary.git"
     CACHE STRING "Git repository of the Data Dictionary"
   )
   set(
-    DD_VERSION "master/3"
+    DD_VERSION "main"
     CACHE STRING "Data dictionary version (tag or branch name) to use for this build"
   )
 endif()
