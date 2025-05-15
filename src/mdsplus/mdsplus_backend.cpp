@@ -4488,7 +4488,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		tree = new MDSplus::Tree(szTree, shotNum, szOption);
 		break;
 	      } catch(MDSplus::MdsException &exc) {
-		if (!mode==alconst::force_open_pulse) {
+		if (mode!=alconst::force_open_pulse) {
 		  resetIdsPath(szTree);
 		  throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG);
 		}
