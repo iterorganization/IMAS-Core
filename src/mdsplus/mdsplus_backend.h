@@ -9,6 +9,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <Shlobj.h>
+#include "fix_include_windows.h"
 #else // WIN32
 #include <pwd.h>
 #endif // WIN32

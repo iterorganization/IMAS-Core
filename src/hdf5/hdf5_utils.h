@@ -18,6 +18,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <Shlobj.h>
+#include "fix_include_windows.h"
 #else 
 #include <pwd.h>
 #endif 

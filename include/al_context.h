@@ -16,6 +16,7 @@
 #   define NOMINMAX
 #include <windows.h>
 #include <Shlobj.h>
+#include "fix_include_windows.h"
 #else
 #  define LIBRARY_API
 #include <pwd.h>
