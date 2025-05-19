@@ -697,15 +697,10 @@ int UDABackend::readData(Context* ctx,
                 size_t num_children = uda_capnp_num_children(root);
                 if (num_children == 0) {
                     return 0;
-                } if (num_children > 1 && cache_mode_ == imas::uda::CacheMode::None) {
-                    auto node = uda_capnp_read_child_n(tree, root, 1);
+		} else {
+                    auto node = uda_capnp_read_child_n(tree, root, num_children - 1);
                     unpack_node(path, tree, node, data, datatype, dim, size);
-                } else if (num_children == 1) {
-                    auto node = uda_capnp_read_child_n(tree, root, 0);
-                    unpack_node(path, tree, node, data, datatype, dim, size);
-                } else if (num_children > 1) {
-                    throw ALBackendException(std::string("Too many tree elements returned"), LOG);
-                }
+                }                 
 
                 uda_capnp_free_tree_reader(tree);
             }
@@ -980,7 +975,9 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
                     LOG);
         }
         *size = *reinterpret_cast<const int*>(uda_data->byte_data()); 
-        std::cout << "UDABackend beginArraystructAction size:   " << *size << "\n";
+	if (verbose_) {
+            std::cout << "UDABackend beginArraystructAction size:   " << *size << "\n";
+	}
     }
 }
 
