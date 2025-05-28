@@ -270,8 +270,10 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
 std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::string timebasename, int timed_AOS_index)
 {
 
+    std::replace(timebasename.begin(), timebasename.end(), '/', '&');
+
     std::string dataset_name;
-    if ( (timebasename == "time" || timebasename == "/time") || (timed_AOS_index != -1 && timebasename.empty()))
+    if ( (timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
         homogeneous_time = 1;
         dataset_name = "time";
@@ -318,9 +320,11 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
 
 std::string HDF5Reader::getTimeVectorDataSetName(const std::string &timebasePath, int timed_AOS_index, std::vector<std::string> &tensorized_paths)
 {
+    std::string timebasename = timebasePath;
+    std::replace(timebasename.begin(), timebasename.end(), '/', '&');
 
     std::string dataset_name;
-    if ( (timebasePath == "time" || timebasePath == "/time") || (timed_AOS_index != -1 && timebasePath.empty()))
+    if ( (timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
         homogeneous_time = 1;
         dataset_name = "time";
@@ -546,7 +550,6 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             bool dataset_opened = false;
 
             std::unique_ptr<HDF5DataSetHandler> time_data_set;
-
              if (homogeneous_time != 1) { //the time basis needs to be updated 
                 if (got != opened_data_sets.end()) {
                     time_data_set = std::move(got->second);
@@ -581,6 +584,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     }
 
     std::unique_ptr<HDF5DataSetHandler> data_set;
+
     if (homogeneous_time_basis_dataset_with_resampling) {
         double tmin = opctx->time_range.tmin;
         double tmax = opctx->time_range.tmax;
@@ -597,6 +601,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     { //in this case, no value is returned
         return exit_request(data_set, 0);
     }
+
 
     std::map<std::string, int> times_indices;
     double requested_time; //requested time for SLICE_OP or for time range with dtime !=-1 (resampling)
