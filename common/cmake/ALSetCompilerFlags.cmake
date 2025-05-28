@@ -49,6 +49,11 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" )
   string( APPEND CMAKE_CXX_FLAGS
     # " -Wall"
   )
+elseif( CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" )
+  # Apple Clang C++ options
+  string( APPEND CMAKE_CXX_FLAGS
+    # " -Wall"
+  )
 else()
   message( WARNING "Unsupported C++ compiler: ${CMAKE_CXX_COMPILER_ID}" )
 endif()

@@ -13,7 +13,8 @@
 #include <boost/algorithm/string.hpp>
 #include <c++/UDA.hpp>
 #include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
+#include <filesystem>
 #include <boost/cstdlib.hpp>
 
 #include "al_backend.h"
@@ -67,6 +68,8 @@ class LIBRARY_API UDABackend : public Backend
 {
 private:
     bool verbose_ = false;
+    bool fetch_ = false;
+    bool access_local_ = false;
     std::string plugin_ = "IMAS";
     uda::Client uda_client_;
     std::shared_ptr<pugi::xml_document> doc_ = {};
@@ -75,13 +78,24 @@ private:
     int open_mode_ = 0;
     std::string dd_version_ = "";
 
+    DataEntryContext* local_ctx_ = nullptr;
+    Backend* local_backend_ = nullptr;
+
+    // Cache for homogenous time value for non-cached reads
+    std::unordered_map<std::string, bool> homogeneous_time_ = {};
+
+    // Cached values used to read HDF5 files on demand
+    std::filesystem::path remote_path_ = {};
+    std::filesystem::path local_path_ = {};
+    std::vector<std::string> ids_filenames_ = {};
+
     /**
      * Process any UDA backend specific options found on the DBEntry URI.
      *
      * @param uri the uri of the DBEntry
      * @throw ALException if any of the passed options have invalid values
      */
-    void process_options(uri::Uri uri);
+    void process_options(const uri::Uri& uri);
 
     /**
      * Generate all requests for the given `ids` starting at the given `path` and send these requests to the UDA server,
@@ -100,9 +114,26 @@ private:
      * @param ids the IDS we are reading the flag for
      * @param pulse_ctx the pulse context
      * @param op_ctx the operation context
-     * @return
+     * @return the homogeneous flag
      */
     bool get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
+
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     *
+     * @param local_path the path to the directory in which to save the data locally
+     * @param remote_path the path to the data on the remote server
+     * @param backend the backend used to access the data on the remote server
+     * @return if the fetch was successful
+     */
+    bool fetch_files(const std::string& backend);
+
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     */
+    void fetch_files(const uri::Uri& uri);
+
+    void download_file(const std::string& filename);
 
 public:
 
@@ -111,7 +142,7 @@ public:
      *
      * @param uri the URI of the data entry that the backend is being used to read
      */
-    explicit UDABackend(uri::Uri uri);
+    explicit UDABackend(const uri::Uri& uri);
 
     ~UDABackend() override
     {
