@@ -93,7 +93,7 @@ class HDF5Reader {
     void close_datasets();
     void close_group(OperationContext *ctx);
     void endAction(Context * ctx);
-    void setSliceMode(int slice_mode);
+    void setSliceMode(OperationContext *ctx);
 };
 
 #endif

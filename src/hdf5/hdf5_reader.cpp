@@ -164,12 +164,8 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
     int slice_index = -1;
 
     OperationContext *opCtx = ctx->getOperationContext();
-    slice_mode = GLOBAL_OP;
-    if (opctx->getRangemode() == TIMERANGE_OP) {
-        slice_mode = GLOBAL_OP;
-    }
-    else if (opctx->getRangemode() == SLICE_OP)
-         slice_mode = SLICE_OP;
+
+    slice_mode = (opCtx->getRangemode() == GLOBAL_OP || opCtx->getRangemode() == TIMERANGE_OP) ? GLOBAL_OP : SLICE_OP;
 
     int time_range_count = 0; //number of time slices in optional specified time range
     if ((slice_mode == SLICE_OP && isTimed) || ( (opctx->getRangemode() == TIMERANGE_OP) && isTimed))
@@ -275,12 +271,9 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
     std::string dataset_name;
     if ( (timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
-        homogeneous_time = 1;
         dataset_name = "time";
         return dataset_name;
     }
-
-    homogeneous_time = 0;
     std::string tensorized_path = timebasename;
 
     if (timed_AOS_index != -1)
@@ -389,7 +382,7 @@ void HDF5Reader::getTimeVector( OperationContext *opCtx, std::unique_ptr<HDF5Dat
     int dataset_rank = data_set->getRank();
     int timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
-    if (homogeneous_time == 1)
+    if (homogeneous_time == 1 || data_set->getName() == "time" )
     {
         
         if (time_basis_vector.empty()) {
@@ -611,7 +604,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
         if ( (opctx->getRangemode() == SLICE_OP) && dynamic_case)
         {
-            slice_mode = opctx->getRangemode();
+            slice_mode = SLICE_OP;
             slice_index = data_interpolation_component.getSlicesTimesIndices(opctx->getTime(), time_basis_vector, times_indices, opctx->getInterpmode());
             requested_time = opctx->getTime();
         }
@@ -834,9 +827,8 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             }
         }
         else {
-            //printf("NOT setting the time range size\n");
+            //printf("-->NOT setting the time range size\n");
         }
-
         data_set->selection_reader = std::move(hsSelectionReader);
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
         data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
@@ -859,13 +851,13 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         }
     }
 
+
     if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && !dynamic_case ) {
         return exit_request(data_set, 1);
     }
 
     if (slice_op_linear_interpolation)
     {
-
         HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
 
         //Taking the next slide to make the linear interpolation
@@ -922,7 +914,6 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             }
         }
     }
-
     if ( (opctx->getRangemode() == TIMERANGE_OP) && (opctx->time_range.dtime.size() != 0) && dynamic_case)
     {
         double tmin = opctx->time_range.tmin;
@@ -960,7 +951,6 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     {
         //printf("no resampling for %s\n", data_set->getName().c_str());
     }
-
     return exit_request(data_set, 1);
 }
 
@@ -1456,9 +1446,9 @@ DataEntryContext *HDF5Reader::getDataEntryContext(Context *ctx)
     return opctx->getDataEntryContext();
 }
 
-void HDF5Reader::setSliceMode(int slice_mode)
+void HDF5Reader::setSliceMode(OperationContext * ctx)
 {
-    this->slice_mode = slice_mode;
+    this->slice_mode = (ctx->getRangemode() == GLOBAL_OP || ctx->getRangemode() == TIMERANGE_OP) ? GLOBAL_OP : SLICE_OP;
 }
 
 void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, int *size, hid_t master_file_id)
