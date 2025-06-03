@@ -33,7 +33,7 @@ option(CMAKE_INSTALL_RPATH_USE_LINK_PATH
   
 # Configuration option for automatic download of common third party libraries 
 # ##############################################################################
-include(./vcpkg.cmake)
+# include(./vcpkg.cmake)
 
 
 # Load common assets

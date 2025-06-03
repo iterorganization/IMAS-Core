@@ -40,3 +40,4 @@ python/imas_core.libs/
 python/imas_core/*.pyd
 python/include/
 python/lib/
+/_trash/
