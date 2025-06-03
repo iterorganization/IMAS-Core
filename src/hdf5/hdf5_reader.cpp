@@ -18,7 +18,7 @@ HDF5Reader::HDF5Reader(std::string backend_version_)
       tensorized_paths_per_context(), tensorized_paths_per_op_context(), arrctx_shapes_per_context(), homogeneous_time(-1),
       IDS_group_id(), slice_mode(GLOBAL_OP), data_interpolation_component()
 {
-    //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+    // H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
     INTERPOLATION_WARNING = (std::getenv("IMAS_AL_DISABLE_INTERPOLATION_WARNING") == nullptr);
 }
 
@@ -36,7 +36,7 @@ void HDF5Reader::closePulse(DataEntryContext *ctx, int mode, hid_t *file_id, std
     {
         const std::string &external_link_name = it->first;
         hid_t &pulse_file_id = it->second;
-        hdf5_utils.closeIDSFile(pulse_file_id, external_link_name); //closing the IDS file
+        hdf5_utils.closeIDSFile(pulse_file_id, external_link_name); // closing the IDS file
         it++;
     }
     hdf5_utils.closeMasterFile(file_id);
@@ -104,7 +104,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
         gid = got_gid->second;
 
     if (gid == -1)
-    { //IDS does not exist in the file
+    { // IDS does not exist in the file
         *size = 0;
         return;
     }
@@ -134,7 +134,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
         tensorized_paths_per_op_context[opctx] = tensorized_paths_per_context[ctx];
     }
 
-    if (existing_data_sets.find(tensorized_path) != existing_data_sets.end()) //optimization
+    if (existing_data_sets.find(tensorized_path) != existing_data_sets.end()) // optimization
     {
         if (existing_data_sets[tensorized_path] == 0)
         {
@@ -158,7 +158,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
 
     int timed_AOS_index = -1;
     std::vector<int> current_arrctx_indices;
-    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index); //getting current AOS indices
+    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index); // getting current AOS indices
     int *shapes = nullptr;
     bool isTimed = (timed_AOS_index != -1);
     int slice_index = -1;
@@ -167,16 +167,18 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
 
     slice_mode = (opCtx->getRangemode() == GLOBAL_OP || opCtx->getRangemode() == TIMERANGE_OP) ? GLOBAL_OP : SLICE_OP;
 
-    int time_range_count = 0; //number of time slices in optional specified time range
-    if ((slice_mode == SLICE_OP && isTimed) || ( (opctx->getRangemode() == TIMERANGE_OP) && isTimed))
+    int time_range_count = 0; // number of time slices in optional specified time range
+    if ((slice_mode == SLICE_OP && isTimed) || ((opctx->getRangemode() == TIMERANGE_OP) && isTimed))
     {
-        std::string time_dataset_name = getTimeVectorDataSetName(ctx->getTimebasePath(), timed_AOS_index, tensorized_paths);
-        int time_vector_dim = 0;                                                                                                           //isTimed is true
-        std::unique_ptr<HDF5DataSetHandler> time_data_set = std::move(getTimeVectorDataSet(opCtx, gid, time_dataset_name, time_vector_dim)); //get time_data_set from the opened_data_sets map if it exists or create it
+        ArraystructContext *timedContext = nullptr;
+        hdf5_utils.timedContext(ctx, timedContext);
+        std::string time_dataset_name = getTimeVectorDataSetName(timedContext->getTimebasePath(), timed_AOS_index, tensorized_paths);
+        int time_vector_dim = 0;                                                                                                             // isTimed is true
+        std::unique_ptr<HDF5DataSetHandler> time_data_set = std::move(getTimeVectorDataSet(opCtx, gid, time_dataset_name, time_vector_dim)); // get time_data_set from the opened_data_sets map if it exists or create it
         assert(time_data_set);
 
         std::map<std::string, int> times_indices;
-        
+
         if (slice_mode == SLICE_OP)
         {
             getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, time_basis_vector);
@@ -185,48 +187,48 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
         else if (opctx->getRangemode() == TIMERANGE_OP)
         {
             if (opctx->time_range.dtime.size() != 0)
-            { //resampling
+            { // resampling
 
                 std::vector<double> v;
                 getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, v, true);
                 time_range_count = v.size();
-
-                //printf("time_range_count = %d\n", time_range_count);
-
+                // printf("time_range_count = %d\n", time_range_count);
                 time_basis_vector.clear();
                 getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, time_basis_vector);
                 double requested_time;
                 if (opctx->time_range.dtime.size() == 1)
                     requested_time = opctx->time_range.tmin + current_arrctx_indices[timed_AOS_index] * opctx->time_range.dtime[0];
-                else 
+                else
                     requested_time = opctx->time_range.dtime[current_arrctx_indices[timed_AOS_index]];
-                
+
                 slice_index = data_interpolation_component.getSlicesTimesIndices(requested_time, time_basis_vector, times_indices, opctx->time_range.interpolation_method);
                 if (isTimed)
-                    current_arrctx_indices[timed_AOS_index] = slice_index; //we correct the timed AOS index
+                    current_arrctx_indices[timed_AOS_index] = slice_index; // we correct the timed AOS index
             }
-            else {
+            else
+            {
                 getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, time_basis_vector);
                 int time_range_tmin_index;
                 int time_range_tmax_index;
-                //searching time_range_count value
+                // searching time_range_count value
                 double tmin;
                 double tmax;
-                if (opctx->time_range.dtime.size() <= 1) {
+                if (opctx->time_range.dtime.size() <= 1)
+                {
                     tmin = opctx->time_range.tmin;
                     tmax = opctx->time_range.tmax;
                 }
-                else {
+                else
+                {
                     tmin = opctx->time_range.dtime[0];
                     tmax = opctx->time_range.dtime.back();
                 }
 
                 data_interpolation_component.getTimeRangeIndices(tmin, tmax, opctx->time_range.dtime,
-                                                                time_basis_vector, &time_range_tmin_index, &time_range_tmax_index, &time_range_count, opctx->time_range.interpolation_method);
+                                                                 time_basis_vector, &time_range_tmin_index, &time_range_tmax_index, &time_range_count, opctx->time_range.interpolation_method);
             }
-
         }
-        //opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
+        // opened_data_sets[time_dataset_name] = std::move(time_data_set); //move unique_ptr to the std::map
         time_data_set->close();
     }
     if (readAOSPersistentShapes(ctx, gid, tensorized_path, timed_AOS_index, slice_index, (void **)&shapes, current_arrctx_indices) == 0)
@@ -256,7 +258,7 @@ void HDF5Reader::beginReadArraystructAction(ArraystructContext *ctx, int *size)
     {
         *size = 1;
     }
-    else if ( (opctx->getRangemode() == TIMERANGE_OP) && ctx->getTimed() && *size > 0)
+    else if ((opctx->getRangemode() == TIMERANGE_OP) && ctx->getTimed() && *size > 0)
     {
         *size = time_range_count;
     }
@@ -269,7 +271,8 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');
 
     std::string dataset_name;
-    if ( (timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
+
+    if ((timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
         dataset_name = "time";
         return dataset_name;
@@ -277,7 +280,7 @@ std::string HDF5Reader::getTimeVectorDataSetName(OperationContext *opCtx, std::s
     std::string tensorized_path = timebasename;
 
     if (timed_AOS_index != -1)
-    { //that means we are inside an AOS
+    { // that means we are inside an AOS
         if (timebasename.substr(0, 1) == "&")
         {
             dataset_name = timebasename.replace(0, 1, "");
@@ -317,13 +320,11 @@ std::string HDF5Reader::getTimeVectorDataSetName(const std::string &timebasePath
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');
 
     std::string dataset_name;
-    if ( (timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
+    if ((timebasename == "time" || timebasename == "&time") || (timed_AOS_index != -1 && timebasename.empty()))
     {
-        homogeneous_time = 1;
         dataset_name = "time";
         return dataset_name;
     }
-    homogeneous_time = 0;
     if (timed_AOS_index == -1)
         throw ALBackendException("HDF5Backend: unexpected timed_AOS_index (-1) value in HDF5Reader::getTimeVectorDataSetName()", LOG);
     dataset_name = tensorized_paths[timed_AOS_index] + "&time";
@@ -341,55 +342,61 @@ std::unique_ptr<HDF5DataSetHandler> HDF5Reader::getTimeVectorDataSet(OperationCo
     return data_set;
 }
 
-void HDF5Reader::getTimeVector( OperationContext *opCtx, std::unique_ptr<HDF5DataSetHandler> &data_set, const std::string &timebasename, int timed_AOS_index,
+void HDF5Reader::getTimeVector(OperationContext *opCtx, std::unique_ptr<HDF5DataSetHandler> &data_set, const std::string &timebasename, int timed_AOS_index,
                                const std::vector<int> &current_arrctx_indices, std::vector<double> &time_basis_vector, bool resampling)
 {
-    //when searching for the time vector, if resampling argument is true, we return a resampled time basis
-    if (resampling) {
+    // when searching for the time vector, if resampling argument is true, we return a resampled time basis
+    if (resampling)
+    {
 
-            if (time_basis_vector.size() > 0) {
-                char error_message[200];
-                sprintf(error_message, "Resampling: expecting empty time_basis_vector in funtion HDF5Reader::getTimeVector().\n");
-                throw ALBackendException(error_message, LOG);
-            }
+        if (time_basis_vector.size() > 0)
+        {
+            char error_message[200];
+            sprintf(error_message, "Resampling: expecting empty time_basis_vector in funtion HDF5Reader::getTimeVector().\n");
+            throw ALBackendException(error_message, LOG);
+        }
 
-            double tmin;
-            double tmax;
-            double dt;
-            if (opCtx->time_range.dtime.size() <= 1) {
-                tmin = opCtx->time_range.tmin;
-                tmax = opCtx->time_range.tmax;
-                dt = opCtx->time_range.dtime[0];
-            }
-            else {
-                tmin = opCtx->time_range.dtime[0];
-                tmax = opCtx->time_range.dtime.back();
-            }
-            int time_min_index;
-            int time_max_index;
-            int nb_slices;
-            data_interpolation_component.getTimeRangeIndices(tmin, tmax, opCtx->time_range.dtime, time_basis_vector, 
-                &time_min_index, &time_max_index, &nb_slices, alconst::undefined_interp);
-            for (int i = 0; i < nb_slices; i++) {
-                if (opCtx->time_range.dtime.size() <= 1)
-                    time_basis_vector.push_back(tmin + dt*i );
-                else
-                    time_basis_vector.push_back(tmin + (tmax - tmin)/nb_slices*i );
-            }
-            return;
+        double tmin;
+        double tmax;
+        double dt;
+        if (opCtx->time_range.dtime.size() <= 1)
+        {
+            tmin = opCtx->time_range.tmin;
+            tmax = opCtx->time_range.tmax;
+            dt = opCtx->time_range.dtime[0];
+        }
+        else
+        {
+            tmin = opCtx->time_range.dtime[0];
+            tmax = opCtx->time_range.dtime.back();
+        }
+        int time_min_index;
+        int time_max_index;
+        int nb_slices;
+        data_interpolation_component.getTimeRangeIndices(tmin, tmax, opCtx->time_range.dtime, time_basis_vector,
+                                                         &time_min_index, &time_max_index, &nb_slices, alconst::undefined_interp);
+        for (int i = 0; i < nb_slices; i++)
+        {
+            if (opCtx->time_range.dtime.size() <= 1)
+                time_basis_vector.push_back(tmin + dt * i);
+            else
+                time_basis_vector.push_back(tmin + (tmax - tmin) / nb_slices * i);
+        }
+        return;
     }
-    
+
     int dataset_rank = data_set->getRank();
     int timeVectorLength = data_set->getMaxShape(dataset_rank - 1);
 
-    if (homogeneous_time == 1 || data_set->getName() == "time" )
+    if (homogeneous_time == 1 || data_set->getName() == "time")
     {
-        
-        if (time_basis_vector.empty()) {
-            //std::cout << "GETTING THE HOMOGENEOUS TIME BASIS: " << std::endl;
+
+        if (time_basis_vector.empty())
+        {
+            // std::cout << "GETTING THE HOMOGENEOUS TIME BASIS: " << std::endl;
             double *time_vector = (double *)malloc((timeVectorLength) * sizeof(double));
             herr_t status = H5Dread(data_set->dataset_id, H5T_NATIVE_DOUBLE, H5P_DEFAULT, H5P_DEFAULT,
-                                    H5P_DEFAULT, (void *) time_vector);
+                                    H5P_DEFAULT, (void *)time_vector);
             if (status < 0)
             {
                 char error_message[200];
@@ -403,9 +410,9 @@ void HDF5Reader::getTimeVector( OperationContext *opCtx, std::unique_ptr<HDF5Dat
     }
     else
     {
-        //std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
+        // std::cout << "GETTING THE INHOMOGENEOUS TIME BASIS: " << std::endl;
         int dim = -1;
-        //printf("HDF5Reader::getTimeVector::data_set name=%s, AOSRank=%d\n", data_set->getName().c_str(), data_set->getAOSRank());
+        // printf("HDF5Reader::getTimeVector::data_set name=%s, AOSRank=%d\n", data_set->getName().c_str(), data_set->getAOSRank());
         HDF5HsSelectionReader hsSelectionReader(dataset_rank, data_set->dataset_id, data_set->getDataSpace(), data_set->getLargestDims(),
                                                 alconst::double_data, data_set->getAOSRank(), &dim);
         hsSelectionReader.time_range.enabled = false;
@@ -425,23 +432,26 @@ void HDF5Reader::getTimeVector( OperationContext *opCtx, std::unique_ptr<HDF5Dat
         }
 
         std::vector<double> time_basis(time_vector, time_vector + timeVectorLength);
-        auto it = std::find_if(time_basis.begin(), time_basis.end(), isMatchingDefaultValue );
-        if (it != time_basis.end()) {
+        auto it = std::find_if(time_basis.begin(), time_basis.end(), isMatchingDefaultValue);
+        if (it != time_basis.end())
+        {
             size_t index = std::distance(time_basis.begin(), it);
             time_basis.resize(index);
-        } 
+        }
         time_basis_vector = time_basis;
         free(time_vector);
     }
 }
 
-bool HDF5Reader::isMatchingDefaultValue(double value) {
+bool HDF5Reader::isMatchingDefaultValue(double value)
+{
     return value == -9.e40;
 }
 
-bool HDF5Reader::ends_with(const std::string &str, const std::string &suffix) {
+bool HDF5Reader::ends_with(const std::string &str, const std::string &suffix)
+{
     int pos = str.size() - suffix.size();
-    if (pos >=0)
+    if (pos >= 0)
         return str.compare(pos, suffix.size(), suffix) == 0;
     return false;
 }
@@ -463,7 +473,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     if (got_gid != IDS_group_id.end())
         gid = got_gid->second;
 
-    if (gid == -1) //IDS does not exist in the file
+    if (gid == -1) // IDS does not exist in the file
         return 0;
 
     std::string &dataset_name = att_name;
@@ -479,24 +489,28 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         tensorized_path = tensorized_paths.back() + "&" + dataset_name;
     }
 
-    //printf("Reading tensorized_path = %s \n", tensorized_path.c_str());
+    // printf("Reading tensorized_path = %s \n", tensorized_path.c_str());
 
     bool is_homogeneous_time_basis_dataset = (tensorized_path == HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
     std::string suffix = std::string("&") + std::string(HOMOGENEOUS_TIME_BASIS_FIELD_NAME);
-    bool is_time_dataset = ends_with(tensorized_path, suffix); //means time dataset located in 'timed' (dynamic) AOS or inhomogeneous time basis
+    bool is_time_dataset = ends_with(tensorized_path, suffix); // means time dataset located in 'timed' (dynamic) AOS or inhomogeneous time basis
     bool is_time_basis_dataset = is_homogeneous_time_basis_dataset || is_time_dataset;
     bool is_inhomogeneous_time_basis_dataset = is_time_dataset && !is_homogeneous_time_basis_dataset;
-    bool resampling = opctx->time_range.dtime.size() >=1;
+    bool resampling = opctx->time_range.dtime.size() >= 1;
     bool homogeneous_time_basis_dataset_with_resampling = (opctx->getRangemode() == TIMERANGE_OP) && resampling && is_homogeneous_time_basis_dataset;
     bool inhomogeneous_time_basis_dataset_with_resampling = (opctx->getRangemode() == TIMERANGE_OP) && resampling && is_inhomogeneous_time_basis_dataset;
 
-    if ( homogeneous_time_basis_dataset_with_resampling ) {
-        existing_data_sets[tensorized_path] = 1; //in TIMERANGE_OP case with resampling, the homogeneous time dataset will be created if the IDS is inhomogeneous 
+    read_homogeneous_time(&homogeneous_time, gid);
+
+    if (homogeneous_time_basis_dataset_with_resampling)
+    {
+        existing_data_sets[tensorized_path] = 1; // in TIMERANGE_OP case with resampling, the homogeneous time dataset will be created if the IDS is inhomogeneous
     }
 
-    else {
+    else
+    {
 
-        if (existing_data_sets.find(tensorized_path) != existing_data_sets.end()) //optimization
+        if (existing_data_sets.find(tensorized_path) != existing_data_sets.end()) // optimization
         {
             if (existing_data_sets[tensorized_path] == 0)
                 return 0;
@@ -517,60 +531,71 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
     //std::cout << "Reading data set: " << tensorized_path.c_str() << std::endl;
 
+    slice_mode = (opctx->getRangemode() == GLOBAL_OP || opctx->getRangemode() == TIMERANGE_OP) ? GLOBAL_OP : SLICE_OP;
+
     HDF5Utils hdf5_utils;
     int timed_AOS_index = -1;
     std::vector<int> current_arrctx_indices;
-    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index); //getting current AOS indices
+    hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index); // getting current AOS indices
 
     bool is_dynamic = timebasename.compare("") != 0 ? true : false;
     bool isTimed = (timed_AOS_index != -1);
     int slice_index = -1;
     int timed_AOS_index_current_value = -1;
-    if (isTimed) {
+    if (isTimed)
+    {
         timed_AOS_index_current_value = current_arrctx_indices[timed_AOS_index];
     }
 
-    
     bool dynamic_case = is_dynamic || isTimed;
-    
-    //Getting the time basis
+
+    // Getting the time basis
     if (dynamic_case)
     {
-        try {
+        try
+        {
+
             std::string time_dataset_name = getTimeVectorDataSetName(opctx, timebasename, timed_AOS_index);
 
             auto got = opened_data_sets.find(time_dataset_name);
             bool dataset_opened = false;
 
             std::unique_ptr<HDF5DataSetHandler> time_data_set;
-             if (homogeneous_time != 1) { //the time basis needs to be updated 
-                if (got != opened_data_sets.end()) {
+            if (homogeneous_time != 1)
+            { // the time basis needs to be updated
+                if (got != opened_data_sets.end())
+                {
                     time_data_set = std::move(got->second);
                     time_data_set->close();
                     opened_data_sets.erase(got);
                 }
-             }
-             else if (got != opened_data_sets.end()) {
+            }
+            else if (got != opened_data_sets.end())
+            {
                 dataset_opened = true;
-             }
+            }
 
-            if (!dataset_opened) {
+            if (!dataset_opened)
+            {
 
                 int time_vector_dim = 1;
                 if (isTimed)
                     time_vector_dim = 0;
 
-                time_data_set = std::move(getTimeVectorDataSet(opctx, gid, time_dataset_name, time_vector_dim)); //get time_data_set from the opened_data_sets map if it exists or create it
-            
+                time_data_set = std::move(getTimeVectorDataSet(opctx, gid, time_dataset_name, time_vector_dim)); // get time_data_set from the opened_data_sets map if it exists or create it
+
                 assert(time_data_set);
-                //if field is 'time" and IDS is not homogeneous with dtime.size > 0 (resampling), we are returning the resampled time basis 
-                bool resampling = !isTimed && time_data_set->getName().compare("time") == 0 && homogeneous_time == 0 && opctx->time_range.dtime.size() >=1;
+                // if field is 'time" and IDS is not homogeneous with dtime.size > 0 (resampling), we are returning the resampled time basis
+                bool resampling = !isTimed && time_data_set->getName().compare("time") == 0 && homogeneous_time == 0 && opctx->time_range.dtime.size() >= 1;
+                //printf("resampling=%d\n", resampling);
                 time_basis_vector.clear();
                 getTimeVector(opctx, time_data_set, "", timed_AOS_index, current_arrctx_indices, time_basis_vector, resampling);
+                //printf("time vector size = %d\n", time_basis_vector.size());
                 opened_data_sets[time_dataset_name] = std::move(time_data_set);
             }
         }
-        catch(ALBackendException &e) {
+        catch (ALBackendException &e)
+        {
             if (!(timebasename == "time" && homogeneous_time == 0))
                 throw e;
         }
@@ -578,81 +603,84 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
     std::unique_ptr<HDF5DataSetHandler> data_set;
 
-    if (homogeneous_time_basis_dataset_with_resampling) {
+    if (homogeneous_time_basis_dataset_with_resampling)
+    {
         double tmin = opctx->time_range.tmin;
         double tmax = opctx->time_range.tmax;
-        if (opctx->time_range.dtime.size() > 1) {
-             tmin = opctx->time_range.dtime[0];
-             tmax = opctx->time_range.dtime.back();
-         }
+        if (opctx->time_range.dtime.size() > 1)
+        {
+            tmin = opctx->time_range.dtime[0];
+            tmax = opctx->time_range.dtime.back();
+        }
         int nb_slices = this->data_interpolation_component.resample_timebasis(tmin, tmax, opctx->time_range.dtime, timed_AOS_index_current_value, time_basis_vector, data);
-        //printf("nb_slices=%d for dataset=%s\n", nb_slices, data_set->getName().c_str());
+        // printf("nb_slices=%d for dataset=%s\n", nb_slices, data_set->getName().c_str());
         size[*dim - 1] = nb_slices;
         return exit_request(data_set, 1);
     }
     else if (inhomogeneous_time_basis_dataset_with_resampling && isTimed)
-    { //in this case, no value is returned
+    { // in this case, no value is returned
         return exit_request(data_set, 0);
     }
 
-
     std::map<std::string, int> times_indices;
-    double requested_time; //requested time for SLICE_OP or for time range with dtime !=-1 (resampling)
+    double requested_time; // requested time for SLICE_OP or for time range with dtime !=-1 (resampling)
 
     if (ctx->getType() == CTX_OPERATION_TYPE || ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
     {
 
-        if ( (opctx->getRangemode() == SLICE_OP) && dynamic_case)
+        if ((opctx->getRangemode() == SLICE_OP) && dynamic_case)
         {
-            slice_mode = SLICE_OP;
+            // slice_mode = SLICE_OP;
             slice_index = data_interpolation_component.getSlicesTimesIndices(opctx->getTime(), time_basis_vector, times_indices, opctx->getInterpmode());
             requested_time = opctx->getTime();
         }
-        else if ( (opctx->getRangemode() == TIMERANGE_OP) && isTimed)
+        else if ((opctx->getRangemode() == TIMERANGE_OP) && isTimed)
         {
-            slice_mode = GLOBAL_OP;
-            
+            // slice_mode = GLOBAL_OP;
+
             int time_min_index;
             int time_max_index;
             int range;
 
             double tmin;
             double tmax;
-            if (opctx->time_range.dtime.size() <= 1) {
+            if (opctx->time_range.dtime.size() <= 1)
+            {
                 tmin = opctx->time_range.tmin;
                 tmax = opctx->time_range.tmax;
             }
-            else {
+            else
+            {
                 tmin = opctx->time_range.dtime[0];
                 tmax = opctx->time_range.dtime.back();
             }
 
             data_interpolation_component.getTimeRangeIndices(tmin, tmax, opctx->time_range.dtime,
-                                                              time_basis_vector, &time_min_index, &time_max_index, &range, opctx->time_range.interpolation_method);
+                                                             time_basis_vector, &time_min_index, &time_max_index, &range, opctx->time_range.interpolation_method);
 
             if (opctx->time_range.dtime.size() != 0)
-            { //resampling case
+            { // resampling case
                 if (opctx->time_range.dtime.size() == 1)
                     requested_time = opctx->time_range.tmin + current_arrctx_indices[timed_AOS_index] * opctx->time_range.dtime[0];
-                else 
+                else
                     requested_time = opctx->time_range.dtime[current_arrctx_indices[timed_AOS_index]];
 
                 slice_index = data_interpolation_component.getSlicesTimesIndices(requested_time, time_basis_vector, times_indices, opctx->time_range.interpolation_method);
             }
             else
-            { //interpolation not required, we evaluate data at the grid of the tensorized dataset
+            { // interpolation not required, we evaluate data at the grid of the tensorized dataset
                 slice_index = time_min_index + current_arrctx_indices[timed_AOS_index];
                 requested_time = time_basis_vector[slice_index];
             }
             current_arrctx_indices[timed_AOS_index] = slice_index;
         }
-        else if ( (opctx->getRangemode() == TIMERANGE_OP) && is_dynamic)
+        else if ((opctx->getRangemode() == TIMERANGE_OP) && is_dynamic)
         {
         }
     }
 
     auto got = opened_data_sets.find(tensorized_path);
-    
+
     if (got != opened_data_sets.end())
     {
         data_set = std::move(got->second);
@@ -672,7 +700,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     }
 
     bool slice_op_linear_interpolation = ((opctx->getRangemode() == SLICE_OP && opctx->getInterpmode() == LINEAR_INTERP) ||
-         (isTimed && !is_time_basis_dataset && opctx->getRangemode() == TIMERANGE_OP && opctx->time_range.dtime.size() != 0 && opctx->time_range.interpolation_method == LINEAR_INTERP));
+                                          (isTimed && !is_time_basis_dataset && opctx->getRangemode() == TIMERANGE_OP && opctx->time_range.dtime.size() != 0 && opctx->time_range.interpolation_method == LINEAR_INTERP));
 
     herr_t status = -1;
     hid_t dataset_id_shapes = -1;
@@ -692,19 +720,20 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         }
 
         isOpenedShapesDataSet = true;
-        if (isTimed & slice_op_linear_interpolation) {
+        if (isTimed & slice_op_linear_interpolation)
+        {
 
             int slice_inf = times_indices[SLICE_INF];
             int slice_sup = times_indices[SLICE_SUP];
             int check = checkSlicesShapes(ctx, gid, tensorized_path, datatype, slice_mode,
-                                    is_dynamic, slice_inf, slice_sup, hsSelectionReader.getDim(), timed_AOS_index,
-                                    &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, hsSelectionReader);
-            if (check == 0) //we skip this interpolation because of a mismatch between slices shapes or because the first or second slice is not defined at interp. time
+                                          is_dynamic, slice_inf, slice_sup, hsSelectionReader.getDim(), timed_AOS_index,
+                                          &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, hsSelectionReader);
+            if (check == 0) // we skip this interpolation because of a mismatch between slices shapes or because the first or second slice is not defined at interp. time
                 return exit_request(data_set, 0);
         }
 
         bool zero_shape = false;
-        
+
         int shapesDataSetExists = getPersistentShapes(ctx,
                                                       gid,
                                                       tensorized_path,
@@ -731,20 +760,24 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
         if ((opctx->getRangemode() == TIMERANGE_OP) && is_dynamic)
         {
-            //printf("setting time range size to :%d\n", time_range_size);
-            if (opctx->time_range.interpolation_method == LINEAR_INTERP) {
-                if (time_basis_vector.size() >=2) {
+            // printf("setting time range size to :%d\n", time_range_size);
+            if (opctx->time_range.interpolation_method == LINEAR_INTERP)
+            {
+                if (time_basis_vector.size() >= 2)
+                {
                     size[*dim - 1] = time_range_size + 1;
                     hsSelectionReader.setTimeRange(*dim, time_range_size + 1);
                 }
             }
-            else {
-                size[*dim - 1] = time_range_size; 
+            else
+            {
+                size[*dim - 1] = time_range_size;
                 hsSelectionReader.setTimeRange(*dim, time_range_size);
             }
         }
-        else {
-            //printf("NOT setting time range size to :%d\n", time_range_size);
+        else
+        {
+            // printf("NOT setting time range size to :%d\n", time_range_size);
         }
 
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
@@ -755,19 +788,19 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         std::unique_ptr<HDF5HsSelectionReader> hsSelectionReader(new HDF5HsSelectionReader(data_set->getRank(), dataset_id,
                                                                                            data_set->getDataSpace(), data_set->getLargestDims(), datatype, current_arrctx_indices.size(), dim));
 
-        if (( (opctx->getRangemode() == TIMERANGE_OP) && opctx->time_range.dtime.size() != 0 && !isTimed) && is_inhomogeneous_time_basis_dataset)
-        { //ignoring inhomogeneous time data sets when resampling
+        if (((opctx->getRangemode() == TIMERANGE_OP) && opctx->time_range.dtime.size() != 0 && !isTimed) && is_inhomogeneous_time_basis_dataset)
+        { // ignoring inhomogeneous time data sets when resampling
             return exit_request(data_set, 0);
         }
 
-    
-        //std::cout << "Configuring data set (time range) for : " << tensorized_path.c_str() << std::endl;
+        // std::cout << "Configuring data set (time range) for : " << tensorized_path.c_str() << std::endl;
         int time_range_size = 0;
 
         configureTimeRange(opctx, timebasename, *hsSelectionReader, current_arrctx_indices, gid, is_dynamic, isTimed, timed_AOS_index, time_basis_vector, &time_range_size, *dim);
-        
-        if ( (opctx->getRangemode() == TIMERANGE_OP) && time_range_size == 0 && (is_dynamic || isTimed)) {
-            //printf("return empty for dataset:%s\n", data_set->getName().c_str());
+
+        if ((opctx->getRangemode() == TIMERANGE_OP) && time_range_size == 0 && (is_dynamic || isTimed))
+        {
+            // printf("return empty for dataset:%s\n", data_set->getName().c_str());
             return exit_request(data_set, 0);
         }
 
@@ -778,18 +811,19 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
         isOpenedShapesDataSet = false;
 
-        if (isTimed & slice_op_linear_interpolation) {
+        if (isTimed & slice_op_linear_interpolation)
+        {
             int slice_inf = times_indices[SLICE_INF];
             int slice_sup = times_indices[SLICE_SUP];
             int check = checkSlicesShapes(ctx, gid, tensorized_path, datatype, slice_mode,
-                                    is_dynamic, slice_inf, slice_sup, *dim, timed_AOS_index,
-                                    &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, *hsSelectionReader);
-            if (check == 0) //we skip this interpolation because of a mismatch between slices shapes
+                                          is_dynamic, slice_inf, slice_sup, *dim, timed_AOS_index,
+                                          &dataset_id_shapes, current_arrctx_indices, dataset_id, isOpenedShapesDataSet, *hsSelectionReader);
+            if (check == 0) // we skip this interpolation because of a mismatch between slices shapes
                 return exit_request(data_set, 0);
         }
 
         bool zero_shape = false;
-        
+
         int shapesDataSetExists = getPersistentShapes(ctx,
                                                       gid,
                                                       tensorized_path,
@@ -816,19 +850,23 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
 
         if (opctx->getRangemode() == TIMERANGE_OP && is_dynamic)
         {
-            //printf("setting time range size to :%d\n", time_range_size);
-            if (opctx->time_range.interpolation_method == LINEAR_INTERP) {
+            // printf("setting time range size to :%d\n", time_range_size);
+            if (opctx->time_range.interpolation_method == LINEAR_INTERP)
+            {
                 size[*dim - 1] = time_range_size + 1;
                 hsSelectionReader->setTimeRange(*dim, time_range_size + 1);
             }
-            else {
-                size[*dim - 1] = time_range_size; 
+            else
+            {
+                size[*dim - 1] = time_range_size;
                 hsSelectionReader->setTimeRange(*dim, time_range_size);
             }
         }
-        else {
-            //printf("-->NOT setting the time range size\n");
+        else
+        {
+            // printf("-->NOT setting the time range size\n");
         }
+
         data_set->selection_reader = std::move(hsSelectionReader);
         data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
         data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
@@ -838,21 +876,23 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     {
         int *d = (int *)*data;
         homogeneous_time = *d;
-        if ( (opctx->getRangemode() == TIMERANGE_OP) && opctx->time_range.dtime.size() != 0) {//setting homogeneous_time to 1 if resampling
-            *d = 1; //IDS becomes homogeneous in this case 
+        if ((opctx->getRangemode() == TIMERANGE_OP) && opctx->time_range.dtime.size() != 0)
+        {           // setting homogeneous_time to 1 if resampling
+            *d = 1; // IDS becomes homogeneous in this case
         }
     }
 
     if (datatype == alconst::char_data)
     {
         int ret = fixCharDataSet(datatype, data, size, *dim);
-        if (ret == 0) {
+        if (ret == 0)
+        {
             return exit_request(data_set, 0);
         }
     }
 
-
-    if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && !dynamic_case ) {
+    if ((opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP)) && !dynamic_case)
+    {
         return exit_request(data_set, 1);
     }
 
@@ -860,12 +900,12 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     {
         HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
 
-        //Taking the next slide to make the linear interpolation
+        // Taking the next slide to make the linear interpolation
         int slice_inf = times_indices[SLICE_INF];
         int slice_sup = times_indices[SLICE_SUP];
         void *next_slice_data = nullptr;
 
-        //printf("read_ND_Data, Taking the next slide to make the linear interpolation, slice_sup=%d\n", slice_sup);
+        // printf("read_ND_Data, Taking the next slide to make the linear interpolation, slice_sup=%d\n", slice_sup);
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         if (datatype != alconst::char_data)
@@ -881,10 +921,10 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
                 printf("WARNING: Linear interpolation not possible for node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             return exit_request(data_set, 0);
         }
-        if ( (opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP) ) && dynamic_case)
+        if ((opctx->getRangemode() == SLICE_OP || (opctx->getRangemode() == TIMERANGE_OP)) && dynamic_case)
         {
 
-            size_t N = buffer / hsSelectionReader.dtype_size; //Number of data points to be interpolated
+            size_t N = buffer / hsSelectionReader.dtype_size; // Number of data points to be interpolated
 
             std::map<std::string, double> slices_times;
             slices_times[SLICE_INF] = time_basis_vector[slice_inf];
@@ -895,18 +935,19 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             y_slices[SLICE_SUP] = next_slice_data;
             int interp;
 
-            if (opctx->getRangemode() == SLICE_OP) {
+            if (opctx->getRangemode() == SLICE_OP)
+            {
                 interp = opctx->getInterpmode();
             }
-            else {
+            else
+            {
                 interp = opctx->time_range.interpolation_method;
             }
-            //printf("read_ND_Data, performing linear interp for :%s, slice_inf=%d, slice_sup=%d\n", data_set->getName().c_str(), slice_inf, slice_sup);
+            // printf("read_ND_Data, performing linear interp for :%s, slice_inf=%d, slice_sup=%d\n", data_set->getName().c_str(), slice_inf, slice_sup);
             this->data_interpolation_component.interpolate(datatype, N, y_slices, slices_times,
-                                                            requested_time, data, interp);
+                                                           requested_time, data, interp);
             if (slice_inf != slice_sup)
                 free(next_slice_data);
-
 
             if (datatype == alconst::char_data)
             {
@@ -914,32 +955,33 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             }
         }
     }
-    if ( (opctx->getRangemode() == TIMERANGE_OP) && (opctx->time_range.dtime.size() != 0) && dynamic_case)
+    if ((opctx->getRangemode() == TIMERANGE_OP) && (opctx->time_range.dtime.size() != 0) && dynamic_case)
     {
         double tmin = opctx->time_range.tmin;
         double tmax = opctx->time_range.tmax;
         std::vector<double> dtime = opctx->time_range.dtime;
 
-        if (dtime.size() > 1) {
+        if (dtime.size() > 1)
+        {
             tmin = dtime[0];
             tmax = dtime.back();
         }
 
         if (!is_time_basis_dataset && !isTimed)
-        { //no interpolation at this stage for time basis vectors and also data located in dynamic AOS
-            //printf("calling interpolate_with_resampling for: %s\n", data_set->getName().c_str());
+        { // no interpolation at this stage for time basis vectors and also data located in dynamic AOS
+            // printf("calling interpolate_with_resampling for: %s\n", data_set->getName().c_str());
             int nb_slices = this->data_interpolation_component.interpolate_with_resampling(tmin, tmax, dtime, datatype, size, *dim,
-                                                                                            *data, time_basis_vector, data, opctx->time_range.interpolation_method);
-            //printf("nb_slices in HDF5 backend=%d\n", nb_slices);
+                                                                                           *data, time_basis_vector, data, opctx->time_range.interpolation_method);
+            // printf("nb_slices in HDF5 backend=%d\n", nb_slices);
             size[*dim - 1] = nb_slices;
         }
-        //else if (is_time_basis_dataset) { //time basis are not interpolated, but the times values must be modified to the specified time range
+        // else if (is_time_basis_dataset) { //time basis are not interpolated, but the times values must be modified to the specified time range
         else if (is_homogeneous_time_basis_dataset)
         {
-            //printf("calling resample_timebasis for: %s\n", data_set->getName().c_str());
+            // printf("calling resample_timebasis for: %s\n", data_set->getName().c_str());
             free(*data);
             int nb_slices = this->data_interpolation_component.resample_timebasis(tmin, tmax, dtime, timed_AOS_index_current_value, time_basis_vector, data);
-            //printf("nb_slices=%d for dataset=%s\n", nb_slices, data_set->getName().c_str());
+            // printf("nb_slices=%d for dataset=%s\n", nb_slices, data_set->getName().c_str());
             size[*dim - 1] = nb_slices;
         }
         /*else if (is_inhomogeneous_time_basis_dataset && isTimed)
@@ -949,7 +991,7 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     }
     else
     {
-        //printf("no resampling for %s\n", data_set->getName().c_str());
+        // printf("no resampling for %s\n", data_set->getName().c_str());
     }
     return exit_request(data_set, 1);
 }
@@ -978,8 +1020,8 @@ int HDF5Reader::fixCharDataSet(int datatype, void **data, int *size, int dim)
         }
         else
         {
-          if (*p == nullptr)
-           return 0;
+            if (*p == nullptr)
+                return 0;
         }
     }
     return 1;
@@ -994,7 +1036,7 @@ void HDF5Reader::configureTimeRange(OperationContext *opctx, const std::string &
 
     if (!(opctx->getRangemode() == TIMERANGE_OP))
     {
-        //printf("time range not enabled!\n");
+        // printf("time range not enabled!\n");
         hsSelectionReader.time_range.enabled = false;
         return;
     }
@@ -1010,23 +1052,26 @@ void HDF5Reader::configureTimeRange(OperationContext *opctx, const std::string &
 
         double tmin;
         double tmax;
-        if (opctx->time_range.dtime.size() <= 1) {
+        if (opctx->time_range.dtime.size() <= 1)
+        {
             tmin = opctx->time_range.tmin;
             tmax = opctx->time_range.tmax;
         }
-        else if (opctx->time_range.dtime.size() > 1) {
+        else if (opctx->time_range.dtime.size() > 1)
+        {
             tmin = opctx->time_range.dtime[0];
             tmax = opctx->time_range.dtime.back();
         }
 
         data_interpolation_component.getTimeRangeIndices(tmin, tmax,
-                                                          opctx->time_range.dtime, time_basis_vector, &start, &stop, &range, opctx->time_range.interpolation_method);
-        
-        hsSelectionReader.time_range.tmin_index = start;
-        //printf("is_dynamic=%d, start=%d, stop=%d, range=%d\n", is_dynamic, start, stop, range);
+                                                         opctx->time_range.dtime, time_basis_vector, &start, &stop, &range, opctx->time_range.interpolation_method);
 
-        if (opctx->time_range.interpolation_method == LINEAR_INTERP) {
-            if (stop < time_basis_vector.size() - 1 )
+        hsSelectionReader.time_range.tmin_index = start;
+        // printf("is_dynamic=%d, start=%d, stop=%d, range=%d\n", is_dynamic, start, stop, range);
+
+        if (opctx->time_range.interpolation_method == LINEAR_INTERP)
+        {
+            if (stop < time_basis_vector.size() - 1)
                 stop++;
         }
 
@@ -1045,27 +1090,28 @@ int HDF5Reader::exit_request(std::unique_ptr<HDF5DataSetHandler> &data_set, int 
 }
 
 int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &tensorized_path, int datatype, int slice_mode,
-                                    bool is_dynamic, int slice_inf, int slice_sup, int dim, int timed_AOS_index,
-                                    hid_t *dataset_id_shapes, const std::vector<int> &current_arrctx_indices, 
-                                    hid_t dataset_id, bool isOpenedShapesDataSet, HDF5HsSelectionReader &hsSelectionReader)
+                                  bool is_dynamic, int slice_inf, int slice_sup, int dim, int timed_AOS_index,
+                                  hid_t *dataset_id_shapes, const std::vector<int> &current_arrctx_indices,
+                                  hid_t dataset_id, bool isOpenedShapesDataSet, HDF5HsSelectionReader &hsSelectionReader)
 {
 
-    if (datatype == alconst::char_data) //char datasets are ignored by the interpolation component
+    if (datatype == alconst::char_data) // char datasets are ignored by the interpolation component
         return 1;
 
     bool isTimed = true;
     herr_t status = -1;
 
-    //Checking the first slice exists in the dynamic array (isTimed = True)
+    // Checking the first slice exists in the dynamic array (isTimed = True)
 
-    //Checking 0D dataset exists for the first slice
+    // Checking 0D dataset exists for the first slice
 
-    if (dim == 0) {
+    if (dim == 0)
+    {
         void *first_slice_data = nullptr;
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_inf, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&first_slice_data, slice_mode, is_dynamic, isTimed, slice_inf);
-        //if (datatype != alconst::char_data)
-            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, first_slice_data);
+        // if (datatype != alconst::char_data)
+        status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, first_slice_data);
         /*else
             status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&first_slice_data);*/
 
@@ -1075,23 +1121,24 @@ int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &te
                 printf("WARNING: Linear interpolation not possible for node: %s at time index %d\n", tensorized_path.c_str(), slice_sup);
             free(first_slice_data);
             return 0;
-        } 
+        }
         free(first_slice_data);
-        return 1;   
+        return 1;
     }
 
-    //Checking dataset with dimension > 0 (e.g dim > 0) has a shape defined for the first slice and the second slice
+    // Checking dataset with dimension > 0 (e.g dim > 0) has a shape defined for the first slice and the second slice
 
     bool zero_shape_inf = false;
     bool zero_shape_sup = false;
-    
+
     int first_slice_shape[H5S_MAX_RANK];
     int second_slice_shape[H5S_MAX_RANK];
 
-     for (int i = 0; i < dim; i++) {
+    for (int i = 0; i < dim; i++)
+    {
         first_slice_shape[i] = 0;
         second_slice_shape[i] = 0;
-     }
+    }
 
     int shapesDataSetExists_inf = getPersistentShapes(ctx,
                                                       gid,
@@ -1109,7 +1156,6 @@ int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &te
                                                       isOpenedShapesDataSet,
                                                       current_arrctx_indices);
 
-
     int shapesDataSetExists_sup = getPersistentShapes(ctx,
                                                       gid,
                                                       tensorized_path,
@@ -1125,11 +1171,10 @@ int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &te
                                                       dataset_id_shapes,
                                                       isOpenedShapesDataSet,
                                                       current_arrctx_indices);
-    
 
-    //printf("dataset=%s shapesDataSetExists_inf=%d, shapesDataSetExists_sup=%d zero_shape_inf=%d zero_shape_sup=%d\n", tensorized_path.c_str(),
-    //                        shapesDataSetExists_inf, shapesDataSetExists_sup, zero_shape_inf, zero_shape_sup);
-    
+    // printf("dataset=%s shapesDataSetExists_inf=%d, shapesDataSetExists_sup=%d zero_shape_inf=%d zero_shape_sup=%d\n", tensorized_path.c_str(),
+    //                         shapesDataSetExists_inf, shapesDataSetExists_sup, zero_shape_inf, zero_shape_sup);
+
     HDF5Utils hdf5_utils;
 
     bool shape_inf_undefined = (shapesDataSetExists_inf == 0) || zero_shape_inf;
@@ -1138,24 +1183,27 @@ int HDF5Reader::checkSlicesShapes(Context *ctx, hid_t gid, const std::string &te
     if (shape_inf_undefined && shape_sup_undefined)
         return 0;
 
-    if (shape_inf_undefined != shape_sup_undefined) {
+    if (shape_inf_undefined != shape_sup_undefined)
+    {
         int slice_index;
-        if (shape_inf_undefined) {
+        if (shape_inf_undefined)
+        {
             slice_index = slice_inf;
         }
-        else if (shape_sup_undefined) {
+        else if (shape_sup_undefined)
+        {
             slice_index = slice_sup;
         }
         if (this->INTERPOLATION_WARNING)
             printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't defined at time index %d.\n", tensorized_path.c_str(), slice_index);
         return 0;
     }
-        
+
     if (hdf5_utils.compareShapes(first_slice_shape, second_slice_shape, dim) != 0)
     {
         if (this->INTERPOLATION_WARNING)
             printf("WARNING: Linear interpolation not possible for node '%s' because its size isn't constant at time indices %d and %d.\n", tensorized_path.c_str(), slice_inf, slice_sup);
-            return 0;
+        return 0;
     }
     return 1;
 }
@@ -1192,7 +1240,7 @@ int HDF5Reader::getPersistentShapes(Context *ctx, hid_t gid, const std::string &
             }
             else
             {
-                size[0] = 1; //for scalars
+                size[0] = 1; // for scalars
                 for (int i = 0; i < dim; i++)
                     size[i] = shapes[dim - i - 1];
             }
@@ -1237,8 +1285,8 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr<HDF5DataSetHandler> new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         hid_t dataset_id = -1;
-        new_data_set-> open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
-        if (!(new_data_set->dataset_id >=0))
+        new_data_set->open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
+        if (!(new_data_set->dataset_id >= 0))
             throw ALBackendException("HDF5Backend: unexpected dataset_id value in HDF5Reader::readPersistentShapes_Get()", LOG);
         *dataset_id_shapes = dataset_id;
         int dim = -1;
@@ -1304,7 +1352,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
 
     int *shapes_int = (int *)*shapes;
     if (shapes_int[0] == 0)
-    { //if this condition is satisfied, it means that the dataset has 0-shapes for the current AOSs indices
+    { // if this condition is satisfied, it means that the dataset has 0-shapes for the current AOSs indices
         *zero_shape = true;
         opened_shapes_data_sets[tensorized_path] = std::move(data_set);
         return 1;
@@ -1312,7 +1360,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
 
     if (slice_mode == SLICE_OP && is_dynamic && !isTimed && slice_index != -1)
     {
-        shapes_int[0] = 1; //we set the latest element of the shapes vector to 1 when slicing
+        shapes_int[0] = 1; // we set the latest element of the shapes vector to 1 when slicing
     }
 
     opened_shapes_data_sets[tensorized_path] = std::move(data_set);
@@ -1321,7 +1369,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
 
 int HDF5Reader::readAOSPersistentShapes(Context *ctx, hid_t gid, const std::string &tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector<int> &current_arrctx_indices)
 {
-    //std::cout << "Reading AOS SHAPE datasets: " <<  tensorized_path.c_str() << std::endl;
+    // std::cout << "Reading AOS SHAPE datasets: " <<  tensorized_path.c_str() << std::endl;
     std::vector<int> aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end() - 1);
 
     if (slice_mode == SLICE_OP && timed_AOS_index != -1 && timed_AOS_index < (int)aos_indices.size())
@@ -1385,7 +1433,7 @@ void HDF5Reader::close_file_handler(std::string external_link_name, std::unorder
         {
             HDF5Utils hdf5_utils;
             /*std::cout << "READER:close_file_handler :showing status for pulse file..." << std::endl;
-	            hdf5_utils.showStatus(pulse_file_id);*/
+                hdf5_utils.showStatus(pulse_file_id);*/
             hdf5_utils.closeIDSFile(pulse_file_id, external_link_name);
             opened_IDS_files[external_link_name] = -1;
         }
@@ -1397,7 +1445,7 @@ void HDF5Reader::endAction(Context *ctx)
     if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
     {
         ArraystructContext *arrctxt = static_cast<ArraystructContext *>(ctx);
-        //printf("calling endAction for path=%s\n", arrctxt->getPath().c_str());
+        // printf("calling endAction for path=%s\n", arrctxt->getPath().c_str());
         auto arrctx_shapes_got = arrctx_shapes_per_context.find(arrctxt);
         if (arrctx_shapes_got != arrctx_shapes_per_context.end())
             arrctx_shapes_per_context.erase(arrctx_shapes_got);
@@ -1427,8 +1475,8 @@ void HDF5Reader::endAction(Context *ctx)
     }
     else
     {
-        //OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
-        //tensorized_paths_per_op_context.erase(opCtx);
+        // OperationContext *opCtx = dynamic_cast < OperationContext * >(ctx);
+        // tensorized_paths_per_op_context.erase(opCtx);
     }
 }
 
@@ -1446,7 +1494,7 @@ DataEntryContext *HDF5Reader::getDataEntryContext(Context *ctx)
     return opctx->getDataEntryContext();
 }
 
-void HDF5Reader::setSliceMode(OperationContext * ctx)
+void HDF5Reader::setSliceMode(OperationContext *ctx)
 {
     this->slice_mode = (ctx->getRangemode() == GLOBAL_OP || ctx->getRangemode() == TIMERANGE_OP) ? GLOBAL_OP : SLICE_OP;
 }
@@ -1454,7 +1502,8 @@ void HDF5Reader::setSliceMode(OperationContext * ctx)
 void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, int *size, hid_t master_file_id)
 {
 
-    if (master_file_id <= 0) {
+    if (master_file_id <= 0)
+    {
         char error_message[200];
         sprintf(error_message, "Error calling get_occurrences() for %s, HDF5 master file not opened.\n", ids_name);
         throw ALBackendException(error_message, LOG);
@@ -1462,8 +1511,8 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
     *occurrences_list = nullptr;
     *size = 0;
     std::vector<std::string> od;
-    H5L_iterate1_t file_info = (H5L_iterate1_t) &HDF5Reader::iterate_callback;
-    herr_t status = H5Literate (master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void*) &od);
+    H5L_iterate1_t file_info = (H5L_iterate1_t)&HDF5Reader::iterate_callback;
+    herr_t status = H5Literate(master_file_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, file_info, (void *)&od);
     if (status != 0)
         throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Reader::get_occurrences()", LOG);
     std::string ids_name_str(ids_name);
@@ -1476,7 +1525,7 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
         char ch = '_';
 
         // Searching index of last occurrence '_'
-        auto it = std::find(found_occurrence_name.rbegin(), found_occurrence_name.rend(), ch); //using inverse iterator
+        auto it = std::find(found_occurrence_name.rbegin(), found_occurrence_name.rend(), ch); // using inverse iterator
 
         size_t lastOccurrenceIndex = -1;
 
@@ -1500,21 +1549,21 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
                     occurrences.push_back(occ);
             }
             catch (const std::invalid_argument &)
-            { //the '_' is a part of the ids_name, it' not the separator of the occurrence (integer) from the IDS name
-                //No integer found, so maybe it's occurrence 0; we check if ids_name matches
+            { // the '_' is a part of the ids_name, it' not the separator of the occurrence (integer) from the IDS name
+                // No integer found, so maybe it's occurrence 0; we check if ids_name matches
                 if (found_occurrence_name == ids_name_str)
                     occurrences.push_back(occ);
             }
         }
         else
-        { //No '_' found at all, maybe it's the occurrence 0, so we check only the ids_name matches
+        { // No '_' found at all, maybe it's the occurrence 0, so we check only the ids_name matches
             if (found_occurrence_name == ids_name_str)
                 occurrences.push_back(occ);
         }
     }
     *size = occurrences.size();
     std::sort(occurrences.begin(), occurrences.end());
-    *occurrences_list = (int *)malloc(sizeof(int) * occurrences.size()); //allocated results on the heap
+    *occurrences_list = (int *)malloc(sizeof(int) * occurrences.size()); // allocated results on the heap
     int *p = *occurrences_list;
     for (size_t i = 0; i < occurrences.size(); i++)
         p[i] = occurrences[i];
@@ -1525,4 +1574,21 @@ herr_t HDF5Reader::iterate_callback(hid_t loc_id, const char *name, const H5L_in
     std::vector<std::string> *op = reinterpret_cast<std::vector<std::string> *>(callback_data);
     op->push_back(name);
     return 0;
+}
+
+void HDF5Reader::read_homogeneous_time(int *homogenenous_time, hid_t gid)
+{
+
+    if (gid == -1)
+    {
+        *homogenenous_time = -1;
+        return;
+    }
+    const char *dataset_name = "ids_properties&homogeneous_time";
+    hid_t dataset_id = H5Dopen2(gid, dataset_name, H5P_DEFAULT);
+    herr_t status = H5Dread(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, homogenenous_time);
+    if (status < 0)
+        *homogenenous_time = -1;
+    if (dataset_id >= 0)
+        H5Dclose(dataset_id);
 }

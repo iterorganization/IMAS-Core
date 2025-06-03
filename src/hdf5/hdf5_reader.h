@@ -73,6 +73,8 @@ class HDF5Reader {
     static bool isMatchingDefaultValue(double value);
     static bool ends_with(const std::string &str, const std::string &suffix);
 
+    void read_homogeneous_time(int* homogenenous_time, hid_t gid);
+
     bool INTERPOLATION_WARNING;
     std::vector<double> time_basis_vector;
 

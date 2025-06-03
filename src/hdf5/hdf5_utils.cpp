@@ -485,6 +485,23 @@ bool HDF5Utils::isTimed(Context * ctx, int *timed_AOS_index)
     return isTimed;
 }
 
+void HDF5Utils::timedContext(ArraystructContext * ctx, ArraystructContext *&timedContext) {
+
+    timedContext = nullptr;
+    if (ctx->getTimed()) {
+        timedContext = ctx;
+        return;
+    }
+    ArraystructContext *parent = ctx->getParent();
+    while (parent != NULL) {
+        if (parent->getTimed()) {
+            timedContext = parent;
+            return;
+        }
+        parent = parent->getParent();
+    }
+}
+
 void HDF5Utils::getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index)
 {
     *timedAOS_index = -1;
