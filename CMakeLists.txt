@@ -124,6 +124,14 @@ endif()
 
 add_subdirectory(src)
 
+# Dummy Executable
+# ##############################################################################
+set( EXE_FLAG  )
+set( EXE_EXT  )
+add_executable( imas_print_version ${EXE_FLAG} tests/imas_print_version.cpp )
+target_link_libraries( imas_print_version PRIVATE al)
+add_dependencies( imas_print_version al )
+
 # Install
 # ##############################################################################
 
@@ -150,6 +158,8 @@ install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
 # Note: EB module has to point the env variable $AL_COMMON_PATH to this installed dir: 
 install(DIRECTORY common TYPE DATA)
 
+# Install Dummy
+install(TARGETS imas_print_version DESTINATION bin)
 
 # Scikit-build-core entry point for python bindings
 # ##############################################################################
