@@ -167,7 +167,7 @@ overview of configuration options.
     -   `al-plugins (ssh://git@git.iter.org/imas/al-plugins.git)
         <https://git.iter.org/projects/IMAS/repos/al-plugins/browse>`__
     -   `data-dictionary (https://github.com/iterorganization/IMAS-data-Dictionary.git)
-        <https://github.com/iterorganization/IMAS-data-Dictionary`__
+        <https://github.com/iterorganization/IMAS-data-Dictionary>`__
 
     If you need to change the git repositories, for example to point to a mirror of the
     repository or to use a HTTPS URL instead of the default SSH URLs, you can update the
