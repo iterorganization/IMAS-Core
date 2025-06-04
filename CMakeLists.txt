@@ -8,6 +8,10 @@ endif()
 # Capture scikit build cmake.args 
 include(./skbuild-cmake-args.cmake)
 
+# Supress a warning
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # Configuration options for IMAS Core Backends
 # ##############################################################################

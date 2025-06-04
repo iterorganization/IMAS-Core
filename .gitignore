@@ -41,3 +41,6 @@ python/imas_core/*.pyd
 python/include/
 python/lib/
 /_trash/
+/.venv/
+/vcpkg/
+/UDA-*/
