@@ -48,7 +48,7 @@ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unord
 		
 	} else if (ctx->getAccessmode() == READ_OP) {
 		reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
-		reader.setSliceMode(ctx->getRangemode());
+		reader.setSliceMode(ctx);
 	}
 }
 
