@@ -254,7 +254,6 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
       }
     } else {
         char error_message[200];
-        printf("TEST100\n");
         sprintf(error_message, "bindPlugin!!!: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
         throw ALLowlevelException(error_message, LOG);
     }
