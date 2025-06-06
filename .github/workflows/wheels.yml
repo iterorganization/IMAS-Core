@@ -194,8 +194,9 @@ jobs:
           #   && vcpkg env
 
       - name: Cache store windows deps
-        # if: ${{ steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') }}
-        if: ${{ startsWith(matrix.os, 'windows') }}
+        # use always() to prevent skipping this step if previous step had failed:
+        if: ${{ steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') && always() }}
+        # if: ${{ startsWith(matrix.os, 'windows') }}
         id: cache-win-deps-save
         uses: actions/cache/save@v4
         env:
