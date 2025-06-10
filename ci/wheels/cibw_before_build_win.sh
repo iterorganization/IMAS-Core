@@ -1,6 +1,8 @@
 set -xe
 
 PROJECT_DIR="$1"
+export VCPKG_ROOT="${VCPKG_ROOT:-$2}"
+export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-$3}"
 
 abspath() {                                               
     cd "$(dirname "$1")"
@@ -10,9 +12,8 @@ abspath() {
 # vcpkg setup
 # ####################################################################
 
-VCPKG_ROOT="${VCPKG_ROOT:-/dev/null}"
 if ! test -d ${VCPKG_ROOT} ;then
-    git clone https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT}
+    git clone --depth 0 https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT}
 fi
 if ! test -f ${VCPKG_ROOT}/vcpkg.exe ;then
     ${VCPKG_ROOT}/bootstrap-vcpkg.sh -disableMetrics
@@ -21,8 +22,6 @@ fi
 # bash shell has issues with "C:/" in path
 PATH="$(abspath ${VCPKG_ROOT}):${PATH}"
 which vcpkg
-
-VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-NO_TRIPLET_DEFINED}"
 
 CMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN_FILE:-${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake}"
 
@@ -81,21 +80,21 @@ if test -d UDA-${UDA_REF} ;then
 (
     cd UDA-${UDA_REF}
 # build portablexdr
-    cmake -Bextlib/build  ./extlib \
+    cmake -Bextlib/build ./extlib \
         -DCMAKE_INSTALL_PREFIX="${USEFUL_CMAKE_INSTALL_PREFIX}" \
         -DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOLCHAIN_FILE}" \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_GENERATOR_PLATFORM=x64 \
         -DBUILD_SHARED_LIBS=OFF
-    cmake --build extlib/build --config Release
+    cmake --build extlib/build --config Debug
     cmake --install extlib/build
 # build UDA
-    cmake -B build . ${UDA_CMAKE_ARGS[@]}
-    cmake --build build -j --config Release
+    cmake -Bbuild . ${UDA_CMAKE_ARGS[@]}
+    cmake --build build -j --config Debug
 # patch faulty .pc file for windows builds
     find ./ -name "uda-cpp.pc" | xargs sed -i -e "s| capnp||g;s| -std=c++17| /std:c++20|" 
 # install UDA
-    cmake --install build --config Release
+    cmake --install build --config Debug
 )
 fi
 # delvewheel is the equivalent of delocate/auditwheel for windows.

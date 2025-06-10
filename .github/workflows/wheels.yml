@@ -176,12 +176,12 @@ jobs:
           # --ignore-existing: unless set, delvewheel does not check whether a DLL is already in the wheel and tries to find it from an external source.
           # CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --ignore-existing -w {dest_dir} {wheel} --add-path ${{github.workspace}}/install/lib"
           # CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
-          # CIBW_BUILD_VERBOSITY: 1
+          CIBW_BUILD_VERBOSITY: 1
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
-            cmake.args="--debug-find;--debug-output"
+          # cmake.args="--debug-find;--debug-output"
           # # Build third party library: deps and UDA
           # VCPKG_ROOT: "C:/vcpkg"
           # CMAKE_POLICY_VERSION_MINIMUM: 3.5
