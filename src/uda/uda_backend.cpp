@@ -214,7 +214,7 @@ void unpack_node(const std::string& path,
         case COMPLEX_DATA:
         case UDA_TYPE_COMPLEX:
             *datatype = COMPLEX_DATA;
-            unpack_data<double _Complex>(data_node, shape, data, dim, size);
+            unpack_data<COMPLEX>(data_node, shape, data, dim, size);
             break;
         default: throw ALBackendException("Unknown data type: " + std::to_string(type));
     }
@@ -626,6 +626,9 @@ int UDABackend::readData(Context* ctx,
             case CHAR_DATA:
                 *data = read_data_from_cache<char>(cache_data, *dim);
                 break;
+	    case COMPLEX_DATA:
+		*data = read_data_from_cache<COMPLEX>(cache_data, *dim);
+		break;
             default:
                 throw ALBackendException("unknown data type", LOG);
         }
