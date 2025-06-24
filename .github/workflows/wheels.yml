@@ -67,7 +67,7 @@ jobs:
       - name: Install cibuildwheel for windows
         if: startsWith(matrix.os, 'windows')
         run: |
-          python -m pip install cibuildwheel==2.23.2
+          python -m pip install cibuildwheel==3.0.0
 
       - name: Restore cibuildwheel cache
         if: startsWith(matrix.os, 'windows')
