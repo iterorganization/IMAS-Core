@@ -85,15 +85,15 @@ if test -d UDA-${UDA_REF} ;then
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_GENERATOR_PLATFORM=x64 \
         -DBUILD_SHARED_LIBS=OFF
-    cmake --build extlib/build --config Debug
-    cmake --install extlib/build
+    cmake --build extlib/build --config Release
+    cmake --install extlib/build --config Release
 # build UDA
     cmake -Bbuild . ${UDA_CMAKE_ARGS[@]}
-    cmake --build build -j --config Debug
+    cmake --build build -j --config Release
 # patch faulty .pc file for windows builds
     find ./ -name "uda-cpp.pc" | xargs sed -i -e "s| capnp||g;s| -std=c++17| /std:c++20|"
 # install UDA
-    cmake --install build --config Debug
+    cmake --install build --config Release
 )
 fi
 # delvewheel is the equivalent of delocate/auditwheel for windows.
