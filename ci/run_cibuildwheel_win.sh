@@ -23,32 +23,62 @@ exit_error() {
 PARENT_DIR_OF_THIS_FILE="$(dirname $(dirname $(abspath $0)))"
 
 export PROJECT_DIR="${PROJECT_DIR:-$PARENT_DIR_OF_THIS_FILE}"
-export VIRTUALENV_DIR="${VIRTUALENV_DIR:-${PROJECT_DIR}/.venv}"
+export WHEELHOUSE="${WHEELHOUSE:-${PROJECT_DIR}/wheelhouse}"
+export VIRTUALENV_BUILD="${VIRTUALENV_BUILD:-${PROJECT_DIR}/.venv}"
+export VIRTUALENV_TEST="${VIRTUALENV_TEST:-${PROJECT_DIR}/.venv_test}"
 export VCPKG_ROOT="${VCPKG_ROOT:-C:/vcpkg}"
 export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-x64-windows}"
 
+# cf. .github/workflows/wheels.yml
+# AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+# AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+# AL_BACKEND_UDA: AL_BACKEND_UDA=OFF  # FIXME: imas-core w/UDA backend on windows
+# UDA_REF: "2.8.1"
+# FMT_REF: "11.1.4"
+export UDA_REF="2.8.1"
+export CIBW_BUILD="cp311-win_amd64"
+export CIBW_PLATFORM="windows"
+export CIBW_ARCHS="AMD64"
+export CIBW_CONFIG_SETTINGS="\
+    cmake.define.AL_BACKEND_HDF5=ON \
+    cmake.define.AL_BACKEND_MDSPLUS=OFF \
+    cmake.define.AL_BACKEND_UDA=OFF \
+"
+
+
+# Clean?
+rm -rf ${VIRTUALENV_BUILD}
+rm -rf ${VIRTUALENV_TEST}
+rm -rf ${WHEELHOUSE}
+
+
+# Build wheel
 (
     cd ${PROJECT_DIR}
 
-    python -mvenv "${VIRTUALENV_DIR}"
-    . "${VIRTUALENV_DIR}"/scripts/activate
+    python -mvenv "${VIRTUALENV_BUILD}"
+    source "${VIRTUALENV_BUILD}"/scripts/activate
     python -m pip install -U pip
     python -m pip install cibuildwheel==3.0.0
 
-    # Debug
-    python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
+    python -m cibuildwheel --output-dir ${WHEELHOUSE} --config-file pyproject.toml
+)
 
-    # AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-    # AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-    # AL_BACKEND_UDA: AL_BACKEND_UDA=OFF  # FIXME: imas-core w/UDA backend on windows
-    # UDA_REF: "2.8.1"
-    # FMT_REF: "11.1.4"
-    export UDA_REF="2.8.1"
-    export CIBW_BUILD="cp311-win_amd64"
-    export CIBW_PLATFORM="windows"
-    export CIBW_ARCHS="AMD64"
-    export CIBW_CONFIG_SETTINGS="cmake.define.AL_BACKEND_HDF5=ON  cmake.define.AL_BACKEND_MDSPLUS=OFF  cmake.define.AL_BACKEND_UDA=OFF"
-    # export CIBW_ENVIRONMENT_WINDOWS="PKG_CONFIG_PATH=PWD.replace('\\', '/')
+# Test wheel
+(
+    cd ${PROJECT_DIR}
 
-    python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
+    python -mvenv .${VIRTUALENV_TEST}
+    source ${VIRTUALENV_TEST}/scripts/activate
+    python -m pip install -U pip
+
+    # test wheel installation
+    WHEEL=$(cd ${WHEELHOUSE} ; ls -1 --sort=t imas_core-*-${CIBW_BUILD}.whl | tail -n1))
+    python -m pip install ${WHEELHOUSE}/${WHEEL}
+    python -c "import imas_core; print(imas_core.version_tuple)" 
+
+    # run pytest with project's ./tests
+    python -m pip install ${WHEELHOUSE}/${WHEEL}[test,cov]
+    pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
+    coverage2clover -i coverage.xml -o clover.xml
 )
