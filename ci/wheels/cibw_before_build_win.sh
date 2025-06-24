@@ -1,14 +1,7 @@
 set -xe
 
-PROJECT_DIR="$1"
 export VCPKG_ROOT="${VCPKG_ROOT:-$2}"
 export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-$3}"
-
-abspath() {
-    # resolve absolute path for a file or directory
-    cd "$(dirname "$1")"
-    printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
-}
 
 # vcpkg setup
 # ####################################################################
@@ -21,6 +14,11 @@ if ! test -f ${VCPKG_ROOT}/vcpkg.exe ;then
 fi
 
 # bash shell has issues with "C:/" in path
+abspath() {
+    # resolve absolute path for a file or directory
+    cd "$(dirname "$1")"
+    printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
+}
 PATH="$(abspath ${VCPKG_ROOT}):${PATH}"
 which vcpkg
 

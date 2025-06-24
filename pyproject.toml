@@ -37,9 +37,9 @@ requires = [
 build-backend = "scikit_build_core.build"
 
 [tool.cibuildwheel]
-# Increase pip debugging output
-build-verbosity = 1
-# Only build on CPython 3.11
+# build-verbosity = 1
+# CIBW_CONFIG_SETTINGS = "cmake.args='--debug-output'"
+# Only build wheels for CPython 3.11
 build = "cp311-*"
 # Skip 32-bit builds
 skip = ["*-win32", "*-manylinux_i686"]
@@ -48,14 +48,6 @@ skip = ["*-win32", "*-manylinux_i686"]
 CMAKE_POLICY_VERSION_MINIMUM = "3.5"
 
 [tool.cibuildwheel.windows.environment]
-# This does not work because pkg-config does not like backslashes,
-# PKG_CONFIG_PATH = "{project}"
-# do this instead (which will override this setting)
-# set CIBW_ENVIRONMENT_WINDOWS=PKG_CONFIG_PATH=PWD.replace('\\', '/')
-
-CIBW_CONFIG_SETTINGS = "cmake.args='--debug-output'"
-# CIBW_CACHE_PATH = "./cibw_cache"
-# Build third party library: deps and UDA
 VCPKG_ROOT = "C:/vcpkg"
 VCPKG_TARGET_TRIPLET = "x64-windows"
 CMAKE_TOOLCHAIN_FILE = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -64,7 +56,8 @@ PKG_CONFIG_PATH = "C:/vcpkg/installed/x64-windows/lib/pkgconfig"
 VCPKG_KEEP_ENV_VARS = "VCPKG_ROOT;CMAKE_PREFIX_PATH;CMAKE_TOOLCHAIN_FILE;CMAKE_POLICY_VERSION_MINIMUM;"
 
 [tool.cibuildwheel.windows]
-before-build = "bash {project}/ci/wheels/cibw_before_build_win.sh {project}"
+# installs dependencies for building wheels on windows platform...
+before-build = "bash ./ci/wheels/cibw_before_build_win.sh"
 repair-wheel-command = "bash ./ci/wheels/repair_windows.sh {wheel} {dest_dir}"
 
 [tool.scikit-build.cmake.define]
@@ -83,7 +76,6 @@ Boost_NO_BOOST_CMAKE = "ON"
 [tool.scikit-build]
 minimum-version = "0.8"
 # cmake.version = ">=3.21"
-# build-type="Debug" problem in github actions Windows runner
 # cmake.build-type = "Release"
 logging.level = "DEBUG"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"

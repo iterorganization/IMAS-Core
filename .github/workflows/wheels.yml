@@ -78,6 +78,7 @@ jobs:
             ~\AppData\Local\pypa\cibuildwheel\Cache
             ~/Library/Caches/cibuildwheel
             ~/.cache/cibuildwheel
+          # cf. CIBW_CACHE_PATH
           key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-${{ matrix.platform_id }}"
 
       - name: Cache restore windows deps
@@ -94,76 +95,6 @@ jobs:
             ${{ matrix.os }}-${{ env.cache-name }}-a
             ${{ matrix.os }}-${{ env.cache-name }}-
 
-      # - name: Install windows deps
-      #   if: startsWith(matrix.os, 'windows')
-      #   shell: pwsh
-      #   run: >
-      #     vcpkg install --triplet ${{ matrix.triplet }} --classic
-      #     pkgconf
-      #     pthreads
-      #     hdf5
-      #     libxml2
-      #     capnproto
-      #     boost-program-options
-      #     boost-algorithm
-      #     boost-filesystem
-      #     boost-format
-      #     boost-multi-array
-      #     openssl
-      #     dlfcn-win32
-      #     spdlog
-
-      # - name: Build UDA on windows
-      #   if: ${{ steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') }}
-      #   # if: ${{ startsWith(matrix.os, 'windows') }}
-      #   env:
-      #     CMAKE_TOOLCHAIN_FILE: C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-      #     CMAKE_PREFIX_PATH: C:/vcpkg/installed/${{ matrix.triplet }};C:/vcpkg/installed/${{ matrix.triplet }}/share;
-      #     CMAKE_INSTALL_PREFIX: C:/vcpkg/installed/${{ matrix.triplet }}
-      #     XDR_ROOT: C:/vcpkg/installed/${{ matrix.triplet }}
-
-      #   shell: pwsh
-      #   run: >
-      #     curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz
-      #     && tar zxf ${{matrix.UDA_REF}}.tar.gz
-      #     && cd UDA-${{matrix.UDA_REF}}
-      #     && cmake -Bextlib/build  ./extlib
-      #     -DCMAKE_GENERATOR_PLATFORM=x64
-      #     -DBUILD_SHARED_LIBS=OFF
-      #     && cmake --build extlib/build --config Release
-      #     && cmake --install extlib/build --prefix extlib/install
-      #     && cmake -B build . -Wno-deprecated --debug-find --debug-output
-      #     -DCMAKE_INSTALL_PREFIX=C:/vcpkg/installed/${{ matrix.triplet }}
-      #     -DCMAKE_GENERATOR_PLATFORM=x64
-      #     -DCMAKE_BUILD_TYPE=Release
-      #     -DBUILD_SHARED_LIBS:BOOL=ON
-      #     -DSSLAUTHENTICATION:BOOL=ON
-      #     -DCLIENT_ONLY:BOOL=ON
-      #     -DENABLE_CAPNP:BOOL=ON
-      #     && cmake --build build -j --config Release
-      #     && cmake --install build --config Release
-      #     && cd ..
-
-      # - name: Inspect installation
-      #   if: startsWith(matrix.os, 'windows')
-      #   shell: pwsh
-      #   run: >
-      #     gci -r "C:/vcpkg/installed/${{ matrix.triplet }}" -Filter "pthread.h" | select -exp FullName
-      #     && gci -r "C:/vcpkg/installed/${{ matrix.triplet }}" -Filter "hread*cmake" | select -exp FullName
-      #     && gci -r "C:/vcpkg/installed/${{ matrix.triplet }}" -Filter "*capnp*" | select -exp FullName
-
-      # - name: Tweak UDA .pc files
-      #   if: startsWith(matrix.os, 'windows')
-      #   shell: pwsh
-      #   run: >
-      #     foreach (
-      #       $pat in (gci "C:/vcpkg/installed/${{ matrix.triplet }}/lib/pkgconfig" -r -filter "uda-*.pc" | select -ExpandProperty FullName )
-      #     ) {
-      #       (Get-Content $pat).Replace(" capnp","") | Set-Content $pat
-      #       (Get-Content $pat).Replace(" -std=c++17"," /std:c++20") | Set-Content $pat
-      #     }
-
-      # instead of uses: pypa/cibuildwheel@v2.22.0
       - name: Build wheels for windows
         if: startsWith(matrix.os, 'windows')
         run: |
@@ -173,30 +104,16 @@ jobs:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
-          # --ignore-existing: unless set, delvewheel does not check whether a DLL is already in the wheel and tries to find it from an external source.
-          # CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --ignore-existing -w {dest_dir} {wheel} --add-path ${{github.workspace}}/install/lib"
-          # CIBW_BEFORE_BUILD_WINDOWS: "pip install delvewheel"
           CIBW_BUILD_VERBOSITY: 1
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
           # cmake.args="--debug-find;--debug-output"
-          # # Build third party library: deps and UDA
-          # VCPKG_ROOT: "C:/vcpkg"
-          # CMAKE_POLICY_VERSION_MINIMUM: 3.5
-          # CMAKE_TOOLCHAIN_FILE: C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-          # CMAKE_PREFIX_PATH: C:/vcpkg/installed/${{ matrix.triplet }};C:/vcpkg/installed/${{ matrix.triplet }}/share;
-          # # PKG_CONFIG_PATH: C:/vcpkg/installed/${{ matrix.triplet }}/lib/pkgconfig
-          # VCPKG_KEEP_ENV_VARS: "VCPKG_ROOT;CMAKE_PREFIX_PATH;CMAKE_TOOLCHAIN_FILE;CMAKE_POLICY_VERSION_MINIMUM;"
-          # CIBW_BEFORE_ALL: >
-          #   vcpkg list
-          #   && vcpkg env
 
       - name: Cache store windows deps
-        # use always() to prevent skipping this step if previous step had failed:
-        if: ${{ steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') && always() }}
-        # if: ${{ startsWith(matrix.os, 'windows') }}
+        # always(): also if previous step failed
+        if: ${{ always() && steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') }}
         id: cache-win-deps-save
         uses: actions/cache/save@v4
         env:
