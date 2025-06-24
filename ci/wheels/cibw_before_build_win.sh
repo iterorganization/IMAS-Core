@@ -4,7 +4,8 @@ PROJECT_DIR="$1"
 export VCPKG_ROOT="${VCPKG_ROOT:-$2}"
 export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-$3}"
 
-abspath() {                                               
+abspath() {
+    # resolve absolute path for a file or directory
     cd "$(dirname "$1")"
     printf "%s/%s\n" "$(pwd)" "$(basename "$1")"
 }
@@ -92,7 +93,7 @@ if test -d UDA-${UDA_REF} ;then
     cmake -Bbuild . ${UDA_CMAKE_ARGS[@]}
     cmake --build build -j --config Debug
 # patch faulty .pc file for windows builds
-    find ./ -name "uda-cpp.pc" | xargs sed -i -e "s| capnp||g;s| -std=c++17| /std:c++20|" 
+    find ./ -name "uda-cpp.pc" | xargs sed -i -e "s| capnp||g;s| -std=c++17| /std:c++20|"
 # install UDA
     cmake --install build --config Debug
 )
