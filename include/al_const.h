@@ -10,9 +10,9 @@
 #include "al_defs.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 /* C defs */
@@ -212,26 +212,26 @@ extern "C" {
      @param[in] id constant ID
      @result String associated with the constant ID
   */
-  LIBRARY_API const char * const2str(int id);
+  IMAS_CORE_LIBRARY_API const char * const2str(int id);
   
   /**
      Returns the String of the passed integer error.
      @param[in] id error ID
      @result String associated with the error ID
   */
-  LIBRARY_API const char * err2str(int id);
+  IMAS_CORE_LIBRARY_API const char * err2str(int id);
   
   /**
      Returns the String of the AL version.
      @result String of the AL version
   */
-  LIBRARY_API const char * getALVersion();
+  IMAS_CORE_LIBRARY_API const char * getALVersion();
   
   /**
      Returns the String of Data Dictionary version.
      @result String of the Data Dictionary version
   */
-  LIBRARY_API const char * getDDVersion();
+  IMAS_CORE_LIBRARY_API const char * getDDVersion();
   
   
 #if defined(__cplusplus)

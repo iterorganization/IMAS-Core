@@ -12,13 +12,13 @@
 #include "al_const.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #   define NOMINMAX
 #include <windows.h>
 #include <Shlobj.h>
 #include "fix_include_windows.h"
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #include <pwd.h>
 #endif
 
@@ -40,7 +40,7 @@
    Generic Context class.
    The simple generic Context is only associated to a given Back-end.
 */
-class LIBRARY_API Context 
+class IMAS_CORE_LIBRARY_API Context
 {
 public:
   /**
@@ -96,7 +96,7 @@ protected:
    Context class for a given pulse file.
    The DataEntryContext is a Context associated to a given pulse file.
 */
-class LIBRARY_API DataEntryContext : public Context 
+class IMAS_CORE_LIBRARY_API DataEntryContext : public Context
 {
 public:
 
@@ -193,7 +193,7 @@ public:
    Context class for an operation on a DATAOBJECT.
    The OperationContext is a Context associated to a given DATAOBJECT for a given I/O operation on a given DataEntryContext .
 */
-class LIBRARY_API OperationContext : public Context 
+class IMAS_CORE_LIBRARY_API OperationContext : public Context
 {
 
 public:
@@ -383,7 +383,7 @@ protected:
    Context class for an array of structures.
    The ArraystructContext is a Context associated to a given array of structure from a given OperationContext.
 */
-class LIBRARY_API ArraystructContext : public Context 
+class IMAS_CORE_LIBRARY_API ArraystructContext : public Context
 {
  public:
   /**
@@ -507,10 +507,10 @@ protected:
 
 };
 
-LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
-LIBRARY_API std::ostream& operator<< (std::ostream& o, DataEntryContext const& ctx);
-LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
-LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
+IMAS_CORE_LIBRARY_API std::ostream& operator<< (std::ostream& o, Context const& ctx);
+IMAS_CORE_LIBRARY_API std::ostream& operator<< (std::ostream& o, DataEntryContext const& ctx);
+IMAS_CORE_LIBRARY_API std::ostream& operator<< (std::ostream& o, OperationContext const& ctx);
+IMAS_CORE_LIBRARY_API std::ostream& operator<< (std::ostream& o, ArraystructContext const& ctx);
 
 #endif
 

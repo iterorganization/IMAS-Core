@@ -17,9 +17,9 @@
 #define NODENAME_MANGLING  //Use IMAS mangling
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -42,7 +42,7 @@ struct array_deleter
 
 //Support classes for memory mapping
 
-class LIBRARY_API ALData
+class IMAS_CORE_LIBRARY_API ALData
 {
     bool timed;
     int type;
@@ -237,7 +237,7 @@ public:
 };
 
 class ALStruct;
-class LIBRARY_API ALAoS
+class IMAS_CORE_LIBRARY_API ALAoS
 {
 public:
     std::string timebase;
@@ -251,9 +251,9 @@ public:
     ALAoS * linearInterpol(ALAoS *alAos, double t, double t1, double t2); 
 };
 
-class LIBRARY_API ALStruct
+class IMAS_CORE_LIBRARY_API ALStruct
 {
-	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	// Because IMAS_CORE_LIBRARY_API required to explicitly delete the copy constructor (template std)
 	ALStruct(const ALStruct&) = delete;
     ALStruct& operator=(const ALStruct&) = delete;
 	
@@ -304,7 +304,7 @@ public:
 	
 };
 
-class LIBRARY_API StructPath
+class IMAS_CORE_LIBRARY_API StructPath
 {
 public:
     ALStruct *alStruct;
@@ -317,7 +317,7 @@ public:
 };
 
 
-class LIBRARY_API IdsInfo
+class IMAS_CORE_LIBRARY_API IdsInfo
 {
 public:
     std::string idsPath;
@@ -370,9 +370,9 @@ public:
 
 
 
-class LIBRARY_API MemoryBackend:public Backend 
+class IMAS_CORE_LIBRARY_API MemoryBackend:public Backend
 {
-	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	// Because IMAS_CORE_LIBRARY_API required to explicitly delete the copy constructor (template std)
 	MemoryBackend(const MemoryBackend&) = delete;
     MemoryBackend& operator=(const MemoryBackend&) = delete;
 
