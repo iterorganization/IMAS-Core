@@ -39,7 +39,7 @@ jobs:
             manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF  # FIXME: imas-core w/UDA backend on windows
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.8.1"
             FMT_REF: "11.1.4"
 
