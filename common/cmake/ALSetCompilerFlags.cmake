@@ -31,9 +31,9 @@ endif()
 
 ################################################################################
 # C++
-
-set( CMAKE_CXX_STANDARD 17 )
-
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set( CMAKE_CXX_STANDARD 17 )
+endif()
 if( CMAKE_CXX_COMPILER_ID STREQUAL "Intel" )
   # icpc options
   string( APPEND CMAKE_CXX_FLAGS

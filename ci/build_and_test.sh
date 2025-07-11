@@ -161,6 +161,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DDD_VERSION=${DD_VERSION:-$DD_VERSION}
     # Work around Boost linker issues on 2020b toolchain
     -DBoost_NO_BOOST_CMAKE=${Boost_NO_BOOST_CMAKE:-ON}
+    -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}
 )
 echo "CMake args:"
 echo ${CMAKE_ARGS[@]} | tr ' ' '\n'
