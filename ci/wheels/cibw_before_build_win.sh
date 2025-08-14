@@ -7,7 +7,7 @@ export VCPKG_TARGET_TRIPLET="${VCPKG_TARGET_TRIPLET:-$3}"
 # ####################################################################
 
 if ! test -d ${VCPKG_ROOT} ;then
-    git clone --depth 0 https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT}
+    git clone --depth 1 https://github.com/microsoft/vcpkg.git ${VCPKG_ROOT}
 fi
 if ! test -f ${VCPKG_ROOT}/vcpkg.exe ;then
     ${VCPKG_ROOT}/bootstrap-vcpkg.sh -disableMetrics

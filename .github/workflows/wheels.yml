@@ -180,7 +180,9 @@ jobs:
           path: wheelhouse/*.whl
           retention-days: 1
 
-  publish_wheels:
+  publish_wheels_testpypi:
+    # only publish to TestPyPI on develop pushes and not from forks
+    if: github.ref=='refs/heads/develop' && github.repository_owner == 'iterorganization'
     needs: [build_wheels]
     runs-on: ubuntu-24.04
     permissions:
@@ -204,3 +206,30 @@ jobs:
           verbose: true
           packages-dir: wheelhouse
           repository-url: https://test.pypi.org/legacy/
+
+  publish_wheels_pypi:
+    # only publish to PyPI on tag pushes and not from forks
+    if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'iterorganization'
+    needs: [build_wheels]
+    runs-on: ubuntu-24.04
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+    environment:
+      # Specifying a GitHub environment is optional, but strongly encouraged
+      name: pypi
+      url: https://pypi.org/p/imas-core
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-*
+          merge-multiple: true  # avoid artifact subdirs below wheelhouse
+          path: wheelhouse
+      - name: list wheelhouse
+        run: ls -R wheelhouse
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          packages-dir: wheelhouse
+          # repository-url: https://test.pypi.org/legacy/

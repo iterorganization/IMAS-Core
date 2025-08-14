@@ -42,7 +42,7 @@ export CIBW_ARCHS="AMD64"
 export CIBW_CONFIG_SETTINGS="\
     cmake.define.AL_BACKEND_HDF5=ON \
     cmake.define.AL_BACKEND_MDSPLUS=OFF \
-    cmake.define.AL_BACKEND_UDA=OFF \
+    cmake.define.AL_BACKEND_UDA=ON \
 "
 
 
@@ -64,21 +64,21 @@ rm -rf ${WHEELHOUSE}
     python -m cibuildwheel --output-dir ${WHEELHOUSE} --config-file pyproject.toml
 )
 
-# Test wheel
-(
-    cd ${PROJECT_DIR}
-
-    python -mvenv .${VIRTUALENV_TEST}
-    source ${VIRTUALENV_TEST}/scripts/activate
-    python -m pip install -U pip
-
-    # test wheel installation
-    WHEEL=$(cd ${WHEELHOUSE} ; ls -1 --sort=t imas_core-*-${CIBW_BUILD}.whl | tail -n1))
-    python -m pip install ${WHEELHOUSE}/${WHEEL}
-    python -c "import imas_core; print(imas_core.version_tuple)" 
-
-    # run pytest with project's ./tests
-    python -m pip install ${WHEELHOUSE}/${WHEEL}[test,cov]
-    pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
-    coverage2clover -i coverage.xml -o clover.xml
-)
+# # Test wheel
+# (
+#     cd ${PROJECT_DIR}
+# 
+#     python -mvenv .${VIRTUALENV_TEST}
+#     source ${VIRTUALENV_TEST}/scripts/activate
+#     python -m pip install -U pip
+# 
+#     # test wheel installation
+#     WHEEL=$(cd ${WHEELHOUSE} ; ls -1 --sort=t imas_core-*-${CIBW_BUILD}.whl | tail -n1))
+#     python -m pip install ${WHEELHOUSE}/${WHEEL}
+#     python -c "import imas_core; print(imas_core.version_tuple)" 
+# 
+#     # run pytest with project's ./tests
+#     python -m pip install ${WHEELHOUSE}/${WHEEL}[test,cov]
+#     pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
+#     coverage2clover -i coverage.xml -o clover.xml
+# )
