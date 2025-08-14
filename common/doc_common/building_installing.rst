@@ -239,7 +239,7 @@ Configuration options
         building the example programs in the ``examples`` directory.
     -   ``AL_TESTS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
         building the test programs in the ``tests`` folder.
-    -   ``AL_PLUGINS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
+    -   ``AL_PLUGINS``, allowed values ``ON`` or ``OFF`` *(default)* . Enable/disable
         building the plugins from the ``al-plugins`` repository.
     -   ``AL_HLI_DOCS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         building the documentation.
