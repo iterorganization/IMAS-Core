@@ -9,7 +9,8 @@
 if( AL_DOCS_ONLY )
   return()
 endif()
-
+# Find Saxon XSLT processor
+find_package( SaxonHE REQUIRED )
 # Find Python for the xsltproc.py program
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 # Find LibXslt for the xsltproc program
@@ -59,6 +60,23 @@ else()
       )
     endif()
 
+    if( NOT DEFINED DD_VERSION )
+      execute_process(
+        COMMAND git describe --tags --always --dirty
+        WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
+        OUTPUT_VARIABLE DD_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE _GIT_RESULT
+      )
+      if(_GIT_RESULT)
+        execute_process(
+          COMMAND git rev-parse --short HEAD
+          WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
+          OUTPUT_VARIABLE DD_VERSION
+          OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+      endif()
+    endif()
     FetchContent_Declare(
       data-dictionary
       SOURCE_DIR      ${DD_SOURCE_DIRECTORY}
@@ -69,7 +87,7 @@ else()
 
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
-    COMMAND ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/xsltproc.py"
+    COMMAND ${Python_EXECUTABLE} "${AL_PARENT_FOLDER}/al-core/xsltproc.py"
       -xsl "dd_data_dictionary.xml.xsl"
       -o "IDSDef.xml"
       -s "dd_data_dictionary.xml.xsd"
