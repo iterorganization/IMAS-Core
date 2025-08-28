@@ -87,7 +87,7 @@ else()
 
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
-    COMMAND ${Python_EXECUTABLE} "${AL_PARENT_FOLDER}/al-core/xsltproc.py"
+    COMMAND ${Python_EXECUTABLE} "${al-core_SOURCE_DIR}/xsltproc.py"
       -xsl "dd_data_dictionary.xml.xsl"
       -o "IDSDef.xml"
       -s "dd_data_dictionary.xml.xsd"
