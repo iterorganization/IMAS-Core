@@ -14,7 +14,7 @@ During the CMake configure step of any of the other Access Layer repositories
 # Configuration options for common assets
 ################################################################################
 option( AL_DOWNLOAD_DEPENDENCIES "Automatically download assets from the AL git repository" ON )
-set( AL_CORE_GIT_REPOSITORY "git@github.com:ITEROrganization/IMAS-Core.git" CACHE STRING "Git repository of AL-core" )
+set( AL_CORE_GIT_REPOSITORY "git@github.com:iterorganization/IMAS-Core.git" CACHE STRING "Git repository of AL-core" )
 set( AL_CORE_VERSION "main" CACHE STRING "Git commit/tag/branch of AL-core" )
 
 include(FetchContent)

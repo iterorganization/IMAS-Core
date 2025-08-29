@@ -156,7 +156,7 @@ CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -DAL_PYTHON_BINDINGS=${AL_PYTHON_BINDINGS:-no-build-isolation}
     # Download dependencies from HTTPS (using an access token):
     -DAL_DOWNLOAD_DEPENDENCIES=${AL_DOWNLOAD_DEPENDENCIES:-ON}
-    -DDD_GIT_REPOSITORY=${DD_GIT_REPOSITORY:-git@github.com:ITEROrganization/IMAS-Data-Dictionary.git}
+    -DDD_GIT_REPOSITORY=${DD_GIT_REPOSITORY:-https://github.com/iterorganization/IMAS-Data-Dictionary.git}
     # DD version:
     -DDD_VERSION=${DD_VERSION:-$DD_VERSION}
     # Work around Boost linker issues on 2020b toolchain

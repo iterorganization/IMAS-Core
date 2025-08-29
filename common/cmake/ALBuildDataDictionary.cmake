@@ -10,8 +10,6 @@ if( AL_DOCS_ONLY )
   return()
 endif()
 
-# Find Saxon XSLT processor
-find_package( SaxonHE REQUIRED )
 # Find Python for the xsltproc.py program
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 # Find LibXslt for the xsltproc program

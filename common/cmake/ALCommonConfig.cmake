@@ -13,6 +13,9 @@ option( AL_PLUGINS "Enable plugin framework for tests and examples" OFF )
 option( AL_HLI_DOCS "Build the Sphinx-based High Level Interface documentation" OFF )
 option( AL_DOCS_ONLY "Don't build anything, except the Sphinx-based High Level Interface documentation" OFF )
 
+# Find Saxon XSLT processor
+find_package( SaxonHE REQUIRED )
+
 if( NOT AL_DOWNLOAD_DEPENDENCIES )
   if( DEFINED ENV{AL_COMMON_PATH} )
     set( _DEV OFF )
@@ -46,7 +49,7 @@ if( AL_DOWNLOAD_DEPENDENCIES )
   # Data dictionary
   ##############################################################################
   set(
-    DD_GIT_REPOSITORY "git@github.com:ITEROrganization/IMAS-Data-Dictionary.git"
+    DD_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-data-Dictionary.git"
     CACHE STRING "Git repository of the Data Dictionary"
   )
   set(

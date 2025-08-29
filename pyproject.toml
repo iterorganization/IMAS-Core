@@ -23,7 +23,7 @@ cov = ["pytest-cov", "coverage2clover"]
 
 [project.urls]
 Homepage = "https://imas.iter.org"
-Repository = "https://github.com/ITEROrganization/IMAS-Core"
+Repository = "https://github.com/iterorganization/IMAS-Core"
 
 [build-system]
 requires = [
