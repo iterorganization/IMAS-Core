@@ -89,7 +89,7 @@ add_custom_command(
   OUTPUT
   ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
   COMMAND
-  ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/python '${CMAKE_SOURCE_DIR}/xsltproc.py'
+  ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/python '${al-core_SOURCE_DIR}/xsltproc.py'
   -xsl '${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl'
   -o '${CMAKE_CURRENT_BINARY_DIR}/ids.xml'
   -s '${IDSDEF}'
