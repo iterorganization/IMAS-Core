@@ -70,16 +70,31 @@ endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
+
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -m venv build_env
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+execute_process(
+  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/pip install saxonche
+  RESULT_VARIABLE _PIP_EXITCODE
+)
+
+if(_PIP_EXITCODE)
+  message(FATAL_ERROR "Failed to install saxonche dependency")
+endif()
+
 add_custom_command(
   OUTPUT
   ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
   COMMAND
-  ${Python_EXECUTABLE} "${CMAKE_SOURCE_DIR}/xsltproc.py"
-    -xsl "${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl"
-    -o "${CMAKE_CURRENT_BINARY_DIR}/ids.xml"
-    -s "${IDSDEF}"
-    DD_GIT_DESCRIBE=${DD_VERSION}
-    AL_GIT_DESCRIBE=${AL_VERSION}
+  ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/python '${CMAKE_SOURCE_DIR}/xsltproc.py'
+  -xsl '${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl'
+  -o '${CMAKE_CURRENT_BINARY_DIR}/ids.xml'
+  -s '${IDSDEF}'
+  'DD_GIT_DESCRIBE=${DD_VERSION}'
+  'AL_GIT_DESCRIBE=${AL_VERSION}'
   DEPENDS ${IDSDEF} IDSDef2MDSpreTree.xsl
 )
 
