@@ -61,23 +61,6 @@ else()
       )
     endif()
 
-    if( NOT DEFINED DD_VERSION )
-      execute_process(
-        COMMAND git describe --tags --always --dirty
-        WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
-        OUTPUT_VARIABLE DD_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE _GIT_RESULT
-      )
-      if(_GIT_RESULT)
-        execute_process(
-          COMMAND git rev-parse --short HEAD
-          WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
-          OUTPUT_VARIABLE DD_VERSION
-          OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-      endif()
-    endif()
     FetchContent_Declare(
       data-dictionary
       SOURCE_DIR      ${DD_SOURCE_DIRECTORY}
@@ -85,6 +68,23 @@ else()
     set( DD_SOURCE_DIRECTORY )  # unset temporary var
   endif()
   FetchContent_MakeAvailable( data-dictionary )
+
+  # get version of the data dictionary
+  execute_process(
+    COMMAND git describe --tags --always --dirty
+    WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
+    OUTPUT_VARIABLE DD_GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _GIT_RESULT
+  )
+  if(_GIT_RESULT)
+    execute_process(
+      COMMAND git rev-parse --short HEAD
+      WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
+      OUTPUT_VARIABLE DD_GIT_DESCRIBE
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+  endif()
 
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
@@ -106,7 +106,7 @@ else()
       -xsl "dd_data_dictionary.xml.xsl"
       -o "IDSDef.xml"
       -s "dd_data_dictionary.xml.xsd"
-      DD_GIT_DESCRIBE=${DD_VERSION}
+      DD_GIT_DESCRIBE=${DD_GIT_DESCRIBE}
     WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
     RESULT_VARIABLE _MAKE_DD_EXITCODE
   )

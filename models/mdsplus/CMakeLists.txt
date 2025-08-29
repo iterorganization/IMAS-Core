@@ -70,6 +70,22 @@ endif()
 
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 
+# get version of the al-core
+execute_process(
+  COMMAND git describe --tags --always --dirty
+  WORKING_DIRECTORY ${al-core_SOURCE_DIR}
+  OUTPUT_VARIABLE AL_GIT_DESCRIBE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _GIT_RESULT
+)
+if(_GIT_RESULT)
+  execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${al-core_SOURCE_DIR}
+    OUTPUT_VARIABLE AL_GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
 
 execute_process(
   COMMAND ${Python_EXECUTABLE} -m venv build_env
