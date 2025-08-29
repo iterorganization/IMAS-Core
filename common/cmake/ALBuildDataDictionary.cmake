@@ -86,21 +86,6 @@ else()
   endif()
   FetchContent_MakeAvailable( data-dictionary )
 
-  execute_process(
-    COMMAND git describe --tags --always --dirty
-    WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
-    OUTPUT_VARIABLE DD_VERSION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE _GIT_RESULT
-  )
-  if(_GIT_RESULT)
-    execute_process(
-      COMMAND git rev-parse --short HEAD
-      WORKING_DIRECTORY ${DD_SOURCE_DIRECTORY}
-      OUTPUT_VARIABLE DD_VERSION
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-  endif()
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
     COMMAND ${Python_EXECUTABLE} -m venv dd_build_env
