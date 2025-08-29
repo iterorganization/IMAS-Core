@@ -70,7 +70,6 @@ jobs:
           python -m pip install cibuildwheel==3.0.0
 
       - name: Restore cibuildwheel cache
-        if: startsWith(matrix.os, 'windows')
         id: cache
         uses: actions/cache@v4
         with:
