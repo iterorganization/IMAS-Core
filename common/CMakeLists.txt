@@ -18,7 +18,7 @@ configure_file( al_env.sh.in ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh )
 if( AL_DOWNLOAD_DEPENDENCIES OR AL_DEVELOPMENT_LAYOUT )
     install(
       FILES ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh
-      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      TYPE BIN
     )
 endif()
 

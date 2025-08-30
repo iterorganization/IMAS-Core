@@ -139,7 +139,7 @@ install(
 # TODO: put public heades in a separate directory?
 install(
   FILES ${PUBLIC_HEADER_FILES}
-  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  TYPE INCLUDE
 )
 target_include_directories(
   al
@@ -150,15 +150,16 @@ target_include_directories(
 
 # Generate and install .pc file
 configure_file(pkgconfig/al-core.pc.in al-core.pc @ONLY)
+include(GNUInstallDirs)
 install(
   FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
 # Install mdsplusIMASDB4to5
 install(
   PROGRAMS mdsplusIMASDB4to5
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  TYPE BIN
 )
 
 # Install common files (these are used by EB modules)
