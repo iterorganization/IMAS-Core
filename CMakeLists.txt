@@ -163,7 +163,7 @@ install(
 )
 
 # Install common files (these are used by EB modules)
-# Note: EB module has to point the env variable $AL_COMMON_PATH to this installed dir:
+# Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
 
