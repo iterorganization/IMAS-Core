@@ -162,7 +162,7 @@ install(
   TYPE BIN
 )
 
-# Install common files (these are used by EB modules)
+# Install common files
 # Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
