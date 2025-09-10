@@ -88,9 +88,8 @@ jobs:
           cache-name: win-deps
         with:
           path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-c
+          key: ${{ matrix.os }}-${{ env.cache-name }}-b  # this key is never hit (-a is).
           restore-keys: |
-            ${{ matrix.os }}-${{ env.cache-name }}-b
             ${{ matrix.os }}-${{ env.cache-name }}-a
             ${{ matrix.os }}-${{ env.cache-name }}-
 
@@ -112,14 +111,19 @@ jobs:
 
       - name: Cache store windows deps
         # always(): also if previous step failed
-        if: ${{ always() && steps.cache-win-deps.outputs.cache-hit != 'true' && startsWith(matrix.os, 'windows') }}
+        # and also if steps.cache-win-deps.outputs.cache-hit == 'true'
+        # It is difficult to predict when the cache will be there (gha erases in time) and/or up to date (changes in the build),
+        # making it difficult to manually bump the version of the cache. So, instead, we will override the cache always, even if
+        # it was completely up to date and it sped up the Build wheels for windows job (above). The performance hit of storing
+        # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
+        if: ${{ always()  && startsWith(matrix.os, 'windows') }}
         id: cache-win-deps-save
         uses: actions/cache/save@v4
         env:
           cache-name: win-deps
         with:
           path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-c
+          key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
       - uses: pypa/cibuildwheel@v3.0.0
         if: startsWith(matrix.os, 'ubuntu-')
