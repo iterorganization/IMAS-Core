@@ -8,6 +8,10 @@ endif()
 # Capture scikit build cmake.args
 include(./skbuild-cmake-args.cmake)
 
+# Supress a warning
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # Configuration options for IMAS Core Backends
 # ##############################################################################
@@ -33,7 +37,7 @@ option(CMAKE_INSTALL_RPATH_USE_LINK_PATH
 
 # Configuration option for automatic download of common third party libraries
 # ##############################################################################
-include(./vcpkg.cmake)
+# include(./vcpkg.cmake)
 
 
 # Load common assets
@@ -124,6 +128,14 @@ endif()
 
 add_subdirectory(src)
 
+# Dummy Executable
+# ##############################################################################
+set( EXE_FLAG  )
+set( EXE_EXT  )
+add_executable( imas_print_version ${EXE_FLAG} tests/imas_print_version.cpp )
+target_link_libraries( imas_print_version PRIVATE al)
+add_dependencies( imas_print_version al )
+
 # Install
 # ##############################################################################
 
@@ -166,6 +178,8 @@ install(
 # Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
+# Install Dummy
+install(TARGETS imas_print_version DESTINATION bin)
 
 # Scikit-build-core entry point for python bindings
 # ##############################################################################

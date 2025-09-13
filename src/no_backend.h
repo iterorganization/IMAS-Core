@@ -6,9 +6,9 @@
 #include "al_backend.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -17,7 +17,7 @@
 /**
    No backend (test) implementation.
 */
-class LIBRARY_API NoBackend : public Backend
+class IMAS_CORE_LIBRARY_API NoBackend : public Backend
 {
 private:
   bool verbose = false;

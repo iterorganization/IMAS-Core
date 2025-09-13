@@ -10,8 +10,8 @@ if( AL_DOCS_ONLY )
   return()
 endif()
 
-# Find Saxon XSLT processor
-find_package( SaxonHE REQUIRED )
+# Find Python for the xsltproc.py program
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
 # Find LibXslt for the xsltproc program
 find_package( LibXslt QUIET )
 if( NOT LIBXSLT_XSLTPROC_EXECUTABLE )
@@ -67,10 +67,44 @@ else()
   endif()
   FetchContent_MakeAvailable( data-dictionary )
 
+  # get version of the data dictionary
+  execute_process(
+    COMMAND git describe --tags --always --dirty
+    WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
+    OUTPUT_VARIABLE DD_GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _GIT_RESULT
+  )
+  if(_GIT_RESULT)
+    execute_process(
+      COMMAND git rev-parse --short HEAD
+      WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
+      OUTPUT_VARIABLE DD_GIT_DESCRIBE
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+  endif()
+
   # We need the IDSDef.xml at configure time, ensure it is built
   execute_process(
-    COMMAND ${CMAKE_COMMAND} -E env "CLASSPATH=${SaxonHE_CLASSPATH}"
-      make IDSDef.xml
+    COMMAND ${Python_EXECUTABLE} -m venv dd_build_env
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+  
+  execute_process(
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/pip install saxonche
+    RESULT_VARIABLE _PIP_EXITCODE
+  )
+  
+  if(_PIP_EXITCODE)
+    message(FATAL_ERROR "Failed to install saxonche dependency")
+  endif()
+  
+  execute_process(
+    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/python "${al-core_SOURCE_DIR}/xsltproc.py"
+      -xsl "dd_data_dictionary.xml.xsl"
+      -o "IDSDef.xml"
+      -s "dd_data_dictionary.xml.xsd"
+      DD_GIT_DESCRIBE=${DD_GIT_DESCRIBE}
     WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
     RESULT_VARIABLE _MAKE_DD_EXITCODE
   )

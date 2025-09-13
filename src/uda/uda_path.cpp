@@ -40,7 +40,7 @@ bool imas::is_index(const std::string& string)
     }
 
     const char* start = rem.c_str();
-    const char* end = rem.end().base();
+    const char* end = rem.c_str() + rem.size(); // equivalent to rem.end().base()
     char* next = const_cast<char*>(start);
 
     while (next != end) {
@@ -83,7 +83,7 @@ std::pair<std::string, imas::Range> imas::parse_index(const std::string& string)
     imas::Range range = { 0, 0, 1 };
 
     const char* start = rem.c_str();
-    const char* end = rem.end().base();
+    const char* end = rem.c_str() + rem.size(); // equivalent to rem.end().base()
     char* next = const_cast<char*>(start);
 
     int count = 0;

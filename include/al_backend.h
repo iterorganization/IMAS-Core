@@ -12,9 +12,9 @@
 #include "al_context.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -28,7 +28,7 @@
    Abstract Backend class.
    Defines the back-end API, as pure virtual member functions. 
 */
-class LIBRARY_API Backend 
+class IMAS_CORE_LIBRARY_API Backend
 {
 public:
   // virtual desctructor

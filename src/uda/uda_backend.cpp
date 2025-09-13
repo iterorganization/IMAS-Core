@@ -6,6 +6,7 @@
 #ifdef UDA_LEGACY_276
 #include <client/legacy_accAPI.h>
 #endif
+#include <complex>
 #include <clientserver/udaTypes.h>
 
 #include "semver.hpp"
@@ -214,7 +215,7 @@ void unpack_node(const std::string& path,
         case COMPLEX_DATA:
         case UDA_TYPE_COMPLEX:
             *datatype = COMPLEX_DATA;
-            unpack_data<double _Complex>(data_node, shape, data, dim, size);
+            unpack_data<std::complex<double>>(data_node, shape, data, dim, size);
             break;
         default: throw ALBackendException("Unknown data type: " + std::to_string(type));
     }
@@ -342,7 +343,7 @@ void UDABackend::download_file(const std::string& filename)
 
     const uda::Result& bytes_result = uda_client_.get(directive, "");
 
-    FILE* local_file = fopen(local_fullpath.c_str(), "wb");
+    FILE* local_file = fopen(local_fullpath.string().c_str(), "wb");
     fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
     fclose(local_file);
 }
