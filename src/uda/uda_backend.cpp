@@ -627,7 +627,7 @@ int UDABackend::readData(Context* ctx,
                 *data = read_data_from_cache<char>(cache_data, *dim);
                 break;
 	    case COMPLEX_DATA:
-		*data = read_data_from_cache<COMPLEX>(cache_data, *dim);
+		*data = read_data_from_cache<double _Complex>(cache_data, *dim);
 		break;
             default:
                 throw ALBackendException("unknown data type", LOG);
