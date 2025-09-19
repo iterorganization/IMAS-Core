@@ -58,12 +58,16 @@ set_target_properties( testlowlevel_c
 ########################################################################################################################
 # Install
 
-install( TARGETS
-  testlowlevel
-  DESTINATION bin
+install(
+  TARGETS testlowlevel
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install( TARGETS
-  testlowlevel_c
-  DESTINATION bin
+install(
+  TARGETS testlowlevel_c
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )

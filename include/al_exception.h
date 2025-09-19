@@ -13,9 +13,9 @@
 #endif
  
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -30,7 +30,7 @@
 extern "C"
 {
 
-class LIBRARY_API ALException : public std::runtime_error
+class IMAS_CORE_LIBRARY_API ALException : public std::runtime_error
 {
 protected:
   std::string mesg;
@@ -48,7 +48,7 @@ public:
 };
 
 
-class LIBRARY_API ALLowlevelException : public ALException
+class IMAS_CORE_LIBRARY_API ALLowlevelException : public ALException
 {
 public:
   ALLowlevelException() {}
@@ -61,7 +61,7 @@ public:
 };
 
 
-class LIBRARY_API ALBackendException : public ALException
+class IMAS_CORE_LIBRARY_API ALBackendException : public ALException
 {
 public:
   ALBackendException() {}
@@ -74,7 +74,7 @@ public:
 };
 
 
-class LIBRARY_API ALContextException : public ALException
+class IMAS_CORE_LIBRARY_API ALContextException : public ALException
 {
 public:
   ALContextException() {}
@@ -86,7 +86,7 @@ public:
   ALContextException(const std::string &m, const std::string &f, const int l);
 };
 
-class LIBRARY_API ALPluginException : public ALException
+class IMAS_CORE_LIBRARY_API ALPluginException : public ALException
 {
 public:
   ALPluginException() {}

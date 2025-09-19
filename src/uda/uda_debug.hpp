@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <complex>
 #include <boost/variant.hpp>
 
 #include "uda_utilities.hpp"
@@ -84,7 +85,7 @@ public:
     void operator()(const std::vector<int>& vec) const { out_ << vec; }
     void operator()(const std::vector<double>& vec) const { out_ << vec; }
     void operator()(const std::vector<char>& vec) const { out_ << vec; }
-    void operator()(const std::vector<double _Complex>& vec) const { out_ << vec; }
+    void operator()(const std::vector<std::complex<double>>& vec) const { out_ << vec; }
 private:
     std::ostream& out_;
 };

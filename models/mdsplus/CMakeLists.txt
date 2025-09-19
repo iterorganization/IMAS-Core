@@ -68,19 +68,49 @@ endif()
 # Build models
 ################################################################################
 
-find_package( SaxonHE )
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+
+# get version of the al-core
+execute_process(
+  COMMAND git describe --tags --always --dirty
+  WORKING_DIRECTORY ${al-core_SOURCE_DIR}
+  OUTPUT_VARIABLE AL_GIT_DESCRIBE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE _GIT_RESULT
+)
+if(_GIT_RESULT)
+  execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${al-core_SOURCE_DIR}
+    OUTPUT_VARIABLE AL_GIT_DESCRIBE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
+
+execute_process(
+  COMMAND ${Python_EXECUTABLE} -m venv build_env
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+execute_process(
+  COMMAND ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/pip install saxonche
+  RESULT_VARIABLE _PIP_EXITCODE
+)
+
+if(_PIP_EXITCODE)
+  message(FATAL_ERROR "Failed to install saxonche dependency")
+endif()
 
 add_custom_command(
   OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
+  ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
   COMMAND
-    java -cp ${SaxonHE_CLASSPATH}
-      net.sf.saxon.Transform -threads:4 -t -warnings:fatal
-      "-xsl:${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl"
-      "-s:${IDSDEF}"
-      DD_GIT_DESCRIBE=${DD_VERSION}
-      AL_GIT_DESCRIBE=${AL_VERSION}
-      > ${CMAKE_CURRENT_BINARY_DIR}/ids.xml
+  ${CMAKE_CURRENT_BINARY_DIR}/build_env/bin/python '${al-core_SOURCE_DIR}/xsltproc.py'
+  -xsl '${CMAKE_CURRENT_SOURCE_DIR}/IDSDef2MDSpreTree.xsl'
+  -o '${CMAKE_CURRENT_BINARY_DIR}/ids.xml'
+  -s '${IDSDEF}'
+  'DD_GIT_DESCRIBE=${DD_VERSION}'
+  'AL_GIT_DESCRIBE=${AL_VERSION}'
   DEPENDS ${IDSDEF} IDSDef2MDSpreTree.xsl
 )
 

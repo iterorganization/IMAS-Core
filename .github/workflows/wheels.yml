@@ -1,0 +1,238 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: build_wheels (${{ matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        # Github Actions doesn't support pairing matrix values together
+        include:
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 311
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.8.1"
+            FMT_REF: "11.1.4"
+
+          # # - os: macos-13
+          # #   python: 311
+          # #   platform_id: macosx_x86_64
+
+          - os: windows-2022
+            triplet: x64-windows
+            python: 311
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.8.1"
+            FMT_REF: "11.1.4"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
+
+      # Recent changes in GitHub Actions Cache's API have rendered the x-gha binary caching provider useless.
+      # See https://github.com/microsoft/vcpkg-tool/pull/1662
+      # - uses: actions/github-script@v7
+      #   if: startsWith(matrix.os, 'windows')
+      #   # requirement for vcpkg binary caching https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-actions-cache
+      #   with:
+      #     script: |
+      #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+      #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '')
+
+      - uses: actions/setup-python@v5
+        with:
+          # python installation used when to start cibuildwheel
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install cibuildwheel for windows
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          python -m pip install cibuildwheel==3.0.0
+
+      - name: Restore cibuildwheel cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\pypa\cibuildwheel\Cache
+            ~/Library/Caches/cibuildwheel
+            ~/.cache/cibuildwheel
+          # cf. CIBW_CACHE_PATH
+          key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-${{ matrix.platform_id }}"
+
+      - name: Cache restore windows deps
+        if: startsWith(matrix.os, 'windows')
+        id: cache-win-deps
+        uses: actions/cache/restore@v4
+        env:
+          cache-name: win-deps
+        with:
+          path: C:\vcpkg\installed
+          key: ${{ matrix.os }}-${{ env.cache-name }}-b  # this key is never hit (-a is).
+          restore-keys: |
+            ${{ matrix.os }}-${{ env.cache-name }}-a
+            ${{ matrix.os }}-${{ env.cache-name }}-
+
+      - name: Build wheels for windows
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
+          python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
+        env:
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_PLATFORM: ${{ matrix.cibw_platform }}
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_CONFIG_SETTINGS: >
+            cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
+            cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
+            cmake.define.${{ matrix.AL_BACKEND_UDA }}
+          # cmake.args="--debug-find;--debug-output"
+
+      - name: Cache store windows deps
+        # always(): also if previous step failed
+        # and also if steps.cache-win-deps.outputs.cache-hit == 'true'
+        # It is difficult to predict when the cache will be there (gha erases in time) and/or up to date (changes in the build),
+        # making it difficult to manually bump the version of the cache. So, instead, we will override the cache always, even if
+        # it was completely up to date and it sped up the Build wheels for windows job (above). The performance hit of storing
+        # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
+        if: ${{ always()  && startsWith(matrix.os, 'windows') }}
+        id: cache-win-deps-save
+        uses: actions/cache/save@v4
+        env:
+          cache-name: win-deps
+        with:
+          path: C:\vcpkg\installed
+          key: ${{ matrix.os }}-${{ env.cache-name }}-a
+
+      - uses: pypa/cibuildwheel@v3.0.0
+        if: startsWith(matrix.os, 'ubuntu-')
+        env:
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_PLATFORM: ${{ matrix.cibw_platform }}
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+          CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+
+          # Install system libraries
+          # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
+          CIBW_BEFORE_ALL_LINUX: >
+            dnf update -y >&2;
+            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
+            dnf install -y http://www.mdsplus.org/dist/rhel8/stable/RPMS/noarch/mdsplus-repo-7.142-81.el8.noarch.rpm >&2;
+            dnf -y install openssl-devel >&2;
+            dnf -y install ninja-build >&2;
+            dnf -y install boost1.78-devel >&2;
+            dnf -y install capnproto capnproto-devel >&2;
+            dnf -y install fmt fmt-devel >&2;
+            dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
+            dnf -y install libxslt >&2;
+            dnf -y install hdf5-devel >&2;
+            dnf -y install mdsplus mdsplus-java mdsplus-java_bin mdsplus-devel >&2;
+            curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz  >&2;
+            tar zxf ${{matrix.UDA_REF}}.tar.gz  >&2;
+            cd UDA-${{matrix.UDA_REF}}  >&2;
+            cmake -B build . --trace --debug-find -Wno-deprecated -DBUILD_SHARED_LIBS:BOOL=ON -DSSLAUTHENTICATION:BOOL=ON -DCLIENT_ONLY:BOOL=ON -DENABLE_CAPNP:BOOL=ON >&2  >&2;
+            cmake --build build --target install >&2  >&2;
+            cmake --install build >&2  >&2;
+            cd ..  >&2;
+            # curl -LO https://github.com/fmtlib/fmt/archive/refs/tags/${{matrix.FMT_REF}}.tar.gz &&
+            # tar zxf ${{matrix.FMT_REF}}.tar.gz && cd fmt-${{matrix.FMT_REF}} &&
+            # cmake -G Ninja -B build . -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_LIBDIR:STRING=lib -DFMT_DOC:BOOL=OFF -DFMT_TEST:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=ON >&2 &&
+            # cmake --build build --target install >&2 &&
+            # cmake --install build >&2 && cd .. ;
+
+
+          # FIXME: on manylinux_2_28, the ninja package seems to be too old, producing this error:
+          # ninja: error: build.ninja:826: multiple outputs aren't (yet?) supported by depslog; bring this up on the mailing list if it affects you
+          # trying not to use ninja:
+          CIBW_ENVIRONMENT_LINUX: CMAKE_GENERATOR="Unix Makefiles"
+
+          CIBW_CONFIG_SETTINGS: >
+            cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
+            cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
+            cmake.define.${{ matrix.AL_BACKEND_UDA }}
+
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cibw-wheels-cp${{ matrix.python }}-${{ matrix.platform_id }}
+          path: wheelhouse/*.whl
+          retention-days: 1
+
+  publish_wheels_testpypi:
+    # only publish to TestPyPI on develop pushes and not from forks
+    if: github.ref=='refs/heads/develop' && github.repository_owner == 'iterorganization'
+    needs: [build_wheels]
+    runs-on: ubuntu-24.04
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+    environment:
+      # Specifying a GitHub environment is optional, but strongly encouraged
+      name: testpypi
+      url: https://test.pypi.org/p/imas-core
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-*
+          merge-multiple: true  # avoid artifact subdirs below wheelhouse
+          path: wheelhouse
+      - name: list wheelhouse
+        run: ls -R wheelhouse
+      - name: Publish distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          packages-dir: wheelhouse
+          repository-url: https://test.pypi.org/legacy/
+
+  publish_wheels_pypi:
+    # only publish to PyPI on tag pushes and not from forks
+    if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'iterorganization'
+    needs: [build_wheels]
+    runs-on: ubuntu-24.04
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
+    environment:
+      # Specifying a GitHub environment is optional, but strongly encouraged
+      name: pypi
+      url: https://pypi.org/p/imas-core
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cibw-wheels-*
+          merge-multiple: true  # avoid artifact subdirs below wheelhouse
+          path: wheelhouse
+      - name: list wheelhouse
+        run: ls -R wheelhouse
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          packages-dir: wheelhouse
+          # repository-url: https://test.pypi.org/legacy/

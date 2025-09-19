@@ -927,37 +927,43 @@ static void dumpStruct(MDSplus::Apd *apd, int tabs)
        std::cout << apd->getDescAt(0) << ":\n";
     for(size_t i = 1; i < apd->len(); i++)
     {
-	
-	if(!apd->getDescAt(i))
-	{
-	    skipTabs(tabs+1);
-	    std::cout << "None\n";
-	}
-	else
-	{
-	    if(apd->getDescAt(i)->clazz == CLASS_APD)
-	    {
-	      //Can be either a structure or an array of structures
-		MDSplus::Apd *currApd = (MDSplus::Apd *)apd->getDescAt(i);
-		if(currApd->len() == 0)
-		{
-		    skipTabs(tabs+1);
-		    std::cout << "None\n";
-		}
-		else if(currApd->getDescAt(0)->clazz == CLASS_S)
-		  dumpStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
-		else
-		  dumpArrayStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
-	    }
-	    else
-	    {
-		skipTabs(tabs+1);
-		std::cout << apd->getDescAt(i) << std::endl;
-	    }
-	}
-    }
-}
 
+		if(!apd->getDescAt(i))
+		{
+			skipTabs(tabs+1);
+			std::cout << "None\n";
+		}
+		else
+		{
+			if(apd->getDescAt(i)->clazz == CLASS_APD)
+			{
+			//Can be either a structure or an array of structures
+			MDSplus::Apd *currApd = (MDSplus::Apd *)apd->getDescAt(i);
+			if(currApd->len() == 0)
+			{
+				skipTabs(tabs+1);
+				std::cout << "None\n";
+			}
+			else if(currApd->getDescAt(0)->clazz == CLASS_S)
+			dumpStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
+			else
+			dumpArrayStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
+			}
+			else
+			{
+				skipTabs(tabs+1);
+				if ((apd->getDescAt(i))->dtype == DTYPE_NID)
+				{
+					std::cout <<  ((MDSplus::TreeNode *)(apd->getDescAt(i)))->getFullPath() << std::endl;
+				}
+				else
+				{
+					std::cout << apd->getDescAt(i) << std::endl;
+				}
+			}
+		}
+	}
+}
 
  
 //Return the dimension in bytes of the first strring stored in seggmented data. If no segments return -1
@@ -4687,9 +4693,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	{
 //skip the first part of the name for nested Dynamic AoS
 	    std::string aosPath = ctx->getPath();
-	    size_t currPos = aosPath.find_first_of("/");
-	    aosPath = aosPath.substr(currPos + 1);
-	    MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getParent()->getIndex(), aosPath); //Gabriele March 2018
+//August 2025: do not alter anymore the passed path (root of the timed AoS) //////////////////
+//		size_t currPos = aosPath.find_first_of("/");
+//	    aosPath = aosPath.substr(currPos + 1);
+//////////////////////////////////////////////////////////////////////////////////////////////
+		MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getParent()->getIndex(), aosPath); //Gabriele March 2018
 	    if(!node)
 	    {
 		*size = 0;

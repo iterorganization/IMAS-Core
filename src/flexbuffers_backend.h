@@ -14,12 +14,12 @@
 #include "flatbuffers/flexbuffers.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
-class LIBRARY_API FlexbuffersBackend : public Backend
+class IMAS_CORE_LIBRARY_API FlexbuffersBackend : public Backend
 {
   public:
     FlexbuffersBackend() {};

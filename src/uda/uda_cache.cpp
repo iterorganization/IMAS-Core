@@ -1,6 +1,7 @@
 #include "uda_cache.hpp"
 
 #include <algorithm>
+#include <complex>
 #include <clientserver/udaTypes.h>
 
 #include "al_const.h"
@@ -60,7 +61,7 @@ void imas::uda::add_node_to_cache(TreeReader* tree, NodeReader* node, CacheType&
             break;
         case COMPLEX_DATA:
         case UDA_TYPE_COMPLEX:
-            add_value_to_cache<double _Complex>(name, data_node, shape, cache);
+            add_value_to_cache<std::complex<double>>(name, data_node, shape, cache);
             break;
         case 0:
             // no data - ignore

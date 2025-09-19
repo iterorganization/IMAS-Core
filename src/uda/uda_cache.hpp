@@ -7,6 +7,7 @@
  * Functions for storing and retrieving UDA data from a RAM-cache.
  */
 
+#include <complex>
 #include <boost/variant.hpp>
 #include <unordered_map>
 #include <string>
@@ -23,7 +24,7 @@ namespace uda {
 /**
  * Variant type used for storing different vector types in the cache.
  */
-using VariantVector = boost::variant<std::vector<int>, std::vector<double>, std::vector<char>, std::vector<double _Complex>>;
+using VariantVector = boost::variant<std::vector<int>, std::vector<double>, std::vector<char>, std::vector<std::complex<double>>>;
 
 /**
  * Structure for holding a cache entry.

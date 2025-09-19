@@ -27,9 +27,9 @@
 #define NODENAME_MANGLING  //Use IMAS mangling
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -64,7 +64,7 @@ enum class CacheMode
  * from the ITER UDA plugins repo (https://git.iter.org/projects/IMAS/repos/uda-plugins/browse/source) to either return
  * remote IMAS data or mapped data from experimental databases.
  */
-class LIBRARY_API UDABackend : public Backend
+class IMAS_CORE_LIBRARY_API UDABackend : public Backend
 {
 private:
     bool verbose_ = false;

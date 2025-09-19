@@ -162,12 +162,12 @@ overview of configuration options.
     CMake will automatically fetch dependencies from other Access Layer GIT repositories
     for you. You may need to provide credentials to clone the following repositories:
 
-    -   `al-core (ssh://git@git.iter.org/imas/al-core.git)
-        <https://git.iter.org/projects/IMAS/repos/al-core/browse>`__
+    -   `imas-core (git@github.com:iterorganization/IMAS-Core.git)
+        <https://github.com/iterorganization/IMAS-Core>`__
     -   `al-plugins (ssh://git@git.iter.org/imas/al-plugins.git)
         <https://git.iter.org/projects/IMAS/repos/al-plugins/browse>`__
-    -   `data-dictionary (https://github.com/iterorganization/IMAS-data-Dictionary.git)
-        <https://github.com/iterorganization/IMAS-data-Dictionary>`__
+    -   `imas-data-dictionary (git@github.com:iterorganization/IMAS-Data-Dictionary.git)
+        <https://github.com/iterorganization/IMAS-Data-Dictionary>`__
 
     If you need to change the git repositories, for example to point to a mirror of the
     repository or to use a HTTPS URL instead of the default SSH URLs, you can update the
@@ -178,9 +178,9 @@ overview of configuration options.
         :caption: Use explicit options to download dependent repositories over HTTPS
 
         cmake -B build \
-            -D AL_CORE_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-core.git \
+            -D AL_CORE_GIT_REPOSITORY=git@github.com:iterorganization/IMAS-Core.git \
             -D AL_PLUGINS_GIT_REPOSITORY=https://git.iter.org/scm/imas/al-plugins.git \
-            -D DD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git
+            -D DD_GIT_REPOSITORY=git@github.com:iterorganization/IMAS-Data-Dictionary.git
 
     If you use CMake 3.21 or newer, you can also use the ``https`` preset:
 
@@ -239,7 +239,7 @@ Configuration options
         building the example programs in the ``examples`` directory.
     -   ``AL_TESTS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
         building the test programs in the ``tests`` folder.
-    -   ``AL_PLUGINS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
+    -   ``AL_PLUGINS``, allowed values ``ON`` or ``OFF`` *(default)* . Enable/disable
         building the plugins from the ``al-plugins`` repository.
     -   ``AL_HLI_DOCS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         building the documentation.
@@ -270,8 +270,8 @@ Configuration options
     
     -   ``AL_CORE_GIT_REPOSITORY``,
         ``AL_PLUGINS_GIT_REPOSITORY``, ``DD_GIT_REPOSITORY``. Configure the git URLs
-        where the ``al-core``, ``al-plugins`` c.q.
-        ``data-dictionary`` repositories should be fetched from.
+        where the ``imas-core``, ``al-plugins`` c.q.
+        ``imas-data-dictionary`` repositories should be fetched from.
     -   ``AL_CORE_VERSION``, ``AL_PLUGINS_VERSION``,
         ``DD_VERSION``. Configure the version of the repository that should be used.
         This can point to any valid branch name, tag or commit hash.
@@ -283,13 +283,13 @@ Configuration options
     .. code-block:: text
         :caption: Default values for ``*_GIT_REPOSITORY`` and ``*_VERSION`` options
 
-        AL_CORE_GIT_REPOSITORY:     ssh://git@git.iter.org/imas/al-core.git
+        AL_CORE_GIT_REPOSITORY:     git@github.com:iterorganization/IMAS-Core.git
         AL_CORE_VERSION:            main
 
         AL_PLUGINS_GIT_REPOSITORY:  ssh://git@git.iter.org/imas/al-plugins.git
         AL_PLUGINS_VERSION:         main
 
-        DD_GIT_REPOSITORY:          https://github.com/iterorganization/IMAS-data-Dictionary.git
+        DD_GIT_REPOSITORY:          git@github.com:iterorganization/IMAS-Data-Dictionary.git
         DD_VERSION:                 main
 
 -   **Useful CMake options**

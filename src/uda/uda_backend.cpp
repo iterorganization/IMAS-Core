@@ -6,6 +6,7 @@
 #ifdef UDA_LEGACY_276
 #include <client/legacy_accAPI.h>
 #endif
+#include <complex>
 #include <clientserver/udaTypes.h>
 
 #include "semver.hpp"
@@ -342,7 +343,7 @@ void UDABackend::download_file(const std::string& filename)
 
     const uda::Result& bytes_result = uda_client_.get(directive, "");
 
-    FILE* local_file = fopen(local_fullpath.c_str(), "wb");
+    FILE* local_file = fopen(local_fullpath.string().c_str(), "wb");
     fwrite(bytes_result.raw_data(), 1, bytes_result.size(), local_file);
     fclose(local_file);
 }

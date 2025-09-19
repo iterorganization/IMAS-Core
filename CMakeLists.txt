@@ -5,9 +5,13 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.30)
   cmake_policy(SET CMP0167 NEW) # Use system BoostConfig instead of cmake FindBoost
 endif()
 
-# Capture scikit build cmake.args 
+# Capture scikit build cmake.args
 include(./skbuild-cmake-args.cmake)
 
+# Supress a warning
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # Configuration options for IMAS Core Backends
 # ##############################################################################
@@ -16,7 +20,7 @@ option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
 include(CMakeDependentOption)
-cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON 
+cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
 AL_BACKEND_MDSPLUS OFF)
 
 # Configuration options for python bindings
@@ -27,13 +31,13 @@ option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 # Configuration options for shared libraries
 # ##############################################################################
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(CMAKE_INSTALL_RPATH_USE_LINK_PATH 
+option(CMAKE_INSTALL_RPATH_USE_LINK_PATH
        "Append the runtime search path (rpath) to external installed binaries" TRUE)
 
-  
-# Configuration option for automatic download of common third party libraries 
+
+# Configuration option for automatic download of common third party libraries
 # ##############################################################################
-include(./vcpkg.cmake)
+# include(./vcpkg.cmake)
 
 
 # Load common assets
@@ -124,14 +128,31 @@ endif()
 
 add_subdirectory(src)
 
+# Dummy Executable
+# ##############################################################################
+set( EXE_FLAG  )
+set( EXE_EXT  )
+add_executable( imas_print_version ${EXE_FLAG} tests/imas_print_version.cpp )
+target_link_libraries( imas_print_version PRIVATE al)
+add_dependencies( imas_print_version al )
+
 # Install
 # ##############################################################################
 
 # Install al library
-install(TARGETS al COMPONENT core)
+install(
+  TARGETS al
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  COMPONENT core
+)
 
 # TODO: put public heades in a separate directory?
-install(FILES ${PUBLIC_HEADER_FILES} DESTINATION include)
+install(
+  FILES ${PUBLIC_HEADER_FILES}
+  TYPE INCLUDE
+)
 target_include_directories(
   al
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -141,15 +162,24 @@ target_include_directories(
 
 # Generate and install .pc file
 configure_file(pkgconfig/al-core.pc.in al-core.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc DESTINATION lib/pkgconfig)
+include(GNUInstallDirs)
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/al-core.pc
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
 
 # Install mdsplusIMASDB4to5
-install(PROGRAMS mdsplusIMASDB4to5 DESTINATION bin)
+install(
+  PROGRAMS mdsplusIMASDB4to5
+  TYPE BIN
+)
 
-# Install common files (these are used by EB modules)
-# Note: EB module has to point the env variable $AL_COMMON_PATH to this installed dir: 
+# Install common files
+# Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
+# Install Dummy
+install(TARGETS imas_print_version DESTINATION bin)
 
 # Scikit-build-core entry point for python bindings
 # ##############################################################################

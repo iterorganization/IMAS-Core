@@ -9,9 +9,12 @@
 option( BUILD_SHARED_LIBS "Build shared libraries" ON )
 option( AL_EXAMPLES "Build and test examples" ON )
 option( AL_TESTS "Build tests and enable test framework" ON )
-option( AL_PLUGINS "Enable plugin framework for tests and examples" ON )
+option( AL_PLUGINS "Enable plugin framework for tests and examples" OFF )
 option( AL_HLI_DOCS "Build the Sphinx-based High Level Interface documentation" OFF )
 option( AL_DOCS_ONLY "Don't build anything, except the Sphinx-based High Level Interface documentation" OFF )
+
+# Find Saxon XSLT processor
+find_package( SaxonHE REQUIRED )
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES )
   if( DEFINED ENV{AL_COMMON_PATH} )
@@ -31,17 +34,18 @@ endif()
 ################################################################################
 
 if( AL_DOWNLOAD_DEPENDENCIES )
-  # AL plugins
-  ##############################################################################
-  set(
-    AL_PLUGINS_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-plugins.git"
-    CACHE STRING "Git repository of al-plugins"
-  )
-  set(
-    AL_PLUGINS_VERSION "main"
-    CACHE STRING "al-plugins version (tag or branch name) to use for this build"
-  )
-
+  if( ${AL_PLUGINS} )
+    # AL plugins
+    ##############################################################################
+    set(
+      AL_PLUGINS_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-plugins.git"
+      CACHE STRING "Git repository of al-plugins"
+    )
+    set(
+      AL_PLUGINS_VERSION "main"
+      CACHE STRING "al-plugins version (tag or branch name) to use for this build"
+    )
+  endif()
   # Data dictionary
   ##############################################################################
   set(

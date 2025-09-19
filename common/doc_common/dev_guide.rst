@@ -8,11 +8,11 @@ Access Layer repositories
 The IMAS Access Layer consists of a number of components which are developed in separate
 repositories:
 
--   `al-core <https://git.iter.org/projects/IMAS/repos/al-core/browse>`__: the
+-   `imas-core <https://github.com/iterorganization/IMAS-Core>`__: the
     Access Layer core repository, MDSplus model generator and Python lowlevel
     bindings.
 -   `data-dictionary
-    <https://github.com/iterorganization/IMAS-data-Dictionary>`__: the IMAS Data
+    <https://github.com/iterorganization/IMAS-Data-Dictionary>`__: the IMAS Data
     Dictionary definitions, used for generating MDSplus models and the traditional High
     Level Interfaces.
 -   `al-plugins <https://git.iter.org/projects/IMAS/repos/al-plugins/browse>`__: Access
