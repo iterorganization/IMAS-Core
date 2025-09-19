@@ -274,7 +274,7 @@ int imas::uda::convert_xml_type_to_imas(const std::string& data_type)
     } else if (tokens[0] == "STR") {
         return CHAR_DATA;
     } else if (tokens[0] == "CPX" || tokens[0] == "cpx") {
-	return COMPLEX_DATA;
+        return COMPLEX_DATA;
     }
     throw std::runtime_error("unknown type " + tokens[0]);
 }
