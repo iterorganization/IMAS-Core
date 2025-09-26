@@ -213,9 +213,9 @@ void unpack_node(const std::string& path,
             unpack_data<double>(data_node, shape, data, dim, size);
             break;
         case COMPLEX_DATA:
-        case UDA_TYPE_COMPLEX:
+        case UDA_TYPE_DCOMPLEX:
             *datatype = COMPLEX_DATA;
-            unpack_data<COMPLEX>(data_node, shape, data, dim, size);
+            unpack_data<std::complex<double>>(data_node, shape, data, dim, size);
             break;
         default: throw ALBackendException("Unknown data type: " + std::to_string(type));
     }
