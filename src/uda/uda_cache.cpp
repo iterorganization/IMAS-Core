@@ -60,7 +60,7 @@ void imas::uda::add_node_to_cache(TreeReader* tree, NodeReader* node, CacheType&
             add_value_to_cache<double>(name, data_node, shape, cache);
             break;
         case COMPLEX_DATA:
-        case UDA_TYPE_COMPLEX:
+        case UDA_TYPE_DCOMPLEX:
             add_value_to_cache<std::complex<double>>(name, data_node, shape, cache);
             break;
         case 0:
