@@ -146,7 +146,7 @@ void unpack_data(NodeReader* node,
  * @param dim [OUT] the rank of the data being returned
  * @param size [OUT] array of dimension sizes
  */
-void unpack_node(const std::string& path,
+int unpack_node(const std::string& path,
                  TreeReader* tree,
                  NodeReader* node,
                  void** data,
@@ -157,7 +157,8 @@ void unpack_node(const std::string& path,
     const char* name = uda_capnp_read_name(node);
 
     if (name != path) {
-        throw ALBackendException("Invalid node returned: " + std::string(name));
+        // throw ALBackendException("Invalid node returned: " + std::string(name));
+        return 0; // allow for empty nodes
     }
 
     size_t num_children = uda_capnp_num_children(node);
@@ -219,6 +220,7 @@ void unpack_node(const std::string& path,
             break;
         default: throw ALBackendException("Unknown data type: " + std::to_string(type));
     }
+    return 1;
 }
 
 std::string strip_occurrence(const std::string& ids)
@@ -703,8 +705,10 @@ int UDABackend::readData(Context* ctx,
                     return 0;
 		} else {
                     auto node = uda_capnp_read_child_n(tree, root, num_children - 1);
-                    unpack_node(path, tree, node, data, datatype, dim, size);
-                }                 
+                    if (!unpack_node(path, tree, node, data, datatype, dim, size)) {
+                        return 0;
+                    }
+                }
 
                 uda_capnp_free_tree_reader(tree);
             }
