@@ -5,7 +5,6 @@
 
 #include <math.h>
 #include <limits>
-#include "assert.h"
 
 DataInterpolation::DataInterpolation()
 {
@@ -95,7 +94,9 @@ void DataInterpolation::getTimeRangeIndices(double tmin, double tmax, std::vecto
 int DataInterpolation::getSlicesTimesIndices(double requested_time, const std::vector<double> &time_vector, std::map<std::string, int> &times_indices, int interp)
 {
 
-    assert(time_vector.size() > 0);
+    if (time_vector.size() == 0) {
+        throw ALBackendException("Unexpected time vector with size 0", LOG); 
+    }
 
     //printf("DataInterpolation::getSlicesTimesIndices::interp=%d\n", interp);
     if ((interp != alconst::undefined_interp) && (interp != CLOSEST_INTERP && interp != PREVIOUS_INTERP && interp != LINEAR_INTERP))
@@ -293,7 +294,9 @@ void DataInterpolation::interpolate(int datatype, int shape, std::map<std::strin
 int DataInterpolation::resample_timebasis(double tmin, double tmax, std::vector<double> dtime, int timed_AOS_index, std::vector<double> &time_basis, void **result)
 {
     //printf("resample_timebasis::timed_AOS_index=%d\n", timed_AOS_index);
-    assert(dtime.size() != 0); //this method is used only for resampling a time basis, so dtime should be defined
+    if (dtime.size() == 0) { //this method is used only for resampling a time basis, so dtime should be defined
+        throw ALBackendException("Unexpected dtime vector (used for resampling) with size 0", LOG); 
+    }
 
     int nb_slices;
     if (timed_AOS_index == -1)
@@ -355,7 +358,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
     //data is a pointer to data limited to a time range
     //for (int i = 0; i < time_vector.size(); i++)
     //    printf("DataInterpolation::interpolate_with_resampling::time_vector[%d] = %f\n", i, time_vector[i]);
-    assert(dtime.size() != 0);
+    if (dtime.size() == 0) {
+        throw ALBackendException("Unexpected dtime vector (used for resampling) with size 0", LOG); 
+    }
     int start_index;
     int stop_index;
     int range;
@@ -460,7 +465,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
         case alconst::integer_data:
         {
             int offset = requested_index - start;
-            assert(offset >= 0);
+            if (offset < 0) {
+                throw ALBackendException("Unexpected offset<0 when interpolating with resampling", LOG); 
+            }
             int n = time_slice_shape;
             int *data_int = (int *)data;
             memcpy(slice1, data_int + offset * n, n * sizeof(int));
@@ -483,7 +490,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
         case alconst::double_data:
         {
             int offset = requested_index - start;
-            assert(offset >= 0);
+            if (offset < 0) {
+                throw ALBackendException("Unexpected offset<0 when interpolating with resampling", LOG); 
+            }
             int n = time_slice_shape;
             double *data_double = (double *)data;
             memcpy(slice1, data_double + offset * n, n * sizeof(double));
@@ -508,7 +517,9 @@ int DataInterpolation::interpolate_with_resampling(double tmin, double tmax, std
         case alconst::char_data:
         {
             int offset = requested_index - start;
-            assert(offset >= 0);
+            if (offset < 0) {
+                throw ALBackendException("Unexpected offset<0 when interpolating with resampling", LOG); 
+            }
             int n = time_slice_shape;
             char *data_str = (char *)data;
             memcpy(slice1, data_str + offset * n, n);

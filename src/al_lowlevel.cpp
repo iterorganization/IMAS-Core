@@ -351,7 +351,7 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
     if (plugin_handler == nullptr) {
         //char error_message[200];
         //sprintf(error_message, "%s for plugin: %s.\n", dlerror(), plugin_name);
-        printf("error:%s for plugin: %s\n", dlerror(), plugin_name);
+        printf("an issue has occurred:%s for plugin: %s\n", dlerror(), plugin_name);
         //throw ALLowlevelException(error_message, LOG);
     }
     assert(plugin_handler != nullptr);
@@ -1578,7 +1578,7 @@ al_status_t al_begin_arraystruct_action(int ctxID, const char *path,
            }
            else if (actxID_user != 0 && *actxID != 0) { //at least 2 plugins have created an AOS context, it's an error
               plugins.push_back(pluginName);
-              std::string message = "Error calling al_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
+              std::string message = "An issue has occurred calling al_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
               message += "AOS context path: " + std::string(path) + "\n";
               for (size_t i = 0; i < plugins.size(); i++)
                   message += "--> Plugin: " + plugins[i] + "\n";
