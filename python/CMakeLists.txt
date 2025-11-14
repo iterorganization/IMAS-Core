@@ -29,5 +29,12 @@ install(
       ".*system32/.*\\.dll" # Windows system DLLs
       "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
       "iccifort/.*/lib/intel64/lib" # Redundant iccifort
+      ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
+      ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
+      "^libomp\\.so" # OpenMP libraries
+      "^libsvml\\.so" # Intel SVML math library
+      "^libirng\\.so" # Intel RNG library
+      "^libintlc\\.so" # Intel intlc library
+      "^libimf\\.so" # Intel IMF library (math functions)
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
