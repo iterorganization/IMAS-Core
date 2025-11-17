@@ -1,8 +1,8 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 find_package(Cython MODULE REQUIRED VERSION 3.0)
 include(UseCython)
-cython_transpile(imas_core/_al_lowlevel.pyx LANGUAGE CXX OUTPUT_VARIABLE _al_lowlevel_source)
-cython_transpile(imas_core/al_defs.pyx LANGUAGE CXX OUTPUT_VARIABLE al_defs_source)
+cython_transpile(imas_core/_al_lowlevel.pyx LANGUAGE C OUTPUT_VARIABLE _al_lowlevel_source)
+cython_transpile(imas_core/al_defs.pyx LANGUAGE C OUTPUT_VARIABLE al_defs_source)
 python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
 python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
@@ -12,29 +12,15 @@ set_target_properties(_al_lowlevel al_defs PROPERTIES INSTALL_RPATH $ORIGIN/../i
 install(FILES $<TARGET_RUNTIME_DLLS:al> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:_al_lowlevel> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
-if(DEFINED ENV{LD_LIBRARY_PATH})
-  string(REPLACE ":" ";" LIBRARY_DIRS $ENV{LD_LIBRARY_PATH})
-else()
-  set(LIBRARY_DIRS)
-endif()
 install(
   TARGETS al
   DESTINATION imas_core.libs
-  RUNTIME_DEPENDENCIES	
-    DIRECTORIES ${LIBRARY_DIRS}
+  RUNTIME_DEPENDENCIES
     PRE_EXCLUDE_REGEXES   
-      "api-ms-" # VC Redistibutable DLLs
+      "api-ms-" # VC Redistributable DLLs
       "ext-ms-" # Windows extension DLLs
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
-      "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
-      "iccifort/.*/lib/intel64/lib" # Redundant iccifort
-      ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
-      ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
-      "^libomp\\.so" # OpenMP libraries
-      "^libsvml\\.so" # Intel SVML math library
-      "^libirng\\.so" # Intel RNG library
-      "^libintlc\\.so" # Intel intlc library
-      "^libimf\\.so" # Intel IMF library (math functions)
+      "^/(lib|usr/lib|usr/local/lib|lib64|usr/lib64|usr/local/lib64)" # Unix system libraries
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
