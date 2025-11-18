@@ -22,19 +22,19 @@ install(
   DESTINATION imas_core.libs
   RUNTIME_DEPENDENCIES	
     DIRECTORIES ${LIBRARY_DIRS}
-    PRE_INCLUDE_REGEXES
-      ".*[Mm]ds.*" # MDSplus libraries (MdsIpShr, MdsLib, MdsShr, etc.)
-      ".*hdf5.*" # HDF5 libraries
-      ".*boost.*" # Boost libraries
-      ".*uda.*" # UDA libraries
-      ".*capnp.*" # Cap'n Proto libraries
-      ".*kj.*" # KJ libraries (Cap'n Proto dependency)
     PRE_EXCLUDE_REGEXES   
-      "api-ms-" # VC Redistributable DLLs
+      "api-ms-" # VC Redistibutable DLLs
       "ext-ms-" # Windows extension DLLs
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
       "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
+      "iccifort/.*/lib/intel64/lib" # Redundant iccifort
+      ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
+      ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
+      "^libomp\\.so" # OpenMP libraries
+      "^libsvml\\.so" # Intel SVML math library
+      "^libirng\\.so" # Intel RNG library
+      "^libintlc\\.so" # Intel intlc library
+      "^libimf\\.so" # Intel IMF library (math functions)
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
-
