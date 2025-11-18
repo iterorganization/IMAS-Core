@@ -12,15 +12,29 @@ set_target_properties(_al_lowlevel al_defs PROPERTIES INSTALL_RPATH $ORIGIN/../i
 install(FILES $<TARGET_RUNTIME_DLLS:al> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:_al_lowlevel> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
+if(DEFINED ENV{LD_LIBRARY_PATH})
+  string(REPLACE ":" ";" LIBRARY_DIRS $ENV{LD_LIBRARY_PATH})
+else()
+  set(LIBRARY_DIRS)
+endif()
 install(
   TARGETS al
   DESTINATION imas_core.libs
-  RUNTIME_DEPENDENCIES
+  RUNTIME_DEPENDENCIES	
+    DIRECTORIES ${LIBRARY_DIRS}
+    PRE_INCLUDE_REGEXES
+      ".*[Mm]ds.*" # MDSplus libraries (MdsIpShr, MdsLib, MdsShr, etc.)
+      ".*hdf5.*" # HDF5 libraries
+      ".*boost.*" # Boost libraries
+      ".*uda.*" # UDA libraries
+      ".*capnp.*" # Cap'n Proto libraries
+      ".*kj.*" # KJ libraries (Cap'n Proto dependency)
     PRE_EXCLUDE_REGEXES   
       "api-ms-" # VC Redistributable DLLs
       "ext-ms-" # Windows extension DLLs
     POST_EXCLUDE_REGEXES 
       ".*system32/.*\\.dll" # Windows system DLLs
-      "^/(lib|usr/lib|usr/local/lib|lib64|usr/lib64|usr/local/lib64)" # Unix system libraries
+      "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
+
