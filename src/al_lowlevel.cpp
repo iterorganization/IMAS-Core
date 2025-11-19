@@ -351,7 +351,7 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
     if (plugin_handler == nullptr) {
         //char error_message[200];
         //sprintf(error_message, "%s for plugin: %s.\n", dlerror(), plugin_name);
-        printf("an issue has occurred:%s for plugin: %s\n", dlerror(), plugin_name);
+        printf("An error has occurred:%s for plugin: %s\n", dlerror(), plugin_name);
         //throw ALLowlevelException(error_message, LOG);
     }
     assert(plugin_handler != nullptr);
