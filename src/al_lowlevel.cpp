@@ -398,7 +398,6 @@ void LLplugin::bindPlugin(const char* fieldPath, const char* pluginName) {
       }
     } else {
         char error_message[200];
-        printf("TEST100\n");
         sprintf(error_message, "bindPlugin!!!: bad format: (%s) should follow the syntax of an URI fragment.\n", fieldPath);
         throw ALLowlevelException(error_message, LOG);
     }
@@ -564,7 +563,7 @@ bool LLplugin::registerPlugin(const char* plugin_name) {
     if (plugin_handler == nullptr) {
         //char error_message[200];
         //sprintf(error_message, "%s for plugin: %s.\n", dlerror(), plugin_name);
-        printf("error:%s for plugin: %s\n", dlerror(), plugin_name);
+        printf("An error has occurred:%s for plugin: %s\n", dlerror(), plugin_name);
         //throw ALLowlevelException(error_message, LOG);
     }
     assert(plugin_handler != nullptr);
@@ -1246,7 +1245,7 @@ int Lowlevel::beginUriAction(const std::string &uri)
 
   pctx = new DataEntryContext(uri);
   if (pctx != NULL) {
-    be = Backend::initBackend(pctx->getBackendID());
+    be = Backend::initBackend(pctx);
     // store reference of this object 
     ctxID = Lowlevel::addLLenv(be, pctx);
   }
@@ -2431,7 +2430,7 @@ al_status_t al_begin_arraystruct_action(int ctxID, const char *path,
            }
            else if (actxID_user != 0 && *actxID != 0) { //at least 2 plugins have created an AOS context, it's an error
               plugins.push_back(pluginName);
-              std::string message = "Error calling al_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
+              std::string message = "An error has occurred calling al_begin_arraystruct_action(): only one plugin is allowed to create an AOS context at a given path.\n";
               message += "AOS context path: " + std::string(path) + "\n";
               for (size_t i = 0; i < plugins.size(); i++)
                   message += "--> Plugin: " + plugins[i] + "\n";
@@ -2672,7 +2671,7 @@ al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrenc
   status.code = 0;
   try {
     LLenv lle = Lowlevel::getLLenv(pctxID);
-    lle.backend->get_occurrences(ids_name, occurrences_list, size);
+    lle.backend->get_occurrences(lle.context, ids_name, occurrences_list, size);
   }
   catch (const ALBackendException& e) {
     status.code = alerror::backend_err;

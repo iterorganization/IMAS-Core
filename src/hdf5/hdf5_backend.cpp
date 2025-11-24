@@ -304,7 +304,7 @@ void HDF5Backend::endAction(Context * ctx)
  *
  * @throws ALBackendException if the master file is not opened.
  */
-void HDF5Backend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
+void HDF5Backend::get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size)
 {
     if (file_id == -1) //master file not opened
         throw ALBackendException("HDF5Backend: master file not opened while calling HDF5Backend::get_occurrences()", LOG); 

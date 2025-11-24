@@ -19,9 +19,9 @@
 #define SLICE_SUP "slice_sup"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -34,7 +34,7 @@
  * and specified interpolation methods. It supports linear interpolation and other methods as specified
  * by the user.
  */
-class LIBRARY_API DataInterpolation
+class IMAS_CORE_LIBRARY_API DataInterpolation
 {
 private:
    //int interp;

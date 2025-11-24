@@ -6,9 +6,9 @@
 #include "al_backend.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -17,7 +17,7 @@
 /**
    No backend (test) implementation.
 */
-class LIBRARY_API NoBackend : public Backend
+class IMAS_CORE_LIBRARY_API NoBackend : public Backend
 {
 private:
   bool verbose = false;
@@ -62,7 +62,7 @@ public:
 
   std::pair<int,int> getVersion(DataEntryContext *ctx);
 
-  void get_occurrences(const  char* ids_name, int** occurrences_list, int* size) override;
+  void get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size) override;
 
   bool supportsTimeDataInterpolation() {
       return false;

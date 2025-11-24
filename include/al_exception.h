@@ -34,9 +34,9 @@
  * @brief Macro to handle symbol export for different platforms.
  */
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -55,7 +55,7 @@ extern "C"
  * @class ALException
  * @brief Base class for all exceptions in the AL library.
  */
-class LIBRARY_API ALException : public std::runtime_error
+class IMAS_CORE_LIBRARY_API ALException : public std::runtime_error
 {
 protected:
   std::string mesg; ///< Exception message
@@ -119,7 +119,7 @@ public:
  * @class ALLowlevelException
  * @brief Exception class for low-level errors.
  */
-class LIBRARY_API ALLowlevelException : public ALException
+class IMAS_CORE_LIBRARY_API ALLowlevelException : public ALException
 {
 public:
   /**
@@ -166,7 +166,7 @@ public:
  * @class ALBackendException
  * @brief Exception class for backend errors.
  */
-class LIBRARY_API ALBackendException : public ALException
+class IMAS_CORE_LIBRARY_API ALBackendException : public ALException
 {
 public:
   /**
@@ -213,7 +213,7 @@ public:
  * @class ALContextException
  * @brief Exception class for context errors.
  */
-class LIBRARY_API ALContextException : public ALException
+class IMAS_CORE_LIBRARY_API ALContextException : public ALException
 {
 public:
   /**
@@ -260,7 +260,7 @@ public:
  * @class ALPluginException
  * @brief Exception class for plugin errors.
  */
-class LIBRARY_API ALPluginException : public ALException
+class IMAS_CORE_LIBRARY_API ALPluginException : public ALException
 {
 public:
   /**

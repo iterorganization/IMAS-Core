@@ -82,6 +82,7 @@ struct RangeMode {
         switch (i) {
             case GLOBAL_OP: return "global";
             case SLICE_OP: return "slice";
+            case TIMERANGE_OP: return "time";
             default: throw std::runtime_error{"unknown range mode: " + std::to_string(i)};
         }
     }
@@ -149,6 +150,10 @@ std::string convert_imas_to_uda(int i)
 
 inline std::string convert_dtime(const std::vector<double>& dtime)
 {
+    if (dtime.empty()) {
+        return "-1";
+    }
+
     std::ostringstream output;
     const char* delim = ";";
     std::transform(dtime.begin(), dtime.end(), std::ostream_iterator<std::string>(output, delim),

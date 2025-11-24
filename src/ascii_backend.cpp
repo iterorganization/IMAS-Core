@@ -678,7 +678,7 @@ void AsciiBackend::beginArraystructAction(ArraystructContext *ctx,
   }
 }
 
-void AsciiBackend::get_occurrences(const  char* ids_name, int** occurrences_list, int* size)
+void AsciiBackend::get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size)
 {
   boost::filesystem::path path(this->dbname);
   std::vector<int> occurrences;

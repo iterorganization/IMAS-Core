@@ -18,6 +18,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <Shlobj.h>
+#include "fix_include_windows.h"
 #else 
 #include <pwd.h>
 #endif 
@@ -82,6 +83,7 @@ class HDF5Utils {
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
     void setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering);
     void readOptions(uri::Uri uri, bool *compression_enabled, bool *readBuffering, size_t *read_cache, bool *writeBuffering, size_t *write_cache, bool *debug);
+    void timedContext(ArraystructContext * ctx, ArraystructContext *&timedContext);
 
 };
 

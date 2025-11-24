@@ -387,6 +387,7 @@ void FlexbuffersBackend::deleteData(OperationContext* ctx, std::string path) {
 
 
 void FlexbuffersBackend::get_occurrences(
+    Context* ctx, 
     const char* ids_name,
     int** occurrences_list,
     int* size

@@ -12,9 +12,9 @@
 #include "al_context.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -28,7 +28,7 @@
  * @class Backend
  * @brief Abstract Backend class. Defines the back-end API as pure virtual member functions.
  */
-class LIBRARY_API Backend 
+class IMAS_CORE_LIBRARY_API Backend
 {
 public:
   /**
@@ -38,10 +38,10 @@ public:
 
   /**
    * @brief Initializes a given back-end object.
-   * @param[in] id Backend identifier.
+   * @param[in] ctx Data entry context.
    * @return Pointer to the backend object.
    */
-   static Backend* initBackend(int id);
+   static Backend* initBackend(DataEntryContext *ctx);
 
   /**
    * @brief Returns the version of the backend (pair <major,minor>), to be used for compatibility checks.
@@ -163,12 +163,13 @@ public:
  /**
   * @brief Returns the list of non-empty IDS occurrences.
   * This function returns a list of IDS occurrences (integers) which are non empty in the database
-  * @param[out] ids_name name of the ids
-  * @param[out] occurrences_list List of non-empty IDS occurrences (integers).
-  * @param[out] size Size of the list of non-empty IDS occurrences (integers).
+  * @param[in] ctx data entry context
+  * @param[in] ids_name name of the ids
+  * @param[in] occurrences_list List of non-empty IDS occurrences (integers).
+  * @param[in] size Size of the list of non-empty IDS occurrences (integers).
   * @throw BackendException
   */
-  virtual void get_occurrences(const char* ids_name, int** occurrences_list, int* size) = 0;
+  virtual void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) = 0;
 
  /**
   * @brief Returns true if the backend performs time data interpolation (e.g., time slices operations or IMAS-3885 with data resampling), false otherwise.

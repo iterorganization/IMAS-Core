@@ -13,7 +13,8 @@
 #include <boost/algorithm/string.hpp>
 #include <c++/UDA.hpp>
 #include <fstream>
-#include <stdlib.h>
+#include <cstdlib>
+#include <filesystem>
 #include <boost/cstdlib.hpp>
 
 #include "al_backend.h"
@@ -26,9 +27,9 @@
 #define NODENAME_MANGLING  //Use IMAS mangling
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -63,10 +64,12 @@ enum class CacheMode
  * from the ITER UDA plugins repo (https://git.iter.org/projects/IMAS/repos/uda-plugins/browse/source) to either return
  * remote IMAS data or mapped data from experimental databases.
  */
-class LIBRARY_API UDABackend : public Backend
+class IMAS_CORE_LIBRARY_API UDABackend : public Backend
 {
 private:
     bool verbose_ = false;
+    bool fetch_ = false;
+    bool access_local_ = false;
     std::string plugin_ = "IMAS";
     uda::Client uda_client_;
     std::shared_ptr<pugi::xml_document> doc_ = {};
@@ -75,13 +78,24 @@ private:
     int open_mode_ = 0;
     std::string dd_version_ = "";
 
+    DataEntryContext* local_ctx_ = nullptr;
+    Backend* local_backend_ = nullptr;
+
+    // Cache for homogenous time value for non-cached reads
+    std::unordered_map<std::string, bool> homogeneous_time_ = {};
+
+    // Cached values used to read HDF5 files on demand
+    std::filesystem::path remote_path_ = {};
+    std::filesystem::path local_path_ = {};
+    std::vector<std::string> ids_filenames_ = {};
+
     /**
      * Process any UDA backend specific options found on the DBEntry URI.
      *
      * @param uri the uri of the DBEntry
      * @throw ALException if any of the passed options have invalid values
      */
-    void process_options(uri::Uri uri);
+    void process_options(const uri::Uri& uri);
 
     /**
      * Generate all requests for the given `ids` starting at the given `path` and send these requests to the UDA server,
@@ -100,35 +114,35 @@ private:
      * @param ids the IDS we are reading the flag for
      * @param pulse_ctx the pulse context
      * @param op_ctx the operation context
-     * @return
+     * @return the homogeneous flag
      */
     bool get_homogeneous_flag(const std::string& ids, DataEntryContext* pulse_ctx, OperationContext* op_ctx);
+
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     *
+     * @param local_path the path to the directory in which to save the data locally
+     * @param remote_path the path to the data on the remote server
+     * @param backend the backend used to access the data on the remote server
+     * @return if the fetch was successful
+     */
+    bool fetch_files(const std::string& backend);
+
+    /**
+     * Fetch the underlying IDS data files and then do all data access locally.
+     */
+    void fetch_files(const uri::Uri& uri);
+
+    void download_file(const std::string& filename);
 
 public:
 
     /**
      * Construct a new UDA backend.
      *
-     * @param verb flag to set the verbose mode
+     * @param uri the URI of the data entry that the backend is being used to read
      */
-    explicit UDABackend(bool verb=false)
-        : verbose_(verb)
-        , uda_client_{}
-    {
-        const char* env = getenv("IMAS_UDA_PLUGIN");
-        if (env != nullptr) {
-            plugin_ = env;
-        }
-
-        doc_ = imas::uda::load_xml();
-        dd_version_ = imas::uda::get_dd_version(doc_);
-
-        if (verbose_) {
-            std::cout << "UDABackend constructor\n";
-            std::cout << "UDA default plugin: " << plugin_ << "\n";
-            std::cout << "IMAS data dictionary version: " << dd_version_ << "\n";
-        }
-    }
+    explicit UDABackend(const uri::Uri& uri);
 
     ~UDABackend() override
     {
@@ -168,7 +182,7 @@ public:
 
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
-    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+    void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
 
     bool supportsTimeDataInterpolation();
 

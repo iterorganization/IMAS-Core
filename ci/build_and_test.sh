@@ -67,7 +67,7 @@ MODULES=(
     CMake/3.27.6-GCCcore-13.2.0
     Ninja/1.11.1-GCCcore-13.2.0
     Boost/1.83.0-GCC-13.2.0
-    UDA/2.7.5-GCC-13.2.0
+    UDA/2.8.1-GCC-13.2.0
     Saxon-HE/12.4-Java-21
     Blitz++/1.0.2-GCCcore-13.2.0
     MDSplus/7.132.0-GCCcore-13.2.0
@@ -76,6 +76,7 @@ MODULES=(
     Cython/3.0.10-GCCcore-13.2.0
     cython-cmake/0.2.0-GCCcore-13.2.0
     setuptools-scm/8.1.0-GCCcore-13.2.0
+    typing-extensions/4.10.0-GCCcore-13.2.0
 )
 MODULES_TEST=(
     Python/3.11.5-GCCcore-13.2.0
@@ -146,20 +147,21 @@ rm -rf build
 CMAKE_ARGS=(${CMAKE_ARGS[@]}
     -D"CMAKE_INSTALL_PREFIX=$(pwd)/test-install/"
     # Enable all backends
-    -DAL_BACKEND_HDF5=ON
-    -DAL_BACKEND_MDSPLUS=ON
-    -DAL_BACKEND_UDA=ON
+    -DAL_BACKEND_HDF5=${AL_BACKEND_HDF5:-ON}
+    -DAL_BACKEND_MDSPLUS=${AL_BACKEND_MDSPLUS:-ON}
+    -DAL_BACKEND_UDA=${AL_BACKEND_UDA:-ON}
     # Build MDSplus models
-    -DAL_BUILD_MDSPLUS_MODELS=ON
+    -DAL_BUILD_MDSPLUS_MODELS=${AL_BUILD_MDSPLUS_MODELS:-ON}
     # Build Python bindings
-    -DAL_PYTHON_BINDINGS=no-build-isolation
+    -DAL_PYTHON_BINDINGS=${AL_PYTHON_BINDINGS:-no-build-isolation}
     # Download dependencies from HTTPS (using an access token):
-    -DAL_DOWNLOAD_DEPENDENCIES=ON
-    -DDD_GIT_REPOSITORY=https://git.iter.org/scm/imas/data-dictionary.git
+    -DAL_DOWNLOAD_DEPENDENCIES=${AL_DOWNLOAD_DEPENDENCIES:-ON}
+    -DDD_GIT_REPOSITORY=${DD_GIT_REPOSITORY:-https://github.com/iterorganization/IMAS-Data-Dictionary.git}
     # DD version:
-    -DDD_VERSION=$DD_VERSION
+    -DDD_VERSION=${DD_VERSION:-$DD_VERSION}
     # Work around Boost linker issues on 2020b toolchain
-    -DBoost_NO_BOOST_CMAKE=ON
+    -DBoost_NO_BOOST_CMAKE=${Boost_NO_BOOST_CMAKE:-ON}
+    -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}
 )
 echo "CMake args:"
 echo ${CMAKE_ARGS[@]} | tr ' ' '\n'

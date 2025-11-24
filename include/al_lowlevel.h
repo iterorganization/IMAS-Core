@@ -15,9 +15,9 @@
 #include "al_backend.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
@@ -32,7 +32,7 @@
 /**
    Holds a plugin.
 */
-class LIBRARY_API LLplugin
+class IMAS_CORE_LIBRARY_API LLplugin
 { 
 
 private:
@@ -100,7 +100,7 @@ public:
    Lowlevel environment structure.
    Associates a Context with the corresponding Backend.
 */
-class LIBRARY_API LLenv
+class IMAS_CORE_LIBRARY_API LLenv
 { 
 public:
   Backend* backend;                               /**< pointer on Backend object */
@@ -124,7 +124,7 @@ public:
 /**
    Generic Low-level static implementation.
 */
-class LIBRARY_API Lowlevel 
+class IMAS_CORE_LIBRARY_API Lowlevel
 {
 public:
   static const char EMPTY_CHAR;     //                    = '\0';
@@ -240,7 +240,7 @@ extern "C"
      @param[out] info context info as a string -> NEED TO BE FREEED!!
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t al_context_info(int ctx, char **info);
+  IMAS_CORE_LIBRARY_API al_status_t al_context_info(int ctx, char **info);
 
 
   /**
@@ -249,7 +249,7 @@ extern "C"
      @param[out] beid backendID 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t al_get_backendID(int ctx, int *beid);
+  IMAS_CORE_LIBRARY_API al_status_t al_get_backendID(int ctx, int *beid);
 
 
   /**
@@ -265,7 +265,7 @@ extern "C"
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
 
-  LIBRARY_API al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_begin_dataentry_action(const char *uri, int mode, int *dectxID);
 
   /**
      Closes a database entry.
@@ -276,7 +276,7 @@ extern "C"
      - ERASE_PULSE = close and remove the pulse 
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_close_pulse(int pulseCtx, 
+  IMAS_CORE_LIBRARY_API al_status_t al_close_pulse(int pulseCtx,
 					  int mode);
 
   /**
@@ -291,7 +291,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_begin_global_action(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_begin_global_action(int ctx,
                           const char *dataobjectname,
                           const char* datapath,
                           int rwmode,
@@ -316,7 +316,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_begin_slice_action(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_begin_slice_action(int ctx,
 						 const char *dataobjectname,
 						 int rwmode,
 						 double time,
@@ -343,7 +343,7 @@ extern "C"
      @param[out] opctx operation context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_begin_timerange_action(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_begin_timerange_action(int ctx,
 						 const char *dataobjectname,
 						 int rwmode,
 						 double tmin,
@@ -360,7 +360,7 @@ extern "C"
      @param[in] ctx a pulse (al_begin_dataentry_action()), an operation (al_plugin_begin_global_action() or al_plugin_begin_slice_action()) or an array of structure context id (al_begin_array_struct_action())
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_end_action(int ctx); 
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_end_action(int ctx);
 
   /**
      Writes data.
@@ -379,7 +379,7 @@ extern "C"
      @param[in] size array of the size of each dimension (can be NULL if dim=0)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_write_data(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_write_data(int ctx,
 					 const char *fieldpath,
 					 const char *timebasepath,
 					 void *data,
@@ -404,7 +404,7 @@ extern "C"
      @param[in,out] size passed array for storing the size of each dimension (size[i] undefined if i>=dim)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_read_data(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_read_data(int ctx,
 					const char *fieldpath,
 					const char *timebasepath,
 					void **data,
@@ -420,7 +420,7 @@ extern "C"
      @param[in] path path of the data structure element to delete (suppress the whole subtree)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_delete_data(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_delete_data(int ctx,
 					  const char *path);
 
 
@@ -437,7 +437,7 @@ extern "C"
      @param[out] aosctx array of structure context id [_null context if = 0_]
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
-  LIBRARY_API al_status_t al_plugin_begin_arraystruct_action(int ctx,
+  IMAS_CORE_LIBRARY_API al_status_t al_plugin_begin_arraystruct_action(int ctx,
 						       const char *path,
 						       const char *timebase,
 						       int *size,
@@ -451,7 +451,7 @@ extern "C"
      @param[in] step iteration step size (typically=1)
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t al_iterate_over_arraystruct(int aosctx, 
+  IMAS_CORE_LIBRARY_API al_status_t al_iterate_over_arraystruct(int aosctx,
 						       int step);
 
   /**
@@ -466,7 +466,7 @@ extern "C"
      @param[out] uri string
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
    */
-  LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+  IMAS_CORE_LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID,
                          const int pulse,
                          const int run, 
                          const char *user, 
@@ -475,47 +475,47 @@ extern "C"
                          const char *options,
                          char** uri);
 
-  LIBRARY_API al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_begin_global_action(int pctxID, const char* dataobjectname, const char* datapath, int rwmode, int *octxID);
 
-  LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_begin_slice_action(int pctxID, const char* dataobjectname, int rwmode, double time, int interpmode, int *octxID);
 
-  LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, const double* dtime_buffer, const int* dtime_shape, int interpmode, int *octxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_begin_timerange_action(int pctxID, const char* dataobjectname, int rwmode, double tmin, double tmax, const double* dtime_buffer, const int* dtime_shape, int interpmode, int *octxID);
   
-  LIBRARY_API al_status_t al_end_action(int ctxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_end_action(int ctxID);
 
-  LIBRARY_API al_status_t al_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_begin_arraystruct_action(int ctxID, const char *path, const char *timebase, int *size, int *actxID);
 
-  LIBRARY_API al_status_t al_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
+  IMAS_CORE_LIBRARY_API al_status_t al_read_data(int ctxID, const char *field, const char *timebase, void **data, int datatype, int dim, int *size);
   
-  LIBRARY_API al_status_t al_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
+  IMAS_CORE_LIBRARY_API al_status_t al_write_data(int ctxID, const char *field, const char *timebase, void *data, int datatype, int dim, int *size);
 
-  LIBRARY_API al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size);
+  IMAS_CORE_LIBRARY_API al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size);
 
-  //LIBRARY_API al_status_t al_close_pulse(int pctxID, int mode, const char *options);
+  //IMAS_CORE_LIBRARY_API al_status_t al_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API
 
-  LIBRARY_API al_status_t al_is_plugin_registered(const char* pluginName, bool *is_registered);
+  IMAS_CORE_LIBRARY_API al_status_t al_is_plugin_registered(const char* pluginName, bool *is_registered);
 
-  LIBRARY_API al_status_t al_register_plugin(const char *plugin_name);
+  IMAS_CORE_LIBRARY_API al_status_t al_register_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t al_unregister_plugin(const char *plugin_name);
+  IMAS_CORE_LIBRARY_API al_status_t al_unregister_plugin(const char *plugin_name);
 
-  LIBRARY_API al_status_t al_bind_plugin(const char* fieldPath, const char* pluginName);
+  IMAS_CORE_LIBRARY_API al_status_t al_bind_plugin(const char* fieldPath, const char* pluginName);
 
-  LIBRARY_API al_status_t al_unbind_plugin(const char* fieldPath, const char* pluginName);
+  IMAS_CORE_LIBRARY_API al_status_t al_unbind_plugin(const char* fieldPath, const char* pluginName);
   
-  LIBRARY_API al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
+  IMAS_CORE_LIBRARY_API al_status_t al_setvalue_parameter_plugin(const char* parameter_name, int datatype, int dim, int *size, void *data, const char* pluginName);
   
-  LIBRARY_API al_status_t al_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
+  IMAS_CORE_LIBRARY_API al_status_t al_setvalue_int_scalar_parameter_plugin(const char* parameter_name, int parameter_value, const char* pluginName);
   
-  LIBRARY_API al_status_t al_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
+  IMAS_CORE_LIBRARY_API al_status_t al_setvalue_double_scalar_parameter_plugin(const char* parameter_name, double parameter_value, const char* pluginName);
 
-  LIBRARY_API al_status_t al_write_plugins_metadata(int ctxid);
+  IMAS_CORE_LIBRARY_API al_status_t al_write_plugins_metadata(int ctxid);
 
-  LIBRARY_API al_status_t al_bind_readback_plugins(int ctxid);
+  IMAS_CORE_LIBRARY_API al_status_t al_bind_readback_plugins(int ctxid);
 
-  LIBRARY_API al_status_t al_unbind_readback_plugins(int ctxID);
+  IMAS_CORE_LIBRARY_API al_status_t al_unbind_readback_plugins(int ctxID);
 
 #if defined(__cplusplus)
 }
@@ -531,8 +531,8 @@ extern "C"
    @param[out] dectxID data entry context id [_null context if = 0_] 
    @result error status [_success if al_status_t.code = 0 or failure if < 0_]
 */
-   LIBRARY_API al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID);
-   LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID, 
+   IMAS_CORE_LIBRARY_API al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dectxID);
+   IMAS_CORE_LIBRARY_API al_status_t al_build_uri_from_legacy_parameters(const int backendID,
                          const int pulse,
                          const int run, 
                          const std::string user, 

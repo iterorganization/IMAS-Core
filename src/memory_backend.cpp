@@ -920,7 +920,7 @@ else
 	    else
 	    {
 	    	std::vector<double> retTimeV;
-		std::string path1 = path.substr(path.find_first_of("/")+1);
+		std::string path1 = path.substr(path.find_last_of("/")+1);
 	    	for(size_t i = 0; i < aos->aos.size(); i++)
 	    	{
 		    retTimeV.push_back(aos->aos[i]->getData(path1)->getDouble());
@@ -1142,7 +1142,7 @@ else
 	return isMapped;
     }	
 
-	void MemoryBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size)
+	void MemoryBackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size)
 	{
 		std::string message("get_occurrences() not implemented in MemoryBackend");
 		throw ALBackendException(message, LOG);

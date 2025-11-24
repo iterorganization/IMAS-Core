@@ -1,8 +1,8 @@
 find_package(Python REQUIRED COMPONENTS Interpreter Development.Module NumPy)
 find_package(Cython MODULE REQUIRED VERSION 3.0)
 include(UseCython)
-cython_transpile(imas_core/_al_lowlevel.pyx LANGUAGE C OUTPUT_VARIABLE _al_lowlevel_source)
-cython_transpile(imas_core/al_defs.pyx LANGUAGE C OUTPUT_VARIABLE al_defs_source)
+cython_transpile(imas_core/_al_lowlevel.pyx LANGUAGE CXX OUTPUT_VARIABLE _al_lowlevel_source)
+cython_transpile(imas_core/al_defs.pyx LANGUAGE CXX OUTPUT_VARIABLE al_defs_source)
 python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
 python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
@@ -29,5 +29,12 @@ install(
       ".*system32/.*\\.dll" # Windows system DLLs
       "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
       "iccifort/.*/lib/intel64/lib" # Redundant iccifort
+      ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
+      ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
+      "^libomp\\.so" # OpenMP libraries
+      "^libsvml\\.so" # Intel SVML math library
+      "^libirng\\.so" # Intel RNG library
+      "^libintlc\\.so" # Intel intlc library
+      "^libimf\\.so" # Intel IMF library (math functions)
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)

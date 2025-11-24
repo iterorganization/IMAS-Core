@@ -9,6 +9,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <Shlobj.h>
+#include "fix_include_windows.h"
 #else // WIN32
 #include <pwd.h>
 #endif // WIN32
@@ -20,19 +21,19 @@
 #include "data_interpolation.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
 #ifdef __cplusplus
 
 
 
-class LIBRARY_API MDSplusBackend:public Backend 
+class IMAS_CORE_LIBRARY_API MDSplusBackend:public Backend
 {
   private:
-	// Because LIBRARY_API required to explicitly delete the copy constructor (template std)
+	// Because IMAS_CORE_LIBRARY_API required to explicitly delete the copy constructor (template std)
 	MDSplusBackend(const MDSplusBackend&) = delete;
     MDSplusBackend& operator=(const MDSplusBackend&) = delete;
 
@@ -248,7 +249,7 @@ class LIBRARY_API MDSplusBackend:public Backend
   */
     std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
-    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+    void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
 
     bool supportsTimeDataInterpolation() {
       return true;

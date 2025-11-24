@@ -56,7 +56,10 @@ const char * ALException::what() const throw() {
 
 void ALException::registerStatus(char *message, const char *func, const std::exception &e) { 
   memset(message, ' ', MAX_ERR_MSG_LEN);
-  sprintf(message, "%s: %s", func, e.what());
+  if (e.what() == NULL)
+    sprintf(message, "%s: %s", func, "Unknown error");  
+  else
+    snprintf(message, MAX_ERR_MSG_LEN, "%s: %s", func, e.what());	    
 }
 
 

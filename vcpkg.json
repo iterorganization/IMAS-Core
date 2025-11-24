@@ -9,7 +9,9 @@
       "name": "pthreads",
       "platform": "windows"
     },
+    "boost-algorithm",
     "boost-filesystem",
-    "boost-algorithm"
+    "boost-variant",
+    "pkgconf"
   ]
 }

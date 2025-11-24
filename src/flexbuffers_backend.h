@@ -14,12 +14,12 @@
 #include "flatbuffers/flexbuffers.h"
 
 #if defined(_WIN32)
-#  define LIBRARY_API __declspec(dllexport)
+#  define IMAS_CORE_LIBRARY_API __declspec(dllexport)
 #else
-#  define LIBRARY_API
+#  define IMAS_CORE_LIBRARY_API
 #endif
 
-class LIBRARY_API FlexbuffersBackend : public Backend
+class IMAS_CORE_LIBRARY_API FlexbuffersBackend : public Backend
 {
   public:
     FlexbuffersBackend() {};
@@ -47,7 +47,7 @@ class LIBRARY_API FlexbuffersBackend : public Backend
         int* size) override;
     void deleteData(OperationContext *ctx, std::string path) override;
     void beginArraystructAction(ArraystructContext *ctx, int *size) override;
-    void get_occurrences(const char* ids_name, int** occurrences_list, int* size) override;
+    void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
     // timerange (get_sample) API is not supported:
     bool supportsTimeDataInterpolation() override { return false; }
     bool supportsTimeRangeOperation() override { return false; }

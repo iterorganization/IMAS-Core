@@ -16,7 +16,10 @@ configure_file( al_env.sh.in ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh )
 
 # Don't generate the environment file when building modules:
 if( AL_DOWNLOAD_DEPENDENCIES OR AL_DEVELOPMENT_LAYOUT )
-    install( FILES ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh DESTINATION bin )
+    install(
+      FILES ${CMAKE_CURRENT_BINARY_DIR}/al_env.sh
+      TYPE BIN
+    )
 endif()
 
 # al-common_SOURCE_DIR is used in some scripts in the cmake/ folder to refer to the

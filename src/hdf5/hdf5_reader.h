@@ -30,7 +30,6 @@ class HDF5Reader {
 
     std::unordered_map < ArraystructContext *,  std::vector<int>> arrctx_shapes_per_context;
     
-    int homogeneous_time;
     std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
     
     int slice_mode;
@@ -43,6 +42,9 @@ class HDF5Reader {
 
     void getTimeVector(OperationContext * opCtx, std::unique_ptr < HDF5DataSetHandler > &data_set, const std::string & timebasename, int timed_AOS_index, 
     const std::vector < int > &current_arrctx_indices, std::vector<double> &time_basis_vector, bool resampling = false);
+    int checkSlicesShapes(Context *ctx, hid_t gid, const std::string &tensorized_path, int datatype, int slice_mode,
+                                    bool is_dynamic, int slice_min, int slice_sup, int dim, int timed_AOS_index,
+                                    hid_t *dataset_id_shapes, const std::vector<int> &current_arrctx_indices, hid_t dataset_id, bool isOpenedShapesDataSet, HDF5HsSelectionReader &hsSelectionReader);
     int getPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int datatype, int slice_mode, bool is_dynamic, bool isTimed, 
 			    int slice_index, int dim, int *size, int timed_AOS_index, bool * zero_shape, hid_t * dataset_id_shapes, 
 			    bool isOpenedShapesDataSet, const std::vector < int > &current_arrctx_indices);
@@ -60,7 +62,7 @@ class HDF5Reader {
  				    );
     int readAOSPersistentShapes(Context * ctx, hid_t gid, const std::string & tensorized_path, int timed_AOS_index, int slice_index, void **shapes, const std::vector < int > &current_arrctx_indices);
 
-    std::string getTimeVectorDataSetName(int timed_AOS_index, std::vector < std::string > &tensorized_paths);
+    std::string getTimeVectorDataSetName(const std::string &timebasePath, int timed_AOS_index, std::vector < std::string > &tensorized_paths);
     std::string getTimeVectorDataSetName(OperationContext * opCtx, std::string timebasename, int timed_AOS_index);
     std::unique_ptr < HDF5DataSetHandler > getTimeVectorDataSet(OperationContext *opCtx, hid_t gid, const std::string & dataset_name, int time_vector_dim);
 
@@ -71,15 +73,17 @@ class HDF5Reader {
     static bool isMatchingDefaultValue(double value);
     static bool ends_with(const std::string &str, const std::string &suffix);
 
+    void read_homogeneous_time(int* homogenenous_time, hid_t gid);
+
     bool INTERPOLATION_WARNING;
+    std::vector<double> time_basis_vector;
 
   public:
 
      HDF5Reader(std::string backend_version_);
     ~HDF5Reader();
 
-    
-    
+    int homogeneous_time;
 
     virtual void closePulse(DataEntryContext * ctx, int mode, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
     virtual int read_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, void **data, int *dim, int *size);
@@ -91,7 +95,7 @@ class HDF5Reader {
     void close_datasets();
     void close_group(OperationContext *ctx);
     void endAction(Context * ctx);
-    void setSliceMode(int slice_mode);
+    void setSliceMode(OperationContext *ctx);
 };
 
 #endif

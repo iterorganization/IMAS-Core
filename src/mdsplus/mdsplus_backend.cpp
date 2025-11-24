@@ -927,37 +927,43 @@ static void dumpStruct(MDSplus::Apd *apd, int tabs)
        std::cout << apd->getDescAt(0) << ":\n";
     for(size_t i = 1; i < apd->len(); i++)
     {
-	
-	if(!apd->getDescAt(i))
-	{
-	    skipTabs(tabs+1);
-	    std::cout << "None\n";
-	}
-	else
-	{
-	    if(apd->getDescAt(i)->clazz == CLASS_APD)
-	    {
-	      //Can be either a structure or an array of structures
-		MDSplus::Apd *currApd = (MDSplus::Apd *)apd->getDescAt(i);
-		if(currApd->len() == 0)
-		{
-		    skipTabs(tabs+1);
-		    std::cout << "None\n";
-		}
-		else if(currApd->getDescAt(0)->clazz == CLASS_S)
-		  dumpStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
-		else
-		  dumpArrayStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
-	    }
-	    else
-	    {
-		skipTabs(tabs+1);
-		std::cout << apd->getDescAt(i) << std::endl;
-	    }
-	}
-    }
-}
 
+		if(!apd->getDescAt(i))
+		{
+			skipTabs(tabs+1);
+			std::cout << "None\n";
+		}
+		else
+		{
+			if(apd->getDescAt(i)->clazz == CLASS_APD)
+			{
+			//Can be either a structure or an array of structures
+			MDSplus::Apd *currApd = (MDSplus::Apd *)apd->getDescAt(i);
+			if(currApd->len() == 0)
+			{
+				skipTabs(tabs+1);
+				std::cout << "None\n";
+			}
+			else if(currApd->getDescAt(0)->clazz == CLASS_S)
+			dumpStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
+			else
+			dumpArrayStruct((MDSplus::Apd *)apd->getDescAt(i), tabs+1);
+			}
+			else
+			{
+				skipTabs(tabs+1);
+				if ((apd->getDescAt(i))->dtype == DTYPE_NID)
+				{
+					std::cout <<  ((MDSplus::TreeNode *)(apd->getDescAt(i)))->getFullPath() << std::endl;
+				}
+				else
+				{
+					std::cout << apd->getDescAt(i) << std::endl;
+				}
+			}
+		}
+	}
+}
 
  
 //Return the dimension in bytes of the first strring stored in seggmented data. If no segments return -1
@@ -4478,46 +4484,45 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
           }
 	  
 	  std::string mdsplusBaseStr = ctx->getURI().query.get("path").value();
-	  if(mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE)
-	    try {
-	      create_directories(mdsplusBaseStr.c_str());
-	    } catch (const std::exception& exc) {
-	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
-	    }
-	  
-	  
 	  setDataEnv(ctx); 
     	  int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, 		if(originalIdsPath == "")
 	  
 	  switch(mode) {
 	    case alconst::open_pulse:
 	    case alconst::force_open_pulse:
-	          try {
-	              tree = new MDSplus::Tree(szTree, shotNum, szOption); break;
-		  }catch(MDSplus::MdsException &exc)
-		  {
-                    resetIdsPath(szTree);
-		    throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG); 
-		  }
-		  break;
-	    case alconst::create_pulse:
-	    case alconst::force_create_pulse:
-	          try {
-		      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
-		      modelTree->createPulse(shotNum);
-		      delete modelTree;
-		      tree = new MDSplus::Tree(szTree, shotNum, szOption);
-		      saveVersion(tree);
-		  }catch(MDSplus::MdsException &exc)
-		  {
-                    resetIdsPath(szTree);
-		    throw ALBackendException(exc.what()+mdsplusBaseStr,LOG); 
-		  }
-		  break;
-	    default:
-              resetIdsPath(szTree);
-	      throw  ALBackendException("Mode not yet supported",LOG);
-	  
+	      try {
+		tree = new MDSplus::Tree(szTree, shotNum, szOption);
+		break;
+	      } catch(MDSplus::MdsException &exc) {
+		if (mode!=alconst::force_open_pulse) {
+		  resetIdsPath(szTree);
+		  throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+		}
+	      }
+	  case alconst::create_pulse:
+	    if (exists(mdsplusBaseStr+"/ids_001.tree")) {
+	      throw  ALBackendException(mdsplusBaseStr+"/ids_001.tree exists already, use a different mode to overwrite",LOG);
+	    }
+	  case alconst::force_create_pulse:
+	    try {
+	      create_directories(mdsplusBaseStr.c_str());
+	    } catch (const std::exception& exc) {
+	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
+	    }
+	    try {
+	      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
+	      modelTree->createPulse(shotNum);
+	      delete modelTree;
+	      tree = new MDSplus::Tree(szTree, shotNum, szOption);
+	      saveVersion(tree);
+	    } catch(MDSplus::MdsException &exc) {
+	      resetIdsPath(szTree);
+	      throw ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+	    }
+	    break;
+	  default:
+	    resetIdsPath(szTree);
+	    throw  ALBackendException("Mode not yet supported",LOG);
 	  }
 	  treeNodeMap.clear();
           resetIdsPath(szTree);
@@ -4688,9 +4693,11 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	{
 //skip the first part of the name for nested Dynamic AoS
 	    std::string aosPath = ctx->getPath();
-	    size_t currPos = aosPath.find_first_of("/");
-	    aosPath = aosPath.substr(currPos + 1);
-	    MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getParent()->getIndex(), aosPath); //Gabriele March 2018
+//August 2025: do not alter anymore the passed path (root of the timed AoS) //////////////////
+//		size_t currPos = aosPath.find_first_of("/");
+//	    aosPath = aosPath.substr(currPos + 1);
+//////////////////////////////////////////////////////////////////////////////////////////////
+		MDSplus::TreeNode *node = (MDSplus::TreeNode *)getFromApd(parentApd, ctx->getParent()->getIndex(), aosPath); //Gabriele March 2018
 	    if(!node)
 	    {
 		*size = 0;
@@ -4856,7 +4863,7 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
     }
 }
 
-void MDSplusBackend::get_occurrences(const char* ids_name, int** occurrences_list, int* size) {
+void MDSplusBackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
 	if(!tree) throw ALBackendException("Data entry not open",LOG);
 	std::vector<int> occurrences;
 
