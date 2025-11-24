@@ -15,14 +15,17 @@ jobs:
           fetch-depth: 0  # Fetch full history for git describe to work
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'docs/requirements.txt'
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y doxygen
+        continue-on-error: false
 
       - name: Create virtual environment
         run: |
@@ -60,10 +63,28 @@ jobs:
           . docs_venv/bin/activate
           make -C docs clean
           make -C docs html
+        continue-on-error: false
+
+      - name: Check documentation warnings
+        if: success()
+        run: |
+          . docs_venv/bin/activate
+          echo "Documentation built successfully!"
+          echo "Build location: docs/build/html/"
+          
+      - name: Report build failure
+        if: failure()
+        run: |
+          echo "::error::Documentation build failed. Check the logs above for details."
+          echo "Common issues:"
+          echo "  - Missing dependencies in docs/requirements.txt"
+          echo "  - Sphinx syntax errors in .rst files"
+          echo "  - Doxygen configuration issues"
+          exit 1
 
       - name: Upload documentation artifact
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: docs/build/html/

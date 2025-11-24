@@ -13,10 +13,15 @@ copyright = f"{datetime.datetime.now().year}, ITER Organization"
 author = 'ITER Organization'
 release = '1.0.0'
 
-
-version = subprocess.check_output(["git", "describe"]).decode().strip()
-last_tag = subprocess.check_output(["git", "describe", "--abbrev=0"]).decode().strip()
-is_develop = version != last_tag
+# Try to get version from git, fallback to 'dev' if git is not available
+try:
+    version = subprocess.check_output(["git", "describe"], stderr=subprocess.DEVNULL).decode().strip()
+    last_tag = subprocess.check_output(["git", "describe", "--abbrev=0"], stderr=subprocess.DEVNULL).decode().strip()
+    is_develop = version != last_tag
+except (subprocess.CalledProcessError, FileNotFoundError):
+    version = "dev"
+    last_tag = "dev"
+    is_develop = True
 
 html_context = {
     "is_develop": is_develop
