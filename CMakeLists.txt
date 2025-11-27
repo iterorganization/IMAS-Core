@@ -134,7 +134,10 @@ set( EXE_FLAG  )
 set( EXE_EXT  )
 add_executable( imas_print_version ${EXE_FLAG} tests/imas_print_version.cpp )
 target_link_libraries( imas_print_version PRIVATE al )
-if(NOT WIN32)
+if(NOT WIN32 AND NOT APPLE)
+  # stdc++fs is only needed on Linux with older GCC
+  # On macOS, filesystem is part of libc++
+  # On Windows, filesystem is part of the standard library
   target_link_libraries( imas_print_version PRIVATE stdc++fs )
 endif()
 add_dependencies( imas_print_version al )
