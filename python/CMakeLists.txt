@@ -17,6 +17,27 @@ if(DEFINED ENV{LD_LIBRARY_PATH})
 else()
   set(LIBRARY_DIRS)
 endif()
+
+# Build POST_EXCLUDE_REGEXES list based on platform
+set(POST_EXCLUDE_PATTERNS
+  ".*system32/.*\\.dll" # Windows system DLLs
+  "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
+  "iccifort/.*/lib/intel64/lib" # Redundant iccifort
+)
+
+# Add Linux-specific exclusions
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  list(APPEND POST_EXCLUDE_PATTERNS
+    ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
+    ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
+    "^libomp\\.so" # OpenMP libraries
+    "^libsvml\\.so" # Intel SVML math library
+    "^libirng\\.so" # Intel RNG library
+    "^libintlc\\.so" # Intel intlc library
+    "^libimf\\.so" # Intel IMF library (math functions)
+  )
+endif()
+
 install(
   TARGETS al
   DESTINATION imas_core.libs
@@ -25,16 +46,6 @@ install(
     PRE_EXCLUDE_REGEXES   
       "api-ms-" # VC Redistibutable DLLs
       "ext-ms-" # Windows extension DLLs
-    POST_EXCLUDE_REGEXES 
-      ".*system32/.*\\.dll" # Windows system DLLs
-      "^/(lib|usr/lib|usr/local/lib)" # Unix system libraries
-      "iccifort/.*/lib/intel64/lib" # Redundant iccifort
-      ".*/imkl/.*/compiler/.*/linux/compiler/lib" # Intel MKL compiler libraries
-      ".*/intel-compilers/.*/compiler/.*/linux/compiler/lib" # Intel compilers libraries
-      "^libomp\\.so" # OpenMP libraries
-      "^libsvml\\.so" # Intel SVML math library
-      "^libirng\\.so" # Intel RNG library
-      "^libintlc\\.so" # Intel intlc library
-      "^libimf\\.so" # Intel IMF library (math functions)
+    POST_EXCLUDE_REGEXES ${POST_EXCLUDE_PATTERNS}
 )
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
