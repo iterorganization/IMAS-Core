@@ -20,21 +20,56 @@ endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
   # The DD easybuild module should be loaded, use that module:
-  if( "$ENV{IMAS_PREFIX}" STREQUAL "" OR "$ENV{IMAS_VERSION}" STREQUAL "" )
+  if( "$ENV{IMAS_PREFIX}" STREQUAL "" )
     message( FATAL_ERROR
-      "Environment variables IMAS_PREFIX ('$ENV{IMAS_PREFIX}') or "
-      "IMAS_VERSION ('$ENV{IMAS_VERSION}') not set."
+      "Environment variable IMAS_PREFIX ('$ENV{IMAS_PREFIX}') not set."
     )
   endif()
 
   # Populate IDSDEF filename
+  # Try 1: Direct include/
   set( IDSDEF "$ENV{IMAS_PREFIX}/include/IDSDef.xml" )
+  
+  # Try 2: Subdirectory dd_*/ 
   if( NOT EXISTS "${IDSDEF}" )
-    message( FATAL_ERROR "Could not find IDSDef.xml at '${IDSDEF}'." )
+    file( GLOB _DD_DIR "$ENV{IMAS_PREFIX}/dd_*" )
+    if( _DD_DIR )
+      set( IDSDEF "${_DD_DIR}/include/IDSDef.xml" )
+    endif()
+    unset( _DD_DIR )
+  endif()
+  
+  # Try 3: Python package location
+  if( NOT EXISTS "${IDSDEF}" )
+    file( GLOB _DD_SEARCH_PATHS "$ENV{IMAS_PREFIX}/lib/python*/site-packages/imas_data_dictionary/resources/schemas/data_dictionary.xml" )
+    if( _DD_SEARCH_PATHS )
+      list( GET _DD_SEARCH_PATHS 0 IDSDEF )
+    endif()
+    unset( _DD_SEARCH_PATHS )
   endif()
 
-  # Populate identifier source xmls
+  # Check if we found anything
+  if( NOT EXISTS "${IDSDEF}" )
+    message( FATAL_ERROR "Could not find IDSDef.xml or data_dictionary.xml at '$ENV{IMAS_PREFIX}'." )
+  endif()
+
+  # Populate identifier source xmls - try multiple locations
+  # Try 1: Direct include/ directory
   file( GLOB DD_IDENTIFIER_FILES "$ENV{IMAS_PREFIX}/include/*/*_identifier.xml" )
+  
+  # Try 2: Subdirectory dd_*/ 
+  if( NOT DD_IDENTIFIER_FILES )
+    file( GLOB _DD_DIR "$ENV{IMAS_PREFIX}/dd_*" )
+    if( _DD_DIR )
+      file( GLOB DD_IDENTIFIER_FILES "${_DD_DIR}/include/*/*_identifier.xml" )
+    endif()
+    unset( _DD_DIR )
+  endif()
+  
+  # Try 3: Python package location
+  if( NOT DD_IDENTIFIER_FILES )
+    file( GLOB DD_IDENTIFIER_FILES "$ENV{IMAS_PREFIX}/lib/python*/site-packages/imas_data_dictionary/resources/schemas/*_identifier.xml" )
+  endif()
 else()
   # Build the DD from source:
   include(FetchContent)
