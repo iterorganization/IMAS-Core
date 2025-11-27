@@ -44,18 +44,20 @@ if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
   
   message( STATUS "Found Data Dictionary: ${IDSDEF}" )
 
-  # Populate identifier source xmls based on the IDSDEF location
+  # Populate identifier source xmls based on the IDSDEF location 
   get_filename_component( DD_BASE_DIR "${IDSDEF}" DIRECTORY )
-  # For dd_x.y.z layout: identifiers are in ../identifiers/*_identifier.xml
-  get_filename_component( DD_PARENT_DIR "${DD_BASE_DIR}" DIRECTORY )
-  file( GLOB DD_IDENTIFIER_FILES 
-    "${DD_PARENT_DIR}/identifiers/*_identifier.xml"
-    "${DD_PARENT_DIR}/include/*/*_identifier.xml"
-    "${DD_BASE_DIR}/*_identifier.xml"
-  )
   
-  unset( DD_BASE_DIR )
-  unset( DD_PARENT_DIR )
+  if( DD_BASE_DIR MATCHES "schemas$" )
+    # DD 4.1.0+ layout: resources/schemas/<ids_name>/*_identifier.xml
+    file( GLOB DD_IDENTIFIER_FILES "${DD_BASE_DIR}/*/*_identifier.xml" )
+  else()
+    # DD 3.x/4.0.0 layout: dd_x.y.z/include/<ids_name>/*_identifier.xml
+    file( GLOB DD_IDENTIFIER_FILES "${DD_BASE_DIR}/*/*_identifier.xml" )
+  endif()
+  
+  if( NOT DD_IDENTIFIER_FILES )
+    message( WARNING "No identifier XML files found in Data Dictionary at: ${IDSDEF}" )
+  endif()
 else()
   # Build the DD from source:
   include(FetchContent)
