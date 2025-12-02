@@ -39,8 +39,6 @@ html_static_path = ["_static"]
 rst_epilog = """\
 .. |DD| replace:: `IMAS Data Dictionary`_
 .. _`IMAS Data Dictionary`: https://imas-data-dictionary.readthedocs.io/en/latest/
-.. |IMAS| replace:: Integrated Modelling and Analysis Suite
-.. _`IMAS`: https://imas.iter.org/
 """
 
 # -- Options for HTML output -------------------------------------------------

@@ -296,7 +296,7 @@ the corresponding test programs as follows:
     python3 -m venv build/pip_install
     source build/pip_install/bin/activate
     pip install --upgrade pip wheel
-    pip install "numpy<2" 
+    pip install numpy 
     set -x
     pip install --find-links=build/dist imas-core[test,cov]
     pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
@@ -333,4 +333,4 @@ IMAS-Core.
 
 If IMAS-Core is built with Python bindings, you can also use the Python bindings with imas-python. 
 `imas_python <https://pypi.org/project/imas-python/>`_. Just install with `pip install imas-python`
-and you can use the Python bindings.mmore information is here `imas-python <https://imas-python.readthedocs.io/en/latest/>`_.
+and you can use the Python bindings. more information is here `imas-python <https://imas-python.readthedocs.io/en/latest/>`_.

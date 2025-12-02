@@ -14,9 +14,6 @@ IMAS consists of:
 2. **Infrastructure Components** - Tools and libraries for reading, writing, and accessing data
 3. **Physics Components** - Domain-specific tools and models
 
-.. TODO:
-
-For a complete overview, visit the `IMAS Homepage <https://imas.iter.org/>`_ (ITER Organization account required).
 
 What is IMAS-Core?
 ------------------
@@ -90,25 +87,8 @@ Getting Started
 
 .. code-block:: bash
 
-    pip install imas-core  imas-python
-
-.. note::
-    **IMAS-Python** uses IMAS-Core to enable access to different backends (HDF5, MDSplus, UDA, etc.)
-
-**Quick Python Example:**
-
-.. code-block:: python
-
-    import imas
-
-    # Open an IMAS database
-    data_entry = imas.DBEntry("imas:hdf5?path=/path/to/database", "r")
-    data_entry.open()
-
-    # Get data
-    equilibrium = data_entry.get('equilibrium', occurrence=0)
-
-    data_entry.close()
+    pip install imas-core
+    python -c "import imas_core"
 
 
 Documentation Structure

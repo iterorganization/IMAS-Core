@@ -35,14 +35,6 @@ by the IMAS Data Dictionary. Examples include 'equilibrium', 'magnetics', etc.
 A: A backend is a storage format (HDF5, MDSplus, etc.). The same code works
 with different backends by changing the URI.
 
-**Q: How do I read data?**
-
-A: See :doc:`user_guide/index` for a quick example.
-
-**Q: How do I write data?**
-
-A: See `IMAS-Python Documentation <https://imas-python.readthedocs.io/en>`_ for detailed instructions.
-
 Backends
 --------
 
@@ -69,9 +61,6 @@ A: Open an issue on GitHub: https://github.com/iterorganization/IMAS-Core/issues
 Miscellaneous
 -------------
 
-**Q: Where can I find more examples?**
-
-A: See `IMAS-Python Documentation <https://imas-python.readthedocs.io/en>`_ for comprehensive examples.
 
 **Q: What is the IMAS Data Dictionary?**
 

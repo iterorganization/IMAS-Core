@@ -1,7 +1,7 @@
 # IMAS-Core
 
 [![Build Status](https://github.com/iterorganization/IMAS-Core/actions/workflows/cmake.yaml)](https://github.com/iterorganization/IMAS-Core/actions)
-[![License](https://github.com/iterorganization/IMAS-Python/blob/develop/LICENSE.txt)](LICENSE)
+[![License](https://github.com/iterorganization/IMAS-Core/blob/develop/LICENSE.txt)](LICENSE)
 
 **IMAS-Core** is a lowlevel library with Python bindings for reading and writing fusion experiment data in standard IMAS format.
 
@@ -14,7 +14,7 @@ This repository contains the **Lowlevel components of the Access Layer**:
 - **Backends** for reading and writing IMAS data
 - **MDS+ model logic** for creating the models required by the MDS+ backend
 
-**Note**: [IMAS-Python](https://github.com/iterorganization/IMAS-Python) uses the IMAS-Core Python binding and provides a high-level interface for working with MDSplus and HDF5 files.
+
 
 
 ## Quick Installation
@@ -23,12 +23,6 @@ Install IMAS-Core with a single command:
 
 ```bash
 pip install imas-core
-```
-
-To also install the high-level IMAS-Python interface which uses imas-core:
-
-```bash
-pip install imas-python
 ```
 
 That's it! No need to compile or configure anything.
@@ -177,7 +171,7 @@ See [Developer Guide](docs2/source/developers/index.rst) for detailed instructio
 
 ## Links
 
-- **Homepage**: https://imas.iter.org/
+- **Homepage**: 
 - **GitHub**: https://github.com/iterorganization/IMAS-Core
 - **PyPI**: https://pypi.org/project/imas-core/
 - **Data Dictionary**: https://imas-data-dictionary.readthedocs.io/

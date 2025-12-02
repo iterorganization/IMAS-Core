@@ -8,7 +8,8 @@ The easiest way to install IMAS-Core is via pip:
 
 .. code-block:: bash
 
-    pip install imas-core imas-python
+    pip install imas-core
+    python -c "import imas_core"
 
 That's it! No additional setup required.
 
