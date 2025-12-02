@@ -10,3 +10,4 @@ If you're looking to build from source or contribute, see the :doc:`../developer
     installation
     uris_guide
     backends_guide
+    configuration

@@ -9,4 +9,3 @@ or extend its functionality.
 
     getting_started/index
     extending/index
-    configuration.rst
