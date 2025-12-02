@@ -16,8 +16,8 @@ Dependencies:
 
 -   `data-dictionary
     <https://github.com/iterorganization/IMAS-Data-Dictionary>`__: the IMAS Data
-    Dictionary definitions, used for generating MDSplus models and the traditional High
-    Level Interfaces.
+    Dictionary definitions, used for generating MDSplus models and end-user APIs in 
+    Fortran, C++, Java and Matlab.
 
 The documentation on this page covers IMAS-Core build and installation.
 
