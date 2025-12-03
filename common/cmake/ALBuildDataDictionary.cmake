@@ -20,21 +20,44 @@ endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
   # The DD easybuild module should be loaded, use that module:
-  if( "$ENV{IMAS_PREFIX}" STREQUAL "" OR "$ENV{IMAS_VERSION}" STREQUAL "" )
-    message( FATAL_ERROR
-      "Environment variables IMAS_PREFIX ('$ENV{IMAS_PREFIX}') or "
-      "IMAS_VERSION ('$ENV{IMAS_VERSION}') not set."
+  # Use idsinfo idspath command to get the path to IDSDef.xml or data_dictionary.xml
+  execute_process(
+    COMMAND idsinfo idspath
+    OUTPUT_VARIABLE IDSDEF
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _IDSINFO_EXITCODE
+  )
+  
+  if( _IDSINFO_EXITCODE )
+    message( FATAL_ERROR 
+      "Failed to run 'idsinfo idspath' command. "
+      "Please ensure IMAS-Data-Dictionary module is loaded."
     )
   endif()
-
-  # Populate IDSDEF filename
-  set( IDSDEF "$ENV{IMAS_PREFIX}/include/IDSDef.xml" )
+  
   if( NOT EXISTS "${IDSDEF}" )
-    message( FATAL_ERROR "Could not find IDSDef.xml at '${IDSDEF}'." )
+    message( FATAL_ERROR 
+      "idsinfo idspath returned '${IDSDEF}' but file does not exist. "
+      "Please ensure IMAS-Data-Dictionary module is properly loaded."
+    )
   endif()
+  
+  message( STATUS "Found Data Dictionary: ${IDSDEF}" )
 
-  # Populate identifier source xmls
-  file( GLOB DD_IDENTIFIER_FILES "$ENV{IMAS_PREFIX}/include/*/*_identifier.xml" )
+  # Populate identifier source xmls based on the IDSDEF location 
+  get_filename_component( DD_BASE_DIR "${IDSDEF}" DIRECTORY )
+  
+  if( DD_BASE_DIR MATCHES "schemas$" )
+    # DD 4.1.0+ layout: resources/schemas/<ids_name>/*_identifier.xml
+    file( GLOB DD_IDENTIFIER_FILES "${DD_BASE_DIR}/*/*_identifier.xml" )
+  else()
+    # DD 3.x/4.0.0 layout: dd_x.y.z/include/<ids_name>/*_identifier.xml
+    file( GLOB DD_IDENTIFIER_FILES "${DD_BASE_DIR}/*/*_identifier.xml" )
+  endif()
+  
+  if( NOT DD_IDENTIFIER_FILES )
+    message( WARNING "No identifier XML files found in Data Dictionary at: ${IDSDEF}" )
+  endif()
 else()
   # Build the DD from source:
   include(FetchContent)
