@@ -20,7 +20,7 @@ plugins. It introduces new components:
 From now on, the Low Level C wrappers call the Plugins API functions.
 The LL API is remained unchanged.
 
-.. figure:: ../_static/plugins/image2.png
+.. figure:: ../_static/images/image2.png
    :name: Figure 2
 
    **Figure 2:** Modified layered AL architecture model for plugins
@@ -47,7 +47,7 @@ bound to at least one node of the DD. For example, the
 ``readDataSPlugin(...)`` and ``writeDataPlugin(...)`` plugins API
 functions.
 
-.. figure:: ../_static/plugins/image3.png
+.. figure:: ../_static/images/image3.png
    :name: Figure 3
 
    **Figure 3:** The new C wrappers for plugins management and the new plugins API
@@ -73,7 +73,7 @@ The Plugins API and the low level holder plugin class
 
 `Figure 4`_ depicts the ``LLplugin`` plugin holder class.
 
-.. figure:: ../_static/plugins/image4.png
+.. figure:: ../_static/images/image4.png
    :name: Figure 4
 
    **Figure 4:** The plugin holder class (``LLplugin``)
@@ -211,7 +211,7 @@ operation through sequence diagrams.
 ``get()`` sequence diagram
 --------------------------
 
-.. figure:: ../_static/plugins/image5.png
+.. figure:: ../_static/images/image5.png
    :name: Figure 7
 
    **Figure 7:** ``get()`` operation sequence diagram
@@ -246,7 +246,7 @@ The ``put()`` sequence diagram (`Figure 8`_) is quite similar to the ``get()``
 sequence diagram. The example uses the ``camera_ir_write`` plugin
 described later in this document.
 
-.. figure:: ../_static/plugins/image6.png
+.. figure:: ../_static/images/image6.png
    :name: Figure 8
 
    **Figure 8:** ``put()`` operation sequence diagram
@@ -296,7 +296,7 @@ informations specified by the **readback_plugin_feature** interface are
 stored in the backend. These data are read during a ``get()``/``get_slice()``
 operation and used to bind and execute the *readback* plugins.
 
-.. figure:: ../_static/plugins/image7.png
+.. figure:: ../_static/images/image7.png
    :name: Figure 9
 
    **Figure 9:** The ``provenance_plugin_feature``, ``readback_plugin_feature``

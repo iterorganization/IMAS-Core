@@ -37,7 +37,7 @@ which receive HLIs requests. The LL includes a C layer with C functions
 (wrappers) for calling the functions of the (C++) LL API located in the
 C++ layer of the LL.
 
-.. figure:: ../_static/plugins/image1.png
+.. figure:: ../_static/images/image1.png
    :name: Figure 1
 
    **Figure 1:** Layered AL architecture model
