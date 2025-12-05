@@ -1,24 +1,16 @@
 Installation
 =============
 
-Quick Install
--------------
+Quick Install for Python users
+------------------------------
 
-The easiest way to install IMAS-Core is via pip:
+To install IMAS-Core via pip for Python users:
 
 .. code-block:: bash
 
     pip install imas-core
     python -c "import imas_core"
 
-That's it! No additional setup required.
-
-I think pip installl from the pre-built package on PyPI shall be in the readme.
-
-We we can keep pip install from sources (next to where you describe cmake install guide)
-
-we can also precise how to pass configuration options via the pip command, e.g.:
-pip install . -C skbuild.cmake.define.AL_BACKEND_UDA=OFF
 
 Requirements
 ~~~~~~~~~~~~
