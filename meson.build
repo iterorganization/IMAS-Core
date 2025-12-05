@@ -2,7 +2,7 @@ project(
   'imas-core',
   ['c', 'cpp'],
   license: 'LGPL-3.0-or-later',
-  meson_version: '>=0.60.0',
+  meson_version: '>=1.1.0',
   version: run_command('setuptools-scm', '--strip-dev', check: true).stdout().strip(),
   default_options: [
     'c_std=c17',
@@ -50,9 +50,9 @@ if get_option('python_bindings')
   subdir('python')
 endif
 
-#
+# ============================================================================
 # MDSplus Models
-#
+# ============================================================================
 if get_option('mdsplus_models')
   warning('MDSplus models are not yet supported in Meson build system.')
   # subdir('models/mdsplus')
