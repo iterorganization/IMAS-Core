@@ -7,7 +7,7 @@ Plugins framework
 In this document, plugins are C++ software components compiled in separate
 libraries from the Access Layer (AL) library, which make use of them. Using a
 modified Low Level architecture, we demonstrate that plugins satisfy many
-use-cases requirements, providing new features available from all existing HLIs.
+use-cases requirements, providing new features available from all existingens-user APIs.
 We describe the Access Layer plugins architecture and some plugins examples.
 
 
@@ -18,22 +18,22 @@ Plugins offer the following advantages:
    Data Dictionary-defined or user-defined plugins activation
    directives. More precisely, the AL Low Level layer loads plugins and
    calls them according to the previous directives. **Plugins provide
-   new features with common behavior between High Level
-   Interfaces**. There is no need for developing specific High Level
-   Interface (HLI) implementation of plugins features, **decreasing
+   new features with common behavior between end-user APIs in Fortran, C++, Java and Matlab**. 
+   There is no need for developing specific end-user APIs in Fortran, C++, Java and Matlab
+   implementation of plugins features, **decreasing
    therefore drastically development time**, **simplifying maintenance**
    and **reducing the risk of potential bugs**.
 
 -  Contributing also to **reduced time development**, code **plugin
-   compilation is fast** since plugins have no dependency on HLI
+   compilation is fast** since plugins have no dependency onens-user API
    classes. The compilation time must be compared to the one required
-   for specific HLI code whose change may (depending on which source
-   file has been modified) trigger the full recompilation of the HLI
+   for specificens-user API code whose change may (depending on which source
+   file has been modified) trigger the full recompilation of theens-user API
    layer.
 
--  Features provided by a plugin behave the same in all HLIs with same
+-  Features provided by a plugin behave the same in allens-user APIs with same
    exceptions, same outputs, same bugs... **Users experience remains
-   unchanged** from one HLI to another.
+   unchanged** from oneens-user API to another.
 
 -  Plugins source files are stored in separate repositories with
    separate development lifecycles. Developers group plugins into
@@ -49,7 +49,7 @@ Plugins offer the following advantages:
    AL sources or to the AL installed binaries, **preventing AL updates
    procedures and reducing AL deployment maintenance.**
 
-AL plugins provide many features available for all HLIs as for example:
+AL plugins provide many features available for allens-user APIs as for example:
 
 -  **Creating fast C++ post processing** using low-level R/W data access
    functions. Plugins have flexibility to run on-the-fly data

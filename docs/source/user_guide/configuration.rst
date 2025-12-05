@@ -43,7 +43,7 @@ Environment variables controlling IMAS-Core behaviour
 
 .. [#backend_env] These environment variables are not applicable when using
     Data entry URIs (see :doc:`../user_guide/uris_guide`), which explicitly specify the backend. Also not applicable
-    in the Python HLI.
+    in the Pythonens-user API.
 
 
 Environment variables controlling access layer plugins
@@ -58,14 +58,14 @@ Environment variables controlling access layer plugins
 
     - Low level plugins registering/search functions are disabled.
     - The behavior of writing data for nodes with default values is the same
-      that AL4. HLI write requests for these `empty` nodes are not sent to the
+      that AL4.ens-user API write requests for these `empty` nodes are not sent to the
       LL.  
 
     When the plugins framework is enabled:
 
     - Low level plugins registering/search functions are enabled.
     - The behavior of writing data for nodes with default values differs from
-      AL4. HLI write requests for these `empty` nodes are sent to the LL
+      AL4.ens-user API write requests for these `empty` nodes are sent to the LL
       allowing eventually to execute low level C++ plugins bound to these nodes
       whose content can be handled by these plugins.    
     

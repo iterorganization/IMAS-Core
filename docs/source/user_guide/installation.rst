@@ -202,7 +202,7 @@ Configuration options
         ONLY the documentation will be built (needs ``AL_HLI_DOCS=ON``). Regardless of
         other configuration options, nothing else will be built.
     -   ``AL_PYTHON_BINDINGS``, allowed values ``ON`` *(default when building the Python
-        HLI)* or ``OFF`` *(default when not building the Python HLI)*. When enabled, this
+        API)* or ``OFF`` *(default when not building the Python API)*. When enabled, this
         builds the Access Layer Python lowlevel bindings.
 
 -   **Dependency configuration options**
@@ -400,7 +400,7 @@ You may want to add this to your ``$HOME/.bashrc`` file to automatically make th
 
     Some programs may rely on an environment variable ``IMAS_VERSION`` to detect which
     version of the data dictionary is used in the current IMAS environment. You may set
-    it manually with the DD version you've build the HLI with, for example: ``export
+    it manually with the DD version you've build theens-user API with, for example: ``export
     IMAS_VERSION=3.41.0``.
 
 Once you have set the required environment variables, you may continue Using the

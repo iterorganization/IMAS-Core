@@ -20,7 +20,7 @@ A: We recommend Python 3.8+.
 
 **Q: Can I build from source?**
 
-A: Yes, see :doc:`developers/getting_started/index`.
+A: Yes, see :doc:`user_guide/installation`.
 
 Usage
 -----
@@ -51,7 +51,7 @@ A: See the GitHub repository for guidelines: https://github.com/iterorganization
 
 **Q: How do I build from source?**
 
-A: See :doc:`developers/getting_started/index`.
+A: See :doc:`user_guide/installation`.
 
 **Q: How do I report bugs?**
 

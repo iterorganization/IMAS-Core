@@ -41,7 +41,7 @@ IMAS-Core provides:
 
 - **High Performance** - Efficient C++ backend for fast data access
 - **Multiple Backends** - HDF5, MDSplus, UDA, FlexBuffers, and in-memory storage
-- **Language Support** - Python, C++, Fortran, Java, MATLAB bindings in high level languages
+- **Language Support** - Python, C++, Fortran, Java, MATLAB bindings in end-user languages
 - **Standardized Format** - IMAS data structure ensures interoperability
 - **Easy Installation** - pip install for Python users
 

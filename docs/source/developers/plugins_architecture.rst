@@ -38,7 +38,7 @@ the new plugins API. The latter includes:
 -  functions which allow plugins to override the behavior of the LL data
    access functions
 
-In the new AL plugin architecture, HLIs call the current C wrappers, which call
+In the new AL plugin architecture,ens-user APIs call the current C wrappers, which call
 the new plugins API, which in turn call the plugins if they are registered and
 bound to at least one node of the DD. For example, the
 ``al_begin_global_action(...)`` function calls the new plugins API
@@ -53,8 +53,8 @@ functions.
    **Figure 3:** The new C wrappers for plugins management and the new plugins API
 
 Since the plugins API functions located in the LL C++ layer are not
-accessible from the HLIs, the new C wrappers depicted in `Figure 3`_ allow
-for accessing some plugins API functions from HLIs. These functions are
+accessible from theens-user APIs, the new C wrappers depicted in `Figure 3`_ allow
+for accessing some plugins API functions fromens-user APIs. These functions are
 mainly devoted to plugin registering and activation, features supported
 by the plugins API described in the next section:
 
@@ -102,11 +102,11 @@ Once a plugin is registered, it is available from the plugins framework as long
 as the AL process is running and as long as users have not called the
 ``unregister_plugin(...)`` C wrapper. However, during put/get operations,
 the AL plugin framework will ignore a registered plugin not bound to any DD
-node. To activate a plugin, an HLI code bounds the plugin to at least one
+node. To activate a plugin, anens-user API code bounds the plugin to at least one
 particular IDS node using the ``al_bind_plugin(...)`` wrapper. This function
 updates the ``boundPlugins`` static map of the ``LLplugin`` class, adding the name
 of the plugin to a list which is mapped to the identifier of the DD node (the
-identifier is the path to the node). To disable a plugin, HLIs use the
+identifier is the path to the node). To disable a plugin,ens-user APIs use the
 ``al_unbind_plugin(...)`` function which removes the plugin name from the
 list hold by the ``boundPlugins`` map.
 
@@ -135,7 +135,7 @@ When creating a plugin, the plugin class has to inherit from the
 operation declared in this interface (see ``access_layer_plugin.h``).
 
 The ``begin_global_action(...)`` (resp. ``begin_slice_action(...)``) functions are
-plugins operations called when the HLI calls ``al_begin_global_action(...)``
+plugins operations called when theens-user API calls ``al_begin_global_action(...)``
 (resp. ``al_begin_slice_action(...)``). These functions allow developers to
 initialize the plugin before iteration of the IDS nodes performed by the
 HLI. For example, during a slice operation using ``get_slice(...)`` or
@@ -202,7 +202,7 @@ Plugins orchestration
 
 A registered and activated plugin (see :ref:`Plugin activation`) will be called
 by the LL whenever a ``get()``/``get_slice()`` or ``put()``/``put_slice()``
-operation is performed by an HLI. The next sections describe the dynamic of
+operation is performed by anens-user API. The next sections describe the dynamic of
 plugins calls during a ``get()``/``get_slice()`` or a ``put()``/``put_slice()``
 operation through sequence diagrams.
 
@@ -218,7 +218,7 @@ operation through sequence diagrams.
 
 `Figure 7`_ depicts an example of the ``get()`` operations sequence of a
 ``camera_ir`` IDS using the ``camera_ir`` plugin developed at WEST. The
-client code uses HLI operations to read data of a ``camera_ir`` IDS. In
+client code usesens-user API operations to read data of a ``camera_ir`` IDS. In
 the first two calls, the client registers the plugin and binds it to the
 node identified by the path ``camera_ir/frame/surface_temperature``, then
 the AL API ``get()`` operation is called on the ``camera_ir`` IDS object (the
@@ -254,7 +254,7 @@ described later in this document.
 Note that the wrapper ``al_begin_arraystruct_action(...)`` is called in this
 modified AL plugin architecture even if the corresponding array of
 structure (AOS) has a 0-shape (this is not true for the previous AL
-architecture where HLIs were not calling ``al_begin_arraystruct_action(...)``
+architecture whereens-user APIs were not calling ``al_begin_arraystruct_action(...)``
 if the AOS was found to be empty). The reason is to make plugins able to
 write/update the size of AOSs.
 
@@ -281,7 +281,7 @@ to the backend. In order to read these data during a ``get()`` or
 Access Layer about a *readback* plugin capable of reading and
 uncompressing the data. For this example, the ``camera_ir`` readback
 plugin is able to read and decompress data stored by the
-``camera_ir_write`` plugin, providing uncompressed data to the HLI. The
+``camera_ir_write`` plugin, providing uncompressed data to theens-user API. The
 name of the *readback* plugin is obtained using the
 ``getReadbackName(const std::string &path, int *index)`` function of the
 ``readback_plugin_feature`` interface for a given IDS node path. It is worth

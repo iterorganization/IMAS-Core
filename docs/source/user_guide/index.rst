@@ -1,8 +1,9 @@
 User Guide
 ==========
 
-This guide is for end-users who want to use IMAS-Core as a Python package.
-If you're looking to build from source or contribute, see the :doc:`../developers/index` section.
+This guide provides information for users who want to install, configure, and use
+IMAS-Core to work with IMAS data. It covers installation methods, data entry URIs,
+backend options, and configuration settings to help you get started with IMAS-Core.
 
 .. toctree::
     :maxdepth: 2

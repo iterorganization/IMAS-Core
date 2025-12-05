@@ -7,5 +7,4 @@ or extend its functionality.
 .. toctree::
     :maxdepth: 2
 
-    getting_started/index
     extending/index

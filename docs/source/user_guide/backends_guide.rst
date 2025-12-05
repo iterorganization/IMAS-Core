@@ -116,8 +116,7 @@ A number of UDA plugins already exist for these, but their availability depends
 on how UDA has been installed on the local cluster. Therefore it's recommended
 that you contact the IMAS support team when you want to use this functionality.
 
-.. note::
-    A sample URI string will be provided in a future update.
+simple URI example: imas://uda.iter.org:56565/uda?path=/work/imas/shared/imasdb/ITER/3/131062/4;backend=hdf5;verbose=1
 
 
 .. _memory backend:
@@ -131,8 +130,9 @@ therefore not persistent.
 
 The memory backend can still be useful to transfer data between languages in the
 same program (for example, storing an IDS in C++ and then loading it with the
-Fortran HLI) or to store a number of time slices and then loading all time slices.
+Fortranens-user API) or to store a number of time slices and then loading all time slices.
 
+simple URI example: imas:memory?path=/path/to/data
 
 .. _ascii backend:
 

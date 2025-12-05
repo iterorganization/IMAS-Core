@@ -24,7 +24,7 @@ The documentation on this page covers IMAS-Core build and installation.
 
 Development environment
 -----------------------
-See the :ref:`build prerequisites` section for an overview of modules you need to load
+See the :ref:`user build prerequisites` section in the :doc:`../user_guide/installation` guide for an overview of modules you need to load
 when on SDCC or packages to install when using Ubuntu 22.04.
 
 
@@ -32,8 +32,8 @@ Architecture
 ------------
 
 `Figure 1`_ depicts the layered AL architecture model. It comprises
-the upper High Level Interface (HLI) and the so-called Low Level (LL),
-which receive HLIs requests. The LL includes a C layer with C functions
+the upper end-user APIs in Fortran, C++, Java and Matlab and the so-called Low Level (LL),
+which receiveens-user APIs requests. The LL includes a C layer with C functions
 (wrappers) for calling the functions of the (C++) LL API located in the
 C++ layer of the LL.
 
@@ -43,20 +43,20 @@ C++ layer of the LL.
    **Figure 1:** Layered AL architecture model
 
 When calling an AL API function (``get()``/``get_slice()``, ``put()``/``put_slice()``),
-the HLI iterates over all nodes of the IDS where each visited node is
+theens-user API iterates over all nodes of the IDS where each visited node is
 either a scalar, or an array (with dimensions from 1 to 6) or an array
 of structures.
 
 Distinguishing Read and Write operations, we have two use-cases:
 
--  When calling ``get()``/``get_slice()``, the HLI calls the LL for each visited
+-  When calling ``get()``/``get_slice()``, theens-user API calls the LL for each visited
    node, passing the data contained in the node (scalar or array), the
    parameters which define the dimension(s), the shape(s) of the data
    and the identifier (path) of the node. Then the LL calls the backend,
    which returns the data to the LL, which in turn returns the data
-   (allocated pointers) to the HLI.
+   (allocated pointers) to theens-user API.
 
--  When calling ``put()``/``put_slice()``, the HLI calls the LL for each node,
+-  When calling ``put()``/``put_slice()``, theens-user API calls the LL for each node,
    passing a pointer to the data to be written, the parameters which
    define the dimension(s), the shape(s) of the data and the identifier
    (path) of the node. Then the LL calls the backend, which writes the
@@ -103,7 +103,7 @@ For building documentation, you need to have the following dependencies installe
 - Doxygen
 
 .. code-block:: console
-    :caption: Example: building the documentation for the Python HLI
+    :caption: Example: building the documentation for the Pythonens-user API
 
     $cd IMAS-Core
     # Create and activate a venv
