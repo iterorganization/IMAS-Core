@@ -23,7 +23,7 @@ jobs:
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
-            UDA_REF: "2.8.1"
+            UDA_REF: "2.9.2"
             FMT_REF: "11.1.4"
 
           # # - os: macos-13
@@ -40,7 +40,7 @@ jobs:
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.8.1"
+            UDA_REF: "2.9.2"
             FMT_REF: "11.1.4"
 
     steps:
