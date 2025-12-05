@@ -26,9 +26,8 @@ if get_option('al_core')
   subdir('include')
   subdir('src')
 else
-  if get_option('al_dummy_exe')
-    al_core_dep = dependency('al-core', required: true)
-  endif
+  # Use external al-core installation
+  al_core_dep = dependency('al-core', required: true)
 endif
 
 # =============================================================================
@@ -41,6 +40,13 @@ if get_option('al_dummy_exe')
     dependencies: [al_core_dep],
     install: true,
   )
+endif
+
+# ============================================================================
+# Test Low-level C API (al-core)
+# ============================================================================
+if get_option('al_test')
+  # subdir('tests')  # TODO: fix test sources
 endif
 
 # =============================================================================
@@ -75,5 +81,17 @@ if get_option('al_core')
       'C++ Arguments': al_core_cpp_args,
     },
     section: 'Compiler Arguments',
+  )
+endif
+
+if get_option('python_bindings')
+  summary(
+    {
+      'Python Version': py.language_version(),
+      'Python Path': py.full_path(),
+      'Installed in': join_paths(py.get_install_dir(), 'imas_core'),
+      'Cython Arguments': cython_args,
+    },
+    section: 'Python Bindings',
   )
 endif

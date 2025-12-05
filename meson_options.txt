@@ -17,6 +17,13 @@ option(
 )
 
 option(
+       'al_test',
+       type: 'boolean',
+       value: false,
+       description: 'Build tests for al-core library',
+)
+
+option(
        'python_bindings',
        type: 'boolean',
        value: true,
