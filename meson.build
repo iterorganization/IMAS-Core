@@ -34,12 +34,13 @@ endif
 # Dummy Executable for version printing
 # =============================================================================
 if get_option('al_dummy_exe')
-  executable(
+  imas_print_version = executable(
     'imas_print_version',
     'tests/imas_print_version.cpp',
     dependencies: [al_core_dep],
     install: true,
   )
+  test('imas_print_version_test', imas_print_version)
 endif
 
 # ============================================================================
@@ -88,8 +89,7 @@ if get_option('python_bindings')
   summary(
     {
       'Python Version': py.language_version(),
-      'Python Path': py.full_path(),
-      'Installed in': join_paths(py.get_install_dir(), 'imas_core'),
+      'Buildtime Python Path': py.full_path(),
       'Cython Arguments': cython_args,
     },
     section: 'Python Bindings',

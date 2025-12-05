@@ -12,7 +12,7 @@ option(
 option(
        'al_dummy_exe',
        type: 'boolean',
-       value: true,
+       value: false,
        description: 'Build dummy executable that prints version information.',
 )
 
