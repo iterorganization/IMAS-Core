@@ -20,7 +20,7 @@ endif
 
 if uda_cpp_dep.found()
   core_deps += [uda_cpp_dep, uda_client_dep]
-  if uda_cpp_dep.version() >= '2.7.6'
+  if uda_cpp_dep.version().version_compare('>=2.7.6')
     al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
   else
     al_core_cpp_args += ['-DUDA']
@@ -29,7 +29,7 @@ endif
 
 if uda_fat_cpp_dep.found()
   core_deps += [uda_fat_cpp_dep, uda_client_dep]
-  if uda_fat_cpp_dep.version() >= '2.7.6'
+  if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
     al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
   else
     al_core_cpp_args += ['-DUDA']
