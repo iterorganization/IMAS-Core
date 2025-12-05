@@ -1,0 +1,56 @@
+# =============================================================================
+# Libraries to build
+# =============================================================================
+
+option(
+       'al_core',
+       type: 'boolean',
+       value: true,
+       description: 'Build internal core library, or use external installation',
+)
+
+option(
+       'al_dummy_exe',
+       type: 'boolean',
+       value: true,
+       description: 'Build dummy executable that prints version information.',
+)
+
+option(
+       'python_bindings',
+       type: 'boolean',
+       value: true,
+       description: 'Build Python wrapper',
+)
+
+option(
+       'mdsplus_models',
+       type: 'boolean',
+       value: false,
+       description: 'Build MDSplus models (requires MDSplus installation)',
+)
+
+# =============================================================================
+# Backends Options
+# =============================================================================
+
+option(
+       'al_backend_hdf5',
+       type: 'boolean',
+       value: true,
+       description: 'Enable HDF5 backend',
+)
+
+option(
+       'al_backend_uda',
+       type: 'boolean',
+       value: true,
+       description: 'Enable UDA backend',
+)
+
+option(
+       'al_backend_mdsplus',
+       type: 'boolean',
+       value: false,
+       description: 'Enable MDSplus backend',
+)
