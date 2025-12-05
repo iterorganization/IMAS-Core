@@ -2,13 +2,12 @@
 Plugins framework
 =================
 
-  Making a flexible access layer using plugins
-
-In this document, plugins are C++ software components compiled in separate
-libraries from the Access Layer (AL) library, which make use of them. Using a
-modified Low Level architecture, we demonstrate that plugins satisfy many
-use-cases requirements, providing new features available from all existingens-user APIs.
-We describe the Access Layer plugins architecture and some plugins examples.
+Plugins enable a flexible access layer architecture by extending the Access Layer (AL)
+functionality through C++ software components compiled in separate libraries. In this
+document, we describe how plugins are integrated into the AL library and demonstrate
+that plugins satisfy many use-case requirements, providing new features available from
+all existing High Level Interfaces (HLIs). We describe the Access Layer plugins
+architecture and provide some plugins examples.
 
 
 Plugins offer the following advantages:

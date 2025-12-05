@@ -2,13 +2,12 @@
 Plugins framework for the IMAS access layer
 ===========================================
 
-  Making a flexible access layer using plugins
-
-In this document, plugins are C++ software components compiled in separate
+Plugins are C++ software components compiled in separate
 libraries from the Access Layer (AL) library, which make use of them. Using a
 modified Low Level architecture, we demonstrate that plugins satisfy many
 use-cases requirements, providing new features available from all existing HLIs.
 We describe the Access Layer plugins architecture and some plugins examples.
+
 
 
 Plugins offer the following advantages:
