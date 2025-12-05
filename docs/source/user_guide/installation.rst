@@ -13,23 +13,12 @@ The easiest way to install IMAS-Core is via pip:
 
 That's it! No additional setup required.
 
-Verify Installation
-~~~~~~~~~~~~~~~~~~~
+I think pip installl from the pre-built package on PyPI shall be in the readme.
 
-After installation, verify it works by trying to open hdf5 data entry:
+We we can keep pip install from sources (next to where you describe cmake install guide)
 
-.. code-block:: python
-
-    import imas
-
-    # Open an IMAS database
-    data_entry = imas.DBEntry("imas:hdf5?path=/path/to/database", "r")
-    data_entry.open()
-
-    # Get data
-    equilibrium = data_entry.get('equilibrium', occurrence=0)
-
-    data_entry.close()
+we can also precise how to pass configuration options via the pip command, e.g.:
+pip install . -C skbuild.cmake.define.AL_BACKEND_UDA=OFF
 
 Requirements
 ~~~~~~~~~~~~
@@ -52,11 +41,11 @@ See :doc:`../troubleshooting` for common issues.
 
 
 Build and Install from Source
-==============================
+------------------------------
 
 This page describes how to build and install the IMAS-Core from source code.
 
-.. _`build prerequisites`:
+.. _`user build prerequisites`:
 
 IMAS-Core
 ---------
@@ -112,11 +101,11 @@ Standard environments:
 Building and installing IMAS-Core
 ---------------------------------
 
-Please make sure you have the :ref:`build prerequisites` installed.
+Please make sure you have the :ref:`user build prerequisites` installed.
 
 
 Clone the repository
-````````````````````
+~~~~~~~~~~~~~~~~~~~~
 
 First you need to clone the repository of the IMAS-Core you want to build:
 
@@ -127,7 +116,7 @@ First you need to clone the repository of the IMAS-Core you want to build:
 
 
 cmake configuration
-```````````````````
+~~~~~~~~~~~~~~~~~~~
 
 Once you have cloned the repository, navigate your shell to the folder and run cmake.
 You can pass configuration options with ``-D OPTION=VALUE``. See below list for an
@@ -178,7 +167,7 @@ You can instruct CMake to use compilers with the following environment variables
 If you don't specify a compiler, CMake will take a default (usually from the Gnu
 Compiler Collection).
 
-.. importafixnt::
+.. important::
 
     These environment variables must be set before the first time you configure
     ``cmake``!
@@ -187,6 +176,8 @@ Compiler Collection).
     should delete the ``build`` folder first, or use a differently named folder for the
     build tree.
 
+
+.. _installation configuration options:
 
 Configuration options
 '''''''''''''''''''''
@@ -291,7 +282,7 @@ available configuration options, use the command-line tool ``ccmake`` or the gui
 
 
 Build the IMAS-Core
-```````````````````
+~~~~~~~~~~~~~~~~~~~
 
 Use ``cmake`` to build as shown below. 
 
@@ -337,8 +328,47 @@ Use ``cmake`` to build as shown below.
     details.
 
 
+Install from source using pip
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Alternatively, you can install IMAS-Core from source using pip. This method is useful when
+you want to install directly from the source code without using CMake directly.
+
+First, clone the repository:
+
+.. code-block:: bash
+
+    git clone git@github.com:iterorganization/IMAS-Core.git
+    cd IMAS-Core
+
+Then install using pip:
+
+.. code-block:: bash
+
+    pip install .
+
+You can pass CMake configuration options to pip using the ``-C skbuild.cmake.define.OPTION=VALUE``
+syntax. For example:
+
+.. code-block:: bash
+
+    # Install with UDA backend disabled
+    pip install . -C skbuild.cmake.define.AL_BACKEND_UDA=OFF
+
+    # Install with specific backend configurations
+    pip install . \
+        -C skbuild.cmake.define.AL_BACKEND_HDF5=ON \
+        -C skbuild.cmake.define.AL_BACKEND_MDSPLUS=ON \
+        -C skbuild.cmake.define.AL_BACKEND_UDA=OFF \
+        -C skbuild.cmake.define.AL_PYTHON_BINDINGS=ON
+
+All CMake configuration options described in the :ref:`Configuration options` section
+can be passed using this method. The option names remain the same, but are prefixed with
+``-C skbuild.cmake.define.``.
+
+
 Optional: Test the IMAS-Core
-````````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Following snippet shows how to run the test with pytest. Just ensure that you have 
 AL_PYTHON_BINDINGS-ON in cmake configuration.
 If you set either of the options ``AL_EXAMPLES`` or ``AL_TESTS`` to ``ON``, you can run
@@ -357,7 +387,7 @@ the corresponding test programs as follows:
 
 
 Use the IMAS-Core
-`````````````````
+~~~~~~~~~~~~~~~~~
 
 After installing the IMAS-Core, you need to ensure that your code can find the installed
 Access Layer. To help you with this, a file ``al_env.sh`` is installed. You can

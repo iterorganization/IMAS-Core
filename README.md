@@ -23,30 +23,10 @@ Install IMAS-Core with a single command:
 
 ```bash
 pip install imas-core
+python -c "import imas_core"
 ```
 
 That's it! No need to compile or configure anything.
-
-## Quick Example: Read HDF5 Data
-
-```python
-import imas
-
-# Open an HDF5 file
-uri = "imas:hdf5?path=/path/to/your/database.h5"
-db = imas.DBEntry(uri, "r")
-db.open()
-
-# Read equilibrium data
-equilibrium = db.get('equilibrium', occurrence=0, autoconvert=False, lazy=True)
-
-# Access data
-for time_slice in equilibrium.time_slice:
-    print(f"Time: {time_slice.time}, q_axis: {time_slice.global_quantities.q_axis}")
-
-# Close when done
-db.close()
-```
 
 ## Features
 
@@ -68,7 +48,6 @@ pip install imas-core
 python -c "import imas; print(imas.__version__)"
 ```
 
-No additional setup needed!
 
 ### For Developers
 
@@ -115,7 +94,7 @@ Then use IMAS-Core from your preferred language:
 
 ## System Requirements
 
-- **Python**: 3.8 or newer 
+- **Python**: 3.9 or newer 
 - **OS**: Linux, macOS, or Windows
 - **pip**: 19.0 or newer
 

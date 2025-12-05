@@ -6,6 +6,8 @@ to). When you load or store IMAS data, you
 need to provide a data entry URI.
 
 This page documents the URI structure and the options that are supported.
+For the complete official IMAS URI scheme specification, see the
+`IMAS Access-Layer URI Scheme Documentation <https://imas-data-dictionary.readthedocs.io/en/latest/IMAS-URI-scheme.html>`_.
 
 
 Data entry URI structure
@@ -13,6 +15,7 @@ Data entry URI structure
 
 The general structure of an IMAS URI is the following, with optional elements
 indicated with square brackets:
+
 
 .. code-block:: text
 

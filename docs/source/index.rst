@@ -106,7 +106,7 @@ Documentation Structure
 Important Links
 ---------------
 
-- **Homepage**: https://imas.iter.org/
+- **Homepage**: Coming soon
 - **GitHub Repository**: https://github.com/iterorganization/IMAS-Core
 - **IMAS Data Dictionary**: https://imas-data-dictionary.readthedocs.io/
 - **Issue Tracker**: https://github.com/iterorganization/IMAS-Core/issues

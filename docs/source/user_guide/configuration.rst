@@ -20,11 +20,11 @@ Environment variables controlling IMAS-Core behaviour
         :header-rows: 1
 
         Backend, Backend ID
-        :ref:`ASCII <ascii-backend>`, 11
-        :ref:`MDSplus <mdsplus-backend>`, 12
-        :ref:`HDF5 <hdf5-backend>`, 13
-        :ref:`Memory <memory-backend>`, 14
-        :ref:`UDA <uda-backend>`, 15
+        :ref:`ASCII <ascii backend>`, 11
+        :ref:`MDSplus <mdsplus backend>`, 12
+        :ref:`HDF5 <hdf5 backend>`, 13
+        :ref:`Memory <memory backend>`, 14
+        :ref:`UDA <uda backend>`, 15
     
 
 ``IMAS_AL_FALLBACK_BACKEND`` [#backend_env]_
