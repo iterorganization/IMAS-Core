@@ -15,6 +15,32 @@ jobs:
 
           - os: ubuntu-24.04
             triplet: x64-linux
+            python: 39
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 310
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
             python: 311
             cibw_platform: linux
             cibw_archs: x86_64
@@ -23,12 +49,64 @@ jobs:
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
-            UDA_REF: "2.9.2"
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 312
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 313
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
           # # - os: macos-13
           # #   python: 311
           # #   platform_id: macosx_x86_64
+
+          - os: windows-2022
+            triplet: x64-windows
+            python: 39
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: windows-2022
+            triplet: x64-windows
+            python: 310
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
 
           - os: windows-2022
             triplet: x64-windows
@@ -40,7 +118,33 @@ jobs:
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.2"
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: windows-2022
+            triplet: x64-windows
+            python: 312
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: windows-2022
+            triplet: x64-windows
+            python: 313
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
     steps:
