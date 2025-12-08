@@ -5,10 +5,6 @@ IMAS-Core Documentation
     :target: https://github.com/iterorganization/IMAS-Core/issues
     :alt: Open Issues
 
-.. image:: https://img.shields.io/github/discussions/iterorganization/IMAS-Core
-    :target: https://github.com/iterorganization/IMAS-Core/discussions
-    :alt: Discussions
-
 .. image:: https://img.shields.io/github/license/iterorganization/IMAS-Core
     :target: https://github.com/iterorganization/IMAS-Core/blob/main/LICENSE.txt
     :alt: License
