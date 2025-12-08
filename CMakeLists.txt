@@ -74,7 +74,7 @@ endif()
 # ##############################################################################
 
 if(WIN32)
-  find_package(PThreads4W REQUIRED)
+  find_package(PThreads4W CONFIG REQUIRED)
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
