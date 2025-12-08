@@ -1,7 +1,7 @@
 # IMAS-Core
 
-[![Build Status](https://github.com/iterorganization/IMAS-Core/actions/workflows/cmake.yaml)](https://github.com/iterorganization/IMAS-Core/actions)
-[![License](https://github.com/iterorganization/IMAS-Core/blob/develop/LICENSE.txt)](LICENSE)
+[![Build Status](https://github.com/iterorganization/IMAS-Core/actions/workflows/cmake.yaml/badge.svg)](https://github.com/iterorganization/IMAS-Core/actions)
+[![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE.txt)
 
 **IMAS-Core** is a lowlevel library with Python bindings for reading and writing fusion experiment data in standard IMAS format.
 
@@ -51,7 +51,7 @@ python -c "import imas; print(imas.__version__)"
 
 ### For Developers
 
-See [Building from Source](docs2/source/developers/building_from_source.rst) for detailed build instructions.
+See [Building from Source](docs/source/user_guide/installation.rst) for detailed build instructions.
 
 ## Using IMAS-Core with High-Level Languages
 
@@ -84,13 +84,13 @@ Then use IMAS-Core from your preferred language:
 
 ## Documentation
 
-- **[Getting Started](docs2/source/user_guide/quick_start.rst)** - 5-minute quick start
-- **[User Guide](docs2/source/user_guide/index.rst)** - Complete user documentation
-- **[API Reference](docs2/source/reference/python_api.rst)** - Python API details
-- **[Backends](docs2/source/backends/index.rst)** - Available data backends
-- **[Tutorials](docs2/source/tutorials/index.rst)** - Practical examples
-- **[FAQ](docs2/source/faq.rst)** - Frequently asked questions
-- **[Troubleshooting](docs2/source/troubleshooting.rst)** - Common issues & solutions
+- **[User Guide](docs/source/user_guide/index.rst)** - Complete user documentation
+- **[Installation Guide](docs/source/user_guide/installation.rst)** - Installation instructions
+- **[Backends Guide](docs/source/user_guide/backends_guide.rst)** - Available data backends
+- **[URIs Guide](docs/source/user_guide/uris_guide.rst)** - Data entry URI documentation
+- **[Configuration](docs/source/user_guide/configuration.rst)** - Configuration options
+- **[FAQ](docs/source/faq.rst)** - Frequently asked questions
+- **[Troubleshooting](docs/source/troubleshooting.rst)** - Common issues & solutions
 
 ## System Requirements
 
@@ -121,8 +121,8 @@ print(os.path.exists('/path/to/file.h5'))
 ```
 
 **Need help?**
-- See [Troubleshooting Guide](docs2/source/troubleshooting.rst)
-- Check [FAQ](docs2/source/faq.rst)
+- See [Troubleshooting Guide](docs/source/troubleshooting.rst)
+- Check [FAQ](docs/source/faq.rst)
 - Open an [Issue on GitHub](https://github.com/iterorganization/IMAS-Core/issues)
 
 ## What's Included?
@@ -142,11 +142,11 @@ To build IMAS-Core from source:
 ```bash
 git clone https://github.com/iterorganization/IMAS-Core.git
 cd IMAS-Core
-cmake -Bbuild -GNinja -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install
+cmake -Bbuild -GNinja -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install"
 cmake --build build --target install
 ```
 
-See [Developer Guide](docs2/source/developers/index.rst) for detailed instructions.
+See [Developer Guide](docs/source/developers/index.rst) for detailed instructions.
 
 ## Links
 
