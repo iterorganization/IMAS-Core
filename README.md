@@ -1,6 +1,8 @@
 # IMAS-Core
 
-[![Build Status](https://github.com/iterorganization/IMAS-Core/actions/workflows/cmake.yaml/badge.svg)](https://github.com/iterorganization/IMAS-Core/actions)
+[![Build](https://github.com/iterorganization/IMAS-Core/actions/workflows/wheels.yml/badge.svg?branch=develop)](https://github.com/iterorganization/IMAS-Core/actions/workflows/wheels.yml)
+[![Open Issues](https://img.shields.io/github/issues/iterorganization/IMAS-Core)](https://github.com/iterorganization/IMAS-Core/issues)
+[![Discussions](https://img.shields.io/github/discussions/iterorganization/IMAS-Core)](https://github.com/iterorganization/IMAS-Core/discussions)
 [![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE.txt)
 
 **IMAS-Core** is a lowlevel library with Python bindings for reading and writing fusion experiment data in standard IMAS format.
