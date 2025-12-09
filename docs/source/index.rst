@@ -1,9 +1,9 @@
 IMAS-Core Documentation
 =======================
 
-.. image:: https://img.shields.io/github/issues/iterorganization/IMAS-Core
-    :target: https://github.com/iterorganization/IMAS-Core/issues
-    :alt: Open Issues
+.. image:: https://github.com/iterorganization/IMAS-Core/actions/workflows/wheels.yml/badge.svg?branch=develop
+    :target: https://github.com/iterorganization/IMAS-Core/actions/workflows/wheels.yml
+    :alt: Build Status
 
 .. image:: https://img.shields.io/github/license/iterorganization/IMAS-Core
     :target: https://github.com/iterorganization/IMAS-Core/blob/main/LICENSE.txt
