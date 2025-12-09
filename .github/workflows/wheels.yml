@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: build_wheels (${{ matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
+    name: build_wheels (Python ${{ matrix.python }}, ${{ matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
     runs-on: ${{ matrix.os }}
     strategy:
       # Ensure that a wheel builder finishes even if another fails
@@ -12,19 +12,6 @@ jobs:
       matrix:
         # Github Actions doesn't support pairing matrix values together
         include:
-
-          - os: ubuntu-24.04
-            triplet: x64-linux
-            python: 39
-            cibw_platform: linux
-            cibw_archs: x86_64
-            platform_id: manylinux_x86_64
-            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -81,19 +68,6 @@ jobs:
           # # - os: macos-13
           # #   python: 311
           # #   platform_id: macosx_x86_64
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 39
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: windows-2022
             triplet: x64-windows
