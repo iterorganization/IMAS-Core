@@ -74,7 +74,7 @@ endif()
 # ##############################################################################
 
 if(WIN32)
-  find_package(PThreads4W CONFIG REQUIRED)
+  find_package(pthreads CONFIG REQUIRED)
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
@@ -123,7 +123,7 @@ target_compile_definitions(al PRIVATE -DASCII)
 if(NOT WIN32)
   target_link_libraries(al PRIVATE dl)
 else()
-  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads4W::PThreads4W ws2_32)
+  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads_windows::PThreads_windows ws2_32)
 endif()
 
 add_subdirectory(src)
