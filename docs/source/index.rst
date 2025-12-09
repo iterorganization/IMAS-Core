@@ -1,7 +1,14 @@
 IMAS-Core Documentation
 =======================
-.. image:: https://github.com/iterorganization/IMAS-Core/actions/workflows/cmake.yaml/badge.svg
-    :target: https://github.com/iterorganization/IMAS-Core/actions
+
+.. image:: https://img.shields.io/github/issues/iterorganization/IMAS-Core
+    :target: https://github.com/iterorganization/IMAS-Core/issues
+    :alt: Open Issues
+
+.. image:: https://img.shields.io/github/license/iterorganization/IMAS-Core
+    :target: https://github.com/iterorganization/IMAS-Core/blob/main/LICENSE.txt
+    :alt: License
+
 
 What is IMAS?
 -------------
