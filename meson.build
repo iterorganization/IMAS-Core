@@ -3,7 +3,10 @@ project(
   ['c', 'cpp'],
   license: 'LGPL-3.0-or-later',
   meson_version: '>=1.1.0',
-  version: run_command('setuptools-scm', '--strip-dev', check: true).stdout().strip(),
+  version: run_command(
+    'python', '-m', 'setuptools_scm', '--strip-dev',
+    check: true
+  ).stdout().strip(),
   default_options: [
     'c_std=c17',
     'cpp_std=c++17',

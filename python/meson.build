@@ -4,7 +4,7 @@ add_languages('cython', native: false)
 # Version File
 # =============================================================================
 # Get version using setuptools-scm
-version = run_command('setuptools-scm', check: true).stdout().strip()
+version = run_command('python', '-m', 'setuptools_scm', check: true).stdout().strip()
 
 # Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
 split_ver = version.split('.')
