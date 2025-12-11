@@ -35,8 +35,8 @@ core_deps = [
 
 if host_system == 'windows'
   core_deps += [
-    dependency('threads', required: true),
-    dependency('dlfcn-win32', required: true),
+    cxx.find_library('pthreads', required: true),
+    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake', required: true),
   ]
 endif
 
