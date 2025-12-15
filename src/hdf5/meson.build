@@ -14,7 +14,12 @@ private_includes += [include_directories('.')]
 
 core_deps += dependency('hdf5', language: 'c', required: true)
 
+# Add compiler flags for HDF5
 al_core_cpp_args += '-DHDF5'
+
+if host_system == 'windows'
+  al_core_cpp_args += '-DH5_BUILT_AS_DYNAMIC_LIB'
+endif
 
 # Add HDF5 backend sources
 al_core_sources += hdf5_backend_sources
