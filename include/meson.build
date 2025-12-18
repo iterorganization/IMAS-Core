@@ -1,8 +1,26 @@
-conf_data = configuration_data()
-conf_data.set('PROJECT_VERSION', meson.project_version())
-al_defs_h = configure_file(input: 'al_defs.h.in', output: 'al_defs.h', configuration: conf_data)
+# =============================================================================
+# Configuration Data for al_defs.h
+# =============================================================================
 
-public_headers = files(
+cdata = configuration_data()
+
+# Version information
+cdata.set('PROJECT_VERSION', meson.project_version())
+
+# Generate Config Headers
+al_defs_h = configure_file(
+  input: 'al_defs.h.in',
+  output: 'al_defs.h',
+  configuration: cdata,
+)
+
+install_headers(al_defs_h, subdir: 'al_core')
+
+# =============================================================================
+# Install Public Headers
+# =============================================================================
+
+install_headers(
   'access_layer_base_plugin.h',
   'access_layer_plugin.h',
   'access_layer_plugin_manager.h',
@@ -16,8 +34,5 @@ public_headers = files(
   'provenance_plugin_feature.h',
   'readback_plugin_feature.h',
   'uri_parser.h',
-) + al_defs_h
-
-# Include both source include directory and build include directory
-public_includes = include_directories('.')
-install_headers(public_headers, subdir: 'al_core')
+  subdir: 'al_core',
+)
