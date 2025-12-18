@@ -34,6 +34,14 @@ warning_flags = [
 if host_system == 'darwin'
   warning_flags += [
     '-Wno-deprecated-declarations',
+    '-Wno-inconsistent-missing-override',
+    '-Wno-delete-non-abstract-non-virtual-dtor',
+    '-Wno-unused-but-set-variable',
+    '-Wno-unused-variable',
+    '-Wno-misleading-indentation',
+    '-Wno-reorder-ctor',
+    '-Wno-pessimizing-move',
+    '-Wno-sometimes-uninitialized',
   ]
 endif
 
