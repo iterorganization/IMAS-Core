@@ -1410,16 +1410,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
 	if(translate)
 	{
+		// Use a single canonical environment variable for model path
 		char szPath[255] = { 0 };
-		if (strTree.length() > 0)
-		{
-			sprintf(szPath, "%s_path", strTree.c_str());
-		}
-		else
-		{
-			sprintf(szPath, "%s_path", DEF_TREENAME);
-		}
-		
+		strcpy(szPath, "MDSPLUS_MODEL_PATH");
+
 	    char baseName[64] = { 0 };
 	    sprintf(baseName, "MDSPLUS_TREE_BASE_%d", runBunch);
 	    char *translatedBase =  getenv(baseName);
@@ -1428,7 +1422,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		std::string translatedBaseStr(translatedBase);
 		if(originalIdsPath == "")
 		{
-		    char *origPath = getenv(szPath);
+		    char *origPath = getenv("MDSPLUS_MODEL_PATH");
 		    if(origPath)
 		        originalIdsPath = origPath; 
 		}
@@ -1440,10 +1434,10 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		}
 #ifdef WIN32
 		char szEnv[256] = { 0 };
-		sprintf(szEnv, "%s=%s", szPath, translatedBaseStr.c_str());
+		sprintf(szEnv, "MDSPLUS_MODEL_PATH=%s", translatedBaseStr.c_str());
 		putenv(szEnv);
 #else // WIN32
-		setenv(szPath, translatedBaseStr.c_str(), 1);
+		setenv("MDSPLUS_MODEL_PATH", translatedBaseStr.c_str(), 1);
 #endif // WIN32
 	    }
 	}
@@ -1456,24 +1450,15 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
 // Reset the IDS path to what it was before the call to getMdsShot
 void MDSplusBackend::resetIdsPath(std::string strTree) {
-    if (originalIdsPath != "") {
-        char szPath[255] = { 0 };
-        if (strTree.length() > 0)
-        {
-            sprintf(szPath, "%s_path", strTree.c_str());
-        }
-        else
-        {
-            sprintf(szPath, "%s_path", DEF_TREENAME);
-        }
-
-#ifdef WIN32
-        char szEnv[256] = { 0 };
-        sprintf(szEnv, "%s=%s", szPath, originalIdsPath.c_str());
-        putenv(szEnv);
-#else // WIN32
-        setenv(szPath, originalIdsPath.c_str(), 1);
-#endif // WIN32
+	    if (originalIdsPath != "") {
+		// restore canonical env var
+	#ifdef WIN32
+		char szEnv[256] = { 0 };
+		sprintf(szEnv, "MDSPLUS_MODEL_PATH=%s", originalIdsPath.c_str());
+		putenv(szEnv);
+	#else // WIN32
+		setenv("MDSPLUS_MODEL_PATH", originalIdsPath.c_str(), 1);
+	#endif // WIN32
 
         // Reset the global variable originalIdsPath to an empty string so
         // the environment gets set correctly on the next call to getMdsShot
@@ -1490,12 +1475,13 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	//We check first if ids_path is already set, in which case  the original content of ids_path 
 	//will be set again after opening the tree bt resetIdsPath
 	char szPath[256];
-	sprintf(szPath, "%s_path", DEF_TREENAME);
-	
-	
+	// canonical env var name
+	strcpy(szPath, "MDSPLUS_MODEL_PATH");
+
+
 	if(originalIdsPath == "")  //Do it only once in case it is defined
 	{
-	    char *origPath = getenv(szPath);
+	    char *origPath = getenv("MDSPLUS_MODEL_PATH");
 	    if(origPath)
 	    	originalIdsPath = origPath; 
 	}
@@ -1507,12 +1493,10 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	}
 #ifdef WIN32
 	char szEnv[256] = { 0 };
-//	sprintf(szEnv, "%s=%s", szPath, mdsplusBaseStr.c_str());
-	sprintf(szEnv, "%s=%s", szPath, newPathStr.c_str());
+	sprintf(szEnv, "MDSPLUS_MODEL_PATH=%s", newPathStr.c_str());
 	putenv(szEnv);
 #else // WIN32
-//	setenv(szPath, mdsplusBaseStr.c_str(), 1);
-	setenv(szPath, newPathStr.c_str(), 1);
+	setenv("MDSPLUS_MODEL_PATH", newPathStr.c_str(), 1);
 #endif // WIN32
     }  
   
