@@ -49,6 +49,13 @@ option(
 )
 
 option(
+       'al_backend_mdsplus',
+       type: 'boolean',
+       value: false,
+       description: 'Enable MDSplus backend',
+)
+
+option(
        'al_backend_uda',
        type: 'boolean',
        value: true,
