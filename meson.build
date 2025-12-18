@@ -25,6 +25,19 @@ host_system = host_machine.system()
 host_cpu = host_machine.cpu_family()
 
 # =============================================================================
+# Warning Flags
+# =============================================================================
+warning_flags = [
+  '-Wall',
+  '-Wno-switch',
+]
+if host_system == 'darwin'
+  warning_flags += [
+    '-Wno-deprecated-declarations',
+  ]
+endif
+
+# =============================================================================
 # Access Layer core (al-core) Library
 # =============================================================================
 if get_option('al_core')
@@ -84,7 +97,8 @@ if get_option('al_core')
   )
   summary(
     {
-      'C++ Arguments': al_core_cpp_args,
+      'Core Arguments': core_args,
+      'Warning Flags': warning_flags,
     },
     section: 'Compiler Arguments',
   )

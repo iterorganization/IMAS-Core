@@ -1,4 +1,7 @@
-uda_backend_sources = files(
+# UDA Backend
+
+# Add sources
+core_sources += files(
   'pugixml.cpp',
   'uda_backend.cpp',
   'uda_cache.cpp',
@@ -6,37 +9,35 @@ uda_backend_sources = files(
   'uda_xml.cpp',
 )
 
-private_includes += [include_directories('.')]
+# Add include directories
+core_inc += include_directories('.')
 
-uda_client_dep = dependency('uda-client', required: false)
-uda_cpp_dep = dependency('uda-cpp', required: false)
-
-uda_fat_client_dep = dependency('uda-fat-client', required: false)
-uda_fat_cpp_dep = dependency('uda-fat-cpp', required: false)
-
-if not uda_cpp_dep.found() and not uda_fat_cpp_dep.found()
-  error('UDA backend requested but UDA dependency not found.')
+# Add dependencies
+if get_option('uda_fat')
+  uda_fat_cpp_dep = dependency('uda-fat-cpp', required: true)
+  core_deps += [
+    dependency('uda-fat-client', required: true),
+    uda_fat_cpp_dep,
+  ]
+else
+  uda_cpp_dep = dependency('uda-cpp', required: true)
+  core_deps += [
+    dependency('uda-client', required: true),
+    uda_cpp_dep,
+  ]
 endif
 
-if uda_cpp_dep.found()
-  core_deps += [uda_cpp_dep, uda_client_dep]
-  if uda_cpp_dep.version().version_compare('>=2.7.6')
-    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
-  else
-    al_core_cpp_args += ['-DUDA']
-  endif
-endif
-
-if uda_fat_cpp_dep.found()
-  core_deps += [uda_fat_cpp_dep, uda_fat_client_dep]
+# Add compiler flags
+if get_option('uda_fat')
   if uda_fat_cpp_dep.version().version_compare('>=2.7.6')
-    al_core_cpp_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
   else
-    al_core_cpp_args += ['-DUDA']
+    core_args += ['-DUDA']
   endif
-endif
-
-# Add UDA backend sources if UDA dependency is found
-if uda_cpp_dep.found() or uda_fat_cpp_dep.found()
-  al_core_sources += uda_backend_sources
+else
+  if uda_cpp_dep.version().version_compare('>=2.7.6')
+    core_args += ['-DUDA', '-DUDA_LEGACY_276', '-DUDA_CLIENT_FLAGS_API']
+  else
+    core_args += ['-DUDA']
+  endif
 endif

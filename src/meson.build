@@ -1,6 +1,6 @@
 # AL-Core Library
 
-al_core_sources = files(
+core_sources = files(
   'access_layer_plugin_manager.cpp',
   'al_backend.cpp',
   'al_const.cpp',
@@ -14,17 +14,22 @@ al_core_sources = files(
   'no_backend.cpp',
 )
 
-private_includes = [include_directories('.')]
-
 # Enable ASCII backend
-al_core_cpp_args = [
+core_args = [
   '-DASCII',
 ]
+
+# Include local and public headers
+core_inc = [include_directories('.'), public_inc]
 
 # =============================================================================
 # Dependencies
 # =============================================================================
-boost_dep = dependency('boost', modules: ['filesystem'], required: false)
+boost_dep = dependency(
+  'boost',
+  modules: ['filesystem'],
+  required: false,
+)
 if not boost_dep.found()
   boost_dep = cxx.find_library('boost_filesystem', required: true)
 endif
@@ -36,20 +41,24 @@ core_deps = [
 if host_system == 'windows'
   core_deps += [
     cxx.find_library('pthreads', required: true),
-    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake', required: true),
+    dependency(
+      'dlfcn-win32',
+      modules: ['dlfcn-win32::dl'],
+      method: 'cmake',
+      required: true,
+    ),
   ]
 endif
 
 # =============================================================================
 # Add Optional Backends
 # =============================================================================
-if get_option('al_backend_mdsplus')
-  warning('MDSplus backend is not yet supported in Meson build system.')
-  # subdir('mdsplus')
-endif
-
 if get_option('al_backend_hdf5')
   subdir('hdf5')
+endif
+
+if get_option('al_backend_mdsplus')
+  subdir('mdsplus')
 endif
 
 if get_option('al_backend_uda')
@@ -61,9 +70,9 @@ endif
 # =============================================================================
 al_core = library(
   'al',
-  al_core_sources,
-  cpp_args: al_core_cpp_args,
-  include_directories: private_includes + public_includes,
+  core_sources,
+  cpp_args: core_args + warning_flags,
+  include_directories: core_inc,
   dependencies: core_deps,
   version: meson.project_version(),
   install: true,
@@ -72,7 +81,7 @@ al_core = library(
 # Declare dependency for other libraries to use
 al_core_dep = declare_dependency(
   link_with: al_core,
-  include_directories: public_includes,
+  include_directories: public_inc,
 )
 
 # =============================================================================
