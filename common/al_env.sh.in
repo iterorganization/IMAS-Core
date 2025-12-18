@@ -13,7 +13,7 @@ if [ -d "${CMAKE_INSTALL_PREFIX}/lib/python${PYVER}/site-packages" ]; then
     export PYTHONPATH="${CMAKE_INSTALL_PREFIX}/lib/python${PYVER}/site-packages:$PYTHONPATH"
 fi
 if [ -d "${CMAKE_INSTALL_PREFIX}/models/mdsplus" ]; then
-    export ids_path="${CMAKE_INSTALL_PREFIX}/models/mdsplus"
+    export MDSPLUS_MODEL_PATH="${CMAKE_INSTALL_PREFIX}/models/mdsplus"
 fi
 if [ -f "${CMAKE_INSTALL_PREFIX}/include/IDSDef.xml" ]; then
     export IDSDEF_PATH="${CMAKE_INSTALL_PREFIX}/include/IDSDef.xml"
