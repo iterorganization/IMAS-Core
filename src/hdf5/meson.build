@@ -17,7 +17,7 @@ core_sources += files(
 core_inc += include_directories('.')
 
 # Add dependency
-core_deps += dependency('hdf5', language: 'c', required: true)
+core_deps += dependency('hdf5', language: 'c')
 
 # Add compiler flags
 core_args += '-DHDF5'

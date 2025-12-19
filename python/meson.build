@@ -4,7 +4,11 @@ add_languages('cython', native: false)
 # Version File
 # =============================================================================
 # Get version using setuptools-scm
-version = run_command('python', '-m', 'setuptools_scm', check: true).stdout().strip()
+version = run_command(
+  'python',
+  '-m', 'setuptools_scm',
+  check: true,
+).stdout().strip()
 
 # Create tuple: split version like "5.5.2", ignoring dirty suffix etc.
 split_ver = version.split('.')
@@ -15,7 +19,12 @@ ver_tuple = '(@0@, @1@, @2@)'.format(
 )
 
 # Get commit id
-git_commit = run_command('git', 'rev-parse', '--short', 'HEAD', check: false).stdout().strip()
+git_commit = run_command(
+  'git',
+  'rev-parse',
+  '--short', 'HEAD',
+  check: false,
+).stdout().strip()
 
 if git_commit == ''
   git_commit = 'None'
@@ -75,4 +84,7 @@ foreach pyx_file : pyx_files
 endforeach
 
 # Install pure python files
-py.install_sources(py_files + pxd_files + version_file, subdir: 'imas_core')
+py.install_sources(
+  py_files + pxd_files + version_file,
+  subdir: 'imas_core',
+)

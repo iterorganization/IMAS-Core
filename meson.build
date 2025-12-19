@@ -53,7 +53,7 @@ if get_option('al_core')
   subdir('src')
 else
   # Use external al-core installation
-  al_core_dep = dependency('al-core', required: true)
+  al_core_dep = dependency('al-core')
 endif
 
 # =============================================================================

@@ -31,7 +31,7 @@ boost_dep = dependency(
   required: false,
 )
 if not boost_dep.found()
-  boost_dep = cxx.find_library('boost_filesystem', required: true)
+  boost_dep = cxx.find_library('boost_filesystem')
 endif
 
 core_deps = [
@@ -40,13 +40,8 @@ core_deps = [
 
 if host_system == 'windows'
   core_deps += [
-    cxx.find_library('pthreads', required: true),
-    dependency(
-      'dlfcn-win32',
-      modules: ['dlfcn-win32::dl'],
-      method: 'cmake',
-      required: true,
-    ),
+    cxx.find_library('pthreads'),
+    dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake'),
   ]
 endif
 

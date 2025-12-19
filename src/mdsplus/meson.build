@@ -9,7 +9,7 @@ core_sources += files(
 core_inc += include_directories('.')
 
 # Add dependency
-core_deps += dependency('mdsplus', required: true)
+core_deps += dependency('mdsplus')
 
 # Add compiler flags
 core_args += '-DMDSPLUS'

@@ -14,15 +14,15 @@ core_inc += include_directories('.')
 
 # Add dependencies
 if get_option('uda_fat')
-  uda_fat_cpp_dep = dependency('uda-fat-cpp', required: true)
+  uda_fat_cpp_dep = dependency('uda-fat-cpp')
   core_deps += [
-    dependency('uda-fat-client', required: true),
+    dependency('uda-fat-client'),
     uda_fat_cpp_dep,
   ]
 else
-  uda_cpp_dep = dependency('uda-cpp', required: true)
+  uda_cpp_dep = dependency('uda-cpp')
   core_deps += [
-    dependency('uda-client', required: true),
+    dependency('uda-client'),
     uda_cpp_dep,
   ]
 endif
