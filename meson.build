@@ -29,7 +29,6 @@ host_cpu = host_machine.cpu_family()
 # =============================================================================
 warning_flags = [
   '-Wall',
-  '-Wno-switch',
 ]
 if host_system == 'darwin'
   warning_flags += [
