@@ -1456,7 +1456,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 
 // Reset the IDS path to what it was before the call to getMdsShot
 void MDSplusBackend::resetIdsPath(std::string strTree) {
-	    if (originalIdsPath != "") {
+    if (originalIdsPath != "") {
         // restore canonical env var and tree-specific var for MDSplus library
         char szTreePath[255] = { 0 };
         sprintf(szTreePath, "%s_path", strTree.length() > 0 ? strTree.c_str() : DEF_TREENAME);
@@ -1474,6 +1474,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
         // Reset the global variable originalIdsPath to an empty string so
         // the environment gets set correctly on the next call to getMdsShot
         originalIdsPath = "";
+#endif // WIN32
     }
 }
 
