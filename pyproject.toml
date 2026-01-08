@@ -61,6 +61,14 @@ VCPKG_KEEP_ENV_VARS = "VCPKG_ROOT;CMAKE_PREFIX_PATH;CMAKE_TOOLCHAIN_FILE;CMAKE_P
 before-build = "bash ./ci/wheels/cibw_before_build_win.sh"
 repair-wheel-command = "bash ./ci/wheels/repair_windows.sh {wheel} {dest_dir}"
 
+[tool.cibuildwheel.macos.environment]
+CMAKE_PREFIX_PATH = "/opt/homebrew;/usr/local"
+PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
+MACOSX_DEPLOYMENT_TARGET = "11.0"
+
+[tool.cibuildwheel.macos]
+repair-wheel-command = "delocate-wheel -w {dest_dir} {wheel}"
+   
 [tool.scikit-build.cmake.define]
 BUILD_SHARED_LIBS = "ON"
 DOCS_ONLY = { env = "DOCS_ONLY", default = "OFF" }
