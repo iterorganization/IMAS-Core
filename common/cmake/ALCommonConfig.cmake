@@ -14,8 +14,14 @@ option( AL_HLI_DOCS "Build the Sphinx-based High Level Interface documentation" 
 option( AL_DOCS_ONLY "Don't build anything, except the Sphinx-based High Level Interface documentation" OFF )
 
 # Find Saxon XSLT processor
-find_package( SaxonHE REQUIRED )
-
+if(WIN32)
+ include(${CMAKE_CURRENT_LIST_DIR}/FindSaxonHE.cmake)
+ if(NOT SaxonHE_FOUND)
+   message(FATAL_ERROR "Could not find SaxonHE. Please set the SaxonHE_CLASSPATH environment variable or CMake variable.")
+ endif()
+else()
+ find_package( SaxonHE REQUIRED )
+endif()
 if( NOT AL_DOWNLOAD_DEPENDENCIES )
   if( DEFINED ENV{AL_COMMON_PATH} )
     set( _DEV OFF )

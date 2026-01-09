@@ -11,11 +11,33 @@ if( AL_DOCS_ONLY )
 endif()
 
 # Find Python for the xsltproc.py program
-find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+if(WIN32)
+  if(NOT Python3_FOUND AND NOT PYTHON_EXECUTABLE)
+	  # Check if Python is in PATH
+	  find_program(PYTHON_EXECUTABLE NAMES python3.exe python.exe python3 python DOC "Python interpreter")
+	  if(NOT PYTHON_EXECUTABLE)
+	    message(FATAL_ERROR "Could not find Python. Please ensure Python is installed and in PATH.")
+	  endif()
+  else()
+	  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+  endif()
+else()
+	find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+endif()
+
+message(STATUS "Found Python: ${PYTHON_EXECUTABLE}")
 # Find LibXslt for the xsltproc program
-find_package( LibXslt QUIET )
+if(WIN32)
+ if(DEFINED ENV{LIBXSLT_XSLTPROC_EXECUTABLE})
+   set(LIBXSLT_XSLTPROC_EXECUTABLE $ENV{LIBXSLT_XSLTPROC_EXECUTABLE})
+ else()
+   find_program(LIBXSLT_XSLTPROC_EXECUTABLE NAMES xsltproc xsltproc.exe)
+ endif()
+else()
+ find_package( LibXslt QUIET )
+endif()
 if( NOT LIBXSLT_XSLTPROC_EXECUTABLE )
-  message( FATAL_ERROR "Could not find xsltproc" )
+  message( FATAL_ERROR "Could not find xsltproc. Set LIBXSLT_XSLTPROC_EXECUTABLE environment variable." )
 endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
@@ -108,33 +130,57 @@ else()
   endif()
 
   # We need the IDSDef.xml at configure time, ensure it is built
-  execute_process(
-    COMMAND ${Python_EXECUTABLE} -m venv dd_build_env
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
-  
-  execute_process(
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/pip install saxonche
-    RESULT_VARIABLE _PIP_EXITCODE
-  )
-  
-  if(_PIP_EXITCODE)
-    message(FATAL_ERROR "Failed to install saxonche dependency")
+  if(WIN32)
+    set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/python.exe")
+    set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/pip.exe")
+  else()
+    set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/python")
+    set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/pip")
   endif()
   
   execute_process(
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/python "${al-core_SOURCE_DIR}/xsltproc.py"
+    COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    RESULT_VARIABLE _VENV_EXITCODE
+    OUTPUT_VARIABLE _VENV_OUTPUT
+    ERROR_VARIABLE _VENV_ERROR
+  )
+  
+  if(_VENV_EXITCODE)
+    message(STATUS "venv stdout: ${_VENV_OUTPUT}")
+    message(STATUS "venv stderr: ${_VENV_ERROR}")
+    message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
+  endif()
+  
+  execute_process(
+    COMMAND ${_VENV_PIP} install saxonche
+    RESULT_VARIABLE _PIP_EXITCODE
+    OUTPUT_VARIABLE _PIP_OUTPUT
+    ERROR_VARIABLE _PIP_ERROR
+  )
+  
+  if(_PIP_EXITCODE)
+    message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+    message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+    message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+  endif()
+  
+  execute_process(
+    COMMAND ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
       -xsl "dd_data_dictionary.xml.xsl"
       -o "IDSDef.xml"
       -s "dd_data_dictionary.xml.xsd"
       DD_GIT_DESCRIBE=${DD_GIT_DESCRIBE}
     WORKING_DIRECTORY ${data-dictionary_SOURCE_DIR}
     RESULT_VARIABLE _MAKE_DD_EXITCODE
+    OUTPUT_VARIABLE _MAKE_DD_OUTPUT
+    ERROR_VARIABLE _MAKE_DD_ERROR
   )
 
   if( _MAKE_DD_EXITCODE )
-    # make did not succeed:
-    message( FATAL_ERROR "Error while building the Data Dictionary. See output on previous lines." )
+    message(STATUS "xsltproc.py output: ${_MAKE_DD_OUTPUT}")
+    message(STATUS "xsltproc.py error: ${_MAKE_DD_ERROR}")
+    message(FATAL_ERROR "Error while building the Data Dictionary (exit code: ${_MAKE_DD_EXITCODE}). Check paths and Saxon-HE configuration.")
   endif()
 
   # Populate IDSDEF filename
