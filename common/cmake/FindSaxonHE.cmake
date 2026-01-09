@@ -5,9 +5,9 @@
 # - SaxonHE_CLASSPATH
 # - SaxonHE_VERSION
 if(WIN32)
-  find_package( Java COMPONENTS Runtime )
-else()
   include( FindJava )
+else()
+  find_package( Java COMPONENTS Runtime )
 endif()
 include( FindPackageHandleStandardArgs )
 
