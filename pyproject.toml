@@ -67,6 +67,7 @@ PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 MACOSX_DEPLOYMENT_TARGET = "11.0"
 
 [tool.cibuildwheel.macos]
+archs = ["arm64"]
 repair-wheel-command = "delocate-wheel -w {dest_dir} {wheel}"
    
 [tool.scikit-build.cmake.define]
