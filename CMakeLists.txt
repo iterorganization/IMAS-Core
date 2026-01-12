@@ -74,8 +74,11 @@ endif()
 
 if(APPLE)
   set(CMAKE_MACOSX_RPATH ON)
-  set(CMAKE_INSTALL_RPATH "@loader_path")
+  set(CMAKE_INSTALL_RPATH "@loader_path/../imas_core.libs")
   set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+  # force UDA off for now:
+  message(STATUS "Disabling UDA backend on macOS")
+  set(AL_BACKEND_UDA OFF CACHE BOOL "UDA backend" FORCE)    
 endif()
 
 

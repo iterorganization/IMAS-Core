@@ -7,8 +7,32 @@ python_add_library(_al_lowlevel MODULE ${_al_lowlevel_source} WITH_SOABI)
 python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
 target_link_libraries(al_defs PRIVATE Python::NumPy al)
-set_target_properties(al PROPERTIES INSTALL_RPATH $ORIGIN)
-set_target_properties(_al_lowlevel al_defs PROPERTIES INSTALL_RPATH $ORIGIN/../imas_core.libs)
+
+# Handling RPATH in Linux and macOS:
+if(APPLE)
+  set(_IMAS_RPATH_SELF "@loader_path")
+  set(_IMAS_RPATH_LIBS "@loader_path/../imas_core.libs")
+elseif(UNIX)
+  set(_IMAS_RPATH_SELF "$ORIGIN")
+  set(_IMAS_RPATH_LIBS "$ORIGIN/../imas_core.libs")
+else()
+  # Windows: no RPATH
+  set(_IMAS_RPATH_SELF "")
+  set(_IMAS_RPATH_LIBS "")
+endif()
+
+if(_IMAS_RPATH_SELF)
+  set_target_properties(al PROPERTIES
+    INSTALL_RPATH "${_IMAS_RPATH_SELF}"
+  )
+endif()
+
+if(_IMAS_RPATH_LIBS)
+  set_target_properties(_al_lowlevel al_defs PROPERTIES
+    INSTALL_RPATH "${_IMAS_RPATH_LIBS}"
+  )
+endif()
+    
 install(FILES $<TARGET_RUNTIME_DLLS:al> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:_al_lowlevel> DESTINATION imas_core.libs)
 install(FILES $<TARGET_RUNTIME_DLLS:al_defs> DESTINATION imas_core.libs)
