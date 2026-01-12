@@ -64,7 +64,7 @@ repair-wheel-command = "bash ./ci/wheels/repair_windows.sh {wheel} {dest_dir}"
 [tool.cibuildwheel.macos.environment]
 CMAKE_PREFIX_PATH = "/opt/homebrew;/usr/local"
 PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
-MACOSX_DEPLOYMENT_TARGET = "11.0"
+MACOSX_DEPLOYMENT_TARGET = "14.0"
 
 [tool.cibuildwheel.macos]
 archs = ["arm64"]
