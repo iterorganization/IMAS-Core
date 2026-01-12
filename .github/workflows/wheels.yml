@@ -65,16 +65,6 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
-          - os: macos-13
-            triplet: x64-osx
-            python: 311
-            platform_id: macosx_x86_64
-            cibw_platform: macos
-            cibw_archs: x86_64
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-
           - os: macos-14
             triplet: arm64-osx
             python: 311
