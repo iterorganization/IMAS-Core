@@ -81,36 +81,49 @@ if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
     message( WARNING "No identifier XML files found in Data Dictionary at: ${IDSDEF}" )
   endif()
 else()
-  # Build the DD from source:
-  include(FetchContent)
-
+  # Build the DD from source using direct git commands:
   if( AL_DOWNLOAD_DEPENDENCIES )
     # Download the Data Dictionary from the ITER git:
-    FetchContent_Declare(
-      data-dictionary
-      GIT_REPOSITORY  ${DD_GIT_REPOSITORY}
-      GIT_TAG         ${DD_VERSION}
+    set( data-dictionary_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_deps/data-dictionary-src" )
+    if( NOT EXISTS "${data-dictionary_SOURCE_DIR}/.git" )
+      message( STATUS "Cloning data-dictionary from ${DD_GIT_REPOSITORY}" )
+      execute_process(
+        COMMAND git clone "${DD_GIT_REPOSITORY}" "${data-dictionary_SOURCE_DIR}"
+        RESULT_VARIABLE _GIT_CLONE_RESULT
+        ERROR_VARIABLE _GIT_CLONE_ERROR
+      )
+      if( _GIT_CLONE_RESULT )
+        message( FATAL_ERROR "Failed to clone data-dictionary: ${_GIT_CLONE_ERROR}" )
+      endif()
+    endif()
+    # Checkout the specified version
+    execute_process(
+      COMMAND git fetch origin
+      WORKING_DIRECTORY "${data-dictionary_SOURCE_DIR}"
+      RESULT_VARIABLE _GIT_FETCH_RESULT
     )
+    execute_process(
+      COMMAND git checkout "${DD_VERSION}"
+      WORKING_DIRECTORY "${data-dictionary_SOURCE_DIR}"
+      RESULT_VARIABLE _GIT_CHECKOUT_RESULT
+      ERROR_VARIABLE _GIT_CHECKOUT_ERROR
+    )
+    if( _GIT_CHECKOUT_RESULT )
+      message( FATAL_ERROR "Failed to checkout ${DD_VERSION}: ${_GIT_CHECKOUT_ERROR}" )
+    endif()
   else()
     # Look in ../data-dictionary for the data dictionary
     if( NOT( AL_PARENT_FOLDER ) )
       set( AL_PARENT_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/.. )
     endif()
-    set( DD_SOURCE_DIRECTORY ${AL_PARENT_FOLDER}/data-dictionary )
-    if( NOT IS_DIRECTORY ${DD_SOURCE_DIRECTORY} )
+    set( data-dictionary_SOURCE_DIR ${AL_PARENT_FOLDER}/data-dictionary )
+    if( NOT IS_DIRECTORY ${data-dictionary_SOURCE_DIR} )
       message( FATAL_ERROR
-        "${DD_SOURCE_DIRECTORY} does not exist. Please clone the "
+        "${data-dictionary_SOURCE_DIR} does not exist. Please clone the "
         "data-dictionary repository or set AL_DOWNLOAD_DEPENDENCIES=ON."
       )
     endif()
-
-    FetchContent_Declare(
-      data-dictionary
-      SOURCE_DIR      ${DD_SOURCE_DIRECTORY}
-    )
-    set( DD_SOURCE_DIRECTORY )  # unset temporary var
   endif()
-  FetchContent_MakeAvailable( data-dictionary )
 
   # get version of the data dictionary
   execute_process(
