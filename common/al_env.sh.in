@@ -14,6 +14,7 @@ if [ -d "${CMAKE_INSTALL_PREFIX}/lib/python${PYVER}/site-packages" ]; then
 fi
 if [ -d "${CMAKE_INSTALL_PREFIX}/models/mdsplus" ]; then
     export ids_path="${CMAKE_INSTALL_PREFIX}/models/mdsplus"
+    readonly ids_path
     export MDSPLUS_MODEL_PATH=$ids_path
 fi
 if [ -f "${CMAKE_INSTALL_PREFIX}/include/IDSDef.xml" ]; then
