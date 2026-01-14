@@ -1428,7 +1428,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		std::string translatedBaseStr(translatedBase);
 		if(originalIdsPath == "")
 		{
-		    char *origPath = getenv(szPath);
+		    char *origPath = getenv("MDSPLUS_MODEL_PATH");
 		    if(origPath)
 		        originalIdsPath = origPath; 
 		}
