@@ -67,7 +67,37 @@ jobs:
 
           - os: macos-14
             triplet: arm64-osx
+            python: 310
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+
+          - os: macos-14
+            triplet: arm64-osx
             python: 311
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+        
+          - os: macos-14
+            triplet: arm64-osx
+            python: 312
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+    
+          - os: macos-14
+            triplet: arm64-osx
+            python: 313
             platform_id: macosx_arm64
             cibw_platform: macos
             cibw_archs: arm64
