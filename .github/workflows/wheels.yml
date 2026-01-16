@@ -318,11 +318,13 @@ jobs:
                 -DSSLAUTHENTICATION=ON \
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
+                -DMACOSX_DEPLOYMENT_TARGET=11.0 \
                 -DCMAKE_INSTALL_PREFIX=/tmp/uda-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=11.0
             CMAKE_PREFIX_PATH="/tmp/uda-install:/opt/homebrew:/usr/local"
             PKG_CONFIG_PATH="/tmp/uda-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
