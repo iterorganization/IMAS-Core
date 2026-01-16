@@ -65,10 +65,16 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
-          # # - os: macos-13
-          # #   python: 311
-          # #   platform_id: macosx_x86_64
-
+          - os: macos-14
+            triplet: arm64-osx
+            python: 311
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+    
           - os: windows-2022
             triplet: x64-windows
             python: 310
@@ -249,6 +255,28 @@ jobs:
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
+
+        with:
+          package-dir: .
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+
+      - uses: pypa/cibuildwheel@v3.0.0
+        if: startsWith(matrix.os, 'macos-')
+        env:
+          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_PLATFORM: macos
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+
+          CIBW_CONFIG_SETTINGS: >
+            cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
+            cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
+            cmake.define.${{ matrix.AL_BACKEND_UDA }}
+
+          # Dependency installation
+          CIBW_BEFORE_ALL_MACOS: >
+            brew update;
+            brew install cmake pkg-config boost hdf5 libomp;
 
         with:
           package-dir: .

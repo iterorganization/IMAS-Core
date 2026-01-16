@@ -29,14 +29,14 @@ public:
   ~NoBackend() {};
 
   void openPulse(DataEntryContext *ctx,
-		 int mode);
+		 int mode) override;
 
   void closePulse(DataEntryContext *ctx,
-		  int mode);
+		  int mode) override;
 
-  void beginAction(OperationContext *ctx);
+  void beginAction(OperationContext *ctx) override;
 
-  void endAction(Context *ctx);
+  void endAction(Context *ctx) override;
 
   void writeData(Context *ctx,
 		 std::string fieldname,
@@ -44,7 +44,7 @@ public:
 		 void* data,
 		 int datatype,
 		 int dim,
-		 int* size);
+		 int* size) override;
 
   int readData(Context *ctx,
 	       std::string fieldname,
@@ -52,26 +52,26 @@ public:
 	       void** data,
 	       int* datatype,
 	       int* dim,
-	       int* size);
+	       int* size) override;
 
   void deleteData(OperationContext *ctx,
-		  std::string path);
+		  std::string path) override;
 
   void beginArraystructAction(ArraystructContext *ctx,
-			      int *size);
+			      int *size) override;
 
-  std::pair<int,int> getVersion(DataEntryContext *ctx);
+  std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
   void get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size) override;
 
-  bool supportsTimeDataInterpolation() {
+  bool supportsTimeDataInterpolation() override {
       return false;
     }
 
-  void initDataInterpolationComponent() {
+  void initDataInterpolationComponent() override {
   }
 
-  bool supportsTimeRangeOperation() {
+  bool supportsTimeRangeOperation() override {
 	  return false;
 	}
 
