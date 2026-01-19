@@ -55,38 +55,39 @@ if(WIN32)
         )
       endif()
     endif()
-  else()
-    include(FetchContent)
-
-    if( AL_DOWNLOAD_DEPENDENCIES )
-      # Download the AL core from the ITER git:
-      FetchContent_Declare(
-        al-core
-        GIT_REPOSITORY  ${AL_CORE_GIT_REPOSITORY}
-        GIT_TAG         ${AL_CORE_VERSION}
-      )
-    else()
-      # Look in ../al-core
-      set( AL_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../al-core )
-      if( NOT IS_DIRECTORY ${AL_SOURCE_DIRECTORY} )
-        # Repository used to be called "al-lowlevel", check this directory as well for
-        # backwards compatibility:
-        set( AL_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../al-lowlevel )
-        if( NOT IS_DIRECTORY ${AL_SOURCE_DIRECTORY} )
-          message( FATAL_ERROR
-            "${AL_SOURCE_DIRECTORY} does not exist. Please clone the "
-            "al-core repository or set AL_DOWNLOAD_DEPENDENCIES=ON."
-          )
-        endif()
-      endif()
-
-      FetchContent_Declare(
-        al-core
-        SOURCE_DIR      ${AL_SOURCE_DIRECTORY}
-      )
-      set( AL_SOURCE_DIRECTORY )  # unset temporary var
-    endif()
   endif()
+else()
+  include(FetchContent)
+
+  if( AL_DOWNLOAD_DEPENDENCIES )
+    # Download the AL core from the ITER git:
+    FetchContent_Declare(
+      al-core
+      GIT_REPOSITORY  ${AL_CORE_GIT_REPOSITORY}
+      GIT_TAG         ${AL_CORE_VERSION}
+    )
+  else()
+    # Look in ../al-core
+    set( AL_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../al-core )
+    if( NOT IS_DIRECTORY ${AL_SOURCE_DIRECTORY} )
+      # Repository used to be called "al-lowlevel", check this directory as well for
+      # backwards compatibility:
+      set( AL_SOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../al-lowlevel )
+      if( NOT IS_DIRECTORY ${AL_SOURCE_DIRECTORY} )
+        message( FATAL_ERROR
+          "${AL_SOURCE_DIRECTORY} does not exist. Please clone the "
+          "al-core repository or set AL_DOWNLOAD_DEPENDENCIES=ON."
+        )
+      endif()
+    endif()
+
+    FetchContent_Declare(
+      al-core
+      SOURCE_DIR      ${AL_SOURCE_DIRECTORY}
+    )
+    set( AL_SOURCE_DIRECTORY )  # unset temporary var
+  endif()
+endif()
 
 # Don't load the AL core when only building documentation
 if( NOT AL_DOCS_ONLY )

@@ -23,6 +23,7 @@ if(WIN32)
   endif()
 else()
 	find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+	set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
 endif()
 
 message(STATUS "Found Python: ${PYTHON_EXECUTABLE}")
