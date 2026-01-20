@@ -69,12 +69,19 @@ if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
   message("Building a development version of the Access Layer core")
 endif()
 
+if(APPLE)
+  # Disable extra backends for now:
+  message(STATUS "Disabling UDA and MDSPlus backends on macOS")
+  set(AL_BACKEND_UDA OFF CACHE BOOL "UDA backend" FORCE)    
+  set(AL_BACKEND_MDSPLUS OFF CACHE BOOL "MDSPlus backend" FORCE)    
+endif()
+
 
 # Dependencies
 # ##############################################################################
 
 if(WIN32)
-  find_package(PThreads4W REQUIRED)
+  find_package(PThreads4W CONFIG REQUIRED)
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 

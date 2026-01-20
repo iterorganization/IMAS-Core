@@ -1,0 +1,5 @@
+sphinx-immaterial>=0.12.0
+sphinx-tabs>=3.4.0
+sphinx-design>=0.5.0
+sphinx>=5.0
+numpy>=1.20.0

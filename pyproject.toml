@@ -39,8 +39,9 @@ build-backend = "scikit_build_core.build"
 [tool.cibuildwheel]
 # build-verbosity = 1
 # CIBW_CONFIG_SETTINGS = "cmake.args='--debug-output'"
-# Only build wheels for CPython 3.11
-build = "cp311-*"
+# Default build configuration (can be overridden by CIBW_BUILD env var in workflows)
+# The GitHub Actions workflow builds for Python 3.9, 3.10, 3.11, 3.12, and 3.13 via matrix strategy
+build = "cp39-* cp310-* cp311-* cp312-* cp313-*"
 # Skip 32-bit builds
 skip = ["*-win32", "*-manylinux_i686"]
 
@@ -60,6 +61,15 @@ VCPKG_KEEP_ENV_VARS = "VCPKG_ROOT;CMAKE_PREFIX_PATH;CMAKE_TOOLCHAIN_FILE;CMAKE_P
 before-build = "bash ./ci/wheels/cibw_before_build_win.sh"
 repair-wheel-command = "bash ./ci/wheels/repair_windows.sh {wheel} {dest_dir}"
 
+[tool.cibuildwheel.macos.environment]
+CMAKE_PREFIX_PATH = "/opt/homebrew;/usr/local"
+PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
+MACOSX_DEPLOYMENT_TARGET = "14.0"
+
+[tool.cibuildwheel.macos]
+archs = ["arm64"]
+repair-wheel-command = "delocate-wheel -w {dest_dir} {wheel}"
+   
 [tool.scikit-build.cmake.define]
 BUILD_SHARED_LIBS = "ON"
 DOCS_ONLY = { env = "DOCS_ONLY", default = "OFF" }

@@ -1,0 +1,91 @@
+name: Build Documentation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for git describe to work
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'docs/requirements.txt'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen
+        continue-on-error: false
+
+      - name: Create virtual environment
+        run: |
+          python -m venv docs_venv
+          . docs_venv/bin/activate
+          pip install --upgrade pip
+
+      - name: Install documentation dependencies
+        run: |
+          . docs_venv/bin/activate
+          pip install -r docs/requirements.txt
+
+      - name: Display installed packages
+        run: |
+          . docs_venv/bin/activate
+          pip list -v
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "$(git describe)" = "$(git describe --abbrev=0)" ]; then
+            # Strip patch version from the release tag, e.g. 5.0.1 -> 5.0
+            VERSION=$(git describe | cut -d. -f1-2)
+          else
+            VERSION=dev
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build documentation
+        env:
+          SPHINXOPTS: '-n --keep-going'
+          SPHINX_APIDOC_OPTIONS: '--no-warnings'
+          DOC_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          . docs_venv/bin/activate
+          make -C docs clean
+          make -C docs html
+        continue-on-error: false
+
+      - name: Check documentation warnings
+        if: success()
+        run: |
+          . docs_venv/bin/activate
+          echo "Documentation built successfully!"
+          echo "Build location: docs/build/html/"
+          
+      - name: Report build failure
+        if: failure()
+        run: |
+          echo "::error::Documentation build failed. Check the logs above for details."
+          echo "Common issues:"
+          echo "  - Missing dependencies in docs/requirements.txt"
+          echo "  - Sphinx syntax errors in .rst files"
+          echo "  - Doxygen configuration issues"
+          exit 1
+
+      - name: Upload documentation artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/build/html/
+          retention-days: 30
