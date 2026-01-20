@@ -27,10 +27,26 @@ else()
 endif()
 
 # Add vcpkg directories on Windows
-if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
-  list(APPEND LIBRARY_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(WIN32)
+  # Try multiple methods to find vcpkg directories
+  if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+    list(APPEND LIBRARY_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
     list(APPEND LIBRARY_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
+  elseif(DEFINED CMAKE_TOOLCHAIN_FILE)
+    # Extract vcpkg root from toolchain file path
+    get_filename_component(VCPKG_ROOT "${CMAKE_TOOLCHAIN_FILE}" DIRECTORY)
+    get_filename_component(VCPKG_ROOT "${VCPKG_ROOT}" DIRECTORY)
+    get_filename_component(VCPKG_ROOT "${VCPKG_ROOT}" DIRECTORY)
+    if(EXISTS "${VCPKG_ROOT}/installed/x64-windows/bin")
+      list(APPEND LIBRARY_DIRS "${VCPKG_ROOT}/installed/x64-windows/bin")
+      list(APPEND LIBRARY_DIRS "${VCPKG_ROOT}/installed/x64-windows/debug/bin")
+    endif()
+  endif()
+  # Also check common parent build directory structure
+  get_filename_component(BUILD_DIR "${CMAKE_BINARY_DIR}" DIRECTORY)
+  if(EXISTS "${BUILD_DIR}/vcpkg_installed/x64-windows/bin")
+    list(APPEND LIBRARY_DIRS "${BUILD_DIR}/vcpkg_installed/x64-windows/bin")
+    list(APPEND LIBRARY_DIRS "${BUILD_DIR}/vcpkg_installed/x64-windows/debug/bin")
   endif()
 endif()
 
