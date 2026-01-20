@@ -268,16 +268,32 @@ endif()
 set( list_idss_file ${al-common_SOURCE_DIR}/list_idss.xsl )
 set( CMAKE_CONFIGURE_DEPENDS ${CMAKE_CONFIGURE_DEPENDS};${list_idss_file};${IDSDEF} )
 execute_process( COMMAND
-  ${_VENV_PYTHON} -m saxonche -xsl:${list_idss_file} -s:${IDSDEF} -t:off
+  ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
+    -xsl ${list_idss_file}
+    -s ${IDSDEF}
+    -o /dev/null
   OUTPUT_VARIABLE IDS_NAMES
+  RESULT_VARIABLE _XSLT_RESULT
+  ERROR_VARIABLE _XSLT_ERROR
 )
+if(_XSLT_RESULT)
+  message(FATAL_ERROR "Failed to extract IDS names: ${_XSLT_ERROR}")
+endif()
 set( list_idss_file )  # unset temporary var
 
 # DD version
 set( dd_version_file ${al-common_SOURCE_DIR}/dd_version.xsl )
 execute_process( COMMAND
-  ${_VENV_PYTHON} -m saxonche -xsl:${dd_version_file} -s:${IDSDEF} -t:off
+  ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
+    -xsl ${dd_version_file}
+    -s ${IDSDEF}
+    -o /dev/null
   OUTPUT_VARIABLE DD_VERSION
+  RESULT_VARIABLE _XSLT_RESULT
+  ERROR_VARIABLE _XSLT_ERROR
 )
+if(_XSLT_RESULT)
+  message(FATAL_ERROR "Failed to extract DD version: ${_XSLT_ERROR}")
+endif()
 string( REGEX REPLACE "[+-]" "_" DD_SAFE_VERSION ${DD_VERSION} )
 set( dd_version_file )  # unset temporary var
