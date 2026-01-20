@@ -26,6 +26,14 @@ else()
   set(LIBRARY_DIRS)
 endif()
 
+# Add vcpkg directories on Windows
+if(WIN32 AND DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+  list(APPEND LIBRARY_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    list(APPEND LIBRARY_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
+  endif()
+endif()
+
 # Build POST_EXCLUDE_REGEXES list based on platform
 set(POST_EXCLUDE_PATTERNS
   ".*system32/.*\\.dll" # Windows system DLLs
