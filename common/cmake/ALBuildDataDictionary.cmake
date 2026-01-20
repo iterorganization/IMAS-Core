@@ -267,33 +267,47 @@ endif()
 # Find out which IDSs exist and populate IDS_NAMES
 set( list_idss_file ${al-common_SOURCE_DIR}/list_idss.xsl )
 set( CMAKE_CONFIGURE_DEPENDS ${CMAKE_CONFIGURE_DEPENDS};${list_idss_file};${IDSDEF} )
+set( ids_names_tmpfile "${CMAKE_CURRENT_BINARY_DIR}/ids_names_tmp.txt" )
 execute_process( COMMAND
   ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
     -xsl ${list_idss_file}
     -s ${IDSDEF}
-    -o /dev/null
-  OUTPUT_VARIABLE IDS_NAMES
+    -o ${ids_names_tmpfile}
   RESULT_VARIABLE _XSLT_RESULT
   ERROR_VARIABLE _XSLT_ERROR
 )
 if(_XSLT_RESULT)
   message(FATAL_ERROR "Failed to extract IDS names: ${_XSLT_ERROR}")
 endif()
+if(EXISTS ${ids_names_tmpfile})
+  file(READ ${ids_names_tmpfile} IDS_NAMES)
+  string(STRIP "${IDS_NAMES}" IDS_NAMES)
+  file(REMOVE ${ids_names_tmpfile})
+else()
+  message(FATAL_ERROR "IDS names output file not created")
+endif()
 set( list_idss_file )  # unset temporary var
 
 # DD version
 set( dd_version_file ${al-common_SOURCE_DIR}/dd_version.xsl )
+set( dd_version_tmpfile "${CMAKE_CURRENT_BINARY_DIR}/dd_version_tmp.txt" )
 execute_process( COMMAND
   ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
     -xsl ${dd_version_file}
     -s ${IDSDEF}
-    -o /dev/null
-  OUTPUT_VARIABLE DD_VERSION
+    -o ${dd_version_tmpfile}
   RESULT_VARIABLE _XSLT_RESULT
   ERROR_VARIABLE _XSLT_ERROR
 )
 if(_XSLT_RESULT)
   message(FATAL_ERROR "Failed to extract DD version: ${_XSLT_ERROR}")
 endif()
-string( REGEX REPLACE "[+-]" "_" DD_SAFE_VERSION ${DD_VERSION} )
+if(EXISTS ${dd_version_tmpfile})
+  file(READ ${dd_version_tmpfile} DD_VERSION)
+  string(STRIP "${DD_VERSION}" DD_VERSION)
+  file(REMOVE ${dd_version_tmpfile})
+else()
+  message(FATAL_ERROR "DD version output file not created")
+endif()
+string( REGEX REPLACE "[+-]" "_" DD_SAFE_VERSION "${DD_VERSION}" )
 set( dd_version_file )  # unset temporary var
