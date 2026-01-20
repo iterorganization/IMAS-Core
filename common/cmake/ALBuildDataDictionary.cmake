@@ -27,18 +27,14 @@ else()
 endif()
 
 message(STATUS "Found Python: ${PYTHON_EXECUTABLE}")
-# Find LibXslt for the xsltproc program
+
+# Set up Python venv paths for saxonche (used for all XSLT transformations)
 if(WIN32)
- if(DEFINED ENV{LIBXSLT_XSLTPROC_EXECUTABLE})
-   set(LIBXSLT_XSLTPROC_EXECUTABLE $ENV{LIBXSLT_XSLTPROC_EXECUTABLE})
- else()
-   find_program(LIBXSLT_XSLTPROC_EXECUTABLE NAMES xsltproc xsltproc.exe)
- endif()
+  set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/python.exe")
+  set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/pip.exe")
 else()
- find_package( LibXslt QUIET )
-endif()
-if( NOT LIBXSLT_XSLTPROC_EXECUTABLE )
-  message( FATAL_ERROR "Could not find xsltproc. Set LIBXSLT_XSLTPROC_EXECUTABLE environment variable." )
+  set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/python")
+  set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/pip")
 endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
@@ -80,6 +76,37 @@ if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
   
   if( NOT DD_IDENTIFIER_FILES )
     message( WARNING "No identifier XML files found in Data Dictionary at: ${IDSDEF}" )
+  endif()
+  
+  # When using pre-installed DD, we still need venv for extracting IDS names and version
+  # Create Python venv and install saxonche if not already done
+  if(NOT EXISTS "${_VENV_PYTHON}")
+    execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      RESULT_VARIABLE _VENV_EXITCODE
+      OUTPUT_VARIABLE _VENV_OUTPUT
+      ERROR_VARIABLE _VENV_ERROR
+    )
+    
+    if(_VENV_EXITCODE)
+      message(STATUS "venv stdout: ${_VENV_OUTPUT}")
+      message(STATUS "venv stderr: ${_VENV_ERROR}")
+      message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
+    endif()
+    
+    execute_process(
+      COMMAND ${_VENV_PIP} install saxonche
+      RESULT_VARIABLE _PIP_EXITCODE
+      OUTPUT_VARIABLE _PIP_OUTPUT
+      ERROR_VARIABLE _PIP_ERROR
+    )
+    
+    if(_PIP_EXITCODE)
+      message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+      message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+      message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+    endif()
   endif()
 else()
   if(WIN32)
@@ -178,39 +205,34 @@ else()
   endif()
 
   # We need the IDSDef.xml at configure time, ensure it is built
-  if(WIN32)
-    set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/python.exe")
-    set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/pip.exe")
-  else()
-    set(_VENV_PYTHON "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/python")
-    set(_VENV_PIP "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/pip")
-  endif()
-  
-  execute_process(
-    COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    RESULT_VARIABLE _VENV_EXITCODE
-    OUTPUT_VARIABLE _VENV_OUTPUT
-    ERROR_VARIABLE _VENV_ERROR
-  )
-  
-  if(_VENV_EXITCODE)
-    message(STATUS "venv stdout: ${_VENV_OUTPUT}")
-    message(STATUS "venv stderr: ${_VENV_ERROR}")
-    message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
-  endif()
-  
-  execute_process(
-    COMMAND ${_VENV_PIP} install saxonche
-    RESULT_VARIABLE _PIP_EXITCODE
-    OUTPUT_VARIABLE _PIP_OUTPUT
-    ERROR_VARIABLE _PIP_ERROR
-  )
-  
-  if(_PIP_EXITCODE)
-    message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
-    message(STATUS "saxonche pip error: ${_PIP_ERROR}")
-    message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+  # Create Python venv and install saxonche if not already done
+  if(NOT EXISTS "${_VENV_PYTHON}")
+    execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      RESULT_VARIABLE _VENV_EXITCODE
+      OUTPUT_VARIABLE _VENV_OUTPUT
+      ERROR_VARIABLE _VENV_ERROR
+    )
+    
+    if(_VENV_EXITCODE)
+      message(STATUS "venv stdout: ${_VENV_OUTPUT}")
+      message(STATUS "venv stderr: ${_VENV_ERROR}")
+      message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
+    endif()
+    
+    execute_process(
+      COMMAND ${_VENV_PIP} install saxonche
+      RESULT_VARIABLE _PIP_EXITCODE
+      OUTPUT_VARIABLE _PIP_OUTPUT
+      ERROR_VARIABLE _PIP_ERROR
+    )
+    
+    if(_PIP_EXITCODE)
+      message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+      message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+      message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+    endif()
   endif()
   
   execute_process(
@@ -246,7 +268,7 @@ endif()
 set( list_idss_file ${al-common_SOURCE_DIR}/list_idss.xsl )
 set( CMAKE_CONFIGURE_DEPENDS ${CMAKE_CONFIGURE_DEPENDS};${list_idss_file};${IDSDEF} )
 execute_process( COMMAND
-  ${LIBXSLT_XSLTPROC_EXECUTABLE} ${list_idss_file} ${IDSDEF}
+  ${_VENV_PYTHON} -m saxonche -xsl:${list_idss_file} -s:${IDSDEF} -t:off
   OUTPUT_VARIABLE IDS_NAMES
 )
 set( list_idss_file )  # unset temporary var
@@ -254,7 +276,7 @@ set( list_idss_file )  # unset temporary var
 # DD version
 set( dd_version_file ${al-common_SOURCE_DIR}/dd_version.xsl )
 execute_process( COMMAND
-  ${LIBXSLT_XSLTPROC_EXECUTABLE} ${dd_version_file} ${IDSDEF}
+  ${_VENV_PYTHON} -m saxonche -xsl:${dd_version_file} -s:${IDSDEF} -t:off
   OUTPUT_VARIABLE DD_VERSION
 )
 string( REGEX REPLACE "[+-]" "_" DD_SAFE_VERSION ${DD_VERSION} )
