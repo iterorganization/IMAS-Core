@@ -7,6 +7,11 @@ Documentation for developers wishing to contribute to the Access Layer can be fo
 the :ref:`Access Layer development guide`. Please refer to that guide if you wish to set
 up a development environment.
 
+.. note::
+
+    For Windows-specific installation instructions, please refer to the
+    :doc:`Windows Installation Guide <windows_setup>`.
+
 
 .. _`build prerequisites`:
 
@@ -404,3 +409,4 @@ Troubleshooting
 **Problem:** ``Target Boost::log already has an imported location``
     This problem is known to occur with the ``2020b`` toolchain on SDCC. Add the CMake
     configuration option ``-D Boost_NO_BOOST_CMAKE=ON`` to work around the problem.
+
