@@ -138,7 +138,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
                 hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
             }
             else {
-                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false, backend_version);
             }
         
         opened_IDS_files[IDS_link_name] = IDS_file_id;
@@ -150,7 +150,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
                 hdf5_utils.createIDSFile(ctx, IDSpulseFile, backend_version, &IDS_file_id);
             }
             else {
-                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
+                hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false, backend_version);
             }
             
             opened_IDS_files[IDS_link_name] = IDS_file_id;
