@@ -1,6 +1,7 @@
 #include "flexbuffers_backend.h"
 
 #include <algorithm>
+#include <cstring>
 #include <sstream>
 
 #define ENDIAN_MARKER_VALUE uint32_t(0x01020304)
@@ -166,7 +167,9 @@ void FlexbuffersBackend::beginAction(OperationContext* ctx) {
         _push_element_map(root.AsVector());
         // Check that we have the same endian-ness as the machine that
         // serialized
-        uint32_t endian_marker = *reinterpret_cast<const uint32_t*>(_cur_vector.top()[0].AsBlob().data());
+        uint32_t endian_marker;
+        auto blob = _cur_vector.top()[0].AsBlob();
+        memcpy(&endian_marker, blob.data(), sizeof(endian_marker));
         if (endian_marker != ENDIAN_MARKER_VALUE) {
             std::stringstream ss;
             ss << "Error when deserializing data: expected endian marker 0x";
