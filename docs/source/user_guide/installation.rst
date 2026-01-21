@@ -17,11 +17,7 @@ Requirements
 
 - **Python 3.8+** 
 - **Linux** (fully supported)
-- **macOS and Windows** (experimental - in testing)
 
-.. note::
-    macOS and Windows support is still being tested. Linux is the primary supported platform.
-    Please report any issues on `GitHub <https://github.com/iterorganization/IMAS-Core/issues>`_.
 
 Binary wheels are provided for all platforms, so you don't need to compile anything.
 
@@ -51,6 +47,13 @@ To build the IMAS-Core you need:
 -   Boost C++ libraries (1.66 or newer)
 -   PkgConfig
 
+On Windows
+- **Visual Studio 2022** with:
+   - Desktop Development with C++
+   - C++ Make Tools for Windows
+- **CMake** (included with Visual Studio)
+
+
 The following dependencies are only required for some of the components:
 
 -   Backends
@@ -62,9 +65,7 @@ The following dependencies are only required for some of the components:
 
 ..  [#uda_install] When installing UDA, make sure you have 
     `Cap'n'Proto <https://github.com/capnproto/capnproto>`__ installed in your system
-    and add its support by adding the CMake switch `-DENABLE_CAPNP=ON` when configuring UDA. 
-
-
+    and add its support by adding the CMake switch `-DENABLE_CAPNP=ON` when configuring UDA.
 Standard environments:
 
 .. md-tab-set::
@@ -89,6 +90,23 @@ Standard environments:
             details.
         -   MATLAB, which is not freely available.
 
+    .. md-tab-item:: Windows with Visual Studio
+
+        First, set up vcpkg:
+
+        .. code-block:: bash
+
+            git clone https://github.com/microsoft/vcpkg.git
+            cd vcpkg
+            bootstrap-vcpkg.bat
+
+        Then run these commands in PowerShell before building:
+
+        .. code-block:: powershell
+
+            $env:PATH += ";C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\"
+            $env:PATH += ";C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\bin\HostX86\x86"
+            $env:PATH += ";<VCPKG_INSTALLATION_PATH>"
 
 Building and installing IMAS-Core
 ---------------------------------
@@ -107,17 +125,37 @@ First you need to clone the repository of the IMAS-Core you want to build:
     git clone git@github.com:iterorganization/IMAS-Core.git
 
 
-cmake configuration
+CMake configuration
 ~~~~~~~~~~~~~~~~~~~
 
 Once you have cloned the repository, navigate your shell to the folder and run cmake.
 You can pass configuration options with ``-D OPTION=VALUE``. See below list for an
 overview of configuration options.
 
+On Linux
+''''''''
+
 .. code-block:: bash
 
     cd IMAS-Core
     cmake -B build -D CMAKE_INSTALL_PREFIX=$HOME/install -D OPTION1=VALUE1 -D OPTION2=VALUE2 [...]
+
+On Windows
+''''''''''
+
+**Debug Build:**
+
+.. code-block:: bash
+
+    cmake -Bbuild -S . -DVCPKG=ON -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_VERSION=main -DAL_BACKEND_UDA=OFF -DAL_BACKEND_MDSPLUS=OFF
+
+**Release Build:**
+
+.. code-block:: bash
+
+    cmake -Bbuild -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG=ON -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_VERSION=main -DAL_BACKEND_UDA=OFF -DAL_BACKEND_MDSPLUS=OFF
+
+
 
 .. note:: 
 
