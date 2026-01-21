@@ -218,6 +218,8 @@ void AsciiBackend::beginAction(OperationContext *ctx)
     this->pulsefile.open(this->fname, std::ios::in);
     if (this->pulsefile.fail())
       throw ALBackendException("Failed to open file "+this->fname+" in read mode",LOG);
+    this->curcontent.str(std::string());
+    this->curcontent.clear();
     this->curcontent << this->pulsefile.rdbuf();
     this->curcontent_map.clear();
     while (std::getline(this->curcontent, this->curline)) {
@@ -486,6 +488,7 @@ int AsciiBackend::readData(Context *ctx,
     return 0;
   }
 
+  this->curcontent.clear();
   this->curcontent.seekg((*seekpos).second);
   this->curline = pathname;
 
