@@ -270,14 +270,6 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
 
                 createIDSFile(ctx, IDSpulseFile, backend_version, IDS_file_id);
 
-                //*IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-
-                /*if (*IDS_file_id < 0) { 
-                    char error_message[200];
-                    sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. Unknow reason.\n", ctx->getDataobjectName().c_str());
-                    throw ALBackendException(error_message, LOG);
-                }*/
-
             }
             
 	        
@@ -405,11 +397,6 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(od->files_directory, od->relative_file_path, std::string(IDS_link_name));
     if (exists(IDSpulseFile.c_str())) {
         hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        /*if (IDS_file_id < 0) {
-            std::string message("Unable to open external file: ");
-            message += IDSpulseFile;
-            throw ALBackendException(message, LOG);
-        }*/
         if (IDS_file_id >= 0)
             hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
     }
