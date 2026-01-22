@@ -213,6 +213,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: 1
+          CIBW_ENABLE: ${{ matrix.python == '314' && 'CPython-3.14' || '' }}
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
@@ -242,6 +243,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_ENABLE: ${{ matrix.python == '314' && 'CPython-3.14' || '' }}
 
           # Install system libraries
           # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
