@@ -39,9 +39,67 @@ endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
   # The DD easybuild module should be loaded, use that module:
-  # Use idsinfo idspath command to get the path to IDSDef.xml or data_dictionary.xml
+  # Create Python venv first and install imas_data_dictionary
+  if(NOT EXISTS "${_VENV_PYTHON}")
+    execute_process(
+      COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      RESULT_VARIABLE _VENV_EXITCODE
+      OUTPUT_VARIABLE _VENV_OUTPUT
+      ERROR_VARIABLE _VENV_ERROR
+    )
+    
+    if(_VENV_EXITCODE)
+      message(STATUS "venv stdout: ${_VENV_OUTPUT}")
+      message(STATUS "venv stderr: ${_VENV_ERROR}")
+      message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
+    endif()
+    
+    if(DEFINED DD_VERSION)
+      execute_process(
+        COMMAND ${_VENV_PIP} install imas_data_dictionary==${DD_VERSION}
+        RESULT_VARIABLE _PIP_EXITCODE
+        OUTPUT_VARIABLE _PIP_OUTPUT
+        ERROR_VARIABLE _PIP_ERROR
+      )
+    else()
+      execute_process(
+        COMMAND ${_VENV_PIP} install imas_data_dictionary
+        RESULT_VARIABLE _PIP_EXITCODE
+        OUTPUT_VARIABLE _PIP_OUTPUT
+        ERROR_VARIABLE _PIP_ERROR
+      )
+    endif()
+    
+    if(_PIP_EXITCODE)
+      message(STATUS "imas_data_dictionary pip output: ${_PIP_OUTPUT}")
+      message(STATUS "imas_data_dictionary pip error: ${_PIP_ERROR}")
+      message(FATAL_ERROR "Failed to install imas_data_dictionary dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+    endif()
+    
+    execute_process(
+      COMMAND ${_VENV_PIP} install saxonche
+      RESULT_VARIABLE _PIP_EXITCODE
+      OUTPUT_VARIABLE _PIP_OUTPUT
+      ERROR_VARIABLE _PIP_ERROR
+    )
+    
+    if(_PIP_EXITCODE)
+      message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+      message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+      message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+    endif()
+  endif()
+# Set up idsinfo command path
+if(WIN32)
+  set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/idsinfo.exe")
+else()
+  set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/idsinfo")
+endif()
+
+  # Use idsinfo idspath command from venv to get the path to IDSDef.xml or data_dictionary.xml
   execute_process(
-    COMMAND idsinfo idspath
+    COMMAND ${_IDSINFO_COMMAND} idspath
     OUTPUT_VARIABLE IDSDEF
     OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE _IDSINFO_EXITCODE
@@ -94,7 +152,7 @@ if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
       message(STATUS "venv stderr: ${_VENV_ERROR}")
       message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
     endif()
-    
+
     execute_process(
       COMMAND ${_VENV_PIP} install saxonche
       RESULT_VARIABLE _PIP_EXITCODE
@@ -220,7 +278,7 @@ else()
       message(STATUS "venv stderr: ${_VENV_ERROR}")
       message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
     endif()
-    
+
     execute_process(
       COMMAND ${_VENV_PIP} install saxonche
       RESULT_VARIABLE _PIP_EXITCODE
@@ -236,7 +294,7 @@ else()
   endif()
   
   execute_process(
-    COMMAND ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
+    COMMAND ${_VENV_PYTHON} "${al-common_SOURCE_DIR}/xsltproc.py"
       -xsl "dd_data_dictionary.xml.xsl"
       -o "IDSDef.xml"
       -s "dd_data_dictionary.xml.xsd"
@@ -265,11 +323,36 @@ else()
 endif()
 
 # Find out which IDSs exist and populate IDS_NAMES
+# Ensure saxonche is installed before using xsltproc.py
+# Check if saxonche is available in the venv
+execute_process(
+  COMMAND ${_VENV_PYTHON} -c "import saxonche"
+  RESULT_VARIABLE _SAXONCHE_CHECK
+  OUTPUT_QUIET
+  ERROR_QUIET
+)
+
+if(_SAXONCHE_CHECK)
+  message(STATUS "Installing saxonche in venv...")
+  execute_process(
+    COMMAND ${_VENV_PIP} install saxonche
+    RESULT_VARIABLE _PIP_EXITCODE
+    OUTPUT_VARIABLE _PIP_OUTPUT
+    ERROR_VARIABLE _PIP_ERROR
+  )
+  
+  if(_PIP_EXITCODE)
+    message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+    message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+    message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+  endif()
+endif()
+
 set( list_idss_file ${al-common_SOURCE_DIR}/list_idss.xsl )
 set( CMAKE_CONFIGURE_DEPENDS ${CMAKE_CONFIGURE_DEPENDS};${list_idss_file};${IDSDEF} )
 set( ids_names_tmpfile "${CMAKE_CURRENT_BINARY_DIR}/ids_names_tmp.txt" )
 execute_process( COMMAND
-  ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
+  ${_VENV_PYTHON} "${al-common_SOURCE_DIR}/xsltproc.py"
     -xsl ${list_idss_file}
     -s ${IDSDEF}
     -o ${ids_names_tmpfile}
@@ -292,7 +375,7 @@ set( list_idss_file )  # unset temporary var
 set( dd_version_file ${al-common_SOURCE_DIR}/dd_version.xsl )
 set( dd_version_tmpfile "${CMAKE_CURRENT_BINARY_DIR}/dd_version_tmp.txt" )
 execute_process( COMMAND
-  ${_VENV_PYTHON} "${al-core_SOURCE_DIR}/xsltproc.py"
+  ${_VENV_PYTHON} "${al-common_SOURCE_DIR}/xsltproc.py"
     -xsl ${dd_version_file}
     -s ${IDSDEF}
     -o ${dd_version_tmpfile}
