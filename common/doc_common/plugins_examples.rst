@@ -1,6 +1,11 @@
 Plugins examples
 ================
 
+.. note::
+
+   The plugin examples referenced in this documentation are maintained in the al-plugins repository. 
+   Please refer to: https://git.iter.org/projects/IMAS/repos/al-plugins/browse for the complete source code.
+
 
 The ``debug`` plugin
 --------------------
@@ -9,8 +14,7 @@ In this first example, we want to display the value of the field
 ``ids_properties/version_put/access_layer`` for a given IDS during the
 execution of a ``get()`` operation.
 
-The debug plugin is a C++ class named ``Debug_plugin``. `Figure 10`_ shows
-the header code:
+The debug plugin is a C++ class named ``Debug_plugin``. The header code shows:
 
 -  The Debug_plugin class inherits from the access_layer_plugin plugin
    interface
@@ -20,12 +24,11 @@ the header code:
 -  The private attributes shot, dataobjectname and occurrence will be
    initialized during the initialization of the plugin
 
-.. literalinclude:: ./plugins/debug_plugin.h
-   :caption: **Figure 10:** Header of the Debug_plugin class
-   :name: Figure 10
-   :language: C++
+.. note::
 
-`Figure 10a`_ shows the plugin implementation code:
+   The complete source code for the debug_plugin.h header is available in the al-plugins repository.
+
+The plugin implementation code includes:
 
 -  Plugin initialization occurs in the ``begin_global_action(...)`` function.
    However, no initialization is required in this example.
@@ -42,19 +45,16 @@ the header code:
    ``getReadbackName(path, index)`` returns an empty string, meaning that
    the ``debug`` plugin does not define any *readback* plugin.
 
+.. note::
 
-.. literalinclude:: ./plugins/debug_plugin.cpp
-   :caption: **Figure 10a:** C++ plugin implementation code
-   :name: Figure 10a
-   :language: C++
+   The complete source code for the debug_plugin.cpp implementation is available in the al-plugins repository.
 
 
 Plugin compilation: creating a shared library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-`Figure 11`_ shows the Makefile for compiling the plugin. This makefile
-will also compile the C++ HLI code ``test_debug_plugin.cpp``, which uses
-this plugin (`Figure 13`_).
+The Makefile for compiling the plugin will also compile the C++ HLI code ``test_debug_plugin.cpp``, which uses
+this plugin.
 
 Executing the Makefile generates the shared library ``debug_plugin.so``
 and creates an executable ``test_debug_plugin`` for the HLI test
@@ -336,25 +336,22 @@ Simplifying plugin code: introducing the ``AL_reader_helper_plugin`` class
 In this section, we show how to simplify the ``debug`` plugin code
 presented previously. For this purpose, we introduce the new helper
 class ``AL_reader_helper_plugin`` whose part of the header (provenance
-feature operations have been removed for clarity) is shown in `Figure 15`_.
-`Figure 16`_ depicts its implementation code.
+feature operations have been removed for clarity) is shown in Figure 15.
+Figure 16 depicts its implementation code.
 
-.. literalinclude:: ./plugins/al_reader_helper_plugin.h
-   :caption: **Figure 15:** the ``AL_reader_helper_plugin`` class header
-   :name: Figure 15
-   :language: C++
+.. note::
+
+   The complete source code for the al_reader_helper_plugin.h header is available in the al-plugins repository.
 
 By inheriting the helper class, we obtain the header of the ``Debug_plugin``
-class depicted in `Figure 17`_. The header code declares only the
+class depicted in Figure 17. The header code declares only the
 ``read_data(..)`` function (from the plugin interface) whose implementation
 is overridden in the simplified implementation code of the ``Debug_plugin``
-class (`Figure 18`_).
+class (Figure 18).
 
+.. note::
 
-.. literalinclude:: ./plugins/al_reader_helper_plugin.cpp
-   :caption: **Figure 16:** the ``AL_reader_helper_plugin`` class implementation
-   :name: Figure 16
-   :language: C++
+   The complete source code for the al_reader_helper_plugin.cpp implementation is available in the al-plugins repository.
 
 .. code-block:: C++
    :caption: **Figure 17:** the simplified ``Debug_plugin`` class header
@@ -425,20 +422,13 @@ The requirement of IMAS-3121 ITER JIRA ticket is to fill in the
 ``ids_properties/creation_date`` node during a ``put()`` operation with the
 current date in the form YYYY-MM-DD.
 
-.. literalinclude:: ./plugins/creation_date_plugin.cpp
-   :caption: **Figure 25:** Creation_date_plugin class implementation
-   :name: Figure 25
-   :language: C++
+.. note::
 
-The ``Creation_date_plugin`` class whose implementation is depicted in
-`Figure 25`_ implements this feature. `Figure 26`_ displays the header file
-content. Provenance feature operations have been removed for clarity in
+   The complete source code for the creation_date_plugin.cpp implementation is available in the al-plugins repository.
+
+The ``Creation_date_plugin`` class implements this feature. The header file
+content is also available in the al-plugins repository. Provenance feature operations have been removed for clarity in
 these files.
-
-.. literalinclude:: ./plugins/creation_date_plugin.cpp
-   :caption: **Figure 26:** Creation_date_plugin class header
-   :name: Figure 26
-   :language: C++
 
 .. code-block:: python
    :caption: **Figure 27:** python client of the ``creation_date`` plugin
@@ -789,21 +779,15 @@ Building a partial ``get()`` operation
 Skipping the read of an array of structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. literalinclude:: ./plugins/partial_get_plugin.cpp
-   :caption: **Figure 31:** the PartialGetPlugin class implementation
-   :name: Figure 31
-   :language: C++
+.. note::
 
-.. literalinclude:: ./plugins/partial_get_plugin.h
-   :caption: **Figure 32:** the PartialGetPlugin header class
-   :name: Figure 32
-   :language: C++
+   The complete source code for the PartialGetPlugin class implementation (partial_get_plugin.cpp) 
+   and header (partial_get_plugin.h) is available in the al-plugins repository.
 
 In a first use-case, the user wants to access only few attributes of the
 ``equilibrium`` IDS for many shots. In order to speed up reading, he
 decides to skip the loading of the ``grids_ggd`` array of structures (AOS).
-The use of the ``PartialGetPlugin`` class implementation (`Figure 31`_) with
-its header (`Figure 32`_) provides an efficient solution. During the ``get()``
+The ``PartialGetPlugin`` class provides an efficient solution. During the ``get()``
 operation, the plugin intercepts the HLI call to the function
 ``al_begin_arraystruct_action(...)`` for the ``grids_ggd`` AOS and sets its size
 (using the arraySize pointer) to 0 after displaying a warning to the

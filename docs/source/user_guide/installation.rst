@@ -97,7 +97,7 @@ Standard environments:
         .. code-block:: bash
 
             git clone https://github.com/microsoft/vcpkg.git
-            cd vcpkg
+            cd vcpkg # VCPKG_INSTALLATION_PATH
             bootstrap-vcpkg.bat
 
         Then run these commands in PowerShell before building:
@@ -147,13 +147,13 @@ On Windows
 
 .. code-block:: bash
 
-    cmake -Bbuild -S . -DVCPKG=ON -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_VERSION=main -DAL_BACKEND_UDA=OFF -DAL_BACKEND_MDSPLUS=OFF
+    cmake -Bbuild -S . -DVCPKG=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON cmake -B build -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install/" -DAL_BACKEND_HDF5=ON -DAL_BACKEND_MDSPLUS=ON -DAL_BACKEND_UDA=ON -DAL_BUILD_MDSPLUS_MODELS=ON -DAL_PYTHON_BINDINGS=no-build-isolation -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git -DDD_VERSION=main -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_CXX_STANDARD=17 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
 
 **Release Build:**
 
 .. code-block:: bash
 
-    cmake -Bbuild -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG=ON -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_VERSION=main -DAL_BACKEND_UDA=OFF -DAL_BACKEND_MDSPLUS=OFF
+    cmake -Bbuild -S . -DCMAKE_BUILD_TYPE=Release -DVCPKG=ON -DCMAKE_INSTALL_PREFIX="<INSTALL_PATH>" -DCMAKE_TOOLCHAIN_FILE="<VCPKG_PATH>/scripts/buildsystems/vcpkg.cmake" -DAL_DOWNLOAD_DEPENDENCIES=ON cmake -B build -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install/" -DAL_BACKEND_HDF5=ON -DAL_BACKEND_MDSPLUS=ON -DAL_BACKEND_UDA=ON -DAL_BUILD_MDSPLUS_MODELS=ON -DAL_PYTHON_BINDINGS=no-build-isolation -DAL_DOWNLOAD_DEPENDENCIES=ON -DDD_GIT_REPOSITORY=https://github.com/iterorganization/IMAS-Data-Dictionary.git -DDD_VERSION=main -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_CXX_STANDARD=17 -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++
 
 
 
