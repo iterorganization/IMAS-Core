@@ -7,6 +7,11 @@ Documentation for developers wishing to contribute to the Access Layer can be fo
 the :ref:`Access Layer development guide`. Please refer to that guide if you wish to set
 up a development environment.
 
+.. note::
+
+    For Windows-specific installation instructions, please refer to the
+    :doc:`Windows Installation Guide <windows_setup>`.
+
 
 .. _`build prerequisites`:
 
