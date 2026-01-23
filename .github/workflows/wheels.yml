@@ -177,7 +177,7 @@ jobs:
       - name: Install cibuildwheel for windows
         if: startsWith(matrix.os, 'windows')
         run: |
-          python -m pip install cibuildwheel==3.0.0
+          python -m pip install cibuildwheel==3.1.0
 
       - name: Restore cibuildwheel cache
         id: cache
@@ -213,7 +213,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: 1
-          CIBW_ENABLE: ${{ matrix.python == '314' && 'cpython-prerelease' || '' }}
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
@@ -236,14 +236,14 @@ jobs:
           path: C:\vcpkg\installed
           key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
-      - uses: pypa/cibuildwheel@v3.0.0
+      - uses: pypa/cibuildwheel@v3.1.0
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
-          CIBW_ENABLE: ${{ matrix.python == '314' && 'cpython-prerelease' || '' }}
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           # Install system libraries
           # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
@@ -289,12 +289,13 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v3.0.0
+      - uses: pypa/cibuildwheel@v3.1.0
         if: startsWith(matrix.os, 'macos-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: macos
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
