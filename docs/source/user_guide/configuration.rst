@@ -102,6 +102,10 @@ Backend specific environment variables
     Specify the path to storing temporary data. If it is not set, the default
     location `/dev/shm/` or the current working directory will be chosen.
 
+``MDSPLUS_MODELS_PATH``
+    Specify the path where the MDSplus models files are stored for a given
+    version of the Data Dictionary (previously set by the `ids_path`, which
+    is now internally handled by the backend).
 
 
 UDA client configuration to reach the server at ITER

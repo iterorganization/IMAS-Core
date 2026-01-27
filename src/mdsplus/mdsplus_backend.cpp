@@ -1428,7 +1428,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		std::string translatedBaseStr(translatedBase);
 		if(originalIdsPath == "")
 		{
-		    char *origPath = getenv(szPath);
+		    char *origPath = getenv("MDSPLUS_MODELS_PATH");
 		    if(origPath)
 		        originalIdsPath = origPath; 
 		}
@@ -1495,7 +1495,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	
 	if(originalIdsPath == "")  //Do it only once in case it is defined
 	{
-	    char *origPath = getenv(szPath);
+	    char *origPath = getenv("MDSPLUS_MODELS_PATH");
 	    if(origPath)
 	    	originalIdsPath = origPath; 
 	}

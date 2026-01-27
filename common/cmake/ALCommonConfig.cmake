@@ -13,8 +13,8 @@ option( AL_PLUGINS "Enable plugin framework for tests and examples" OFF )
 option( AL_HLI_DOCS "Build the Sphinx-based High Level Interface documentation" OFF )
 option( AL_DOCS_ONLY "Don't build anything, except the Sphinx-based High Level Interface documentation" OFF )
 
-# Find Saxon XSLT processor
-find_package( SaxonHE REQUIRED )
+# Saxon XSLT processor has been replaced with Python saxonche
+# No longer need to find SaxonHE - saxonche is installed automatically via pip in virtual environments
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES )
   if( DEFINED ENV{AL_COMMON_PATH} )
