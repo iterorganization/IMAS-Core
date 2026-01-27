@@ -73,7 +73,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
             UDA_REF: "2.9.3"
 
           - os: macos-14
@@ -84,7 +84,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
             UDA_REF: "2.9.3"
         
           - os: macos-14
@@ -95,7 +95,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
             UDA_REF: "2.9.3"
     
           - os: macos-14
@@ -106,7 +106,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
             UDA_REF: "2.9.3"
     
           - os: windows-2022
