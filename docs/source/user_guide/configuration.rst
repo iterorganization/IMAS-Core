@@ -46,6 +46,15 @@ Environment variables controlling IMAS-Core behaviour
     in the Pythonens-user API.
 
 
+``IMAS_LOCAL_HOSTS``
+    If you have a UDA server on a site where users have direct access to the IMAS data files,
+    the IMAS-Core backend can decide to use a direct file access (via the relevant backend, e.g. HDF5)
+    instead of going via the UDA server (which has performance overheads). If you want to use this
+    feature, you need to set a list of UDA server hostname (cf. ``UDA_HOST`` [#uda_uri]_ ) in the
+    ``IMAS_LOCAL_HOSTS`` environment variable. You can specify several servers separated with a
+    semi-colon ``;``.
+
+    
 Environment variables controlling access layer plugins
 ------------------------------------------------------
 
