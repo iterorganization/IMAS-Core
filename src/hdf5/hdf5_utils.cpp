@@ -293,7 +293,8 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool
         if (*file_id < 0) {
             if (for_deletion) {
                 remove(filePath.c_str());
-                //printf("WARNING: The HDF5 master file '%s' was probably corrupted. It has been deleted and the linked IDS files could not be deleted automatically.\n", filePath.c_str());
+                printf("WARNING: The HDF5 master file '%s' was corrupted and re-created, but linked \
+                IDS h5 files may remain and would need to be removed manually unless replaced by subsequent write operations.\n", filePath.c_str());
                 *file_id = -1;
                 return;
             } else {
@@ -302,9 +303,6 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool
                 throw ALBackendException(message, LOG);
             }
         }
-		else {
-			//printf("master file read successfully with file_id=%d\n", *file_id);
-		}
     }
     
 }
