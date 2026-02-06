@@ -1,4 +1,4 @@
-add_languages('cython', native: false)
+add_languages('c', 'cython', native: false)
 
 # =============================================================================
 # Version File

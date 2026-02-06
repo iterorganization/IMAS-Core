@@ -1,6 +1,6 @@
 project(
   'imas-core',
-  ['c', 'cpp'],
+  'cpp',
   license: 'LGPL-3.0-or-later',
   meson_version: '>=1.1.0',
   version: run_command(
@@ -19,7 +19,6 @@ project(
 # =============================================================================
 # Compiler and System Setup
 # =============================================================================
-cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 host_system = host_machine.system()
 host_cpu = host_machine.cpu_family()
