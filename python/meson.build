@@ -5,7 +5,7 @@ add_languages('c', 'cython', native: false)
 # =============================================================================
 # Get version using setuptools-scm
 version = run_command(
-  'python',
+  find_program('python3'),
   '-m', 'setuptools_scm',
   check: true,
 ).stdout().strip()
@@ -20,7 +20,7 @@ ver_tuple = '(@0@, @1@, @2@)'.format(
 
 # Get commit id
 git_commit = run_command(
-  'git',
+  find_program('git'),
   'rev-parse',
   '--short', 'HEAD',
   check: false,
