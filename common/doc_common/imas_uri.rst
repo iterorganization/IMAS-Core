@@ -248,6 +248,6 @@ The :ref:`UDA backend` also recognizes these backend-specific query keys.
     and downloading IDS files to the local ``local_cache`` directory.
 
 ``local_cache``
-    UDA ``local_cache`` is set to ``tmp/path_in_uri`` by default. This is used along with ``fetch=1`` in the query.
+    UDA ``local_cache`` is set to ``tmp/uda-cache-of-$USER/path_in_uri`` by default. This is used along with ``fetch=1`` in the query.
     Set ``local_cache=/path/to/local/cache/directory`` and the download directory will be ``local_cache/path_in_uri``.
     ``local_cache`` specifies the path to the local cache directory where IDSs will be downloaded.

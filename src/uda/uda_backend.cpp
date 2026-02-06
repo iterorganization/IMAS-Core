@@ -421,7 +421,10 @@ void UDABackend::fetch_files(const uri::Uri& uri)
     }
 
     remote_path_ = std::filesystem::path{ maybe_path.value()};
-    auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : std::filesystem::temp_directory_path();
+    
+    // Determine cache path: explicit parameter, or default to /tmp/uda-cache-of-$USER/path_in_uri for isolation
+    const char* user = std::getenv("USER");
+    auto cache_path = maybe_local_cache ? std::filesystem::path{maybe_local_cache.value()} : user ? std::filesystem::temp_directory_path() / ("uda-cache-of-" + std::string{user}) : std::filesystem::temp_directory_path() / "uda-cache";
     local_path_ = cache_path / remote_path_.relative_path();
     std::string backend = maybe_backend.value();
 
