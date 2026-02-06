@@ -751,7 +751,11 @@ void HDF5Writer::createOrUpdateAOSShapesDataSet(ArraystructContext * ctx, hid_t 
             dataSetHandler->setSliceMode(ctx);
             timedAOS_shape = readTimedAOSShape(ctx, loc_id, arrctx_indices);
             //printf("modified timedAOS_shape=%d\n", timedAOS_shape);
+            if (aos_shapes.size() == 0) {
+                throw ALBackendException("HDF5Backend: unexpected AOS shapes (size=0).", LOG);
+            }
             aos_shapes[timed_AOS_index] = timedAOS_shape - slices_extension;
+
             /*for (size_t i = 0; i < aos_shapes.size(); i++) {
                 printf("tensorized_path=%s, aos_shapes[%d]=%d\n", tensorized_path.c_str(), i, aos_shapes[i]);
             }*/
