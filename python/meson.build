@@ -47,7 +47,19 @@ version_file = configure_file(
 fs = import('fs')
 py = import('python').find_installation(pure: false)
 py_dep = dependency('python3', native: false)
-numpy_dep = dependency('numpy')
+
+# Get numpy include directory and library using Python
+numpy_include = run_command(
+  py.full_path(),
+  '-c',
+  'import numpy; print(numpy.get_include())',
+  check: true,
+).stdout().strip()
+
+# Create numpy dependency using include directory
+numpy_dep = declare_dependency(
+  include_directories: include_directories(numpy_include),
+)
 
 cython_args = ['--annotate']
 
