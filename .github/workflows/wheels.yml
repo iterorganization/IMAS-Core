@@ -80,6 +80,17 @@ jobs:
 
           - os: macos-14
             triplet: arm64-osx
+            python: 310
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+
+          - os: macos-14
+            triplet: arm64-osx
             python: 311
             platform_id: macosx_arm64
             cibw_platform: macos
@@ -87,6 +98,40 @@ jobs:
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+        
+          - os: macos-14
+            triplet: arm64-osx
+            python: 312
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+    
+          - os: macos-14
+            triplet: arm64-osx
+            python: 313
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+    
+          - os: macos-14
+            triplet: arm64-osx
+            python: 314
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
     
           - os: windows-2022
             triplet: x64-windows
@@ -302,10 +347,26 @@ jobs:
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
 
-          # Dependency installation
+          # Dependency installationinto /tmp
           CIBW_BEFORE_ALL_MACOS: >
-            brew update;
-            brew install cmake pkg-config boost hdf5 libomp;
+            brew update >&2;
+            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl capnp libmemcached >&2;
+            git clone --depth 1 --branch ${{ matrix.UDA_REF }} https://github.com/ukaea/UDA.git >&2 &&
+            cd UDA >&2;
+            cmake -G Ninja -B build . \
+                -DBUILD_SHARED_LIBS=ON \
+                -DSSLAUTHENTICATION=ON \
+                -DCLIENT_ONLY=ON \
+                -DENABLE_CAPNP=ON \
+                -DMACOSX_DEPLOYMENT_TARGET=14.0 \
+                -DCMAKE_INSTALL_PREFIX=/tmp/uda-install >&2 &&
+            cmake --build build --target install -j >&2;
+
+          # Where to find the dependencies
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=14.0
+            CMAKE_PREFIX_PATH="/tmp/uda-install:/opt/homebrew:/usr/local"
+            PKG_CONFIG_PATH="/tmp/uda-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
         with:
           package-dir: .

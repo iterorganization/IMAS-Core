@@ -132,14 +132,14 @@ class HDF5Backend:public Backend {
 
     void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
 
-    bool supportsTimeDataInterpolation() {
+    bool supportsTimeDataInterpolation() override {
       return true;
     }
 
-    void initDataInterpolationComponent() {
+    void initDataInterpolationComponent() override {
     }
 
-    bool supportsTimeRangeOperation() {
+    bool supportsTimeRangeOperation() override {
 		return true;
     }
 
