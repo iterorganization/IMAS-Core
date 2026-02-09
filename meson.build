@@ -9,6 +9,8 @@ project(
     check: true,
   ).stdout().strip(),
   default_options: [
+    'c_std=c17',
+    'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
 )
