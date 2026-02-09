@@ -28,9 +28,7 @@ host_cpu = host_machine.cpu_family()
 # =============================================================================
 # Warning Flags
 # =============================================================================
-warning_flags = [
-  '-Wall',
-]
+warning_flags = []
 if host_system == 'darwin'
   warning_flags += [
     '-Wno-deprecated-declarations',
