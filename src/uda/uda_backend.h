@@ -184,13 +184,13 @@ public:
 
     void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
 
-    bool supportsTimeDataInterpolation();
+    bool supportsTimeDataInterpolation() override;
 
     // Do nothing, UDA plugin will need to initDataInterpolationComponent on data backend when it knows which backend
       // is being used, i.e. when a URI is given.
-    void initDataInterpolationComponent() {}
+    void initDataInterpolationComponent() override {}
       
-    bool supportsTimeRangeOperation() {
+    bool supportsTimeRangeOperation() override {
         return this->supportsTimeDataInterpolation();
     }
     
