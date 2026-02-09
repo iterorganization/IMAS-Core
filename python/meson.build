@@ -46,7 +46,7 @@ version_file = configure_file(
 # =============================================================================
 fs = import('fs')
 py = import('python').find_installation(pure: false)
-py_dep = dependency('python3', native: false)
+py_dep = py.dependency()
 numpy_dep = dependency('numpy')
 
 cython_args = ['--annotate']
