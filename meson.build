@@ -1,5 +1,6 @@
 project(
   'imas-core',
+  'cpp',
   license: 'LGPL-3.0-or-later',
   meson_version: '>=1.1.0',
   version: run_command(
@@ -9,7 +10,6 @@ project(
     check: true,
   ).stdout().strip(),
   default_options: [
-    'c_std=c17',
     'cpp_std=c++17',
     'buildtype=debugoptimized',
   ],
@@ -18,10 +18,7 @@ project(
 # =============================================================================
 # Compiler and System Setup
 # =============================================================================
-if get_option('al_core') or get_option('al_test') or get_option('al_dummy_exe')
-  add_languages('cpp', native: false)
-  cxx = meson.get_compiler('cpp')
-endif
+cxx = meson.get_compiler('cpp')
 host_system = host_machine.system()
 host_cpu = host_machine.cpu_family()
 

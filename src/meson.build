@@ -69,7 +69,6 @@ al_core = library(
   cpp_args: core_args + warning_flags,
   include_directories: core_inc,
   dependencies: core_deps,
-  version: meson.project_version(),
   install: true,
 )
 

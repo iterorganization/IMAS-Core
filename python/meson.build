@@ -1,4 +1,4 @@
-add_languages('c', 'cython', native: false)
+add_languages('cython', native: false)
 
 # =============================================================================
 # Version File
@@ -46,7 +46,7 @@ version_file = configure_file(
 # =============================================================================
 fs = import('fs')
 py = import('python').find_installation(pure: false)
-py_dep = dependency('python3', native: false)
+py_dep = py.dependency()
 numpy_dep = dependency('numpy', required: false)
 
 if not numpy_dep.found()
@@ -94,6 +94,7 @@ foreach pyx_file : pyx_files
     dependencies: [al_core_dep, py_dep, numpy_dep],
     install: true,
     subdir: 'imas_core',
+    override_options: ['cython_language=cpp'],
   )
 endforeach
 

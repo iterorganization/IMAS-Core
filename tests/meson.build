@@ -14,6 +14,7 @@ testlowlevel = executable(
 )
 
 # C test executable
+add_languages('c', native: false)
 testlowlevel_c = executable(
   'testlowlevel_c',
   'testlowlevel_c.c',

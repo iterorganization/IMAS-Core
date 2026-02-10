@@ -31,6 +31,7 @@ install_headers(
   'al_lowlevel.h',
   'data_interpolation.h',
   'extended_access_layer_plugin.h',
+  'fix_include_windows.h',
   'provenance_plugin_feature.h',
   'readback_plugin_feature.h',
   'uri_parser.h',
