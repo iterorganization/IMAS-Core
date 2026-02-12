@@ -92,15 +92,15 @@ public:
 
   void get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size) override;
 
-  bool supportsTimeDataInterpolation() {
+  bool supportsTimeDataInterpolation() override {
     return false;
   }
 
-  void initDataInterpolationComponent() {
+  void initDataInterpolationComponent() override {
     throw ALBackendException("ASCII backend does not support time range and time slices operations",LOG);
   }
 
-  bool supportsTimeRangeOperation() {
+  bool supportsTimeRangeOperation() override {
 	  return false;
 	}
 
