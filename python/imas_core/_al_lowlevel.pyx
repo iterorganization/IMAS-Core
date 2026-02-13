@@ -1227,3 +1227,22 @@ def al_get_occurrences(ctx, ids_name):
 def get_al_version():
     version = ll.getALVersion()
     return version.decode('UTF-8')
+
+
+def al_list_filled_paths(ctx: int, dataobjectname: str):
+    cdef char** path_list
+    cdef int cSize
+
+    al_status = ll.al_list_filled_paths(ctx, dataobjectname.encode(), &path_list, &cSize)
+    if al_status.code < 0:
+        raise get_proper_exception_class(f'Error while calling al_list_filled_paths: {al_status.message.decode()}', al_status.code)
+
+    # Create python list of strings from the C-style path_list and clean up memory
+    result = []
+    for i in range(cSize):
+        result.append(path_list[i].decode())
+        free(path_list[i])
+    if cSize > 0:
+        free(path_list)
+
+    return al_status.code, result

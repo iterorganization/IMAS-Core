@@ -1568,6 +1568,49 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
         p[i] = occurrences[i];
 }
 
+void HDF5Reader::list_filled_paths(const char* dataobjectname, char*** path_list, int* size, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+{
+    HDF5Utils hdf5_utils;
+    // Create temporary OperationContext to allow reusing existing logic from hdf5_utils:
+    OperationContext ctx(NULL, dataobjectname, "", READ_OP);
+    hid_t gid = -1;
+    hdf5_utils.open_IDS_group(&ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid);
+    if (gid <= 0) {
+        // Group does not exist => nothing is filled
+        *size = 0;
+        return;
+    }
+
+    // Create a vector of all link names in the hdf5 group
+    std::vector<std::string> variables;
+    H5L_iterate_t iterate_callback = [](hid_t group_id, const char* cname, const H5L_info_t* info, void* op_data) -> herr_t {
+        std::string name(cname);
+        // Skip if name ends with _SHAPE
+        if (name.size() < 6 || name.substr(name.size() - 6) != "_SHAPE")
+            static_cast<std::vector<std::string>*>(op_data)->push_back(name);
+        return 0; // success
+    };
+    herr_t status = H5Literate(gid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, iterate_callback, &variables);
+    if (status != 0)
+        throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Reader::get_occurrences()", LOG);
+
+    // Convert to DD path: remove AoS brackets ([]) and use / to separate paths
+    for (auto &str : variables) {
+        // Remove square brackets
+        str.erase(std::remove(str.begin(), str.end(), '['), str.end());
+        str.erase(std::remove(str.begin(), str.end(), ']'), str.end());
+        // Replace '&' with '/'
+        std::replace(str.begin(), str.end(), '&', '/');
+    }
+
+    // Create the C-style array:
+    *size = variables.size();
+    *path_list = (char**) malloc(*size * sizeof(char*));
+    for (int i=0; i < *size; ++i) {
+        (*path_list)[i] = strdup(variables[i].c_str());
+    }
+}
+
 herr_t HDF5Reader::iterate_callback(hid_t loc_id, const char *name, const H5L_info_t *info, void *callback_data)
 {
     std::vector<std::string> *op = reinterpret_cast<std::vector<std::string> *>(callback_data);

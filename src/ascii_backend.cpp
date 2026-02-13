@@ -708,4 +708,7 @@ void AsciiBackend::get_occurrences(Context* ctx, const  char* ids_name, int** oc
     (*occurrences_list)[i] = occurrences[i];
 }
 
+void AsciiBackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+    throw ALBackendException("list_filled_paths is not implemented in the ASCII Backend", LOG);
+}
 

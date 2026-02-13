@@ -162,3 +162,11 @@ void HDF5Backend::get_occurrences(Context* ctx, const  char* ids_name, int** occ
         throw ALBackendException("HDF5Backend: master file not opened while calling HDF5Backend::get_occurrences()", LOG); 
     hdf5Reader->get_occurrences(ids_name, occurrences_list, size, file_id);
 }
+
+void HDF5Backend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size)
+{
+    if (file_id == -1) // master file not opened
+        throw ALBackendException("HDF5Backend: master file not opened while calling HDF5Backend::list_filled_paths()", LOG); 
+
+    hdf5Reader->list_filled_paths(dataobjectname, path_list, size, file_id, opened_IDS_files, files_directory, relative_file_path);
+}

@@ -4932,6 +4932,10 @@ void MDSplusBackend::get_occurrences(Context* ctx, const char* ids_name, int** o
 	*size = occurrences.size();
 }
 
+void MDSplusBackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+    throw ALBackendException("list_filled_paths is not implemented in the MDSplus Backend", LOG);
+}
+
  void MDSplusBackend::fullPath(Context *ctx, std::string &path) {
    if (ctx->getType() == CTX_PULSE_TYPE) {
        path = "";

@@ -1310,3 +1310,6 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
     }
 }
 
+void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+    throw ALBackendException("list_filled_paths is not implemented in the UDA Backend", LOG);
+}
