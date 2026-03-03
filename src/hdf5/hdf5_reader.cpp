@@ -1592,7 +1592,7 @@ void HDF5Reader::list_filled_paths(const char* dataobjectname, char*** path_list
     };
     herr_t status = H5Literate(gid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, iterate_callback, &variables);
     if (status != 0)
-        throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Reader::get_occurrences()", LOG);
+        throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Reader::list_filled_paths()", LOG);
 
     // Convert to DD path: remove AoS brackets ([]) and use / to separate paths
     for (auto &str : variables) {
