@@ -17,6 +17,7 @@
 
 #include <string>
 #include <random>
+#include "al_utilities.h"
 
 using namespace semver::literals;
 
@@ -1359,6 +1360,10 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
 }
 
 void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+
+    *size = 0;
+    *path_list = nullptr;
+
     if (access_local_) {
         return local_backend_->list_filled_paths(ctx, dataobjectname, path_list, size);
     }
@@ -1403,8 +1408,6 @@ void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, cha
             
             // If buffer is empty, return empty path list
             if (result_size == 0) {
-                *size = 0;
-                *path_list = nullptr;
                 return;
             }
             
@@ -1412,22 +1415,10 @@ void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, cha
             const auto root = uda_capnp_read_root(tree);
 
             auto paths = read_filled_paths(root);
-            *size = static_cast<int>(paths.size());
-            
-            if (*size > 0) {
-                *path_list = static_cast<char**>(malloc(sizeof(char*) * (*size)));
-                for (int i = 0; i < *size; ++i) {
-                    (*path_list)[i] = static_cast<char*>(malloc(paths[i].length() + 1));
-                    strcpy((*path_list)[i], paths[i].c_str());
-                }
-            } else {
-                *path_list = nullptr;
-            }
+            // Allocate and copy paths to C list
+            utilities::copy_stringvector_to_c_list(paths, path_list, size);
 
             uda_capnp_free_tree_reader(tree);
-        } else {
-            *size = 0;
-            *path_list = nullptr;
         }
     } catch (const uda::UDAException& ex) {
         throw ALException(ex.what(), LOG);

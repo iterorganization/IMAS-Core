@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <limits>
 #include <boost/algorithm/string.hpp>
+#include "al_utilities.h"
 
 #define MAX_LENGTH 200
 #define HOMOGENEOUS_TIME_FIELD_NAME "ids_properties&homogeneous_time"
@@ -1604,11 +1605,7 @@ void HDF5Reader::list_filled_paths(const char* dataobjectname, char*** path_list
     }
 
     // Create the C-style array:
-    *size = variables.size();
-    *path_list = (char**) malloc(*size * sizeof(char*));
-    for (int i=0; i < *size; ++i) {
-        (*path_list)[i] = strdup(variables[i].c_str());
-    }
+    utilities::copy_stringvector_to_c_list(variables, path_list, size);
 }
 
 herr_t HDF5Reader::iterate_callback(hid_t loc_id, const char *name, const H5L_info_t *info, void *callback_data)

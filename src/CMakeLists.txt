@@ -6,6 +6,7 @@ target_sources( al PRIVATE
     al_context.cpp
     al_const.cpp
     al_exception.cpp
+    al_utilities.cpp
     no_backend.cpp
     memory_backend.cpp
     ascii_backend.cpp
