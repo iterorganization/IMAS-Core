@@ -1422,7 +1422,5 @@ void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, cha
         }
     } catch (const uda::UDAException& ex) {
         throw ALException(ex.what(), LOG);
-    } catch (const std::exception& ex) {
-        throw;
     }
 }
