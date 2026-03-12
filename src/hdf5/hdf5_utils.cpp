@@ -84,11 +84,13 @@ int
             throw ALBackendException(error_message, LOG);
         }
         size_t attr_size = H5Tget_size(attr_file_type);
+        H5T_cset_t attr_cset = H5Tget_cset(attr_file_type);
         H5Tclose(attr_file_type);
 
         hid_t dtype_id = H5Tcopy(H5T_C_S1);
         H5Tset_size(dtype_id, attr_size + 1);
         H5Tset_strpad(dtype_id, H5T_STR_NULLTERM);
+        H5Tset_cset(dtype_id, attr_cset);
 
         std::vector<char> version(attr_size + 1, '\0');
         herr_t status = H5Aread(att_id, dtype_id, version.data());
