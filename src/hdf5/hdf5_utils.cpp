@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <errno.h>
+#include <vector>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
@@ -75,24 +76,30 @@ int
             throw ALBackendException(error_message, LOG);
         }
 
-        hid_t dtype_id = H5Tcopy (H5T_C_S1);
-        H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
-        
-        herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
-        if (tset < 0) {
-            char error_message[100];
-            sprintf(error_message, "Unable to set characters to UTF8 for: %s\n", backend_version_attribute_name);
-            throw ALBackendException(error_message);
+        hid_t attr_file_type = H5Aget_type(att_id);
+        if (attr_file_type < 0) {
+            H5Aclose(att_id);
+            char error_message[200];
+            sprintf(error_message, "Unable to get type of attribute: %s\n", backend_version_attribute_name);
+            throw ALBackendException(error_message, LOG);
         }
+        size_t attr_size = H5Tget_size(attr_file_type);
+        H5Tclose(attr_file_type);
 
-        char version[10];
-        herr_t status = H5Aread(att_id, dtype_id, version);
+        hid_t dtype_id = H5Tcopy(H5T_C_S1);
+        H5Tset_size(dtype_id, attr_size + 1);
+        H5Tset_strpad(dtype_id, H5T_STR_NULLTERM);
+
+        std::vector<char> version(attr_size + 1, '\0');
+        herr_t status = H5Aread(att_id, dtype_id, version.data());
         if (status < 0) {
+            H5Tclose(dtype_id);
+            H5Aclose(att_id);
             char error_message[200];
             sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
             throw ALBackendException(error_message, LOG);
         }
-        backend_version = std::string(version);
+        backend_version = std::string(version.data());
         H5Tclose(dtype_id);
         H5Aclose(att_id);
     } else {
@@ -344,8 +351,8 @@ void HDF5Utils::writeHeader(DataEntryContext * ctx, hid_t file_id, std::string &
 
     //write version to file
     hid_t dataspace_id = H5Screate(H5S_SCALAR);
-    hid_t dtype_id = H5Tcopy (H5T_C_S1);
-    H5Tset_size(dtype_id, strlen(backend_version_attribute_name));
+    hid_t dtype_id = H5Tcopy(H5T_C_S1);
+    H5Tset_size(dtype_id, backend_version.length() + 1);
     herr_t tset = H5Tset_cset(dtype_id, H5T_CSET_UTF8);
     if (tset < 0) {
         char error_message[200];
