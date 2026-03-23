@@ -15,7 +15,7 @@ To install IMAS-Core via pip for Python users:
 Requirements
 ~~~~~~~~~~~~
 
-- **Python 3.8+** 
+- **Python 3.8+**
 - **Linux** (fully supported)
 - **macOS and Windows** (experimental - in testing)
 
@@ -60,9 +60,9 @@ The following dependencies are only required for some of the components:
     -   **UDA backend**: `UDA <https://github.com/ukaea/UDA/>`__ libraries
         (2.7.5 or newer) [#uda_install]_
 
-..  [#uda_install] When installing UDA, make sure you have 
+..  [#uda_install] When installing UDA, make sure you have
     `Cap'n'Proto <https://github.com/capnproto/capnproto>`__ installed in your system
-    and add its support by adding the CMake switch `-DENABLE_CAPNP=ON` when configuring UDA. 
+    and add its support by adding the CMake switch `-DENABLE_CAPNP=ON` when configuring UDA.
 
 
 Standard environments:
@@ -119,10 +119,10 @@ overview of configuration options.
     cd IMAS-Core
     cmake -B build -D CMAKE_INSTALL_PREFIX=$HOME/install -D OPTION1=VALUE1 -D OPTION2=VALUE2 [...]
 
-.. note:: 
+.. note::
 
     CMake will automatically fetch dependencies from required repositories
-    for you. 
+    for you.
 
     -   `data-dictionary (git@github.com:iterorganization/IMAS-Data-Dictionary.git)
         <https://github.com/iterorganization/IMAS-Data-Dictionary>`__
@@ -131,7 +131,7 @@ overview of configuration options.
     repository or to use a HTTPS URL instead of the default SSH URLs, you can update the
     :ref:`configuration options`. For example, add the following options to your
     ``cmake`` command to download the repositories over HTTPS instead of SSH:
-    
+
     .. code-block:: text
         :caption: Use explicit options to download dependent repositories over HTTPS
 
@@ -222,7 +222,7 @@ Configuration options
 
     When ``AL_DOWNLOAD_DEPENDENCIES`` is enabled, the following settings can be used to
     configure the location and/or version of the dependencies that should be used.
-    
+
     -   ``AL_CORE_GIT_REPOSITORY``,
         , ``DD_GIT_REPOSITORY``. Configure the git URLs
         where the ``IMAS-Core`` c.q.
@@ -276,7 +276,7 @@ available configuration options, use the command-line tool ``ccmake`` or the gui
 Build the IMAS-Core
 ~~~~~~~~~~~~~~~~~~~
 
-Use ``cmake`` to build as shown below. 
+Use ``cmake`` to build as shown below.
 
 .. code-block:: bash
 
@@ -359,9 +359,66 @@ can be passed using this method. The option names remain the same, but are prefi
 ``-C skbuild.cmake.define.``.
 
 
+Optional: Build IMAS-Core with Meson
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also build and install IMAS-Core using the Meson build system as an alternative to CMake. This can be useful for users who prefer Meson or want to try a different build workflow.
+
+First, ensure you have Meson and Ninja installed. You can install them with pip:
+
+.. code-block:: bash
+
+    pip install meson ninja
+
+Then, clone the IMAS-Core repository if you haven't already:
+
+.. code-block:: bash
+
+    git clone git@github.com:iterorganization/IMAS-Core.git
+    cd IMAS-Core
+
+Create a build directory and configure the project:
+
+.. code-block:: bash
+
+    meson setup builddir
+
+You can pass Meson options at this step. For example, to enable or disable backends:
+
+.. code-block:: bash
+
+    meson setup builddir -Dal_backend_hdf5=true -Dal_backend_uda=false
+
+To see all available options, run:
+
+.. code-block:: bash
+
+    meson configure builddir
+
+Build the project:
+
+.. code-block:: bash
+
+    meson compile -C builddir
+
+Install IMAS-Core (you may need sudo for system-wide installs):
+
+.. code-block:: bash
+
+    meson install -C builddir
+
+You can also run tests using Meson:
+
+.. code-block:: bash
+
+    meson test -C builddir
+
+For more information on Meson, see the official documentation: https://mesonbuild.com/
+
+
 Optional: Test the IMAS-Core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Following snippet shows how to run the test with pytest. Just ensure that you have 
+Following snippet shows how to run the test with pytest. Just ensure that you have
 AL_PYTHON_BINDINGS-ON in cmake configuration.
 If you set either of the options ``AL_EXAMPLES`` or ``AL_TESTS`` to ``ON``, you can run
 the corresponding test programs as follows:
@@ -371,7 +428,7 @@ the corresponding test programs as follows:
     python3 -m venv build/pip_install
     source build/pip_install/bin/activate
     pip install --upgrade pip wheel
-    pip install numpy 
+    pip install numpy
     set -x
     pip install --find-links=build/dist imas-core[test,cov]
     pytest --junitxml results.xml --cov imas_core --cov-report xml --cov-report html
@@ -393,7 +450,7 @@ Access Layer. To help you with this, a file ``al_env.sh`` is installed. You can
 You may want to add this to your ``$HOME/.bashrc`` file to automatically make the IMAS-Core
  installation available for you.
 
-.. note:: 
+.. note::
 
     To use a ``public`` dataset, you also need to set the ``IMAS_HOME`` environment
     variable. For example, on SDCC, this would be ``export IMAS_HOME=/work/imas``.
@@ -406,7 +463,7 @@ You may want to add this to your ``$HOME/.bashrc`` file to automatically make th
 Once you have set the required environment variables, you may continue Using the
 IMAS-Core.
 
-If IMAS-Core is built with Python bindings, you can also use the Python bindings with imas-python. 
+If IMAS-Core is built with Python bindings, you can also use the Python bindings with imas-python.
 `imas_python <https://pypi.org/project/imas-python/>`_. Just install with `pip install imas-python`
 and you can use the Python bindings. more information is here `imas-python <https://imas-python.readthedocs.io/en/latest/>`_.
 
