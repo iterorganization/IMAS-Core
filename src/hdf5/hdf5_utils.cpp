@@ -92,7 +92,7 @@ int
         H5Tset_strpad(dtype_id, H5T_STR_NULLTERM);
         H5Tset_cset(dtype_id, attr_cset);
 
-        std::vector<char> version(attr_size + 1, '\0');
+        std::string version(attr_size + 1, '\0');
         herr_t status = H5Aread(att_id, dtype_id, version.data());
         if (status < 0) {
             H5Tclose(dtype_id);
@@ -101,7 +101,7 @@ int
             sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
             throw ALBackendException(error_message, LOG);
         }
-        backend_version = std::string(version.data());
+        backend_version = version.c_str();
         H5Tclose(dtype_id);
         H5Aclose(att_id);
     } else {
