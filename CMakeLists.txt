@@ -77,9 +77,6 @@ if(APPLE)
   # Disable MDSPlus:
   message(STATUS "Disabling MDSPlus backend on macOS")
   set(AL_BACKEND_MDSPLUS OFF CACHE BOOL "MDSPlus backend" FORCE)    
-  # Disable UDA:
-  message(STATUS "Disabling UDA backend on macOS")
-  set(AL_BACKEND_UDA OFF CACHE BOOL "UDA backend" FORCE)    
 endif()
 
 

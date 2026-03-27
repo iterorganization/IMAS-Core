@@ -86,7 +86,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
 
           - os: macos-14
@@ -97,7 +97,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
         
           - os: macos-14
@@ -108,7 +108,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: macos-14
@@ -119,7 +119,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: macos-14
@@ -130,7 +130,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: windows-2022
@@ -347,10 +347,15 @@ jobs:
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
 
-          # Dependency installationinto /tmp
+          # Dependency installation into /tmp/imas-core-install
           CIBW_BEFORE_ALL_MACOS: >
             brew update >&2;
-            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl capnp libmemcached >&2;
+            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl libmemcached >&2;
+            git clone -b master https://github.com/capnproto/capnproto.git >&2 &&
+            cd capnproto >&2;
+            cmake -B build . \
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
+            cmake --build build --target install -j >&2;
             git clone --depth 1 --branch ${{ matrix.UDA_REF }} https://github.com/ukaea/UDA.git >&2 &&
             cd UDA >&2;
             cmake -G Ninja -B build . \
@@ -359,14 +364,14 @@ jobs:
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
                 -DMACOSX_DEPLOYMENT_TARGET=14.0 \
-                -DCMAKE_INSTALL_PREFIX=/tmp/uda-install >&2 &&
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
             MACOSX_DEPLOYMENT_TARGET=14.0
-            CMAKE_PREFIX_PATH="/tmp/uda-install:/opt/homebrew:/usr/local"
-            PKG_CONFIG_PATH="/tmp/uda-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
+            CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
+            PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
         with:
           package-dir: .
