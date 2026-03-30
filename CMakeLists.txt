@@ -73,7 +73,7 @@ if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
   message("Building a development version of the Access Layer core")
 endif()
 
-if(APPLE)
+if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
   # Disable MDSPlus:
   message(STATUS "Disabling MDSPlus backend on macOS")
   set(AL_BACKEND_MDSPLUS OFF CACHE BOOL "MDSPlus backend" FORCE)    
