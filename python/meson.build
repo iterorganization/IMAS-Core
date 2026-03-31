@@ -5,7 +5,7 @@ add_languages('cython', native: false)
 # =============================================================================
 # Get version using setuptools-scm
 version = run_command(
-  find_program('python3'),
+  find_program('python'),
   '-m', 'setuptools_scm',
   check: true,
 ).stdout().strip()

@@ -4,7 +4,7 @@ project(
   license: 'LGPL-3.0-or-later',
   meson_version: '>=1.1.0',
   version: run_command(
-    find_program('python3'),
+    find_program('python'),
     '-m', 'setuptools_scm',
     '--strip-dev',
     check: true,
