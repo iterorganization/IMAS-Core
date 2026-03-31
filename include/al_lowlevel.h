@@ -490,6 +490,20 @@ extern "C"
 
   IMAS_CORE_LIBRARY_API al_status_t al_get_occurrences(int pctxID, const char* ids_name, int** occurrences_list, int* size);
 
+  /**
+     Get a list of Data Dictionary paths (without indices) containing filled data in the backend.
+
+     Notes:
+     1. This function is only implemented for tensorizing backends (i.e. the HDF5 backend).
+     2. The paths may appear in any order.
+     3. The caller is responsible for freeing the list and all strings in it.
+
+     @param[in] dataobjectname IDS name and occurrence, e.g. "core_profiles", "equilibrium/1"
+     @param[in,out] path_list list of c-style strings (ending with a null byte)
+     @param[in,out] size specify the size of the array (number of elements)
+   */
+  IMAS_CORE_LIBRARY_API al_status_t al_list_filled_paths(int pctxID, const char* dataobjectname, char*** path_list, int* size);
+
   //IMAS_CORE_LIBRARY_API al_status_t al_close_pulse(int pctxID, int mode, const char *options);
   
   //HLI wrappers for plugins API

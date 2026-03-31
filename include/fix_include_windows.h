@@ -16,6 +16,9 @@ To fix std::min() after any #include "microsoft-mega-api.h"
 
 // use the Standard C++ std::min() and std::max() and ensure to #include <algorithm>
 #include <stdlib.h>
+
+#ifdef __cplusplus
 #include <algorithm>
 using std::max;
 using std::min;
+#endif

@@ -673,16 +673,17 @@ public:
     ALData *getAlSlice(ArraystructContext *ctx, ALData &inData, double time, std::vector<double> timebaseV);
 
 	void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
+    void list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) override;
 
-	bool supportsTimeDataInterpolation() {
+	bool supportsTimeDataInterpolation() override {
       return false;
     }
 
-    void initDataInterpolationComponent() {
+    void initDataInterpolationComponent() override {
 		throw ALBackendException("Memory backend does not support time range and time slices operations",LOG);
 	}
 
-	bool supportsTimeRangeOperation() {
+	bool supportsTimeRangeOperation() override {
 	  return false;
 	}
 

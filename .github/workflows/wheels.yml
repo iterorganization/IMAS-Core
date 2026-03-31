@@ -65,6 +65,30 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 314
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: macos-14
+            triplet: arm64-osx
+            python: 310
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+
           - os: macos-14
             triplet: arm64-osx
             python: 311
@@ -73,7 +97,41 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+        
+          - os: macos-14
+            triplet: arm64-osx
+            python: 312
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+    
+          - os: macos-14
+            triplet: arm64-osx
+            python: 313
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+    
+          - os: macos-14
+            triplet: arm64-osx
+            python: 314
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
     
           - os: windows-2022
             triplet: x64-windows
@@ -127,6 +185,19 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
+          - os: windows-2022
+            triplet: x64-windows
+            python: 314
+            platform_id: win_amd64
+            cibw_platform: windows
+            cibw_archs: AMD64
+            manylinux_image: windows
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -151,7 +222,7 @@ jobs:
       - name: Install cibuildwheel for windows
         if: startsWith(matrix.os, 'windows')
         run: |
-          python -m pip install cibuildwheel==3.0.0
+          python -m pip install cibuildwheel==3.1.0
 
       - name: Restore cibuildwheel cache
         id: cache
@@ -187,6 +258,7 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: 1
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
@@ -209,13 +281,14 @@ jobs:
           path: C:\vcpkg\installed
           key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
-      - uses: pypa/cibuildwheel@v3.0.0
+      - uses: pypa/cibuildwheel@v3.1.0
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           # Install system libraries
           # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
@@ -261,22 +334,44 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v3.0.0
+      - uses: pypa/cibuildwheel@v3.1.0
         if: startsWith(matrix.os, 'macos-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: macos
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
 
-          # Dependency installation
+          # Dependency installation into /tmp/imas-core-install
           CIBW_BEFORE_ALL_MACOS: >
-            brew update;
-            brew install cmake pkg-config boost hdf5 libomp;
+            brew update >&2;
+            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl libmemcached >&2;
+            git clone -b master https://github.com/capnproto/capnproto.git >&2 &&
+            cd capnproto >&2;
+            cmake -B build . \
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
+            cmake --build build --target install -j >&2;
+            git clone --depth 1 --branch ${{ matrix.UDA_REF }} https://github.com/ukaea/UDA.git >&2 &&
+            cd UDA >&2;
+            cmake -G Ninja -B build . \
+                -DBUILD_SHARED_LIBS=ON \
+                -DSSLAUTHENTICATION=ON \
+                -DCLIENT_ONLY=ON \
+                -DENABLE_CAPNP=ON \
+                -DMACOSX_DEPLOYMENT_TARGET=14.0 \
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
+            cmake --build build --target install -j >&2;
+
+          # Where to find the dependencies
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=14.0
+            CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
+            PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
         with:
           package-dir: .

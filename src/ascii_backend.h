@@ -91,16 +91,17 @@ public:
   std::pair<int,int> getVersion(DataEntryContext *ctx) override;
 
   void get_occurrences(Context* ctx, const  char* ids_name, int** occurrences_list, int* size) override;
+  void list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) override;
 
-  bool supportsTimeDataInterpolation() {
+  bool supportsTimeDataInterpolation() override {
     return false;
   }
 
-  void initDataInterpolationComponent() {
+  void initDataInterpolationComponent() override {
     throw ALBackendException("ASCII backend does not support time range and time slices operations",LOG);
   }
 
-  bool supportsTimeRangeOperation() {
+  bool supportsTimeRangeOperation() override {
 	  return false;
 	}
 

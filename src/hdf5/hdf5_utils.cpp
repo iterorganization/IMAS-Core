@@ -5,6 +5,7 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
+#include <errno.h>
 #include <boost/filesystem.hpp>
 
 using namespace boost::filesystem;
@@ -178,7 +179,10 @@ void HDF5Utils::deleteIDSFile(const std::string &filePath) {
 void HDF5Utils::deleteMasterFile(const std::string &filePath, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path) {
 
     if (exists(filePath.c_str())) {
-        openMasterFile(file_id, filePath);
+        openMasterFile(file_id, filePath, true);
+        if (*file_id == -1) {
+            return;
+        }
         initExternalLinks(file_id, opened_IDS_files, files_directory, relative_file_path);
         deleteIDSFiles(opened_IDS_files, files_directory, relative_file_path);
         closeMasterFile(file_id);
@@ -237,7 +241,7 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
 
 }
 
-void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only) {
+void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only, std::string backend_version) {
     if (!exists(IDSpulseFile.c_str()))
 	    return;
     *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
@@ -254,15 +258,26 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
 			}
         }
         else {
-		    char error_message[200];
-		    sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
-		    throw ALBackendException(error_message, LOG);
+		    if (errno == EAGAIN || errno == EACCES || errno == EBUSY) {
+                char error_message[200];
+		        sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
+                throw ALBackendException(error_message, LOG);
+            }
+            else {
+                //H5Eprint(H5E_DEFAULT, stderr);
+                remove(IDSpulseFile.c_str());
+                *IDS_file_id = -2;
+
+                createIDSFile(ctx, IDSpulseFile, backend_version, IDS_file_id);
+
+            }
+            
 	        
         }
     }
 }
 
-void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //open master file
+void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool for_deletion) { //open master file
     if (*file_id != -1)
       return;
     if (!exists(filePath)) {
@@ -276,13 +291,18 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath) { //
     if (*file_id < 0) { //have a try now in read only access
         *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
         if (*file_id < 0) {
-            std::string message("Unable to open HDF5 master file: ");
-            message += filePath;
-            throw ALBackendException(message, LOG);
+            if (for_deletion) {
+                remove(filePath.c_str());
+                printf("WARNING: The HDF5 master file '%s' was corrupted and re-created, but linked \
+                IDS h5 files may remain and would need to be removed manually unless replaced by subsequent write operations.\n", filePath.c_str());
+                *file_id = -1;
+                return;
+            } else {
+                std::string message("Unable to open HDF5 master file: ");
+                message += filePath;
+                throw ALBackendException(message, LOG);
+            }
         }
-		else {
-			//printf("master file read successfully with file_id=%d\n", *file_id);
-		}
     }
     
 }
@@ -375,17 +395,8 @@ herr_t file_info(hid_t loc_id, const char *IDS_link_name, const H5L_info_t * lin
     std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(od->files_directory, od->relative_file_path, std::string(IDS_link_name));
     if (exists(IDSpulseFile.c_str())) {
         hid_t IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        if (IDS_file_id < 0) {
-            std::string message("Unable to open external file: ");
-            message += IDSpulseFile;
-            throw ALBackendException(message, LOG);
-       
-            /*if (!od->mode) {
-                if (H5Lexists(IDS_file_id, IDS_link_name, H5P_DEFAULT) > 0)
-                    H5Ldelete(IDS_file_id, IDS_link_name, H5P_DEFAULT);
-            }*/
-        }
-        hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
+        if (IDS_file_id >= 0)
+            hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name); //closing the IDS file
     }
     od->link_names[od->count] = (char *) malloc(100);
     strcpy(od->link_names[od->count], IDS_link_name);
@@ -755,5 +766,3 @@ void HDF5Utils::readOptions(uri::Uri uri, bool *compression_enabled, bool *readB
       *write_cache = (size_t) (atof(value.c_str()) * 1024 * 1024);
     }
 }
-
-

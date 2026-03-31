@@ -1,6 +1,10 @@
 # CMake build configuration for Access Layer core
 cmake_minimum_required(VERSION 3.21)
 
+if(POLICY CMP0144)
+  cmake_policy(SET CMP0144 NEW)
+endif()
+
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.30)
   cmake_policy(SET CMP0167 NEW) # Use system BoostConfig instead of cmake FindBoost
 endif()
@@ -69,10 +73,9 @@ if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
   message("Building a development version of the Access Layer core")
 endif()
 
-if(APPLE)
-  # Disable extra backends for now:
-  message(STATUS "Disabling UDA and MDSPlus backends on macOS")
-  set(AL_BACKEND_UDA OFF CACHE BOOL "UDA backend" FORCE)    
+if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+  # Disable MDSPlus:
+  message(STATUS "Disabling MDSPlus backend on macOS")
   set(AL_BACKEND_MDSPLUS OFF CACHE BOOL "MDSPlus backend" FORCE)    
 endif()
 
@@ -81,7 +84,42 @@ endif()
 # ##############################################################################
 
 if(WIN32)
-  find_package(PThreads4W CONFIG REQUIRED)
+  # Ensure vcpkg paths are in CMAKE_PREFIX_PATH for finding packages
+  if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
+    list(APPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+    message(STATUS "al-core: Added CMAKE_PREFIX_PATH: ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}")
+  else()
+    # Try to auto-detect vcpkg installed directory from build path
+    if(CMAKE_CURRENT_BINARY_DIR MATCHES "(.*/build)/")
+      set(_BUILD_DIR "${CMAKE_MATCH_1}")
+      set(_VCPKG_PATH "${_BUILD_DIR}/vcpkg_installed/x64-windows")
+      if(EXISTS "${_VCPKG_PATH}")
+        list(APPEND CMAKE_PREFIX_PATH "${_VCPKG_PATH}")
+        message(STATUS "al-core: Auto-detected vcpkg path: ${_VCPKG_PATH}")
+        
+        # Set PKG_CONFIG_EXECUTABLE for vcpkg's pkgconf
+        if(EXISTS "${_VCPKG_PATH}/tools/pkgconf/pkgconf.exe")
+          set(PKG_CONFIG_EXECUTABLE "${_VCPKG_PATH}/tools/pkgconf/pkgconf.exe" CACHE FILEPATH "pkg-config executable")
+          message(STATUS "al-core: Set PKG_CONFIG_EXECUTABLE to ${PKG_CONFIG_EXECUTABLE}")
+        endif()
+      endif()
+    endif()
+  endif()
+  
+  message(STATUS "al-core: CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
+  
+  # Add cmake module path for FindPThreads4W.cmake fallback
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/common/cmake")
+  
+  # Try CONFIG mode first, fall back to MODULE mode
+  find_package(PThreads4W CONFIG QUIET)
+  if(NOT PThreads4W_FOUND)
+    message(STATUS "PThreads4W CONFIG not found, trying MODULE mode")
+    find_package(PThreads4W MODULE REQUIRED)
+  else()
+    message(STATUS "Found PThreads4W via CONFIG mode")
+  endif()
+  
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
@@ -115,6 +153,7 @@ set(PUBLIC_HEADER_FILES
     include/readback_plugin_feature.h
     include/uri_parser.h
     include/data_interpolation.h
+    include/fix_include_windows.h
     # al_defs.h is generated in the binary folder with configure_file:
     ${CMAKE_CURRENT_BINARY_DIR}/include/al_defs.h)
 

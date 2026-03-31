@@ -1428,7 +1428,7 @@ static char *getPathInfo(MDSplus::Data *data, MDSplus::TreeNode *refNode)
 		std::string translatedBaseStr(translatedBase);
 		if(originalIdsPath == "")
 		{
-		    char *origPath = getenv(szPath);
+		    char *origPath = getenv("MDSPLUS_MODELS_PATH");
 		    if(origPath)
 		        originalIdsPath = origPath; 
 		}
@@ -1495,7 +1495,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	
 	if(originalIdsPath == "")  //Do it only once in case it is defined
 	{
-	    char *origPath = getenv(szPath);
+	    char *origPath = getenv("MDSPLUS_MODELS_PATH");
 	    if(origPath)
 	    	originalIdsPath = origPath; 
 	}
@@ -4930,6 +4930,10 @@ void MDSplusBackend::get_occurrences(Context* ctx, const char* ids_name, int** o
 	for (size_t i = 0; i < occurrences.size(); i++) 
 		p[i] = occurrences[i];
 	*size = occurrences.size();
+}
+
+void MDSplusBackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+    throw ALBackendException("list_filled_paths is not implemented in the MDSplus Backend", LOG);
 }
 
  void MDSplusBackend::fullPath(Context *ctx, std::string &path) {

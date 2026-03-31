@@ -1168,35 +1168,43 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
         int size[H5S_MAX_RANK]; 
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
         int strings_count = size[0];
-        std::vector<char*> t(strings_count, NULL);
-        status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **) &t[0]);
+        if (strings_count <= 0) {
+          // No strings to read - allocate an empty result
+          *data = (void*)malloc(1);
+          ((char*)*data)[0] = '\0';
+          status = 0;
+        } else {
+          std::vector<char*> t(strings_count, NULL);
+          status =
+              H5Dread(dataset_id, hsSelectionReader.dtype_id,
+                      hsSelectionReader.memspace, hsSelectionReader.dataspace,
+                      H5P_DEFAULT, (char**)&t[0]);
 
-        std::vector<std::string> strs(strings_count);
-        int maxlength = 0;
-        for (int i = 0; i < strings_count; i++) {
-             if (t[i] != NULL)
-                strs[i] = std::string(t[i]);
-             else {
-                strs[i] = std::string("");
-                continue;
-             }
-             //printf("strs[%d]=%s\n", i, strs[i].c_str());
-             if ((int) strs[i].length() > maxlength)
-                maxlength = strs[i].length();
+          std::vector<std::string> strs(strings_count);
+          int maxlength = 0;
+          for (int i = 0; i < strings_count; i++) {
+            if (t[i] != NULL)
+              strs[i] = std::string(t[i]);
+            else {
+              strs[i] = std::string("");
+              continue;
+            }
+            // printf("strs[%d]=%s\n", i, strs[i].c_str());
+            if ((int)strs[i].length() > maxlength) maxlength = strs[i].length();
+          }
+          // allocate 1 additional char so all strings are definitely
+          // null-terminated:
+          *data = (void*)malloc(sizeof(char) * (strings_count * maxlength + 1));
+          char* p = (char*)*data;
+          memset(p, 0, strings_count * maxlength + 1);
+          for (int i = 0; i < strings_count; i++) {
+            char* q = const_cast<char*>(strs[i].data());
+            memcpy(p + i * maxlength, q, strs[i].length());
+          }
+          for (int i = 0; i < strings_count; i++) free(t[i]);
+          size[1] = maxlength;
+          hsSelectionReader.setSize(size, 2);
         }
-        // allocate 1 additional char so all strings are definitely null-terminated:
-        *data = (void*) malloc(sizeof(char) * (strings_count * maxlength + 1));
-        char* p = (char *) *data;
-        memset(p, 0, strings_count * maxlength + 1);
-        for(int i=0; i < strings_count; i++)
-		{
-			char* q = const_cast<char *> (strs[i].data());
-			memcpy(p + i * maxlength, q, strs[i].length());
-		}
-        for (int i = 0; i < strings_count; i++)
-          free(t[i]);
-        size[1] = maxlength;
-        hsSelectionReader.setSize(size, 2);
     }
         
     if (status < 0) {

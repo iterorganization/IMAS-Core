@@ -34,8 +34,8 @@ endif()
 if(NOT DEFINED CMAKE_CXX_STANDARD)
   set( CMAKE_CXX_STANDARD 17 )
 endif()
-if( CMAKE_CXX_COMPILER_ID STREQUAL "Intel" )
-  # icpc options
+if( CMAKE_CXX_COMPILER_ID STREQUAL "Intel" OR CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" )
+  # icpc/icpx options
   string( APPEND CMAKE_CXX_FLAGS
     # " -Wall"
   )

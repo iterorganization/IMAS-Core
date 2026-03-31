@@ -39,7 +39,7 @@ class HDF5Utils {
     std::string getPulseFilePath(DataEntryContext * ctx, int mode, int strategy, std::string & files_directory, std::string & relative_file_path);
     void deleteIDSFiles(std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     void createMasterFile(DataEntryContext * ctx, std::string &filePath, hid_t *file_id, std::string &backend_version);
-    void openMasterFile(hid_t *file_id, const std::string &filePath);
+    void openMasterFile(hid_t *file_id, const std::string &filePath, bool for_deletion = false);
     void initExternalLinks(hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string &files_directory, std::string &relative_file_path);
 
   public:
@@ -58,7 +58,7 @@ class HDF5Utils {
     bool pulseFileExists(const std::string &IDS_pulse_file);
     void closeMasterFile(hid_t *file_id);
     void removeLinkFromMasterPulseFile(hid_t &file_id, const std::string &link_name);
-    void openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only);
+    void openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only, std::string backend_version = "");
     void closeIDSFile(hid_t pulse_file_id, const std::string &external_link_name) ;
     void createIDSFile(OperationContext * ctx, std::string &IDSpulseFile, std::string &backend_version, hid_t *IDS_file_id);
     void removeLinkFromIDSPulseFile(hid_t &IDS_file_id, const std::string &IDS_link_name);

@@ -176,6 +176,17 @@ public:
 
 
   /**
+     Get a list of all Data Dictionary paths for which some data is filled.
+     This function is only implemented for tensorizing backends (i.e. the HDF5 backend).
+     @param[in] dataobjectname IDS name and occurrence
+     @param[in,out] path_list list of c-style strings (ending with a null byte)
+     @param[in,out] size specify the size of the array (number of elements)
+     @throw BackendException
+  */
+  virtual void list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) = 0;
+
+
+  /**
     Returns true if the backend performs time data interpolation (e.g time slices operations or IMAS-3885 with data resampling), false otherwise.
   **/
   virtual bool supportsTimeDataInterpolation() = 0;
