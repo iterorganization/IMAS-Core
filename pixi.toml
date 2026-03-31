@@ -1,0 +1,82 @@
+[workspace]
+channels = ["conda-forge"]
+name = "imas-core"
+platforms = ["osx-arm64", "osx-64", "linux-64", "win-64"]
+
+[tasks]
+setup = { cmd = [
+    "meson",
+    "setup",
+    "builddir",
+], description = "Setup the build directory" }
+
+build = { cmd = [
+    "meson",
+    "compile",
+    "-C",
+    "builddir",
+], description = "Build the project" }
+
+install = { cmd = [
+    "meson",
+    "install",
+    "-C",
+    "builddir",
+    "--destdir",
+    "{{ destdir }}",
+], args = [
+    { arg = "destdir", default = "build-install" },
+], description = "Install the project" }
+
+test = { cmd = [
+    "meson",
+    "test",
+    "-C",
+    "builddir",
+    "--verbose",
+    "--print-errorlogs",
+], description = "Run the tests", depends-on = [
+    { task = "setup", args = [
+        "--reconfigure",
+        "-Dal_dummy_exe=true",
+    ] },
+] }
+
+
+[target.unix.activation.env]
+BOOST_INCLUDEDIR = "$CONDA_PREFIX/include"
+BOOST_LIBRARYDIR = "$CONDA_PREFIX/lib"
+
+[target.win-64.activation.env]
+BOOST_INCLUDEDIR = "%CONDA_PREFIX%/Library/include"
+BOOST_LIBRARYDIR = "%CONDA_PREFIX%/Library/lib"
+
+[dependencies]
+# Compiler
+cxx-compiler = ">=1.11.0,<2"
+
+# Build tools
+meson = ">=1.9.1,<2"
+ninja = ">=1.13.2,<2"
+pkg-config = ">=0.29.2,<0.30"
+setuptools-scm = ">=9.2.2,<10"
+
+# Link Libraries
+libboost-devel = ">=1.88.0,<2"
+hdf5 = ">=1.14.6,<2"
+uda-cpp = ">=2.9.3,<3"
+libxml2-devel = ">=2.15.1,<3"
+zlib = ">=1.3.1,<2"
+
+# Link and Tools for the python wrapper
+python = ">=3.14.1,<3.15"
+numpy = ">=2.3.5,<3"
+cython = ">=3.2.2,<4"
+
+[target.win-64.dependencies]
+# Build tools
+cmake = ">=4.2.1,<5"
+
+# Link Libraries
+dlfcn-win32 = ">=1.4.2,<2"
+pthreads-win32 = "*"

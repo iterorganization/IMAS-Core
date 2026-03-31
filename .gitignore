@@ -44,3 +44,7 @@ python/lib/
 /.venv/
 /vcpkg/
 /UDA-*/
+# pixi environments
+.pixi/*
+!.pixi/config.toml
+pixi.lock
