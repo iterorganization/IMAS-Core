@@ -43,6 +43,10 @@ if host_system == 'windows'
     cxx.find_library('pthreads'),
     dependency('dlfcn-win32', modules: ['dlfcn-win32::dl'], method: 'cmake'),
   ]
+else
+  core_deps += [
+    dependency('dl'),
+  ]
 endif
 
 # =============================================================================
