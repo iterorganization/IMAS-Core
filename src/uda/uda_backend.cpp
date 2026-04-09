@@ -1332,6 +1332,7 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
     ss << plugin_
        << "::getOccurrences("
        << "uri='" << uri << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(OPEN_PULSE) << "'"
        << ", ids='" << ids_name << "'"
        << ")";
 
@@ -1390,6 +1391,7 @@ void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, cha
     ss << plugin_
        << "::listFilledPaths("
        << "uri='" << uri << "'"
+       << ", mode='" << imas::uda::convert_imas_to_uda<imas::uda::OpenMode>(OPEN_PULSE) << "'"
        << ", ids='" << dataobjectname << "'"
        << ")";
 
