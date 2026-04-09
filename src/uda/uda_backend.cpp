@@ -17,6 +17,7 @@
 
 #include <string>
 #include <random>
+#include "al_utilities.h"
 
 using namespace semver::literals;
 
@@ -1258,6 +1259,54 @@ std::vector<int> read_occurrences(NodeReader *node) {
     return occurrences;
 }
 
+std::vector<std::string> read_filled_paths(NodeReader *node) {
+    std::vector<std::string> paths;
+
+    // Read the shape
+    std::vector<size_t> shape_vec(1);
+    uda_capnp_read_shape(node, shape_vec.data());
+    const size_t total_bytes = std::accumulate(shape_vec.begin(), shape_vec.end(), 1, std::multiplies<size_t>());
+
+    // For empty buffers, return empty list
+    if (total_bytes == 0) {
+        return paths;
+    }
+
+    const char *name = uda_capnp_read_name(node);
+    if (name != nullptr && std::string(name) != "filled_paths") {
+        throw imas::uda::CacheException("Invalid node: " + std::string(name));
+    }
+
+    bool eos = uda_capnp_read_is_eos(node);
+    if (!eos) {
+        throw imas::uda::CacheException("UDA backend does not currently handle streamed data");
+    }
+
+    size_t num_slices = uda_capnp_read_num_slices(node);
+    if (num_slices != 1) {
+        throw imas::uda::CacheException("Incorrect number of slices for filled_paths node");
+    }
+
+    // Read the data slice
+    size_t slice_size = uda_capnp_read_slice_size(node, 0);
+    if (slice_size != total_bytes) {
+        throw imas::uda::CacheException("Slice size does not match total bytes for filled_paths");
+    }
+
+    std::vector<char> buffer(total_bytes);
+    uda_capnp_read_data(node, 0, buffer.data());
+
+    const char* ptr = buffer.data();
+    const char* end = ptr + total_bytes;
+
+    while (ptr < end && *ptr != '\0') {
+        std::string path(ptr);
+        paths.push_back(path);
+        ptr += strlen(ptr) + 1;
+    }
+
+    return paths;
+}
 } // anon namespace
 
 void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) {
@@ -1311,5 +1360,67 @@ void UDABackend::get_occurrences(Context* ctx, const char* ids_name, int** occur
 }
 
 void UDABackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
-    throw ALBackendException("list_filled_paths is not implemented in the UDA Backend", LOG);
+
+    *size = 0;
+    *path_list = nullptr;
+
+    if (access_local_) {
+        return local_backend_->list_filled_paths(ctx, dataobjectname, path_list, size);
+    }
+
+    if (verbose_) {
+        std::cout << "UDABackend list_filled_paths\n";
+    }
+
+    auto query = ctx->getURI().query;
+    std::string backend = get_backend(query);
+    if (backend != "hdf5") {
+        throw ALException("UDABackend only supports HDF5 backend for list_filled_paths API", LOG);
+    }
+    
+    query.remove("backend");
+    query.remove("cache_mode");
+    query.remove("verbose");
+    std::string dd_version = query.get("dd_version").value_or(dd_version_);
+    query.set("dd_version", dd_version);
+    std::string uri = "imas:" + backend + "?" + query.to_string();
+
+    std::stringstream ss;
+
+    ss << plugin_
+       << "::listFilledPaths("
+       << "uri='" << uri << "'"
+       << ", ids='" << dataobjectname << "'"
+       << ")";
+
+    const std::string directive = ss.str();
+
+    if (verbose_) {
+        std::cout << "UDABackend request: " << directive << "\n";
+    }
+
+    try {
+        const uda::Result& result = uda_client_.get(directive, "");
+        
+        if (result.errorCode() == 0 && result.uda_type() == UDA_TYPE_CAPNP) {
+            const char* data = result.raw_data();
+            const size_t result_size = result.size();
+            
+            // If buffer is empty, return empty path list
+            if (result_size == 0) {
+                return;
+            }
+            
+            const auto tree = uda_capnp_deserialise(data, result_size);
+            const auto root = uda_capnp_read_root(tree);
+
+            auto paths = read_filled_paths(root);
+            // Allocate and copy paths to C list
+            utilities::copy_stringvector_to_c_list(paths, path_list, size);
+
+            uda_capnp_free_tree_reader(tree);
+        }
+    } catch (const uda::UDAException& ex) {
+        throw ALException(ex.what(), LOG);
+    }
 }
