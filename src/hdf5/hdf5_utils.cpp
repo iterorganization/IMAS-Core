@@ -101,6 +101,7 @@ int
             sprintf(error_message, "Unable to read attribute: %s\n", backend_version_attribute_name);
             throw ALBackendException(error_message, LOG);
         }
+        version[attr_size] = '\0';
         backend_version = version.c_str();
         H5Tclose(dtype_id);
         H5Aclose(att_id);
