@@ -23,9 +23,8 @@ option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
 option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
-include(CMakeDependentOption)
-cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
-AL_BACKEND_MDSPLUS OFF)
+# User can build MDSPLUS models without having AL_BACKEND_MDSPLUS enabled
+option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" OFF)
 
 # Configuration options for python bindings
 # ##############################################################################
@@ -73,10 +72,13 @@ if(NOT PROJECT_VERSION_TWEAK EQUAL 0)
   message("Building a development version of the Access Layer core")
 endif()
 
-if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "arm64")
+if(APPLE)
   # Disable MDSPlus:
   message(STATUS "Disabling MDSPlus backend on macOS")
   set(AL_BACKEND_MDSPLUS OFF CACHE BOOL "MDSPlus backend" FORCE)    
+  # Disable UDA:
+  message(STATUS "Disabling UDA backend on macOS")
+  set(AL_BACKEND_UDA OFF CACHE BOOL "UDA backend" FORCE)    
 endif()
 
 
@@ -122,6 +124,9 @@ if(WIN32)
   
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
+
+# build AL_CORE library only if backend is enabled
+if(AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
 
 # Core dependencies
 set(Boost_USE_MULTITHREADED FALSE)
@@ -238,6 +243,8 @@ install(TARGETS imas_print_version DESTINATION bin)
 if(AL_PYTHON_BINDINGS)
   include(skbuild.cmake)
 endif()
+
+endif() # AL core library (AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
 
 
 # MDSplus models
