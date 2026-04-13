@@ -146,6 +146,17 @@ cmake -Bbuild -GNinja -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="$(pwd)/tes
 cmake --build build --target install
 ```
 
+### `AL_PYTHON_BINDINGS` options
+
+This CMake option controls how the `imas_core` Python package is built.
+
+| Value | When to use |
+|---|---|
+| `ON` | (default) pip builds the wheel in an isolated environment and downloads build dependencies automatically. |
+| `no-build-isolation` | `numpy` etc build dependencies are already available in the environment. |
+| `editable` or `e` | Development. Installs `imas_core` in editable mode (`pip install --editable`) | 
+
+
 See [Developer Guide](docs/source/developers/index.rst) for detailed instructions.
 
 ## Links
