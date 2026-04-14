@@ -4496,7 +4496,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      } catch(MDSplus::MdsException &exc) {
 		if (mode!=alconst::force_open_pulse) {
 		  resetIdsPath(szTree);
-		  throw  ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+		  std::string hint;
+		  const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
+		  if (!modelsPath || !*modelsPath) {
+		    hint = " -- MDSPLUS_MODELS_PATH is not set; set it to the MDSplus models directory (e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus)";
+		  }
+		  throw  ALBackendException(exc.what()+mdsplusBaseStr+hint,LOG);
 		}
 	      }
 	  case alconst::create_pulse:
@@ -4509,6 +4514,17 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	    } catch (const std::exception& exc) {
 	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
 	    }
+	    {
+	      const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
+	      if (!modelsPath || !*modelsPath) {
+	        resetIdsPath(szTree);
+	        throw ALBackendException(
+	          std::string("MDSPLUS_MODELS_PATH is not set. Set it to the MDSplus models directory "
+	          "(e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus) "
+	          "before creating a pulse file."),
+	          LOG);
+	      }
+	    }
 	    try {
 	      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
 	      modelTree->createPulse(shotNum);
@@ -4517,7 +4533,12 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 	      saveVersion(tree);
 	    } catch(MDSplus::MdsException &exc) {
 	      resetIdsPath(szTree);
-	      throw ALBackendException(exc.what()+mdsplusBaseStr,LOG);
+	      std::string hint;
+	      const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
+	      if (!modelsPath || !*modelsPath) {
+	        hint = " -- MDSPLUS_MODELS_PATH is not set; set it to the MDSplus models directory (e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus)";
+	      }
+	      throw ALBackendException(exc.what()+mdsplusBaseStr+hint,LOG);
 	    }
 	    break;
 	  default:
