@@ -213,6 +213,8 @@ void DataEntryContext::setBackendID(const std::string &path, const std::string &
         backend_id = MEMORY_BACKEND;
     } else if (path =="flexbuffers") {
         backend_id = FLEXBUFFERS_BACKEND;
+    } else if (path == "grpc" || path == "/grpc") {
+        backend_id = GRPC_BACKEND;
     } else if (path == "uda" || !host.empty()) {
         backend_id = UDA_BACKEND;
     } else {
@@ -276,6 +278,9 @@ std::string DataEntryContext::getURIBackend(int backend_id)
     }
     else if (backend_id == UDA_BACKEND) {
         return "uda";
+    }
+    else if (backend_id == GRPC_BACKEND) {
+        return "grpc";
     }
     else {
         throw ALContextException("getURIBackend, converting backend ID to backend URI string not yet implemented",LOG);
