@@ -23,8 +23,9 @@ option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
 option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
-# User can build MDSPLUS models without having AL_BACKEND_MDSPLUS enabled
-option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" OFF)
+include(CMakeDependentOption)
+cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
+AL_BACKEND_MDSPLUS OFF)
 
 # Configuration options for python bindings
 # ##############################################################################
