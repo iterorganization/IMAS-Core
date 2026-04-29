@@ -240,8 +240,30 @@ Configuration options
         ONLY the documentation will be built (needs ``AL_HLI_DOCS=ON``). Regardless of
         other configuration options, nothing else will be built.
     -   ``AL_PYTHON_BINDINGS``, allowed values ``ON`` *(default when building the Python
-        API)* or ``OFF`` *(default when not building the Python API)*. When enabled, this
-        builds the Access Layer Python lowlevel bindings.
+        API)* or ``OFF`` *(default when not building the Python API)*. This CMake option 
+        controls whether and how the `imas_core` Python package is built when installing 
+        through CMake.
+
+        | Value | When to use |
+        |---|---|
+        | `OFF` | Default for CMake builds. Build and install only the native IMAS-Core library, without Python bindings. |
+        | `ON` | Build the `imas_core` wheel using pip's normal build isolation. Build dependencies will be installed by pip. |
+        | `no-build-isolation` | Build the `imas_core` wheel using the current Python environment. Use this when build dependencies like `numpy` are already installed. |
+        | `editable` or `e` | Development mode. Install `imas_core` with `pip install --editable`, so Python changes can be used without reinstalling. |
+
+        When CMake installs the Python bindings, it first builds a local wheel and then
+        installs that wheel with `pip install --no-index --no-deps --find-links
+        <build>/dist`. 
+        `--no-index` prevents pip from searching PyPI or another package
+        index, and 
+        `--no-deps` prevents pip from installing or upgrading dependencies.
+        This keeps the CMake install step local and reproducible: only the wheel built
+        by this build is installed, and dependencies are expected to be provided by the
+        user's environment, EasyBuild or system installation.
+
+        When not using CMake to build the Python bindings, you can install the `imas_core` with `pip install .`
+        command without specifying above options. `imas_core` will install with pip's normal build isolation.
+
 
 -   **Dependency configuration options**
 
