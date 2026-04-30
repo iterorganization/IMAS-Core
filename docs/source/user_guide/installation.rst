@@ -259,7 +259,7 @@ Configuration options
         `--no-deps` prevents pip from installing or upgrading dependencies.
         This keeps the CMake install step local and reproducible: only the wheel built
         by this build is installed, and dependencies are expected to be provided by the
-        user's environment, EasyBuild or system installation.
+        user's environment or system installation.
 
         When not using CMake to build the Python bindings, you can install the `imas_core` with `pip install .`
         command without specifying above options. `imas_core` will install with pip's normal build isolation.
