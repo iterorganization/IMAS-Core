@@ -123,6 +123,9 @@ if(WIN32)
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
+# build AL_CORE library only if backend is enabled
+if(AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
+
 # Core dependencies
 set(Boost_USE_MULTITHREADED FALSE)
 find_package(
@@ -238,6 +241,8 @@ install(TARGETS imas_print_version DESTINATION bin)
 if(AL_PYTHON_BINDINGS)
   include(skbuild.cmake)
 endif()
+
+endif() # AL core library (AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
 
 
 # MDSplus models
