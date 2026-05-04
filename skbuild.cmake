@@ -52,6 +52,7 @@ set_target_properties(
 install(CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
 -m pip install imas_core
 --no-index
+--no-deps
 --prefix=${CMAKE_INSTALL_PREFIX}
 --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
 )"
