@@ -52,6 +52,11 @@ This backend imposes some limitations on the data that can be stored, see
     This backend has been around and stable for a longer time, so most older IMAS
     data is stored in this format.
 
+To map an existing MDSplus ``imasdb`` from the Access Layer 4 layout to the
+Access Layer 5 layout, use ``mdsplusIMASDB4to5``. For example,
+``mdsplusIMASDB4to5 --path $HOME/public --database ITER --dry-run`` shows the
+directory and link changes without modifying the data.
+
 
 .. _uda backend:
 
