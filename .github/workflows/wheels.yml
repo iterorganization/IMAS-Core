@@ -281,7 +281,7 @@ jobs:
           path: C:\vcpkg\installed
           key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
-      - uses: pypa/cibuildwheel@v3.1.0
+      - uses: pypa/cibuildwheel@v3.4.1
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
@@ -334,7 +334,7 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v3.1.0
+      - uses: pypa/cibuildwheel@v3.4.1
         if: startsWith(matrix.os, 'macos-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
