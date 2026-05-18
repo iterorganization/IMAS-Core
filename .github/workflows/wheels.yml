@@ -397,7 +397,7 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/p/imas-core
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-wheels-*
           merge-multiple: true  # avoid artifact subdirs below wheelhouse
@@ -424,7 +424,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/imas-core
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-wheels-*
           merge-multiple: true  # avoid artifact subdirs below wheelhouse
