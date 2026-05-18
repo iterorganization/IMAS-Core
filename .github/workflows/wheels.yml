@@ -199,7 +199,7 @@ jobs:
             FMT_REF: "11.1.4"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
