@@ -398,6 +398,15 @@ void FlexbuffersBackend::get_occurrences(
     throw ALBackendException("get_occurrences is not implemented in the Serialize Backend", LOG);
 }
 
+void FlexbuffersBackend::list_filled_paths(
+    Context* ctx,
+    const char* dataobjectname,
+    char*** path_list,
+    int* size
+) {
+    throw ALBackendException("list_filled_paths is not implemented in the Serialize Backend", LOG);
+}
+
 void FlexbuffersBackend::_start_vector() {
     _vector_starts.push(_builder->StartVector());
 }

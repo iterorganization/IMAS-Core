@@ -62,9 +62,14 @@ before-build = "bash ./ci/wheels/cibw_before_build_win.sh"
 repair-wheel-command = "bash ./ci/wheels/repair_windows.sh {wheel} {dest_dir}"
 
 [tool.cibuildwheel.macos.environment]
-CMAKE_PREFIX_PATH = "/opt/homebrew;/usr/local"
-PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
+CMAKE_PREFIX_PATH = "/tmp/imas-core-install:/opt/homebrew:/usr/local"
+PKG_CONFIG_PATH = "/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 MACOSX_DEPLOYMENT_TARGET = "14.0"
+AL_BACKEND_HDF5 = { env = "AL_BACKEND_HDF5", default = "ON" }
+AL_BACKEND_UDA = { env = "AL_BACKEND_UDA", default = "ON" }
+AL_BACKEND_MDSPLUS = { env = "AL_BACKEND_MDSPLUS", default = "OFF" }
+AL_BUILD_MDSPLUS_MODELS = { env = "AL_BUILD_MDSPLUS_MODELS", default = "OFF" }
+AL_PYTHON_BINDINGS = "ON"
 
 [tool.cibuildwheel.macos]
 archs = ["arm64"]

@@ -54,4 +54,6 @@ cdef extern from "al_lowlevel.h":
 
     al_status_t al_get_occurrences(int ctx, const char* ids_name, int **occurrences_list, int *size)
 
+    al_status_t al_list_filled_paths(int ctx, const char* dataobjectname, char*** path_list, int *size)
+
     const char* getALVersion()

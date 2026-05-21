@@ -1148,7 +1148,10 @@ else
 		throw ALBackendException(message, LOG);
 	}
 
-
+	void MemoryBackend::list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) {
+		std::string message("list_filled_paths() is not implemented in the MemoryBackend");
+		throw ALBackendException(message, LOG);
+	}
 
 //////////////////////////////////////////////////////////////////////////
 

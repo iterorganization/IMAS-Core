@@ -48,6 +48,7 @@ class IMAS_CORE_LIBRARY_API FlexbuffersBackend : public Backend
     void deleteData(OperationContext *ctx, std::string path) override;
     void beginArraystructAction(ArraystructContext *ctx, int *size) override;
     void get_occurrences(Context* ctx, const char* ids_name, int** occurrences_list, int* size) override;
+    void list_filled_paths(Context* ctx, const char* dataobjectname, char*** path_list, int* size) override;
     // timerange (get_sample) API is not supported:
     bool supportsTimeDataInterpolation() override { return false; }
     bool supportsTimeRangeOperation() override { return false; }

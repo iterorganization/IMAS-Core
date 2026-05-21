@@ -86,7 +86,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
 
           - os: macos-14
@@ -97,7 +97,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
         
           - os: macos-14
@@ -108,7 +108,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: macos-14
@@ -119,7 +119,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: macos-14
@@ -130,7 +130,7 @@ jobs:
             cibw_archs: arm64
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
           - os: windows-2022
@@ -199,7 +199,7 @@ jobs:
             FMT_REF: "11.1.4"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
@@ -213,7 +213,7 @@ jobs:
       #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
       #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '')
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           # python installation used when to start cibuildwheel
           python-version: "3.12"
@@ -226,7 +226,7 @@ jobs:
 
       - name: Restore cibuildwheel cache
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~\AppData\Local\pypa\cibuildwheel\Cache
@@ -238,7 +238,7 @@ jobs:
       - name: Cache restore windows deps
         if: startsWith(matrix.os, 'windows')
         id: cache-win-deps
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         env:
           cache-name: win-deps
         with:
@@ -274,14 +274,14 @@ jobs:
         # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
         if: ${{ always()  && startsWith(matrix.os, 'windows') }}
         id: cache-win-deps-save
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         env:
           cache-name: win-deps
         with:
           path: C:\vcpkg\installed
           key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
-      - uses: pypa/cibuildwheel@v3.1.0
+      - uses: pypa/cibuildwheel@v3.4.1
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
@@ -334,7 +334,7 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v3.1.0
+      - uses: pypa/cibuildwheel@v3.4.1
         if: startsWith(matrix.os, 'macos-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
@@ -347,10 +347,15 @@ jobs:
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
 
-          # Dependency installationinto /tmp
+          # Dependency installation into /tmp/imas-core-install
           CIBW_BEFORE_ALL_MACOS: >
             brew update >&2;
-            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl capnp libmemcached >&2;
+            brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl libmemcached >&2;
+            git clone -b master https://github.com/capnproto/capnproto.git >&2 &&
+            cd capnproto >&2;
+            cmake -B build . \
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
+            cmake --build build --target install -j >&2;
             git clone --depth 1 --branch ${{ matrix.UDA_REF }} https://github.com/ukaea/UDA.git >&2 &&
             cd UDA >&2;
             cmake -G Ninja -B build . \
@@ -359,21 +364,21 @@ jobs:
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
                 -DMACOSX_DEPLOYMENT_TARGET=14.0 \
-                -DCMAKE_INSTALL_PREFIX=/tmp/uda-install >&2 &&
+                -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
             MACOSX_DEPLOYMENT_TARGET=14.0
-            CMAKE_PREFIX_PATH="/tmp/uda-install:/opt/homebrew:/usr/local"
-            PKG_CONFIG_PATH="/tmp/uda-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
+            CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
+            PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
         with:
           package-dir: .
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-wheels-cp${{ matrix.python }}-${{ matrix.platform_id }}
           path: wheelhouse/*.whl
@@ -392,7 +397,7 @@ jobs:
       name: testpypi
       url: https://test.pypi.org/p/imas-core
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-wheels-*
           merge-multiple: true  # avoid artifact subdirs below wheelhouse
@@ -419,7 +424,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/imas-core
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cibw-wheels-*
           merge-multiple: true  # avoid artifact subdirs below wheelhouse

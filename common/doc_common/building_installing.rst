@@ -227,9 +227,10 @@ Configuration options
     -   ``AL_BACKEND_MDSPLUS``, allowed values ``ON`` or ``OFF`` *(default)*.
         Enable/disable the MDSplus backend.
 
-        -   ``AL_BUILD_MDSPLUS_MODELS``, allowed values ``ON`` *(default)* or ``OFF``,
-            only available when the MDSplus backend is enabled. Enable building MDSplus
-            models for the selected Data Dictionary version.
+        -   ``AL_BUILD_MDSPLUS_MODELS``, allowed values ``ON`` or ``OFF``.
+            Enable building MDSplus models for the selected Data Dictionary version.
+            Defaults to ``ON`` when ``AL_BACKEND_MDSPLUS`` is enabled, ``OFF`` otherwise.
+            Can be overridden by user to explicitly enable or disable building MDSplus models.
 
     -   ``AL_BACKEND_UDA``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         the UDA backend.
