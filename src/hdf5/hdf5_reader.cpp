@@ -1338,7 +1338,6 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
         std::unique_ptr<HDF5DataSetHandler> new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         new_data_set->open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
 
-        // Validate _SHAPE dataset rank before any index arithmetic.
         {
             int shape_rank = new_data_set->getRank();
             int expected_rank = static_cast<int>(aos_indices.size()) + 1;
@@ -1346,10 +1345,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
                 throw ALBackendException(
                     "HDF5Backend: SHAPE dataset '" + tensorized_path
                     + "' has rank " + std::to_string(shape_rank)
-                    + " but rank " + std::to_string(expected_rank) + " was expected. "
-                    "The file was likely written by a direct HDF5/h5py writer or an "
-                    "incompatible imas-python version that uses a different _SHAPE rank "
-                    "convention. Re-generate the file using a supported imas-python release.",
+                    + " but rank " + std::to_string(expected_rank) + " was expected. ",
                     LOG);
             }
         }
