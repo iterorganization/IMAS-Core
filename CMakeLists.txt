@@ -35,6 +35,13 @@ endif()
 # ##############################################################################
 option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
+# When ON, the al C++ library is not built here; instead it is located with
+# find_package(al-core CONFIG). Enables a two-stage build where libimas-core
+# (the C/C++ library) and imas-core (the Python wrapper) are packaged
+# separately, e.g. as two conda packages.
+option(AL_USE_INSTALLED_CORE
+       "Link Python bindings against a pre-installed al-core (find_package)" OFF)
+
 
 # Configuration options for shared libraries
 # ##############################################################################
@@ -127,8 +134,19 @@ if(WIN32)
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
-# build AL_CORE library only if backend is enabled
-if(AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
+# Two-stage build entry: locate a pre-installed al-core instead of building it.
+# Exposes target `al-core::al` and an unqualified alias `al` so the python/
+# subdirectory and any consumers can link to `al` transparently.
+if(AL_USE_INSTALLED_CORE)
+  find_package(al-core CONFIG REQUIRED)
+  if(NOT TARGET al)
+    add_library(al ALIAS al-core::al)
+  endif()
+endif()
+
+# build AL_CORE library only if backend is enabled and we are not reusing an
+# already-installed al-core
+if((AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS) AND NOT AL_USE_INSTALLED_CORE)
 
 # Core dependencies
 set(Boost_USE_MULTITHREADED FALSE)
@@ -199,12 +217,41 @@ add_dependencies( imas_print_version al )
 # ##############################################################################
 
 # Install al library
+include(GNUInstallDirs)
 install(
   TARGETS al
+  EXPORT al-coreTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   COMPONENT core
+)
+
+# Export CMake package config so downstream projects (notably the Python
+# wrapper built with AL_USE_INSTALLED_CORE=ON) can `find_package(al-core CONFIG)`.
+include(CMakePackageConfigHelpers)
+set(_al_core_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/al-core)
+install(
+  EXPORT al-coreTargets
+  FILE al-coreTargets.cmake
+  NAMESPACE al-core::
+  DESTINATION ${_al_core_cmake_dir}
+)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/al-coreConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfig.cmake
+  INSTALL_DESTINATION ${_al_core_cmake_dir}
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfigVersion.cmake
+  DESTINATION ${_al_core_cmake_dir}
 )
 
 # TODO: put public heades in a separate directory?
@@ -240,13 +287,14 @@ install(DIRECTORY common TYPE DATA)
 # Install Dummy
 install(TARGETS imas_print_version DESTINATION bin)
 
-# Scikit-build-core entry point for python bindings
+endif() # AL core library: (AL_BACKEND_* OR AL_PYTHON_BINDINGS) AND NOT AL_USE_INSTALLED_CORE
+
+# Scikit-build-core entry point for python bindings — works whether `al` was
+# just built here or imported via find_package(al-core).
 # ##############################################################################
 if(AL_PYTHON_BINDINGS)
   include(skbuild.cmake)
 endif()
-
-endif() # AL core library (AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS)
 
 
 # MDSplus models
