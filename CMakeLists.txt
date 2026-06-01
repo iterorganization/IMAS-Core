@@ -138,7 +138,19 @@ endif()
 # Exposes target `al-core::al` and an unqualified alias `al` so the python/
 # subdirectory and any consumers can link to `al` transparently.
 if(AL_USE_INSTALLED_CORE)
-  find_package(al-core CONFIG REQUIRED)
+  find_package(al-core CONFIG)
+  if(NOT al-core_FOUND)
+    message(FATAL_ERROR
+      "AL_USE_INSTALLED_CORE=ON requires an installed al-core that ships "
+      "al-coreConfig.cmake (introduced in IMAS-Core 5.7.1 or later). "
+      "find_package(al-core CONFIG) could not locate it.\n"
+      "Point CMAKE_PREFIX_PATH (or al-core_DIR) at an install prefix that "
+      "contains lib/cmake/al-core/al-coreConfig.cmake — typically the "
+      "stage-1 install tree of this branch. Releases built before this "
+      "change (e.g. IMAS-Core/5.6.0) only ship al-core.pc and will NOT "
+      "satisfy AL_USE_INSTALLED_CORE; either install stage 1 from source "
+      "or wait for a release that includes the CMake package config.")
+  endif()
   if(NOT TARGET al)
     add_library(al ALIAS al-core::al)
   endif()
