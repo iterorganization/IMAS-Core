@@ -8,6 +8,14 @@ python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
 target_link_libraries(al_defs PRIVATE Python::NumPy al)
 
+if(AL_USE_INSTALLED_CORE)
+  # libal is provided externally (e.g. the libimas-core conda package).
+  # Install only the Python extensions — the dynamic linker resolves libal
+  # at load time via the host's normal library search path / rpath.
+  install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
+  return()
+endif()
+
 # Handling RPATH in macOS:
 if(APPLE)
   set_target_properties(al PROPERTIES INSTALL_RPATH "@loader_path")
