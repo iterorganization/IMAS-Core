@@ -1085,11 +1085,21 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
     *data = (void*) malloc(shape*sizeof(int));
     if (rank != dim) {
         HDF5Utils hdf5_utils;
-        std::vector < int > indices = current_arrctx_indices;
-        indices.push_back(0);
-        int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        int index;
+        if (dim != 0) {
+            std::vector < int > indices = current_arrctx_indices;
+            indices.push_back(0);
+            index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        }
+        else {
+            // SHAPE-like datasets store one scalar per AOS cell: the index list
+            // already matches the dataset rank, so appending the trailing
+            // value-dimension index over-extends it and reads out of bounds.
+            // Mirrors the guard in fillFullBuffers().
+            index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        }
         memcpy(*data, v+index, shape*sizeof(int));
-        
+
     }
     else {
         memcpy(*data, v, shape*sizeof(int));
@@ -1108,11 +1118,21 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
     *data = (void*) malloc(shape*sizeof(double));
     if (rank != dim) {
         HDF5Utils hdf5_utils;
-        std::vector < int > indices = current_arrctx_indices;
-        indices.push_back(0);
-        int index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        int index;
+        if (dim != 0) {
+            std::vector < int > indices = current_arrctx_indices;
+            indices.push_back(0);
+            index = hdf5_utils.indices_to_flat_index(indices, hsSelectionReader.getDataSpaceDims());
+        }
+        else {
+            // SHAPE-like datasets store one scalar per AOS cell: the index list
+            // already matches the dataset rank, so appending the trailing
+            // value-dimension index over-extends it and reads out of bounds.
+            // Mirrors the guard in fillFullBuffers().
+            index = hdf5_utils.indices_to_flat_index(current_arrctx_indices, hsSelectionReader.getDataSpaceDims());
+        }
         memcpy(*data, v+index, shape*sizeof(double));
-    } 
+    }
     else {
         memcpy(*data, v, shape*sizeof(double));
     }
