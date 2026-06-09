@@ -5,15 +5,15 @@ find_package(protobuf CONFIG QUIET)
 find_package(gRPC CONFIG REQUIRED)
 
 # Code-generate C++ from the proto file.
-set(PROTO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/imas_backend.proto")
+set(PROTO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/imas.proto")
 
 set(PROTO_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${PROTO_GENERATED_DIR}")
 
-set(PROTO_SRCS  "${PROTO_GENERATED_DIR}/imas_backend.pb.cc")
-set(PROTO_HDRS  "${PROTO_GENERATED_DIR}/imas_backend.pb.h")
-set(GRPC_SRCS   "${PROTO_GENERATED_DIR}/imas_backend.grpc.pb.cc")
-set(GRPC_HDRS   "${PROTO_GENERATED_DIR}/imas_backend.grpc.pb.h")
+set(PROTO_SRCS  "${PROTO_GENERATED_DIR}/imas.pb.cc")
+set(PROTO_HDRS  "${PROTO_GENERATED_DIR}/imas.pb.h")
+set(GRPC_SRCS   "${PROTO_GENERATED_DIR}/imas.grpc.pb.cc")
+set(GRPC_HDRS   "${PROTO_GENERATED_DIR}/imas.grpc.pb.h")
 
 # Locate protoc and grpc_cpp_plugin.
 if(TARGET protobuf::protoc)

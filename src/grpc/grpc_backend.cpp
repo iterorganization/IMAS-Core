@@ -1,8 +1,8 @@
 #include "grpc_backend.h"
 
 // Generated headers only needed here, not in grpc_backend.h.
-#include "imas_backend.grpc.pb.h"
-#include "imas_backend.pb.h"
+#include "imas.grpc.pb.h"
+#include "imas.pb.h"
 
 #include "al_const.h"
 #include "al_defs.h"
@@ -21,7 +21,7 @@
 struct GRPCBackendImpl
 {
     std::shared_ptr<grpc::Channel>           channel;
-    std::unique_ptr<imas::ImasBackend::Stub> stub;
+    std::unique_ptr<imas_remote::ImasRemote::Stub> stub;
 
     // Returned by OpenPulse; passed in every subsequent RPC.
     std::string session_id;
@@ -51,7 +51,7 @@ GRPCBackend::GRPCBackend(const uri::Uri& uri) : impl_(std::make_unique<GRPCBacke
                                                               : grpc::InsecureChannelCredentials();
 
     impl_->channel = grpc::CreateChannel(target, creds);
-    impl_->stub    = imas::ImasBackend::NewStub(impl_->channel);
+    impl_->stub    = imas_remote::ImasRemote::NewStub(impl_->channel);
 }
 
 // Must be in the .cpp so unique_ptr can see the complete GRPCBackendImpl type.
@@ -108,12 +108,12 @@ static size_t byteCount(int datatype, int dim, const int* sizes)
 
 std::pair<int,int> GRPCBackend::getVersion(DataEntryContext* ctx)
 {
-    imas::GetVersionRequest req;
+    imas_remote::GetVersionRequest req;
     if (ctx != nullptr) {
         req.set_session_id(impl_->session_id);
     }
 
-    imas::GetVersionResponse resp;
+    imas_remote::GetVersionResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->GetVersion(&grpc_ctx, req, &resp), "getVersion");
 
@@ -126,11 +126,11 @@ std::pair<int,int> GRPCBackend::getVersion(DataEntryContext* ctx)
 
 void GRPCBackend::openPulse(DataEntryContext* ctx, int mode)
 {
-    imas::OpenPulseRequest req;
+    imas_remote::OpenPulseRequest req;
     req.set_uri(ctx->getURI().to_string());
     req.set_mode(mode);
 
-    imas::OpenPulseResponse resp;
+    imas_remote::OpenPulseResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->OpenPulse(&grpc_ctx, req, &resp), "openPulse");
 
@@ -143,11 +143,11 @@ void GRPCBackend::openPulse(DataEntryContext* ctx, int mode)
 
 void GRPCBackend::closePulse(DataEntryContext* /*ctx*/, int mode)
 {
-    imas::ClosePulseRequest req;
+    imas_remote::ClosePulseRequest req;
     req.set_session_id(impl_->session_id);
     req.set_mode(mode);
 
-    imas::StatusResponse resp;
+    imas_remote::StatusResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->ClosePulse(&grpc_ctx, req, &resp), "closePulse");
 
@@ -161,7 +161,7 @@ void GRPCBackend::closePulse(DataEntryContext* /*ctx*/, int mode)
 
 void GRPCBackend::beginAction(OperationContext* ctx)
 {
-    imas::BeginActionRequest req;
+    imas_remote::BeginActionRequest req;
     req.set_session_id(impl_->session_id);
     req.set_dataobject_name(ctx->getDataobjectName());
     req.set_datapath(ctx->getDatapath());
@@ -182,7 +182,7 @@ void GRPCBackend::beginAction(OperationContext* ctx)
         for (double t : dtime) req.add_dtime(t);
     }
 
-    imas::BeginActionResponse resp;
+    imas_remote::BeginActionResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->BeginAction(&grpc_ctx, req, &resp), "beginAction");
 
@@ -200,11 +200,11 @@ void GRPCBackend::endAction(Context* ctx)
         return;  // pulse/session contexts are not tracked in ctx_ids — nothing to do
     }
 
-    imas::EndActionRequest req;
+    imas_remote::EndActionRequest req;
     req.set_session_id(impl_->session_id);
     req.set_context_id(it->second);
 
-    imas::StatusResponse resp;
+    imas_remote::StatusResponse resp;
     grpc::ClientContext grpc_ctx;
     grpc::Status status = impl_->stub->EndAction(&grpc_ctx, req, &resp);
 
@@ -234,7 +234,7 @@ void GRPCBackend::writeData(Context* ctx, std::string fieldname, std::string tim
 //         throw ALBackendException(
 //             "GRPCBackend::writeData: CHAR_DATA dim>1 (arrays of strings) not yet supported", LOG);
 //
-//     imas::WriteDataRequest req;
+//     imas_remote::WriteDataRequest req;
 //     req.set_session_id(impl_->session_id);
 //     req.set_context_id(lookupContextId(impl_->ctx_ids, ctx));
 //     req.set_field_name(std::move(fieldname));
@@ -251,7 +251,7 @@ void GRPCBackend::writeData(Context* ctx, std::string fieldname, std::string tim
 //         : byteCount(datatype, dim, size);
 //     req.set_data(static_cast<const char*>(data), n_bytes);
 //
-//     imas::StatusResponse resp;
+//     imas_remote::StatusResponse resp;
 //     grpc::ClientContext grpc_ctx;
 //     checkRpcStatus(impl_->stub->WriteData(&grpc_ctx, req, &resp), "writeData");
 //
@@ -262,7 +262,7 @@ void GRPCBackend::writeData(Context* ctx, std::string fieldname, std::string tim
 int GRPCBackend::readData(Context* ctx, std::string fieldname, std::string timebasename, void** data,
                           int* datatype, int* dim, int* size)
 {
-    imas::ReadDataRequest req;
+    imas_remote::ReadDataRequest req;
     req.set_session_id(impl_->session_id);
     req.set_context_id(lookupContextId(impl_->ctx_ids, ctx));
     req.set_field_name(std::move(fieldname));
@@ -270,7 +270,12 @@ int GRPCBackend::readData(Context* ctx, std::string fieldname, std::string timeb
     req.set_data_type(*datatype);
     req.set_dim(*dim);
 
-    imas::ReadDataResponse resp;
+    auto arr_ctx = dynamic_cast<ArraystructContext*>(ctx);
+    if (arr_ctx != nullptr) {
+        req.set_array_index(arr_ctx->getIndex());
+    }
+
+    imas_remote::ReadDataResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->ReadData(&grpc_ctx, req, &resp), "readData");
 
@@ -306,12 +311,12 @@ void GRPCBackend::deleteData(OperationContext* ctx, std::string path)
 
 // void GRPCBackend::deleteData(OperationContext* ctx, std::string path)
 // {
-//     imas::DeleteDataRequest req;
+//     imas_remote::DeleteDataRequest req;
 //     req.set_session_id(impl_->session_id);
 //     req.set_operation_id(lookupContextId(impl_->ctx_ids, ctx));
 //     req.set_path(std::move(path));
 //
-//     imas::StatusResponse resp;
+//     imas_remote::StatusResponse resp;
 //     grpc::ClientContext grpc_ctx;
 //     checkRpcStatus(impl_->stub->DeleteData(&grpc_ctx, req, &resp), "deleteData");
 //
@@ -321,7 +326,7 @@ void GRPCBackend::deleteData(OperationContext* ctx, std::string path)
 
 void GRPCBackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 {
-    imas::BeginArraystructActionRequest req;
+    imas_remote::BeginArraystructActionRequest req;
     req.set_session_id(impl_->session_id);
     req.set_path(ctx->getPath());
     req.set_timebase(ctx->getTimebasePath());
@@ -337,7 +342,7 @@ void GRPCBackend::beginArraystructAction(ArraystructContext* ctx, int* size)
         req.set_parent_id(lookupContextId(impl_->ctx_ids, ctx->getOperationContext()));
     }
 
-    imas::BeginArraystructActionResponse resp;
+    imas_remote::BeginArraystructActionResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->BeginArraystructAction(&grpc_ctx, req, &resp), "beginArraystructAction");
 
@@ -351,11 +356,11 @@ void GRPCBackend::beginArraystructAction(ArraystructContext* ctx, int* size)
 
 void GRPCBackend::get_occurrences(Context* /*ctx*/, const char* ids_name, int** occurrences_list, int* size)
 {
-    imas::GetOccurrencesRequest req;
+    imas_remote::GetOccurrencesRequest req;
     req.set_session_id(impl_->session_id);
     req.set_ids_name(ids_name);
 
-    imas::GetOccurrencesResponse resp;
+    imas_remote::GetOccurrencesResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->GetOccurrences(&grpc_ctx, req, &resp), "get_occurrences");
 
@@ -376,11 +381,11 @@ void GRPCBackend::get_occurrences(Context* /*ctx*/, const char* ids_name, int** 
 
 void GRPCBackend::list_filled_paths(Context* /*ctx*/, const char* dataobjectname, char*** path_list, int* size)
 {
-    imas::ListFilledPathsRequest req;
+    imas_remote::ListFilledPathsRequest req;
     req.set_session_id(impl_->session_id);
     req.set_dataobject_name(dataobjectname);
 
-    imas::ListFilledPathsResponse resp;
+    imas_remote::ListFilledPathsResponse resp;
     grpc::ClientContext grpc_ctx;
     checkRpcStatus(impl_->stub->ListFilledPaths(&grpc_ctx, req, &resp), "list_filled_paths");
 
