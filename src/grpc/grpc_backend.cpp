@@ -50,7 +50,10 @@ GRPCBackend::GRPCBackend(const uri::Uri& uri) : impl_(std::make_unique<GRPCBacke
     std::shared_ptr<grpc::ChannelCredentials> creds = use_tls ? grpc::SslCredentials(grpc::SslCredentialsOptions())
                                                               : grpc::InsecureChannelCredentials();
 
-    impl_->channel = grpc::CreateChannel(target, creds);
+    grpc::ChannelArguments args;
+    args.SetCompressionAlgorithm(GRPC_COMPRESS_GZIP);
+
+    impl_->channel = grpc::CreateCustomChannel(target, creds, args);
     impl_->stub    = imas_remote::ImasRemote::NewStub(impl_->channel);
 }
 
