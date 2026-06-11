@@ -1288,6 +1288,19 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
         new_data_set->open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
         if (!(new_data_set->dataset_id >= 0))
             throw ALBackendException("HDF5Backend: unexpected dataset_id value in HDF5Reader::readPersistentShapes_Get()", LOG);
+
+        {
+            int shape_rank = new_data_set->getRank();
+            int expected_rank = static_cast<int>(current_arrctx_indices.size()) + 1;
+            if (shape_rank != expected_rank) {
+                throw ALBackendException(
+                    "HDF5Backend: SHAPE dataset '" + tensorized_path
+                    + "' has rank " + std::to_string(shape_rank)
+                    + " but rank " + std::to_string(expected_rank) + " was expected. ",
+                    + "This may indicate issues in the data production process. "
+                    LOG);
+            }
+        }
         *dataset_id_shapes = dataset_id;
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr<HDF5HsSelectionReader>(new HDF5HsSelectionReader(new_data_set->getRank(), new_data_set->dataset_id,
@@ -1325,6 +1338,19 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
         DataEntryContext *dec = getDataEntryContext(ctx);
         std::unique_ptr<HDF5DataSetHandler> new_data_set(new HDF5DataSetHandler(false, dec->getURI()));
         new_data_set->open(tensorized_path.c_str(), gid, &dataset_id, 1, nullptr, alconst::integer_data, true, true, dec->getURI());
+
+        {
+            int shape_rank = new_data_set->getRank();
+            int expected_rank = static_cast<int>(aos_indices.size()) + 1;
+            if (shape_rank != expected_rank) {
+                throw ALBackendException(
+                    "HDF5Backend: SHAPE dataset '" + tensorized_path
+                    + "' has rank " + std::to_string(shape_rank)
+                    + " but rank " + std::to_string(expected_rank) + " was expected. ",
+                    + "This may indicate issues in the data production process. "
+                    LOG);
+            }
+        }
         int dim = -1;
         auto hsSelectionReader = std::unique_ptr<HDF5HsSelectionReader>(new HDF5HsSelectionReader(new_data_set->getRank(), dataset_id,
                                                                                                   new_data_set->getDataSpace(), new_data_set->getLargestDims(), alconst::integer_data, aos_indices.size(), &dim));
