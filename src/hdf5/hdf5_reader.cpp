@@ -1297,6 +1297,7 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
                     "HDF5Backend: SHAPE dataset '" + tensorized_path
                     + "' has rank " + std::to_string(shape_rank)
                     + " but rank " + std::to_string(expected_rank) + " was expected. ",
+                    + "This may indicate issues in the data production process. "
                     LOG);
             }
         }
@@ -1346,6 +1347,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
                     "HDF5Backend: SHAPE dataset '" + tensorized_path
                     + "' has rank " + std::to_string(shape_rank)
                     + " but rank " + std::to_string(expected_rank) + " was expected. ",
+                    + "This may indicate issues in the data production process. "
                     LOG);
             }
         }
