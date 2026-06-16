@@ -293,7 +293,6 @@ install(
 )
 
 # Install common files
-# Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
 # Install Dummy
