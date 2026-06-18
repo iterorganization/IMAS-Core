@@ -10,4 +10,9 @@ updates:
     # Check for updates once a week
     schedule:
       interval: "weekly"
+    # Group actions version bumps into a single PR
+    groups:
+      actions-deps:
+        patterns:
+          - "*"
 
