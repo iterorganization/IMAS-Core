@@ -10,40 +10,10 @@ variables. This page provides an overview of the available options.
 Environment variables controlling IMAS-Core behaviour
 -----------------------------------------------------
 
-``IMAS_AL_DEFAULT_BACKEND`` [#backend_env]_
-    Specify which backend to use by default with open/create methods that do not
-    pass this information as an argument. Values for this environment
-    variable correspond to the targeted backend ID, see below table. If not
-    specified, the MDS+ backend is the default.
-
-    .. csv-table:: Backend IDs
-        :header-rows: 1
-
-        Backend, Backend ID
-        :ref:`ASCII <ascii backend>`, 11
-        :ref:`MDSplus <mdsplus backend>`, 12
-        :ref:`HDF5 <hdf5 backend>`, 13
-        :ref:`Memory <memory backend>`, 14
-        :ref:`UDA <uda backend>`, 15
-    
-
-``IMAS_AL_FALLBACK_BACKEND`` [#backend_env]_
-    Specify a fallback backend to be tried if opening the given data-entry was
-    not successful with the primary/default backend. Values for this environment
-    variable correspond to the targeted backend ID, see above table. If not
-    specified, no secondary attempt will be made. This does not have any effect
-    on calls to create new dataentries.
-
-
 ``IMAS_AL_DISABLE_OBSOLESCENT_WARNING``
     Since version 4.10.0, all interfaces print warnings when putting an IDS that
     contains data in fields marked as `obsolescent` in the DD. Setting this
     variable to ``1`` disables these printouts.
-
-
-.. [#backend_env] These environment variables are not applicable when using
-    Data entry URIs (see :doc:`../user_guide/uris_guide`), which explicitly specify the backend. Also not applicable
-    in the Pythonens-user API.
 
 
 ``IMAS_LOCAL_HOSTS``
@@ -97,7 +67,7 @@ Backend specific environment variables
 
 
 ``HDF5_BACKEND_WRITE_CACHE`` [#uri_precedence]_
-    Specify the size of the write cache in MB (default is 5). It may improve
+    Specify the size of the write cache in MB (default is 100). It may improve
     writing performance at the cost of increased memory consumption. Obtained
     performance and best size of cache is heavily depending on the data.
 
