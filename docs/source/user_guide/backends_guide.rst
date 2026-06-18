@@ -178,9 +178,10 @@ The :ref:`HDF5 backend` also recognizes these backend-specific query keys.
     arrives, which reduces peak memory usage at the cost of slower writes).
 
 ``hdf5_read_buffering``
-    During a ``get`` operation, field data read from HDF5 is buffered in memory
-    before being returned to the caller.
-
+    During a get operation, supported 0D and 1D field data read from HDF5 is
+    buffered in memory before being returned to the caller. Slice and time range
+    reads, as well as fields with higher dimensionality, are read directly.
+    
     This feature is enabled by default. Set ``hdf5_read_buffering=no`` to
     disable read buffering.
 
