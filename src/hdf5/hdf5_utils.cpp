@@ -6,6 +6,13 @@
 #include <iostream>
 #include <fstream>
 #include <errno.h>
+#ifdef _WIN32
+#  include <io.h>       // _access()
+#  define access  _access
+#  define W_OK    2
+#else
+#  include <unistd.h>
+#endif
 #include <vector>
 #include <boost/filesystem.hpp>
 
