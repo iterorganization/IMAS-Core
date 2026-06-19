@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <errno.h>
+#include <unistd.h>
 #include <vector>
 #include <boost/filesystem.hpp>
 
@@ -268,7 +269,15 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
 			}
         }
         else {
-		    if (errno == EAGAIN || errno == EACCES || errno == EBUSY) {
+            // errno after H5Fopen is unreliable: HDF5 may overwrite it
+            // internally before returning. Use access(W_OK) to check write
+            // permission explicitly.
+            if (access(IDSpulseFile.c_str(), W_OK) != 0) {
+                char error_message[200];
+                sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. Permission denied.\n", ctx->getDataobjectName().c_str());
+                throw ALBackendException(error_message, LOG);
+            }
+            else if (errno == EAGAIN || errno == EBUSY) {
                 char error_message[200];
 		        sprintf(error_message, "Unable to open external file in Read-Write mode for IDS: %s. It might indicate that the file is being currently handled by a writing concurrent process.\n", ctx->getDataobjectName().c_str());
                 throw ALBackendException(error_message, LOG);
@@ -281,8 +290,6 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
                 createIDSFile(ctx, IDSpulseFile, backend_version, IDS_file_id);
 
             }
-            
-	        
         }
     }
 }
@@ -649,7 +656,25 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
         opened_IDS_files[IDS_link_name] = IDS_file_id;
     }
 
-    *IDS_group_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
+    // Detect access mode mismatch: master was opened in RDWR (e.g. because
+    // master.h5 has world-write bits set), but the IDS file could only be
+    // opened in RDONLY (the user has no write permission on that file).
+    // In that case H5Gopen2 on the master would try to follow the external
+    // link in RDWR mode, conflicting with the already-open RDONLY IDS handle.
+    // Fix: open the group directly from the IDS file handle, bypassing the
+    // external link, so the access mode stays consistent.
+    bool mode_mismatch = false;
+    if (IDS_file_id > 0) {
+        unsigned master_intent = 0, ids_intent = 0;
+        H5Fget_intent(file_id, &master_intent);
+        H5Fget_intent(IDS_file_id, &ids_intent);
+        mode_mismatch = (master_intent & H5F_ACC_RDWR) && !(ids_intent & H5F_ACC_RDWR);
+    }
+
+    if (mode_mismatch)
+        *IDS_group_id = openHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
+    else
+        *IDS_group_id = openHDF5Group(ctx->getDataobjectName().c_str(), file_id);
 }
 
 void HDF5Utils::showStatus(hid_t file_id) {
