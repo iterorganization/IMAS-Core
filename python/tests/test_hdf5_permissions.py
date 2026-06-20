@@ -29,7 +29,7 @@ def _hdf5_available() -> bool:
         status, ctx = ll.al_begin_dataentry_action(uri, defs.OPEN_PULSE)
         imas_core.exception.raise_error_flag = False
         return True
-    except imas.exception.ImasCoreBackendException as iex:
+    except imas_core.exception.ImasCoreBackendException as iex:
         if "not available" in str(iex.message):
             return False
         pass
