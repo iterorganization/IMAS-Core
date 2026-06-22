@@ -166,27 +166,39 @@ Query keys specific for the HDF5 backend
 The :ref:`HDF5 backend` also recognizes these backend-specific query keys.
 
 ``hdf5_compression``
-    Data compression is enabled by default. Set ``hdf5_compression=no`` or
-    ``hdf5_compression=n`` to disable data compression.
+    Data compression is enabled by default. Set ``hdf5_compression=no``
+    to disable data compression.
 
 ``hdf5_write_buffering``
-    During a `put` operation, 0D and 1D buffers are first
-    stored in memory. Buffers are flushed at the end of the put.
+    During a ``put`` operation, 0D and 1D field buffers are first stored in
+    memory and flushed to HDF5 in a single write at the end of the put.
+
+    This feature is enabled by default. Set ``hdf5_write_buffering=no`` to
+    disable write buffering (data is written to HDF5 field-by-field as it
+    arrives, which reduces peak memory usage at the cost of slower writes).
+
+``hdf5_read_buffering``
+    During a get operation, supported 0D and 1D field data read from HDF5 is
+    buffered in memory before being returned to the caller. Slice and time range
+    reads, as well as fields with higher dimensionality, are read directly.
     
-    This feature is enabled by default. Set ``hdf5_write_buffering=no`` or
-    ``hdf5_write_buffering=n`` to disable write buffering.
+    This feature is enabled by default. Set ``hdf5_read_buffering=no`` to
+    disable read buffering.
 
-``write_cache_option``
-    Set the size of the HDF5 chunk cache used during chunked datasets write
-    operations. Default to 100x1024x1024 bytes (100 MiB).
+``hdf5_write_cache``
+    Set the size (in MiB) of the HDF5 per-dataset chunk cache used during write
+    operations. The cache is allocated per open dataset, so the aggregate memory
+    grows with the number of datasets written simultaneously.
 
-``read_cache_option``
-    Set the size of the HDF5 chunk cache used during chunked datasets read
-    operations. Default to 5x1024x1024 bytes (5 MiB).
+    Default: ``100`` (MiB). Can also be set via the environment variable
+    ``HDF5_BACKEND_WRITE_CACHE=<MiB>``.
 
-``open_read_only``
-    Open master file and IDSs files in read only if ``open_read_only=yes`` or
-    ``open_read_only=y``, overwriting the files access modes default behavior (see IMAS-5274 for an example use-case).
+``hdf5_read_cache``
+    Set the size (in MiB) of the HDF5 per-dataset chunk cache used during read
+    operations.
+
+    Default: ``5`` (MiB). Can also be set via the environment variable
+    ``HDF5_BACKEND_READ_CACHE=<MiB>``.
 
 ``hdf5_debug``
     HDF5 debug output is disabled by default. Set ``hdf5_debug=yes`` or

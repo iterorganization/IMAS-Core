@@ -17,12 +17,7 @@ option( AL_DOCS_ONLY "Don't build anything, except the Sphinx-based High Level I
 # No longer need to find SaxonHE - saxonche is installed automatically via pip in virtual environments
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES )
-  if( DEFINED ENV{AL_COMMON_PATH} )
-    set( _DEV OFF )
-  else()
-    set( _DEV ON )
-  endif()
-  option( AL_DEVELOPMENT_LAYOUT "Look into parent directories for dependencies" ${_DEV} )
+  option( AL_DEVELOPMENT_LAYOUT "Look into parent directories for dependencies" ON )
 endif()
 
 # Enable CTest?
