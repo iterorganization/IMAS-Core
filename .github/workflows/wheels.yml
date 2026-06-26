@@ -226,7 +226,7 @@ jobs:
 
       - name: Restore cibuildwheel cache
         id: cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             ~\AppData\Local\pypa\cibuildwheel\Cache
@@ -238,7 +238,7 @@ jobs:
       - name: Cache restore windows deps
         if: startsWith(matrix.os, 'windows')
         id: cache-win-deps
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         env:
           cache-name: win-deps
         with:
@@ -274,7 +274,7 @@ jobs:
         # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
         if: ${{ always()  && startsWith(matrix.os, 'windows') }}
         id: cache-win-deps-save
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         env:
           cache-name: win-deps
         with:
