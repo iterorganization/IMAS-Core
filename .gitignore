@@ -44,3 +44,4 @@ python/lib/
 /.venv/
 /vcpkg/
 /UDA-*/
+.idea
