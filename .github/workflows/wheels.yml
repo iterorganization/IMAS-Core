@@ -78,6 +78,71 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 310
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 311
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 312
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 313
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 314
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
           - os: macos-14
             triplet: arm64-osx
             python: 310
@@ -288,14 +353,17 @@ jobs:
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
+          CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           # Install system libraries
           # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
+          # NOTE: MDSplus RPMs are only distributed for x86_64, skip on other
+          # architectures (the MDSplus backend is OFF for wheel builds anyway)
           CIBW_BEFORE_ALL_LINUX: >
             dnf update -y >&2;
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
-            dnf install -y http://www.mdsplus.org/dist/rhel8/stable/RPMS/noarch/mdsplus-repo-7.142-81.el8.noarch.rpm >&2;
+            if [ "$(uname -m)" = "x86_64" ]; then dnf install -y http://www.mdsplus.org/dist/rhel8/stable/RPMS/noarch/mdsplus-repo-7.142-81.el8.noarch.rpm >&2; fi;
             dnf -y install openssl-devel >&2;
             dnf -y install ninja-build >&2;
             dnf -y install boost1.78-devel >&2;
@@ -304,7 +372,7 @@ jobs:
             dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
             dnf -y install libxslt >&2;
             dnf -y install hdf5-devel >&2;
-            dnf -y install mdsplus mdsplus-java mdsplus-java_bin mdsplus-devel >&2;
+            if [ "$(uname -m)" = "x86_64" ]; then dnf -y install mdsplus mdsplus-java mdsplus-java_bin mdsplus-devel >&2; fi;
             curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz  >&2;
             tar zxf ${{matrix.UDA_REF}}.tar.gz  >&2;
             cd UDA-${{matrix.UDA_REF}}  >&2;
