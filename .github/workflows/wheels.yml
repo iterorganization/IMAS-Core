@@ -363,7 +363,6 @@ jobs:
           CIBW_BEFORE_ALL_LINUX: >
             dnf update -y >&2;
             dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
-            if [ "$(uname -m)" = "x86_64" ]; then dnf install -y http://www.mdsplus.org/dist/rhel8/stable/RPMS/noarch/mdsplus-repo-7.142-81.el8.noarch.rpm >&2; fi;
             dnf -y install openssl-devel >&2;
             dnf -y install ninja-build >&2;
             dnf -y install boost1.78-devel >&2;
@@ -372,7 +371,6 @@ jobs:
             dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
             dnf -y install libxslt >&2;
             dnf -y install hdf5-devel >&2;
-            if [ "$(uname -m)" = "x86_64" ]; then dnf -y install mdsplus mdsplus-java mdsplus-java_bin mdsplus-devel >&2; fi;
             curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz  >&2;
             tar zxf ${{matrix.UDA_REF}}.tar.gz  >&2;
             cd UDA-${{matrix.UDA_REF}}  >&2;
