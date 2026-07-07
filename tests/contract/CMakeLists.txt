@@ -48,9 +48,22 @@ option(AL_CONTRACT_SANITIZE
 
 ########################################################################################################################
 # The contract test executable.
+#
+# Step 3 (issue #5) adds two files to the single suite: the pure introspection
+# lookups (test_introspection.cpp — the thin unit tier: const2str/err2str/
+# versions, no backend) and the version sentinel (test_version_sentinel.cpp).
+# They join the existing round-trip and known-defect files from the scaffold.
+#
+# The finer CTest unit/integration LABEL split (decision D6) stays deferred, as
+# the scaffold commit recorded — it arrives with the broader matrix in a later
+# step. Until then the pure-lookup subset is addressable directly via
+# `ctest -R Introspection` / `--gtest_filter=Introspection.*` (a fast, disk-free
+# inner loop) even though every case shares the single "contract" label.
 
 add_executable(contract_tests
   test_roundtrip.cpp
+  test_introspection.cpp
+  test_version_sentinel.cpp
   test_known_defects.cpp
 )
 
@@ -89,7 +102,7 @@ endif()
 # gtest_discover_tests runs each GoogleTest case as its own ctest entry (so
 # --gtest_list_tests / -R selection works) and applies the "contract" label to
 # all of them. The finer unit/integration labelling (decision D6) arrives with
-# the broader matrix in later steps; the scaffold keeps one label.
+# the broader matrix in later steps; the suite keeps one label.
 
 gtest_discover_tests(contract_tests
   PROPERTIES LABELS "contract"
