@@ -58,6 +58,16 @@ set_tests_properties( testlowlevel_cpp PROPERTIES FIXTURES_REQUIRED TESTDB_CPP )
 
 
 ########################################################################################################################
+# Contract test suite (GoogleTest — Task 2, TEST_STRATEGY.md)
+#
+# The C/C++ programs above stay as smoke tests + the pure-C compile canary
+# (testlowlevel_c.c guards al_lowlevel.h staying C-compatible, per decision D3).
+# The GoogleTest-based contract suite lives in the contract/ subdirectory.
+
+add_subdirectory(contract)
+
+
+########################################################################################################################
 # Install
 
 install(
