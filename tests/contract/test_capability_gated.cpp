@@ -130,17 +130,20 @@ protected:
     al_contract::TempBase base_;
     PulseId pulse_{/*database=*/"test", /*version=*/"3", /*pulse=*/12, /*run=*/0};
 
-    // Open a fresh, seeded data entry. Fails the test fatally on any setup error
-    // (so a later refusal assertion cannot be a false positive from bad setup).
-    int open_seeded() {
+    // Open a fresh, seeded data entry into *pctx. Fails the test FATALLY on any
+    // setup error — via ASSERT_* here plus ASSERT_NO_FATAL_FAILURE at the call
+    // site — so a paired-negative refusal assertion downstream can never be a
+    // false positive produced by a broken seed rather than the genuine
+    // documented refusal. (ASSERT_* is only usable in a void-returning function,
+    // hence the out-param instead of a returned pctx.)
+    void open_seeded(int* pctx) {
         const CapBackend& b = GetParam();
         if (b.on_disk) base_.make_legacy_tree(pulse_);
         const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
-        EXPECT_FALSE(uri.empty());
-        int pctx = -1;
-        EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx).code, 0);
-        EXPECT_TRUE(seed_signal(pctx)) << "seed write must succeed on every backend";
-        return pctx;
+        ASSERT_FALSE(uri.empty());
+        *pctx = -1;
+        ASSERT_EQ(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, pctx).code, 0);
+        ASSERT_TRUE(seed_signal(*pctx)) << "seed write must succeed on every backend";
     }
 };
 
@@ -149,7 +152,8 @@ protected:
 // manifestation (the guard at src/al_lowlevel.cpp:1053).
 TEST_P(CapabilityMatrix, TimeRangeReadPositiveOrRefused) {
     const CapBackend b = GetParam();
-    int pctx = open_seeded();
+    int pctx = -1;
+    ASSERT_NO_FATAL_FAILURE(open_seeded(&pctx));
 
     int    op = -1;
     double dtime = 0.0;
@@ -178,7 +182,8 @@ TEST_P(CapabilityMatrix, TimeRangeReadPositiveOrRefused) {
 // --- slice: positive on HDF5 + Memory, paired-negative (BACKEND_ERR) elsewhere -
 TEST_P(CapabilityMatrix, SliceReadPositiveOrRefused) {
     const CapBackend b = GetParam();
-    int pctx = open_seeded();
+    int pctx = -1;
+    ASSERT_NO_FATAL_FAILURE(open_seeded(&pctx));
 
     int op = -1;
     // A time between the two slices; CLOSEST resolves to kT0 -> kV0.
@@ -202,7 +207,8 @@ TEST_P(CapabilityMatrix, SliceReadPositiveOrRefused) {
 // that begin-slice-for-write is accepted where supported and refused where not.
 TEST_P(CapabilityMatrix, SliceWriteBeginPositiveOrRefused) {
     const CapBackend b = GetParam();
-    int pctx = open_seeded();
+    int pctx = -1;
+    ASSERT_NO_FATAL_FAILURE(open_seeded(&pctx));
 
     int op = -1;
     al_status_t s = al_begin_slice_action(pctx, kIds, WRITE_OP, UNDEFINED_TIME,
@@ -219,7 +225,8 @@ TEST_P(CapabilityMatrix, SliceWriteBeginPositiveOrRefused) {
 // --- list_filled_paths: positive on HDF5, paired-negative (BACKEND_ERR) else ---
 TEST_P(CapabilityMatrix, ListFilledPathsPositiveOrRefused) {
     const CapBackend b = GetParam();
-    int pctx = open_seeded();
+    int pctx = -1;
+    ASSERT_NO_FATAL_FAILURE(open_seeded(&pctx));
 
     char**      paths = nullptr;
     int         n     = -1;
