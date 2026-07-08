@@ -396,6 +396,12 @@ TEST(RoundTripKnownDefects, DISABLED_AsciiComplexMaxdimRoundTrips) {
 // the op but return corrupted bytes (assert non-survival). When ASCII is fixed
 // each tripwire goes red, forcing whoever fixed it to enable the paired
 // DISABLED_ test.
+//
+// NB: the DOUBLE/COMPLEX corruption is UB — deterministic in ordinary builds but
+// *masked under AddressSanitizer* (the data round-trips intact there), so the
+// two `…CurrentlyCorrupts` tripwires are excluded from the sanitizer CI leg
+// (.github/workflows/sanitizers.yml, `-E CurrentlyCorrupts`). They remain live
+// in the normal test run, which is where their rot-guard job matters.
 TEST(RoundTripKnownDefectsDeath, AsciiIntegerMaxdimCurrentlyAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     ASSERT_DEATH(run_round_trip_here<int>(kAscii, /*rank=*/MAXDIM), ".*")

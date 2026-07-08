@@ -1,0 +1,65 @@
+name: Contract suite — sanitizers (non-blocking)
+
+# Decision D7 (TEST_STRATEGY.md): build the contract suite with
+# AddressSanitizer + UndefinedBehaviorSanitizer + LeakSanitizer and run it, so a
+# leak / use-after-free / overrun in the hot path is caught for free — no
+# per-test assertions. This leg is INFORMATIONAL, not a merge gate
+# (continue-on-error: true), until the baseline is triaged. LSan leak detection
+# is Linux-only, which is why this leg runs on ubuntu.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  asan-ubsan-lsan:
+    name: ASan/UBSan/LSan (Linux, non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # informational leg (D7), not a gate — for now
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # git describe needs full history for the version macro
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libhdf5-dev libboost-filesystem-dev
+
+      - name: Configure (sanitized, tests on, no Python bindings)
+        # AL_CONTRACT_SANITIZE instruments both libal and the test binary. Python
+        # bindings are off: a sanitized libal must not be linked into a wheel
+        # whose bindings lack the ASan runtime (see tests/contract/CMakeLists.txt).
+        run: >
+          cmake -S . -B build-san -G Ninja
+          -DAL_BUILD_TESTS=ON
+          -DAL_CONTRACT_SANITIZE=ON
+          -DAL_PYTHON_BINDINGS=OFF
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build contract suite
+        run: cmake --build build-san --target contract_tests
+
+      - name: Run contract suite under sanitizers
+        working-directory: build-san
+        # Scope to the contract suite; halt/abort_on_error=0 so the whole suite
+        # runs and reports everything at once (informational leg). Two exclusions:
+        #  * `Death` tests deliberately crash child processes (asserting today's
+        #    crash-class defects) — not a memory-safety target, and ASan would
+        #    report the intentional crash as an error.
+        #  * `CurrentlyCorrupts` tripwires pin the ASCII rank-7 DOUBLE/COMPLEX
+        #    corruption, which is UB whose manifestation ASan's memory layout
+        #    masks (the data round-trips intact under ASan), so they legitimately
+        #    fail here. They still guard against rot in the normal (non-sanitized)
+        #    CI run. Real leaks/UAF in the ordinary paths still surface.
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=0:abort_on_error=0
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/contract/sanitizer_suppressions.txt:print_suppressions=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=0
+        run: ctest -L contract -E "Death|CurrentlyCorrupts" --output-on-failure
+
+      - name: Note
+        if: always()
+        run: echo "Sanitizer leg is informational (D7). Triage findings before promoting it to a required check."

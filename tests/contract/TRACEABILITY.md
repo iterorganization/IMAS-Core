@@ -32,12 +32,12 @@ carry a `/<Backend>` (or `/<Backend>_<Type>_r<rank>`) suffix per instance.
 
 > **Note on the Unit / Integ. columns.** They classify each test by *substrate*
 > per decision D6 (pure lookups and Memory round trips are unit; on-disk
-> backends are integration) — the intended tier taxonomy. The CTest `unit` /
-> `integration` **labels** that would let `ctest -L unit` select them are still
-> **deferred** (see `CMakeLists.txt`): today every case carries the single
-> `contract` label. Until the split lands, address the unit subset with
-> `ctest -R Introspection`. *(This is a known un-met acceptance item of the
-> scaffold issue #2 — tracked, not silently dropped.)*
+> backends are integration). This taxonomy is now enforced as CTest **labels**
+> (`CMakeLists.txt`): every case carries `contract`, plus `unit` or `integration`
+> by substrate, so `ctest -L unit` runs the fast hermetic subset (no on-disk
+> backend) and `ctest -L integration` runs the on-disk tier. The label split
+> needs CMake ≥ 3.22 (`gtest_discover_tests(TEST_FILTER …)`); on the declared
+> 3.21 floor it falls back to the single `contract` label.
 
 ## Coverage status — as of the four implemented issues (#2 scaffold, #5
 ## introspection, #3 round-trip matrix, #6 capability-gated)

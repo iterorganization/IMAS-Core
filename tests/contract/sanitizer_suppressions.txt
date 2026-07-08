@@ -1,0 +1,21 @@
+# LeakSanitizer suppressions — IMAS-Core contract suite
+# ======================================================
+# Decision D7 (TEST_STRATEGY.md): the contract suite is also built with
+# ASan/UBSan + LeakSanitizer in a dedicated, NON-BLOCKING CI leg
+# (.github/workflows/sanitizers.yml). This file catalogues known/triaged leaks
+# so the leg stays green on already-understood issues and only *new* leaks stand
+# out. The leg is promoted to a hard gate only after the baseline is triaged.
+#
+# Referenced at run time via:
+#   LSAN_OPTIONS=suppressions=<this file>:print_suppressions=1
+#
+# Format (one per line):
+#   leak:<substring of a function name, source file, or shared object>
+# A frame matching any substring suppresses the whole leak report it appears in.
+# Examples (commented — enable only with a written justification + a tracking
+# issue, never to silence a leak the suite itself introduced):
+#   leak:H5FL_*                 # HDF5 free-list pools not reclaimed at exit
+#   leak:libhdf5
+#
+# Intentionally empty of active entries: no baseline leak has been triaged yet.
+# Add an entry ONLY with a comment naming the tracking issue and why it's safe.
