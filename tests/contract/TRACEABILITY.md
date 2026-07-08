@@ -97,14 +97,48 @@ prescription for an unsupported operation).
 
 ---
 
+## Cluster E — capability-gated ops (issue #6 — TEST_STRATEGY §4 step 4)
+
+slice / timerange / `list_filled_paths` — positive where the backend advertises
+the capability, **paired-negative** (documented refusal) where it does not
+(decision D4). The support columns were established empirically and follow D2,
+not the issue's stated assumptions: **Memory genuinely supports slice** (full
+`SLICE_OP` handling in `src/memory_backend.cpp`), so it is positive for slice and
+negative only for time-range/list. Refusal codes are the stable contract:
+timerange → `LOWLEVEL_ERR` (`src/al_lowlevel.cpp:1053`); slice / list_filled_paths
+→ `BACKEND_ERR` (backend throws `ALBackendException`). Because decision D1 forbids
+linking the C++ `Backend` flags, `supportsTimeRangeOperation()` /
+`supportsTimeDataInterpolation()` are asserted through their sole ABI-observable
+consequence — whether the op is accepted or refused per backend — which is what
+puts the Cluster-E matrix itself under test.
+
+| Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
+|---|---|:--:|:--:|---|---|
+| `al_begin_timerange_action` (READ) returns the stored slices in `[tmin,tmax]` (no-resample) on a supporting backend — HDF5 | Cluster E | — | ✓ | `Backends/CapabilityMatrix.TimeRangeReadPositiveOrRefused/HDF5`, `Hdf5TimeDependent.TimeRangeReadWithoutResampling` | covered |
+| `al_begin_timerange_action` resamples onto an explicit `dtime` grid (LINEAR) — HDF5 | Cluster E | — | ✓ | `Hdf5TimeDependent.TimeRangeReadWithResampling` | covered |
+| `al_begin_timerange_action` must refuse where `supportsTimeRangeOperation()==false` (`LOWLEVEL_ERR`) — Memory·ASCII·Flexbuffers | Cluster E / D4 | ✓ (Memory) | ✓ | `Backends/CapabilityMatrix.TimeRangeReadPositiveOrRefused/{Memory,ASCII,Flexbuffers}` (paired-negative) | covered |
+| `al_begin_slice_action` (READ) selects a slice by CLOSEST/PREVIOUS/LINEAR interp — HDF5 | Cluster E | — | ✓ | `Hdf5TimeDependent.SliceInterpolationModes`, `Backends/CapabilityMatrix.SliceReadPositiveOrRefused/HDF5` | covered |
+| `al_begin_slice_action` (READ, CLOSEST) is supported on Memory (slice storage, no interpolation gate) | Cluster E | ✓ (Memory) | — | `Backends/CapabilityMatrix.SliceReadPositiveOrRefused/Memory` | covered |
+| `al_begin_slice_action` (WRITE, append via `UNDEFINED_TIME`) accepted on a slicing backend — HDF5·Memory | Cluster E | ✓ (Memory) | ✓ | `Backends/CapabilityMatrix.SliceWriteBeginPositiveOrRefused/{HDF5,Memory}` | covered |
+| `al_begin_slice_action` must refuse on a non-slicing backend (`BACKEND_ERR`) — ASCII·Flexbuffers | Cluster E / D4 | — | ✓ | `Backends/CapabilityMatrix.{SliceReadPositiveOrRefused,SliceWriteBeginPositiveOrRefused}/{ASCII,Flexbuffers}` (paired-negative) | covered |
+| `al_begin_slice_action` (READ) with `UNDEFINED_INTERP` is refused (an interp mode is required; `CONTEXT_ERR`) | src/al_context.cpp:347 | — | ✓ | `Hdf5TimeDependent.SliceReadWithoutInterpModeIsRejected` | covered |
+| `al_list_filled_paths` returns the filled leaf paths (caller frees list + strings) — HDF5 | :494-505 | — | ✓ | `Backends/CapabilityMatrix.ListFilledPathsPositiveOrRefused/HDF5` | covered |
+| `al_list_filled_paths` must refuse where unimplemented (`BACKEND_ERR`, "only tensorizing backends") — Memory·ASCII·Flexbuffers | :496-497 / D4 | ✓ (Memory) | ✓ | `Backends/CapabilityMatrix.ListFilledPathsPositiveOrRefused/{Memory,ASCII,Flexbuffers}` (paired-negative) | covered |
+| Slice **append** via `UNDEFINED_TIME`: repeated WRITE slices must accumulate — **only the last-written slice persists in this build** | Cluster E; al_lowlevel.h:300-316 | — | ✓ | `Hdf5SliceAppend.AppendedSlicesAllPersist` (DISABLED_) | **xfail** |
+| ↳ current-behavior tripwire: two appends leave exactly one stored slice today | Cluster E | — | ✓ | `Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior` | covered (tripwire) |
+
+> **Note on append vs read.** Because append does not accumulate (the xfail
+> above), the interpolation/resampling oracles seed their multi-point signal via
+> a single global write and exercise the slice/timerange **read** machinery over
+> it — the read path is independent of how the samples reached the store. The
+> write-lifecycle fix itself is owned by issue #3.
+
 ## Remaining clusters — gaps to be filled by later build-order steps
 
 Per TEST_STRATEGY.md §4, still open (not covered by this issue):
 
 - **Cluster 1 — Pulse lifecycle**: open/info/close/erase, occurrences (step 2).
 - **Cluster 2 — Data access**: `al_delete_data`, AOS write/iterate/read (step 2).
-- **Cluster E — capability-gated ops**: slice / timerange / `list_filled_paths`
-  — positive on HDF5, paired-negative "must-refuse" on the others (step 4).
 - **Cluster 3 — Plugins**: register/bind/unbind/unregister, parameter-setting,
   state-machine quirks and the remaining defect death-tests (step 5).
 - Backend-implementer / plugin-author capabilities reachable through the C ABI,
