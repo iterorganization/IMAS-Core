@@ -17,6 +17,8 @@
 // (decision D3): the crash would take down an in-process runner, so we isolate
 // it in a death test.
 
+#include "al_contract.h"
+
 #include <al_lowlevel.h>
 #include <al_const.h>
 
@@ -26,7 +28,8 @@
 
 namespace {
 
-constexpr const char* kUnregistered = "no_such_plugin_ever_registered";
+// Shared with test_plugins.cpp via al_contract.h (was a duplicated literal).
+constexpr const char* kUnregistered = al_contract::kUnregisteredPluginName;
 
 // CORRECT-CONTRACT test, expected-fail.
 //
@@ -69,6 +72,64 @@ TEST(KnownDefectsDeath, SetValueIntScalarUnregisteredPluginCurrentlyCrashes) {
            "FUNCTIONALITY_INVENTORY.md:410). If this no longer dies by SIGSEGV, "
            "the defect was likely fixed — enable "
            "KnownDefects.SetValueIntScalarUnregisteredPluginReturnsError.";
+}
+
+// ---------------------------------------------------------------------------
+// Same null-deref defect, double-scalar variant.
+// FUNCTIONALITY_INVENTORY.md:399-417 lists all three setvalue variants as
+// sharing the crash: they all funnel into LLplugin::setvalueParameterPlugin,
+// whose `llpluginsStore[plugin_name]` default-constructs a null-al_plugin entry
+// for an unknown key and dereferences it. (src/al_lowlevel.cpp:453-457.)
+// ---------------------------------------------------------------------------
+
+TEST(KnownDefects, DISABLED_SetValueDoubleScalarUnregisteredPluginReturnsError) {
+    al_status_t s =
+        al_setvalue_double_scalar_parameter_plugin("param", 1.0, kUnregistered);
+    EXPECT_NE(s.code, 0)
+        << "setting a double parameter on an unregistered plugin must return "
+           "an error, not crash";
+}
+
+TEST(KnownDefectsDeath, SetValueDoubleScalarUnregisteredPluginCurrentlyCrashes) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    ASSERT_EXIT(
+        {
+            al_setvalue_double_scalar_parameter_plugin("param", 1.0,
+                                                       kUnregistered);
+        },
+        ::testing::KilledBySignal(SIGSEGV), ".*")
+        << "expected the unregistered-plugin null-deref (double variant, see "
+           "FUNCTIONALITY_INVENTORY.md:410). If this no longer dies by SIGSEGV, "
+           "enable KnownDefects."
+           "SetValueDoubleScalarUnregisteredPluginReturnsError.";
+}
+
+// ---------------------------------------------------------------------------
+// Same null-deref defect, generic-typed variant
+// (al_setvalue_parameter_plugin). Same code path, same crash.
+// ---------------------------------------------------------------------------
+
+TEST(KnownDefects, DISABLED_SetValueGenericUnregisteredPluginReturnsError) {
+    int value = 1;
+    al_status_t s = al_setvalue_parameter_plugin("param", INTEGER_DATA, 0,
+                                                 nullptr, &value, kUnregistered);
+    EXPECT_NE(s.code, 0)
+        << "setting a parameter (generic variant) on an unregistered plugin "
+           "must return an error, not crash";
+}
+
+TEST(KnownDefectsDeath, SetValueGenericUnregisteredPluginCurrentlyCrashes) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    ASSERT_EXIT(
+        {
+            int value = 1;
+            al_setvalue_parameter_plugin("param", INTEGER_DATA, 0, nullptr,
+                                         &value, kUnregistered);
+        },
+        ::testing::KilledBySignal(SIGSEGV), ".*")
+        << "expected the unregistered-plugin null-deref (generic variant, see "
+           "FUNCTIONALITY_INVENTORY.md:410). If this no longer dies by SIGSEGV, "
+           "enable KnownDefects.SetValueGenericUnregisteredPluginReturnsError.";
 }
 
 }  // namespace
