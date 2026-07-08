@@ -56,6 +56,11 @@ inline ::testing::AssertionResult IsOk(const al_status_t& s) {
 #define AL_ASSERT_OK(expr) ASSERT_TRUE(::al_contract::IsOk(expr))
 #define AL_EXPECT_OK(expr) EXPECT_TRUE(::al_contract::IsOk(expr))
 
+// A plugin name that is never backed by a .so and never registered — shared by
+// the plugin negative/crash tests (test_plugins.cpp, test_known_defects.cpp).
+inline constexpr const char* kUnregisteredPluginName =
+    "no_such_plugin_ever_registered";
+
 // ---------------------------------------------------------------------------
 // BackendCase descriptor for value-parametrized tests (TEST_P).
 // ---------------------------------------------------------------------------

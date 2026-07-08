@@ -39,19 +39,23 @@ carry a `/<Backend>` (or `/<Backend>_<Type>_r<rank>`) suffix per instance.
 > needs CMake ≥ 3.22 (`gtest_discover_tests(TEST_FILTER …)`); on the declared
 > 3.21 floor it falls back to the single `contract` label.
 
-## Coverage status — as of the four implemented issues (#2 scaffold, #5
-## introspection, #3 round-trip matrix, #6 capability-gated)
+## Coverage status — as of the five implemented issues (#2 scaffold, #5
+## introspection, #3 round-trip matrix, #6 capability-gated, #7 plugins)
 
-The suite covers the **data-path and introspection surface** end to end and
-pins the four defects those issues surfaced. It does **not yet** cover the
-pulse-lifecycle detail, arrays-of-structures, deletion, occurrences, or any of
-the plugin surface — those are the remaining build-order steps and appear below
-as explicit **gap** rows, each tagged with the step that owns it:
+The suite covers the **data-path, introspection, and plugin-management surface**
+end to end and pins the defects those issues surfaced (nine xfails, each with a
+paired current-behavior tripwire). It does **not yet** cover the pulse-lifecycle
+detail, arrays-of-structures, deletion, occurrences, or the Plugin-author
+audience — those are the remaining build-order steps and appear below as explicit
+**gap** rows, each tagged with the step that owns it:
 
 - **Structured data** (TEST_STRATEGY §4 step 2, task doc `2b-structured.md`):
   AOS, `al_delete_data`, `al_get_occurrences`, full pulse lifecycle.
-- **Plugins** (§4 step 5, task doc `5-plugins.md`): all of User Cluster 3 and
-  all of Part 3.
+- **Plugins** (§4 step 5, task doc `5-plugins.md`): User Cluster 3 is now
+  covered (register/bind/unbind/unregister state machine + quirks,
+  `al_is_plugin_registered`, all three `al_setvalue_*` variants, four pinned
+  defects). Still open: readback binding, `al_write_plugins_metadata`, and all
+  of Part 3 (the Plugin-author audience).
 - **Ownership sweep** (§4 step 6, task doc `6-ownership-sweep.md`): the
   caller-frees questions and the remaining audience sweep.
 
@@ -103,19 +107,34 @@ genuine defect (expected-fail).
 
 ## Cluster 3 — Plugin management  (`FUNCTIONALITY_INVENTORY.md:318-430`)
 
-Almost entirely deferred to the plugins issue (step 5). The one exception is the
-scaffold's expected-fail proof, which lives on the int-scalar setvalue variant.
+The plugins issue (#7, step 5) — the defect-heavy corner. The register / bind /
+unbind / unregister state machine and the `al_setvalue_*` calls are driven
+through the C ABI against a real, in-repo loadable plugin
+(`test_plugin_fixture.cpp` → `alcontract_plugin.so`, the classic red-green
+fixture); every behavior was characterized against the built library, then
+classified once (D2). Four defects are pinned as expected-fail with paired
+current-behavior tripwires: the two setvalue null-derefs (double + generic,
+joining the scaffold's int one), the registered-but-never-bound plugin left
+un-destroyed on unregister, and the `dlopen`-failure swallowed assert. The whole
+suite is `unit` (in-process registry, no on-disk backend). Still deferred:
+readback binding and `al_write_plugins_metadata` (need a get/put through a
+readback-implementing plugin — Part 3 / ownership sweep).
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| `al_register_plugin` / `al_unregister_plugin` lifecycle (register-twice throws; unregister of never-bound leaves it un-destroyed) | :325-360 | — | — | — → plugins (step 5) | gap |
-| `al_bind_plugin` / `al_unbind_plugin` (double-bind throws; unbind-unbound no-ops) | :362-376 | — | — | — → plugins (step 5) | gap |
-| `al_bind_readback_plugins` / `al_unbind_readback_plugins` | :378-389 | — | — | — → plugins (step 5) | gap |
-| `al_is_plugin_registered` boolean query | :391-397 | — | — | — → plugins (step 5) | gap |
-| `al_setvalue_parameter_plugin` (generic typed variant) | :399-420 | — | — | — → plugins (step 5) | gap |
-| `al_setvalue_int_scalar_parameter_plugin` on an **unregistered** name must error, not crash | :399-417 | — | ✓ | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
-| `al_setvalue_double_scalar_parameter_plugin` (same defect class, double variant) | :399-417 | — | — | — → plugins (step 5) | gap |
-| `al_write_plugins_metadata` | :422-430 | — | — | — → plugins (step 5) | gap |
+| `al_register_plugin` / `al_unregister_plugin` lifecycle (register happy path; register-twice throws; unregister-unknown throws; **framework-gated**) | :325-360 | ✓ | — | `PluginTest.{RegisterMakesPluginRegistered, RegisterTwiceReturnsError, UnregisterNeverRegisteredNameReturnsError, UnregisterBoundPluginDestroysIt, RegisterWithFrameworkDisabledReturnsError}` | covered |
+| ↳ unregister of a **registered-but-never-bound** plugin must destroy it — **it is left un-destroyed** (`unregisterPlugin` destroy+erase run only inside the `boundPlugins` loop) | :347-354; src/al_lowlevel.cpp:382-431 | ✓ | — | `PluginTest.DISABLED_UnregisterNeverBoundPluginDestroysIt` + tripwire `PluginTest.UnregisterNeverBoundPluginLeavesItRegistered_CurrentBehavior` | **xfail** |
+| ↳ `register` on an existing-but-unloadable `.so` must report the **dlopen** failure — the failure is guarded only by an `assert`, stripped under `-DNDEBUG` (misleading downstream "Cannot load symbol create"; would `SIGABRT` in an assert-enabled build) | :355-360; src/al_lowlevel.cpp:350-357 | ✓ | — | `PluginTest.DISABLED_RegisterUnloadableSharedLibReportsDlopenFailure` + tripwire `PluginTest.RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior` | **xfail** |
+| `al_bind_plugin` / `al_unbind_plugin` (bind registered OK; bind-unregistered throws; double-bind throws; unbind-unbound silent no-op) | :362-376 | ✓ | — | `PluginTest.{BindRegisteredPluginSucceeds, BindUnregisteredPluginReturnsError, DoubleBindSamePathReturnsError, UnbindNeverBoundPathIsSilentNoOp}` | covered |
+| `al_bind_readback_plugins` / `al_unbind_readback_plugins` | :378-389 | — | — | needs a readback-implementing plugin + a get op → Part 3 / ownership sweep | gap |
+| `al_is_plugin_registered` boolean query (true/false; framework-gated) | :391-397 | ✓ | — | `PluginTest.{RegisterMakesPluginRegistered, IsPluginRegisteredIsFalseForNeverRegisteredName, IsPluginRegisteredWithFrameworkDisabledReturnsError}` | covered |
+| `al_setvalue_parameter_plugin` (generic typed variant) on a registered plugin | :399-420 | ✓ | — | `PluginTest.SetValueGenericOnRegisteredPluginSucceeds` | covered |
+| ↳ generic variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueGenericUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueGenericUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
+| `al_setvalue_int_scalar_parameter_plugin` on a registered plugin reaches `setParameter` with the right value | :399-417 | ✓ | — | `PluginTest.SetValueIntScalarOnRegisteredPluginReachesPlugin` (asserts the value via the plugin's parameter log) | covered |
+| ↳ int-scalar variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
+| `al_setvalue_double_scalar_parameter_plugin` on a registered plugin reaches `setParameter` with the right value | :399-417 | ✓ | — | `PluginTest.SetValueDoubleScalarOnRegisteredPluginReachesPlugin` | covered |
+| ↳ double-scalar variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueDoubleScalarUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueDoubleScalarUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
+| `al_write_plugins_metadata` | :422-430 | — | — | needs bound provenance plugin + open ctx → Part 3 / ownership sweep | gap |
 
 ## Cluster 4 — Introspection / diagnostics  (`FUNCTIONALITY_INVENTORY.md:434-459`)  (issue #5 — the thin unit tier)
 
@@ -176,7 +195,7 @@ the plugins issue has a concrete checklist rather than a blank slate.
 | Cluster / Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
 |---|---|:--:|:--:|---|---|
 | **1** Provenance metadata (`getName`/`getVersion`/`getCommit`/…) | :739-759 | — | — | — → plugins (step 5) | gap |
-| **2** Parameter configuration (`setParameter` / `setParameters`) | :763-780 | — | — | — → plugins (step 5); the User-side unregistered-name crash is xfail'd in Part 1 Cluster 3 | gap |
+| **2** Parameter configuration (`setParameter` / `setParameters`) | :763-780 | ✓ | — | `setParameter` is reached (with the exact value) via `al_setvalue_*` on the registered fixture plugin: `PluginTest.SetValue{IntScalar,DoubleScalar}OnRegisteredPluginReachesPlugin` (asserted through the plugin's parameter log). The User-side unregistered-name crash is xfail'd in Part 1 Cluster 3. Residual: `setParameters` (bulk) untested → step 6 | covered (indirect) |
 | **3** Action lifecycle & data interception (`begin_*_action`, `read_data`/`write_data`, `node_operation`) | :784-824 | — | — | — → plugins (step 5) | gap |
 | **4** Readback metadata (`getReadback*`) | :827-850 | — | — | — → plugins (step 5) | gap |
 | **5** Low-level reentry (`al_plugin_*`); `al_plugin_begin_timerange_action` is broken (declaration/definition mismatch) | :854-895 | — | — | — → plugins (step 5); the reentry bug is tracked separately as an upstream GitHub issue | gap |
@@ -186,9 +205,9 @@ the plugins issue has a concrete checklist rather than a blank slate.
 ## xfail bookkeeping — every xfail now has a paired tripwire
 
 The D2 discipline is "correct-contract `DISABLED_` test **plus** a paired
-current-behavior tripwire, so the xfail can't rot." As of the S4 fix, all five
-xfail rows satisfy it — a fix to any underlying defect turns its tripwire red,
-forcing whoever fixed it to enable the paired `DISABLED_` correct-contract test:
+current-behavior tripwire, so the xfail can't rot." All nine xfail rows satisfy
+it — a fix to any underlying defect turns its tripwire red, forcing whoever fixed
+it to enable the paired `DISABLED_` correct-contract test:
 
 | Defect | Correct-contract (`DISABLED_`) | Current-behavior tripwire |
 |---|---|---|
@@ -198,4 +217,8 @@ forcing whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 | ASCII rank-7 COMPLEX corrupts | `…DISABLED_AsciiComplexMaxdimRoundTrips` | `RoundTripKnownDefects.AsciiComplexMaxdimCurrentlyCorrupts` |
 | `build_uri` can't address FLEXBUFFERS | `…DISABLED_BuildUriSupportsFlexbuffers` | `RoundTripKnownDefects.BuildUriFlexbuffersCurrentlyFails` |
 | slice append doesn't accumulate | `Hdf5SliceAppend.DISABLED_AppendedSlicesAllPersist` | `Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior` |
-| plugin setvalue unregistered-name crash | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` |
+| plugin setvalue (int) unregistered-name crash | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` |
+| plugin setvalue (double) unregistered-name crash | `KnownDefects.DISABLED_SetValueDoubleScalarUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueDoubleScalarUnregisteredPluginCurrentlyCrashes` |
+| plugin setvalue (generic) unregistered-name crash | `KnownDefects.DISABLED_SetValueGenericUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueGenericUnregisteredPluginCurrentlyCrashes` |
+| unregister leaves a never-bound plugin registered | `PluginTest.DISABLED_UnregisterNeverBoundPluginDestroysIt` | `PluginTest.UnregisterNeverBoundPluginLeavesItRegistered_CurrentBehavior` |
+| `register` swallows the dlopen failure (NDEBUG-stripped assert) | `PluginTest.DISABLED_RegisterUnloadableSharedLibReportsDlopenFailure` | `PluginTest.RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior` |
