@@ -75,8 +75,11 @@ TEST_P(VersionSentinel, VersionPutRoundTripsOpaquelyAndIsNotInterpreted) {
     }
 
     // Writing a DD-version string must not have taught the core a DD version:
-    // getDDVersion() is a compile-time sentinel, independent of stored data.
-    EXPECT_EQ(std::string(getDDVersion()), kDeprecatedSentinel)
+    // getDDVersion() is invariant under stored data. Compared to the captured
+    // baseline (not the literal sentinel) so this asserts *non-interpretation*
+    // itself — the specific "!!DEPRECATED!!" value is pinned by
+    // test_introspection.cpp::GetDDVersionReturnsDeprecatedSentinel.
+    EXPECT_EQ(std::string(getDDVersion()), dd_before)
         << "the core must not adopt a stored version_put value as its DD version";
 
     // --- read it back; it must be the exact bytes we wrote (opaque) ---
@@ -94,8 +97,8 @@ TEST_P(VersionSentinel, VersionPutRoundTripsOpaquelyAndIsNotInterpreted) {
 
     EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
 
-    // Still the sentinel after a full write→read cycle.
-    EXPECT_EQ(std::string(getDDVersion()), kDeprecatedSentinel);
+    // Still unchanged after a full write→read cycle.
+    EXPECT_EQ(std::string(getDDVersion()), dd_before);
 }
 
 INSTANTIATE_TEST_SUITE_P(
