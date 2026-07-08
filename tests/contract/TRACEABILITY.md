@@ -64,11 +64,36 @@ version-negotiation work will watch.
 | `al_setvalue_int_scalar_parameter_plugin` on an unregistered name must return an error, not crash | :410-417 | — | ✓ | `KnownDefects.SetValueIntScalarUnregisteredPluginReturnsError` (DISABLED_) | **xfail** |
 | ↳ current-behavior guard: that call crashes by SIGSEGV today | :410-417 | — | ✓ | `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` | covered (tripwire) |
 
-## In progress by a sibling issue (#2a — TEST_STRATEGY §4 step 2)
+## Cluster 2 — Core data access: `al_write_data` / `al_read_data` (issue #3 — TEST_STRATEGY §4 step 2)
 
-| Capability | Test(s) | Status |
-|---|---|---|
-| Synthetic round-trip matrix: {HDF5, Memory, ASCII, Flexbuffers} × {CHAR, INTEGER, DOUBLE, COMPLEX} × scalar→7-D | `Backends/RoundTripMatrix.ReadEqualsWrite/*` | owned by #2a (Flexbuffers cases currently red) |
+The synthetic write→read round-trip matrix — the bulk of the storage contract.
+Oracle = round-trip self-consistency (decision D5); synthetic opaque data, zero
+DD artifacts. Parametrized over the always-on tier (decision D4)
+{HDF5, Memory, ASCII, Flexbuffers} × {CHAR, INTEGER, DOUBLE, COMPLEX} ×
+{scalar → 7-D}. Each cell is classified once (D2/D4): a plain round trip, a
+documented refusal (paired-negative), or a genuine defect (expected-fail).
+Flexbuffers is a serializer, not a pulse store, so every one of its cells is a
+must-refuse column (it accepts the write but refuses the read-back — D4's
+prescription for an unsupported operation).
+
+| Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
+|---|---|:--:|:--:|---|---|
+| `al_write_data`→`al_read_data` round trip preserves value + shape, INTEGER/DOUBLE/COMPLEX, scalar→7-D, on HDF5·Memory·ASCII (ASCII: scalar→6-D) | Cluster 2 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/RoundTripMatrix.ReadEqualsWrite/{HDF5,Memory,ASCII}_{INTEGER,DOUBLE,COMPLEX}_r{0..7}` | covered |
+| Round trip for CHAR — scalar & 1-D (string) & 2-D (array-of-strings) on HDF5·ASCII; all ranks on Memory (raw bytes) | Cluster 2 | ✓ (Memory) | ✓ (HDF5, ASCII) | `…/{Memory}_CHAR_r{0..7}`, `…/{HDF5,ASCII}_CHAR_r{1,2}` | covered |
+| Deterministic synthetic-data generator: datatype × shape (scalar→7-D), values clear of the EMPTY sentinels | D5 | ✓ | ✓ | `al_contract.h` `synth_value`/`synth_buffer`/`shape_for_rank`; exercised by every `RoundTripMatrix` cell | covered |
+| Flexbuffers must-refuse column: accepts the write but refuses the read-back (serializer, not a pulse store), every datatype × shape | Cluster 2 / D4 | — | ✓ | `Backends/RoundTripMatrix.ReadEqualsWrite/Flexbuffers_*_r{0..7}` (paired-negative) | covered |
+| CHAR data > 2-D is refused (documented "not implemented"): HDF5 & ASCII | Cluster 2 / D4 | — | ✓ | `Backends/RoundTripMatrix.ReadEqualsWrite/{HDF5,ASCII}_CHAR_r{3..7}` (paired-negative) | covered |
+| A CHAR scalar (dim 0) must round-trip, not crash — **HDF5 crashes** | Cluster 2 | — | ✓ | `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` + `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` | **xfail** |
+| Numeric data at the MAXDIM boundary (rank 7) must round-trip — **ASCII corrupts (DOUBLE/COMPLEX) / aborts (INTEGER)** | Cluster 2 | — | ✓ | `RoundTripKnownDefects.DISABLED_Ascii{Integer,Double,Complex}MaxdimRoundTrips` | **xfail** |
+| `al_build_uri_from_legacy_parameters` must address the always-on FLEXBUFFERS backend — **it throws (getURIBackend has no case)** | src/al_context.cpp:280 | ✓ | — | `RoundTripKnownDefects.DISABLED_BuildUriSupportsFlexbuffers` | **xfail** |
+
+> **Deferred (recorded):** a full Flexbuffers **serialize→deserialize** round
+> trip over the datatype × shape space needs the HLI `<buffer>` protocol and
+> belongs to the serialize seam; the matrix only pins its must-refuse pulse-
+> lifecycle behavior. Occurrences, `al_delete_data`, AOS, and the pulse
+> lifecycle (Cluster 1) remain with issue #4 (structured data). CHAR>2-D on
+> Memory round-trips incidentally (raw bytes) and is asserted as such; it is not
+> part of the CHAR contract.
 
 ---
 
