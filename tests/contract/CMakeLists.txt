@@ -102,13 +102,34 @@ endif()
 # CTest registration.
 #
 # gtest_discover_tests runs each GoogleTest case as its own ctest entry (so
-# --gtest_list_tests / -R selection works) and applies the "contract" label to
-# all of them. The finer unit/integration labelling (decision D6) arrives with
-# the broader matrix in later steps; the suite keeps one label.
+# --gtest_list_tests / -R selection works). Every case carries the "contract"
+# label; on top of that we split by *substrate* (decision D6) so `ctest -L unit`
+# is a fast, hermetic inner loop (PRD user story 29) and `ctest -L integration`
+# is the on-disk tier:
+#   unit        = pure lookups (Introspection.*), the in-RAM Memory backend
+#                 (*Memory* parametrized instances), and the plugin ABI death
+#                 tests (KnownDefects*) — nothing touches an on-disk backend.
+#   integration = everything else (HDF5 / ASCII / Flexbuffers on disk).
+# Two disjoint discovery passes over the one binary; the TEST_FILTERs partition
+# the cases so each registers exactly once. TEST_FILTER needs CMake >= 3.22; on
+# the declared 3.21 floor we fall back to the single "contract" label.
 
-gtest_discover_tests(contract_tests
-  PROPERTIES LABELS "contract"
-)
+# The escaped ";" keeps LABELS a two-element list through gtest_discover_tests'
+# re-emission (an unescaped ";" flattens to two malformed args). The integration
+# TEST_FILTER uses gtest's one-"-"-then-colon-separated negative syntax
+# ("*:-a:b:c", NOT "*:-a:-b:-c") so the two passes stay disjoint — otherwise the
+# second pass re-registers the unit cases and CTest sees duplicates.
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
+  gtest_discover_tests(contract_tests
+    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*"
+    PROPERTIES LABELS "contract\;unit")
+  gtest_discover_tests(contract_tests
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*"
+    PROPERTIES LABELS "contract\;integration")
+else()
+  gtest_discover_tests(contract_tests
+    PROPERTIES LABELS "contract")
+endif()
 
 ########################################################################################################################
 # Install (mirrors the smoke-test targets).
