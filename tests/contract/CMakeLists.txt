@@ -65,6 +65,7 @@ add_executable(contract_tests
   test_roundtrip_matrix.cpp
   test_introspection.cpp
   test_version_sentinel.cpp
+  test_capability_gated.cpp
   test_known_defects.cpp
 )
 
