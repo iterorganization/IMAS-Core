@@ -71,7 +71,7 @@ opened; until then they are referenced by build-order step + task-doc slug.
 | `al_context_info` describes a context; **caller frees `*info`** | :118-126 | — | — | — → ownership sweep (step 6) | gap |
 | `al_get_backendID` returns the active `BACKEND` for a context | :128-135 | — | — | — → step 2 | gap |
 | `al_build_uri_from_legacy_parameters` builds a URI from legacy params | :137-149 | ✓ | ✓ | `al_contract::build_uri` (asserts OK) drives HDF5·Memory·ASCII in all on-disk suites. Caller-frees of `*uri` → ownership sweep (step 6) | covered |
-| ↳ must also address the always-on FLEXBUFFERS backend — **throws (`getURIBackend` has no case)** | :137-149; src/al_context.cpp:280 | ✓ | — | `RoundTripKnownDefects.DISABLED_BuildUriSupportsFlexbuffers` (no paired tripwire — see risk note §end) | **xfail** |
+| ↳ must also address the always-on FLEXBUFFERS backend — **throws (`getURIBackend` has no case)** | :137-149; src/al_context.cpp:280 | ✓ | — | `RoundTripKnownDefects.DISABLED_BuildUriSupportsFlexbuffers` + tripwire `RoundTripKnownDefects.BuildUriFlexbuffersCurrentlyFails` | **xfail** |
 
 ## Cluster 2 — Core data access  (`FUNCTIONALITY_INVENTORY.md:153-314`)
 
@@ -95,7 +95,7 @@ genuine defect (expected-fail).
 | ↳ Flexbuffers must-refuse column (serializer, not a pulse store): write accepted, read refused, every datatype × shape | :244-263 / D4 | — | ✓ | `…/Flexbuffers_*_r{0..7}` (paired-negative) | covered |
 | ↳ CHAR > 2-D refused (documented "not implemented") on HDF5·ASCII | :244-263 / D4 | — | ✓ | `…/{HDF5,ASCII}_CHAR_r{3..7}` (paired-negative) | covered |
 | ↳ CHAR scalar (dim 0) must round-trip — **HDF5 crashes** | :244-263 | — | ✓ | `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` + tripwire `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` | **xfail** |
-| ↳ numeric at MAXDIM (rank 7) must round-trip — **ASCII corrupts (DOUBLE/COMPLEX) / aborts (INTEGER)** | :244-263 | — | ✓ | `RoundTripKnownDefects.DISABLED_Ascii{Integer,Double,Complex}MaxdimRoundTrips` (**no paired tripwire — see risk note §end**) | **xfail** |
+| ↳ numeric at MAXDIM (rank 7) must round-trip — **ASCII corrupts (DOUBLE/COMPLEX) / aborts (INTEGER)** | :244-263 | — | ✓ | `RoundTripKnownDefects.DISABLED_Ascii{Integer,Double,Complex}MaxdimRoundTrips` + tripwires `RoundTripKnownDefectsDeath.AsciiIntegerMaxdimCurrentlyAborts`, `RoundTripKnownDefects.Ascii{Double,Complex}MaxdimCurrentlyCorrupts` | **xfail** |
 | `al_delete_data` at signal / structure / DATAOBJECT-root granularity | :265-272 | — | — | — → structured data (step 2) | gap |
 | `al_iterate_over_arraystruct` advances the AOS cursor | :274-282 | — | — | — → structured data (step 2) | gap |
 | `al_get_occurrences` lists non-empty occurrences; caller-frees `*occurrences_list` | :284-292 | — | — | — → structured data (step 2); ownership → step 6 | gap |
@@ -183,16 +183,19 @@ the plugins issue has a concrete checklist rather than a blank slate.
 
 ---
 
-## Open risks in the *current* xfail bookkeeping (for the ownership-sweep / next issue)
+## xfail bookkeeping — every xfail now has a paired tripwire
 
 The D2 discipline is "correct-contract `DISABLED_` test **plus** a paired
-current-behavior tripwire, so the xfail can't rot." Two xfail rows above do not
-yet have that tripwire and will rot silently if the underlying defect is fixed:
+current-behavior tripwire, so the xfail can't rot." As of the S4 fix, all five
+xfail rows satisfy it — a fix to any underlying defect turns its tripwire red,
+forcing whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 
-- **ASCII rank-7 numeric** (`DISABLED_Ascii{Integer,Double,Complex}MaxdimRoundTrips`)
-  — no current-behavior twin. Add one asserting today's corruption/abort.
-- **`DISABLED_BuildUriSupportsFlexbuffers`** — no twin asserting the current
-  throw. Lower stakes (not a crash), but the same rot risk.
-
-The HDF5 CHAR-scalar and the plugin unregistered-name defects **do** have their
-tripwires (`…Death` cases) and are safe.
+| Defect | Correct-contract (`DISABLED_`) | Current-behavior tripwire |
+|---|---|---|
+| HDF5 CHAR scalar crashes | `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` | `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` |
+| ASCII rank-7 INTEGER aborts | `…DISABLED_AsciiIntegerMaxdimRoundTrips` | `RoundTripKnownDefectsDeath.AsciiIntegerMaxdimCurrentlyAborts` |
+| ASCII rank-7 DOUBLE corrupts | `…DISABLED_AsciiDoubleMaxdimRoundTrips` | `RoundTripKnownDefects.AsciiDoubleMaxdimCurrentlyCorrupts` |
+| ASCII rank-7 COMPLEX corrupts | `…DISABLED_AsciiComplexMaxdimRoundTrips` | `RoundTripKnownDefects.AsciiComplexMaxdimCurrentlyCorrupts` |
+| `build_uri` can't address FLEXBUFFERS | `…DISABLED_BuildUriSupportsFlexbuffers` | `RoundTripKnownDefects.BuildUriFlexbuffersCurrentlyFails` |
+| slice append doesn't accumulate | `Hdf5SliceAppend.DISABLED_AppendedSlicesAllPersist` | `Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior` |
+| plugin setvalue unregistered-name crash | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` |

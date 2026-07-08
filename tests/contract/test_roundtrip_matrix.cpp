@@ -318,6 +318,53 @@ void run_round_trip_here(const BackendCase& backend, int rank) {
     run_round_trip<T>(backend, base, pulse, rank);
 }
 
+// Observe a write->read round trip WITHOUT asserting equality: returns true iff
+// the data survived intact (shape + values), after asserting each op itself
+// succeeded (so a "did not survive" result means genuine corruption, not a
+// refusal or a broken setup). The paired DISABLED_ tests above assert survival
+// as the correct contract; the current-behavior tripwires below use this to pin
+// today's *silent corruption* (the op returns success but the bytes come back
+// wrong), so a fix that restores the data flips the tripwire red.
+template <class T>
+bool maxdim_round_trip_survives(const BackendCase& backend, int rank) {
+    al_contract::TempBase base;
+    PulseId               pulse{"test", "3", 12, 0};
+    const Cell<T>         c = make_cell<T>(backend, base, pulse, rank);
+    EXPECT_FALSE(c.uri.empty());
+
+    int pulse_ctx = -1;
+    EXPECT_EQ(
+        al_begin_dataentry_action(c.uri.c_str(), FORCE_CREATE_PULSE, &pulse_ctx)
+            .code,
+        0);
+    {
+        int op_ctx = -1;
+        EXPECT_EQ(
+            al_begin_global_action(pulse_ctx, kIds, "", WRITE_OP, &op_ctx).code,
+            0);
+        EXPECT_EQ(al_contract::write_data<T>(op_ctx, c.field.c_str(), c.shape,
+                                             c.written)
+                      .code,
+                  0);
+        EXPECT_EQ(al_end_action(op_ctx).code, 0);
+    }
+    std::vector<int> read_shape;
+    std::vector<T>   read_data;
+    {
+        int op_ctx = -1;
+        EXPECT_EQ(
+            al_begin_global_action(pulse_ctx, kIds, "", READ_OP, &op_ctx).code,
+            0);
+        EXPECT_EQ(al_contract::read_data<T>(op_ctx, c.field.c_str(), rank,
+                                            &read_shape, &read_data)
+                      .code,
+                  0);
+        EXPECT_EQ(al_end_action(op_ctx).code, 0);
+    }
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    return read_shape == c.shape && read_data == c.written;
+}
+
 // --- HDF5 crashes writing/reading a CHAR scalar (dim 0) --------------------
 TEST(RoundTripKnownDefects, DISABLED_Hdf5CharScalarRoundTrips) {
     run_round_trip_here<char>(kHdf5, /*rank=*/0);
@@ -343,6 +390,33 @@ TEST(RoundTripKnownDefects, DISABLED_AsciiComplexMaxdimRoundTrips) {
     run_round_trip_here<std::complex<double>>(kAscii, /*rank=*/MAXDIM);
 }
 
+// Current-behavior tripwires for the ASCII rank-7 defects, so the DISABLED_
+// correct-contract tests above can't rot. The three datatypes fail differently:
+// INTEGER aborts the process (a death test), while DOUBLE and COMPLEX complete
+// the op but return corrupted bytes (assert non-survival). When ASCII is fixed
+// each tripwire goes red, forcing whoever fixed it to enable the paired
+// DISABLED_ test.
+TEST(RoundTripKnownDefectsDeath, AsciiIntegerMaxdimCurrentlyAborts) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    ASSERT_DEATH(run_round_trip_here<int>(kAscii, /*rank=*/MAXDIM), ".*")
+        << "expected ASCII rank-7 INTEGER to abort. If it no longer does, the "
+           "defect was likely fixed — enable "
+           "RoundTripKnownDefects.DISABLED_AsciiIntegerMaxdimRoundTrips.";
+}
+
+TEST(RoundTripKnownDefects, AsciiDoubleMaxdimCurrentlyCorrupts) {
+    EXPECT_FALSE(maxdim_round_trip_survives<double>(kAscii, /*rank=*/MAXDIM))
+        << "ASCII rank-7 DOUBLE now round-trips intact — the defect is fixed; "
+           "enable RoundTripKnownDefects.DISABLED_AsciiDoubleMaxdimRoundTrips.";
+}
+
+TEST(RoundTripKnownDefects, AsciiComplexMaxdimCurrentlyCorrupts) {
+    EXPECT_FALSE(
+        maxdim_round_trip_survives<std::complex<double>>(kAscii, /*rank=*/MAXDIM))
+        << "ASCII rank-7 COMPLEX now round-trips intact — the defect is fixed; "
+           "enable RoundTripKnownDefects.DISABLED_AsciiComplexMaxdimRoundTrips.";
+}
+
 // --- al_build_uri_from_legacy_parameters can't address FLEXBUFFERS ----------
 // getURIBackend (src/al_context.cpp:280) has no FLEXBUFFERS_BACKEND case and
 // throws, even though the parse side accepts the "flexbuffers" scheme — so the
@@ -357,6 +431,22 @@ TEST(RoundTripKnownDefects, DISABLED_BuildUriSupportsFlexbuffers) {
     EXPECT_EQ(s.code, 0)
         << "al_build_uri_from_legacy_parameters should support the always-on "
            "FLEXBUFFERS backend (getURIBackend, src/al_context.cpp:280)";
+    free(uri);
+}
+
+// Current-behavior tripwire: today the builder errors for FLEXBUFFERS (code -4),
+// so al_contract.h::build_uri hand-builds the URI to keep the matrix running.
+// When the builder is fixed this goes red, forcing whoever fixed it to enable
+// DISABLED_BuildUriSupportsFlexbuffers and drop the hand-built workaround.
+TEST(RoundTripKnownDefects, BuildUriFlexbuffersCurrentlyFails) {
+    char*       uri = nullptr;
+    al_status_t s   = al_build_uri_from_legacy_parameters(
+        FLEXBUFFERS_BACKEND, 12, 0, "/tmp/al_contract_flexbuffers", "test", "3",
+        "", &uri);
+    EXPECT_NE(s.code, 0)
+        << "al_build_uri_from_legacy_parameters now supports FLEXBUFFERS — "
+           "enable RoundTripKnownDefects.DISABLED_BuildUriSupportsFlexbuffers "
+           "and drop the hand-built URI workaround in al_contract.h::build_uri.";
     free(uri);
 }
 
