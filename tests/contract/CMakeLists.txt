@@ -62,6 +62,7 @@ option(AL_CONTRACT_SANITIZE
 
 add_executable(contract_tests
   test_roundtrip.cpp
+  test_roundtrip_matrix.cpp
   test_introspection.cpp
   test_version_sentinel.cpp
   test_known_defects.cpp
