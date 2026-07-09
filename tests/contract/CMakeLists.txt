@@ -67,6 +67,7 @@ add_executable(contract_tests
   test_version_sentinel.cpp
   test_capability_gated.cpp
   test_known_defects.cpp
+  test_plugins.cpp
   test_structured_data.cpp
   test_pulse_lifecycle.cpp
 )
@@ -74,6 +75,38 @@ add_executable(contract_tests
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
 add_dependencies(contract_tests al)
 target_compile_features(contract_tests PRIVATE cxx_std_17)
+
+########################################################################################################################
+# Test plugin fixture (issue #7, TEST_STRATEGY.md step 5).
+#
+# A real, loadable plugin the C ABI can dlopen, so the register/bind/unbind/
+# unregister state machine and the al_setvalue_*_parameter_plugin happy paths
+# run end to end (not just their failure modes). This is the classic red-green
+# fixture/harness the issue calls out. Built as a MODULE named exactly
+# "<name>_plugin.so" (PREFIX ""/SUFFIX ".so") because registerPlugin resolves
+# "$IMAS_AL_PLUGINS/<plugin_name>_plugin.so" (src/al_lowlevel.cpp:335). The
+# plugin base classes are header-only, so the module links no libal symbols —
+# it only needs al's include dirs (and al's generated al_defs.h). The plugins
+# framework is dlopen/dlfcn-based, so this is POSIX-only.
+if(NOT WIN32)
+  add_library(al_contract_plugin MODULE test_plugin_fixture.cpp)
+  # Pull in al's (source + generated) include dirs without linking its symbols.
+  target_include_directories(al_contract_plugin
+    PRIVATE $<TARGET_PROPERTY:al,INTERFACE_INCLUDE_DIRECTORIES>)
+  add_dependencies(al_contract_plugin al)          # ensure al_defs.h is generated
+  add_dependencies(contract_tests al_contract_plugin)
+  target_compile_features(al_contract_plugin PRIVATE cxx_std_17)
+  set_target_properties(al_contract_plugin PROPERTIES
+    PREFIX ""
+    OUTPUT_NAME "alcontract_plugin"
+    SUFFIX ".so"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/plugins")
+
+  # Tell test_plugins.cpp where the built .so lives and what name to register.
+  target_compile_definitions(contract_tests PRIVATE
+    AL_CONTRACT_PLUGIN_DIR="${CMAKE_CURRENT_BINARY_DIR}/plugins"
+    AL_CONTRACT_PLUGIN_NAME="alcontract")
+endif()
 
 if(NOT WIN32 AND NOT APPLE)
   # stdc++fs is only needed on Linux with older GCC (std::filesystem in the harness).
@@ -109,8 +142,9 @@ endif()
 # is a fast, hermetic inner loop (PRD user story 29) and `ctest -L integration`
 # is the on-disk tier:
 #   unit        = pure lookups (Introspection.*), the in-RAM Memory backend
-#                 (*Memory* parametrized instances), and the plugin ABI death
-#                 tests (KnownDefects*) — nothing touches an on-disk backend.
+#                 (*Memory* parametrized instances), the plugin ABI death
+#                 tests (KnownDefects*), and the plugin lifecycle suite
+#                 (Plugin*, an in-process registry — no on-disk backend).
 #   integration = everything else (HDF5 / ASCII / Flexbuffers on disk).
 # Two disjoint discovery passes over the one binary; the TEST_FILTERs partition
 # the cases so each registers exactly once. TEST_FILTER needs CMake >= 3.22; on
@@ -123,10 +157,10 @@ endif()
 # second pass re-registers the unit cases and CTest sees duplicates.
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*"
+    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;integration")
 else()
   gtest_discover_tests(contract_tests
