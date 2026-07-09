@@ -20,8 +20,12 @@ Status vocabulary:
 - **xfail** — a genuine defect; the test asserts the *correct* behavior and is
   expected-fail (decision D2, `DISABLED_` + a paired current-behavior tripwire).
   Flipping to pass means someone fixed it.
-- **gap** — not yet tested; the owning later build-order step (TEST_STRATEGY §4)
-  is named so the future issue knows which row to fill.
+- **gap** — not tested. Either *deferred*, naming the later build-order step
+  (TEST_STRATEGY §4) that owns it, or — now that issue #8 (the last build-order
+  step) is closing — *terminal*: reachable in principle but out of this
+  suite's scope (e.g. needs infrastructure this test target doesn't have), or
+  genuinely not observable through the C ABI at all. Each terminal gap says
+  which, explicitly, so "gap" here never means "silently fine."
 
 Line coverage (`gcov`/`lcov`) is a secondary signal only (D8): a rewrite may
 restructure lines but must still satisfy every row here.
@@ -39,26 +43,39 @@ carry a `/<Backend>` (or `/<Backend>_<Type>_r<rank>`) suffix per instance.
 > needs CMake ≥ 3.22 (`gtest_discover_tests(TEST_FILTER …)`); on the declared
 > 3.21 floor it falls back to the single `contract` label.
 
-## Coverage status — as of the five implemented issues (#2 scaffold, #5
-## introspection, #3 round-trip matrix, #6 capability-gated, #4 structured data, , #7 plugins)
+## Coverage status — as of all six implemented issues (#2 scaffold, #5
+## introspection, #3 round-trip matrix, #6 capability-gated, #4 structured
+## data, #7 plugins, #8 ownership sweep)
 
-The suite covers the **data-path, introspection, structured-data surface, and plugin-management surface**
-end to end and pins the defects those issues surfaced (twenty xfails, each
-with a paired current-behavior tripwire). It does **not yet** cover any of the
-the Plugin-author audience or the ownership sweep — those are the remaining build-order
-steps and appear below as explicit **gap** rows, each tagged with the step
-that owns it:
+The suite covers the **data-path, introspection, structured-data surface,
+plugin-management surface, and Plugin-author audience** end to end and pins
+the defects those issues surfaced (twenty xfails, each with a paired
+current-behavior tripwire — issue #8 resolved every open ownership/coverage
+question by test but found no new genuine defects, so the xfail count is
+unchanged). Issue #8 (`6-ownership-sweep.md`) closed every remaining row:
 
-- **Plugins** (§4 step 5, task doc `5-plugins.md`): User Cluster 3 is now
-  covered (register/bind/unbind/unregister state machine + quirks,
-  `al_is_plugin_registered`, all three `al_setvalue_*` variants, four pinned
-  defects). Still open: readback binding, `al_write_plugins_metadata`, and all
-  of Part 3 (the Plugin-author audience).
-- **Ownership sweep** (§4 step 6, task doc `6-ownership-sweep.md`): the
-  caller-frees questions and the remaining audience sweep.
-
-GitHub issue numbers for those two are to be filled in when the issues are
-opened; until then they are referenced by build-order step + task-doc slug.
+- **Ownership**: `al_context_info`, `al_get_occurrences`'s
+  `*occurrences_list`, and `al_list_filled_paths`'s list+strings were already
+  pinned malloc/free by issues #4/#6 (`ContextInfo.*`, `Occurrences.*`,
+  `CapabilityMatrix.ListFilledPathsPositiveOrRefused`).
+  `al_build_uri_from_legacy_parameters`'s `*uri` gets its own explicit pin
+  here (`UriOwnership.CallerFreesBuiltUri`), rather than only incidental
+  free()s inside the `al_contract::build_uri` test helper.
+- **MAXDIM**: resolved empirically — plugin-parameter `dim`/`size` on
+  `al_setvalue_parameter_plugin` is **not** bounded by MAXDIM; the core
+  passes it through to the plugin unchecked
+  (`PluginTest.SetValueGenericAcceptsDimAboveMaxdim`).
+- **Plugin-author audience (Part 3)**: low-level reentry (`PluginReentry.*`),
+  action-lifecycle data interception
+  (`PluginTest.BoundPluginIntercepts{Write,Read}InsteadOfBackend`), provenance
+  + `al_write_plugins_metadata`
+  (`PluginTest.WritePluginsMetadataStoresBoundPluginProvenance`), and readback
+  binding (`ReadbackPlugins.*`, with `test_plugin_fixture.cpp` extended to
+  opt into readback capability for one path via
+  `AL_CONTRACT_PLUGIN_READBACK_PATH`) are now all covered.
+- **Two rows stay `gap`, by design, not omission**: Backend `getVersion`
+  drift and `initDataInterpolationComponent` — see their rows in Part 2 for
+  why each is a legitimate terminal gap rather than a deferred one.
 
 ---
 
@@ -75,7 +92,7 @@ opened; until then they are referenced by build-order step + task-doc slug.
 | `al_context_info` describes a context (pulse/operation/arraystruct); **caller frees `*info`** (verified `malloc`-based) | :118-126 | ✓ | ✓ | `ContextInfo.{NullContextReturnsLiteralString, PulseContextDescribesItsUri, OperationContextDescribesDataobjectAndAccessmode, ArraystructContextDescribesPathAndIndex}` (frees via `free()`) | covered |
 | `al_get_backendID` returns the active `BACKEND` for a context | :128-135 | — | ✓ | `GetBackendId.ReturnsTheBackendUsedToOpen` (HDF5 only) | covered |
 | ↳ no context-type check — a non-pulse context is `static_cast` (not `dynamic_cast`) to `DataEntryContext*` with no validation, so it **silently "succeeds" with an undefined-behavior value** instead of erroring (confirmed empirically: it does not crash) | :128-135; src/al_lowlevel.cpp al_get_backendID | — | ✓ | `GetBackendIdKnownDefects.DISABLED_WrongContextTypeReturnsError` + tripwire `GetBackendIdKnownDefects.WrongContextTypeCurrentlySucceedsViaUnsafeCast` (HDF5 only) | **xfail** |
-| `al_build_uri_from_legacy_parameters` builds a URI from legacy params | :137-149 | ✓ | ✓ | `al_contract::build_uri` (asserts OK) drives HDF5·Memory·ASCII in all on-disk suites. Caller-frees of `*uri` → ownership sweep (step 6) | covered |
+| `al_build_uri_from_legacy_parameters` builds a URI from legacy params; **caller frees `*uri`** (verified malloc-based, src/al_context.cpp:241-261) | :137-149 | ✓ | ✓ | `al_contract::build_uri` (asserts OK, frees) drives HDF5·Memory·ASCII in all on-disk suites; ownership pinned explicitly by `UriOwnership.CallerFreesBuiltUri` | covered |
 | ↳ must also address the always-on FLEXBUFFERS backend — **throws (`getURIBackend` has no case)** | :137-149; src/al_context.cpp:280 | ✓ | — | `RoundTripKnownDefects.DISABLED_BuildUriSupportsFlexbuffers` + tripwire `RoundTripKnownDefects.BuildUriFlexbuffersCurrentlyFails` | **xfail** |
 
 ## Cluster 2 — Core data access  (`FUNCTIONALITY_INVENTORY.md:153-314`)
@@ -133,9 +150,12 @@ classified once (D2). Four defects are pinned as expected-fail with paired
 current-behavior tripwires: the two setvalue null-derefs (double + generic,
 joining the scaffold's int one), the registered-but-never-bound plugin left
 un-destroyed on unregister, and the `dlopen`-failure swallowed assert. The whole
-suite is `unit` (in-process registry, no on-disk backend). Still deferred:
-readback binding and `al_write_plugins_metadata` (need a get/put through a
-readback-implementing plugin — Part 3 / ownership sweep).
+suite is `unit` (in-process registry, no on-disk backend). Readback binding
+and `al_write_plugins_metadata`, deferred at the time this paragraph was
+written, are now covered — issue #8 extended `test_plugin_fixture.cpp` with
+an env-var-gated readback capability and drove a real put→write-metadata→
+unregister→bind_readback_plugins cycle over a Memory-backend pulse (see
+their rows below and Part 3).
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
@@ -143,7 +163,7 @@ readback-implementing plugin — Part 3 / ownership sweep).
 | ↳ unregister of a **registered-but-never-bound** plugin must destroy it — **it is left un-destroyed** (`unregisterPlugin` destroy+erase run only inside the `boundPlugins` loop) | :347-354; src/al_lowlevel.cpp:382-431 | ✓ | — | `PluginTest.DISABLED_UnregisterNeverBoundPluginDestroysIt` + tripwire `PluginTest.UnregisterNeverBoundPluginLeavesItRegistered_CurrentBehavior` | **xfail** |
 | ↳ `register` on an existing-but-unloadable `.so` must report the **dlopen** failure — the failure is guarded only by an `assert`, stripped under `-DNDEBUG` (misleading downstream "Cannot load symbol create"; would `SIGABRT` in an assert-enabled build) | :355-360; src/al_lowlevel.cpp:350-357 | ✓ | — | `PluginTest.DISABLED_RegisterUnloadableSharedLibReportsDlopenFailure` + tripwire `PluginTest.RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior` | **xfail** |
 | `al_bind_plugin` / `al_unbind_plugin` (bind registered OK; bind-unregistered throws; double-bind throws; unbind-unbound silent no-op) | :362-376 | ✓ | — | `PluginTest.{BindRegisteredPluginSucceeds, BindUnregisteredPluginReturnsError, DoubleBindSamePathReturnsError, UnbindNeverBoundPathIsSilentNoOp}` | covered |
-| `al_bind_readback_plugins` / `al_unbind_readback_plugins` | :378-389 | — | — | needs a readback-implementing plugin + a get op → Part 3 / ownership sweep | gap |
+| `al_bind_readback_plugins` / `al_unbind_readback_plugins` (auto-register + auto-bind from stored metadata before a get; auto-unregister after) | :378-389 | ✓ | — | `ReadbackPlugins.BindReadbackPluginsAutoRegistersAndBindsFromStoredMetadata` — `test_plugin_fixture.cpp` extended to opt into readback capability for one path via `AL_CONTRACT_PLUGIN_READBACK_PATH`; the bind is confirmed indirectly (double-bind now errors) since there is no direct `al_is_plugin_bound` ABI | covered |
 | `al_is_plugin_registered` boolean query (true/false; framework-gated) | :391-397 | ✓ | — | `PluginTest.{RegisterMakesPluginRegistered, IsPluginRegisteredIsFalseForNeverRegisteredName, IsPluginRegisteredWithFrameworkDisabledReturnsError}` | covered |
 | `al_setvalue_parameter_plugin` (generic typed variant) on a registered plugin | :399-420 | ✓ | — | `PluginTest.SetValueGenericOnRegisteredPluginSucceeds` | covered |
 | ↳ generic variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueGenericUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueGenericUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
@@ -151,7 +171,7 @@ readback-implementing plugin — Part 3 / ownership sweep).
 | ↳ int-scalar variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
 | `al_setvalue_double_scalar_parameter_plugin` on a registered plugin reaches `setParameter` with the right value | :399-417 | ✓ | — | `PluginTest.SetValueDoubleScalarOnRegisteredPluginReachesPlugin` | covered |
 | ↳ double-scalar variant on an **unregistered** name must error, not crash | :399-417 | ✓ | — | `KnownDefects.DISABLED_SetValueDoubleScalarUnregisteredPluginReturnsError` + tripwire `KnownDefectsDeath.SetValueDoubleScalarUnregisteredPluginCurrentlyCrashes` (SIGSEGV) | **xfail** |
-| `al_write_plugins_metadata` | :422-430 | — | — | needs bound provenance plugin + open ctx → Part 3 / ownership sweep | gap |
+| `al_write_plugins_metadata` (stores bound put-capable plugins' provenance + any readback contribution under `ids_properties/plugins/node`) | :422-430 | ✓ | — | `PluginTest.WritePluginsMetadataStoresBoundPluginProvenance` (Memory backend; verifies stored `path`, `put_operation[]` provenance fields, and an empty `readback[]` for a non-readback-opted-in bind) | covered |
 
 ## Cluster 4 — Introspection / diagnostics  (`FUNCTIONALITY_INVENTORY.md:434-459`)  (issue #5 — the thin unit tier)
 
@@ -190,8 +210,8 @@ and points at the same test.
 
 | Cluster / Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| **A** `initBackend` factory selects the backend from the URI | :496-514 | ✓ (Memory) | ✓ (HDF5, ASCII) | every always-on backend instantiated via `build_uri` in `RoundTripMatrix`. Unrecognized-ID throw untested → step 6 | covered (indirect) |
-| **B** `getVersion` (installed vs stored, drift check) | :520-540 | — | — | version-drift guard untested → step 6 | gap |
+| **A** `initBackend` factory selects the backend from the URI | :496-514 | ✓ (Memory) | ✓ (HDF5, ASCII) | every always-on backend instantiated via `build_uri` in `RoundTripMatrix`. Residual: the unrecognized-ID throw path (`al_backend.cpp:82-86`) is straightforward by inspection (a plain `else` throwing `ALBackendException`) but untested — low-value relative to the rest of this row, left as a residual rather than a separate row | covered (indirect) |
+| **B** `getVersion` (installed vs stored, drift check) | :520-540 | — | — | Reachable in principle: `al_begin_dataentry_action`/`al_plugin_begin_global_action`/`al_plugin_begin_slice_action` all compare `backend->getVersion(NULL)` (compiled) against `backend->getVersion(pctx)` (stored) on open/write and throw `LOWLEVEL_ERR` on a mismatch (src/al_lowlevel.cpp:868-883,956-967,1011-1022). Forcing the mismatch needs writing a pulse then overwriting its on-disk HDF5 backend-version attribute directly via the HDF5 C API — out of this issue's scope (no HDF5 include/link wiring in the test target). **Terminal gap**, not deferred to a future step: reachable via the C ABI, but pinning it needs infrastructure this suite does not have | gap |
 | **B** `openPulse` / `closePulse` | :542-552 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_dataentry_action` / `al_close_pulse` in all suites | covered (indirect) |
 | **C** `beginAction` / `endAction` | :558-574 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_global_action` / `al_end_action` | covered (indirect) |
 | **C** `writeData` / `readData` (0=not-found vs 1=success inner convention) | :576-589 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_write_data` / `al_read_data` — `RoundTripMatrix` (+ the CHAR-scalar / ASCII-maxdim xfails above) | covered |
@@ -200,7 +220,7 @@ and points at the same test.
 | **D** `get_occurrences` | :612-616 | — | ✓ | via `al_get_occurrences` — `Occurrences.*` | covered (indirect) |
 | **D** `list_filled_paths` (per-backend: HDF5 real, others throw) | :618-640 | ✓ (Memory) | ✓ (HDF5) | via `al_list_filled_paths` — `CapabilityMatrix.ListFilledPathsPositiveOrRefused` pins both the HDF5 impl and the unconditional throw on Memory·ASCII·Flexbuffers | covered |
 | **E** `supportsTimeDataInterpolation` / `supportsTimeRangeOperation` | :644-690 | ✓ (Memory) | ✓ (HDF5) | asserted through their sole ABI consequence (op accepted vs refused per backend): `CapabilityMatrix.{TimeRange,Slice,SliceWriteBegin}*`. The empirically-corrected fact that **Memory supports slice** (D2 over the issue's assumption) is encoded here | covered (indirect) |
-| **E** `initDataInterpolationComponent` (framework-driven) | :644-690 | — | — | no-op where the factory calls it; not separately ABI-observable → step 6 | gap |
+| **E** `initDataInterpolationComponent` (framework-driven) | :644-690 | — | — | Confirmed unconditionally invoked from `Backend::create()` for any backend that supports slice or timerange (src/al_backend.cpp:88-89), i.e. on every relevant `al_begin_dataentry_action` already exercised elsewhere in this suite — but it has no side effect distinguishable through the C ABI beyond enabling the slice/timerange machinery `Hdf5TimeDependent.*`/`CapabilityMatrix.*` already cover. **Terminal gap**: genuinely not separately ABI-observable, not merely untested | gap |
 
 ---
 
@@ -211,11 +231,11 @@ the plugins issue has a concrete checklist rather than a blank slate.
 
 | Cluster / Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
 |---|---|:--:|:--:|---|---|
-| **1** Provenance metadata (`getName`/`getVersion`/`getCommit`/…) | :739-759 | — | — | — → plugins (step 5) | gap |
-| **2** Parameter configuration (`setParameter` / `setParameters`) | :763-780 | ✓ | — | `setParameter` is reached (with the exact value) via `al_setvalue_*` on the registered fixture plugin: `PluginTest.SetValue{IntScalar,DoubleScalar}OnRegisteredPluginReachesPlugin` (asserted through the plugin's parameter log). The User-side unregistered-name crash is xfail'd in Part 1 Cluster 3. Residual: `setParameters` (bulk) untested → step 6 | covered (indirect) |
-| **3** Action lifecycle & data interception (`begin_*_action`, `read_data`/`write_data`, `node_operation`) | :784-824 | — | — | — → plugins (step 5) | gap |
-| **4** Readback metadata (`getReadback*`) | :827-850 | — | — | — → plugins (step 5) | gap |
-| **5** Low-level reentry (`al_plugin_*`); `al_plugin_begin_timerange_action` is broken (declaration/definition mismatch) | :854-895 | — | — | — → plugins (step 5); the reentry bug is tracked separately as an upstream GitHub issue | gap |
+| **1** Provenance metadata (`getName`/`getVersion`/`getCommit`/…) | :739-759 | ✓ | — | Read back from stored metadata: `PluginTest.WritePluginsMetadataStoresBoundPluginProvenance` asserts `name`/`version`/`commit`/`repository` match `ContractTestPlugin`'s provenance; `ReadbackPlugins.*` additionally exercises `getReadbackVersion` being checked for self-consistency against `getVersion` | covered |
+| **2** Parameter configuration (`setParameter` / `setParameters`) | :763-780 | ✓ | — | `setParameter` is reached (with the exact value) via `al_setvalue_*` on the registered fixture plugin: `PluginTest.SetValue{IntScalar,DoubleScalar}OnRegisteredPluginReachesPlugin` (asserted through the plugin's parameter log). The User-side unregistered-name crash is xfail'd in Part 1 Cluster 3. `setParameters` (bulk) has no C-ABI seam of its own (only the single-parameter `al_setvalue_*` functions exist) — it is invoked internally as part of `al_bind_readback_plugins` (`ReadbackPlugins.*` exercises the call, with an empty `parameters` string) but a caller cannot address it directly, so a residual "test bulk setParameters directly" is not achievable through the C ABI (D1). **Terminal gap** for the direct-call residual, not deferred | covered (indirect) |
+| **3** Action lifecycle & data interception (`begin_*_action`, `read_data`/`write_data`, `node_operation`) | :784-824 | ✓ | — | `al_write_data`/`al_read_data` check `LLplugin::getBoundPlugins` before touching the backend (al_lowlevel.cpp:1685-1693,1721-1731): `PluginTest.BoundPluginInterceptsWriteInsteadOfBackend` proves a bound plugin's inert `write_data()` absorbs a write (the value never reaches the Memory backend, contrasted with an unbound sibling field that round-trips normally); `PluginTest.BoundPluginInterceptsReadInsteadOfBackend` proves the symmetric case for `read_data()`. `node_operation`'s PUT/GET classification is exercised as an asserted dependency of `findPutOperationPlugins`/`findGetOperationPlugins` in the `WritePluginsMetadata`/`ReadbackPlugins` tests. `begin_*_action` hooks on a *regular* bound plugin remain inert-only (`ContractTestPlugin`'s are no-ops) — no test drives a plugin that does real work in them, since none of the existing behaviors need one | covered (indirect) |
+| **4** Readback metadata (`getReadback*`) | :827-850 | ✓ | — | `ReadbackPlugins.BindReadbackPluginsAutoRegistersAndBindsFromStoredMetadata` — `test_plugin_fixture.cpp`'s `ContractTestPlugin` extended with `AL_CONTRACT_PLUGIN_READBACK_PATH` to opt a single path into readback capability, self-consistent with its own provenance (so the version-match check in `bind_readback_plugins` passes) | covered |
+| **5** Low-level reentry (`al_plugin_*`); `al_plugin_begin_timerange_action` is broken (declaration/definition mismatch) | :854-895 | ✓ | — | `PluginReentry.{WriteDataReentersTheBackendDirectly,ReadDataAlsoReentersTheBackendDirectly}` call `al_plugin_begin_global_action`/`al_plugin_write_data`/`al_plugin_read_data`/`al_plugin_end_action` directly (no plugin object needed — they bypass dispatch straight to the backend) and cross-check against the ordinary `al_write_data`/`al_read_data` path. `al_plugin_begin_timerange_action` is excluded — the reentry bug is tracked separately as an upstream GitHub issue, not re-characterized here | covered |
 
 ---
 

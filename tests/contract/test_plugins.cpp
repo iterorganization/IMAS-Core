@@ -77,6 +77,19 @@ void force_unregister(const char* name) {
     al_unregister_plugin(name);
 }
 
+// Shared by every test below that needs a real (Memory-backend, unit-tier)
+// pulse to write/read through — issue #8's ownership-sweep tests are the
+// first in this file to need one, since the earlier plugin-registry tests
+// above operate on bare path strings with no backend at all.
+int open_memory_pulse(al_contract::TempBase& base,
+                      const al_contract::PulseId& pulse) {
+    const std::string u = al_contract::build_uri(MEMORY_BACKEND, base.str(), pulse);
+    int pctx = -1;
+    EXPECT_EQ(al_begin_dataentry_action(u.c_str(), FORCE_CREATE_PULSE, &pctx).code,
+              0);
+    return pctx;
+}
+
 class PluginTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -247,6 +260,42 @@ TEST_F(PluginTest, SetValueGenericOnRegisteredPluginReachesPlugin) {
 }
 
 // ===========================================================================
+// al_setvalue_parameter_plugin's dim/size (FUNCTIONALITY_INVENTORY.md:399-420):
+// is `dim` bound by MAXDIM? (issue #8 ownership sweep — resolved empirically,
+// not assumed.)
+//
+// First hypothesis tried here was that dim > MAXDIM would be rejected; it
+// isn't (confirmed by running this test against the built library before
+// settling on the assertion below). LLplugin::setvalueParameterPlugin
+// (al_lowlevel.cpp:453-457) forwards dim/size straight through to the
+// plugin's setParameter with no comparison against MAXDIM and no copy into
+// any core-side fixed-size buffer. MAXDIM bounds only al_read_data's/
+// al_write_data's own shape arrays, not this call chain — a plugin author
+// choosing to size an internal buffer at MAXDIM would be relying on a
+// convention the core does not enforce for this ABI.
+// ===========================================================================
+TEST_F(PluginTest, SetValueGenericAcceptsDimAboveMaxdim) {
+    PluginLog log("maxdim");
+    AL_ASSERT_OK(al_register_plugin(kPlugin));
+
+    constexpr int kDim = MAXDIM + 1;  // one past the documented bound
+    int size[kDim];
+    for (int i = 0; i < kDim; ++i) size[i] = i + 1;
+    int value = 99;
+    al_status_t s = al_setvalue_parameter_plugin("oversize", INTEGER_DATA, kDim,
+                                                  size, &value, kPlugin);
+    EXPECT_EQ(s.code, 0)
+        << "dim beyond MAXDIM is not bounds-checked by the core, so the call "
+           "must still succeed";
+    const std::string logged = log.contents();
+    EXPECT_NE(logged.find("PARAM|oversize|" + std::to_string(INTEGER_DATA) +
+                          "|" + std::to_string(kDim) + "|-"),
+              std::string::npos)
+        << "dim must reach the plugin unmodified (not clamped to MAXDIM); "
+           "got: [" << logged << "]";
+}
+
+// ===========================================================================
 // framework-gating: with IMAS_AL_ENABLE_PLUGINS unset the calls must error
 // (src/al_lowlevel.cpp:116-119), not proceed.
 // ===========================================================================
@@ -374,6 +423,306 @@ TEST_F(PluginTest, RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior) {
            "handling was fixed — enable "
            "PluginTest.RegisterUnloadableSharedLibReportsDlopenFailure.";
     fs::remove_all(dir);
+}
+
+// ===========================================================================
+// al_plugin_* low-level reentry (FUNCTIONALITY_INVENTORY.md:854-895, Part 3
+// cluster 5) — issue #8 ownership sweep.
+//
+// These are plain C-ABI functions that go straight to
+// `lle.backend->{beginAction,writeData,readData,endAction}`, bypassing plugin
+// dispatch entirely — they are exactly what al_write_data/al_read_data fall
+// back to when no regular plugin is bound to the path
+// (al_lowlevel.cpp:1692,1728). No plugin registry object or dlopen'd plugin
+// is needed to call them directly: same preconditions as the ordinary
+// al_begin_global_action/al_write_data/al_read_data/al_end_action quartet.
+// (al_plugin_begin_timerange_action is excluded — a known declaration/
+// definition mismatch, tracked separately per TRACEABILITY.md.)
+// ===========================================================================
+class PluginReentry : public ::testing::Test {
+protected:
+    al_contract::TempBase base_;
+    al_contract::PulseId pulse_{/*database=*/"test", /*version=*/"3",
+                                /*pulse=*/12, /*run=*/0};
+};
+
+TEST_F(PluginReentry, WriteDataReentersTheBackendDirectly) {
+    const int pctx = open_memory_pulse(base_, pulse_);
+
+    int opctx = -1;
+    AL_ASSERT_OK(al_plugin_begin_global_action(pctx, "magnetics", "",
+                                               WRITE_OP, &opctx));
+    int value = 55;
+    AL_ASSERT_OK(al_plugin_write_data(opctx, "comment", "", &value,
+                                      INTEGER_DATA, 0, nullptr));
+    AL_ASSERT_OK(al_plugin_end_action(opctx));
+
+    // Read back through the *ordinary* ABI to prove al_plugin_write_data
+    // landed in the real backend storage, not some plugin-side stash.
+    int op2 = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", READ_OP, &op2));
+    int got = -1;
+    AL_ASSERT_OK(al_contract::read_int_scalar(op2, "comment", &got));
+    EXPECT_EQ(got, 55);
+    al_end_action(op2);
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+TEST_F(PluginReentry, ReadDataAlsoReentersTheBackendDirectly) {
+    const int pctx = open_memory_pulse(base_, pulse_);
+
+    // Write through the ordinary ABI...
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", WRITE_OP, &op));
+    AL_ASSERT_OK(al_contract::write_int_scalar(op, "comment", 77));
+    al_end_action(op);
+
+    // ...and read it back through the plugin reentry path.
+    int opctx = -1;
+    AL_ASSERT_OK(al_plugin_begin_global_action(pctx, "magnetics", "", READ_OP,
+                                               &opctx));
+    int got = -1;
+    int size[MAXDIM] = {0};
+    void* buf = &got;
+    AL_ASSERT_OK(al_plugin_read_data(opctx, "comment", "", &buf, INTEGER_DATA,
+                                     0, size));
+    EXPECT_EQ(got, 77);
+    AL_ASSERT_OK(al_plugin_end_action(opctx));
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// ===========================================================================
+// Action lifecycle & data interception (FUNCTIONALITY_INVENTORY.md:784-824,
+// Part 3 cluster 3) — issue #8 ownership sweep.
+//
+// al_write_data/al_read_data check LLplugin::getBoundPlugins for the target
+// field path *before* touching the backend (al_lowlevel.cpp:1685-1693,
+// 1721-1731): if a plugin is bound there, the call dispatches to the
+// plugin's write_data/read_data instead of the backend. ContractTestPlugin's
+// write_data is an inert no-op and its read_data always returns 0 ("no
+// data"), so binding it to a path makes writes there vanish (never reach the
+// backend) and reads come back as the "no data" default — proof the plugin,
+// not the backend, handled the call.
+// ===========================================================================
+TEST_F(PluginTest, BoundPluginInterceptsWriteInsteadOfBackend) {
+    al_contract::TempBase base;
+    al_contract::PulseId pulse{"test", "3", 12, 0};
+    const int pctx = open_memory_pulse(base, pulse);
+
+    AL_ASSERT_OK(al_register_plugin(kPlugin));
+    AL_ASSERT_OK(al_bind_plugin("magnetics/probe", kPlugin));
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", WRITE_OP, &op));
+    AL_ASSERT_OK(al_contract::write_int_scalar(op, "probe", 42));
+    // A sibling field, never bound to any plugin: the normal path, as a
+    // control proving the value 42 above wasn't lost for some unrelated
+    // reason.
+    AL_ASSERT_OK(al_contract::write_int_scalar(op, "control", 42));
+    al_end_action(op);
+
+    // Unregister *before* reading back, so the read genuinely reaches the
+    // backend — otherwise the still-bound plugin's read_data() would also
+    // intercept the read, and EXPECT_NE(probe, 42) below would pass even if
+    // the write had actually landed (conflating write-interception with
+    // read-interception, which BoundPluginInterceptsReadInsteadOfBackend
+    // covers separately). al_unregister_plugin, not al_unbind_plugin: bind
+    // normalizes "magnetics/probe" to "magnetics:0/probe" internally
+    // (al_lowlevel.cpp LLplugin::bindPlugin's occurrence-suffix regex), but
+    // unbind does no such normalization and looks up the raw string
+    // unchanged — so al_unbind_plugin("magnetics/probe", kPlugin) here would
+    // silently miss (confirmed: it prints "No plugin bound..." and leaves
+    // the binding intact). al_unregister_plugin instead scans boundPlugins
+    // by plugin name, not by path string, so it isn't sensitive to this
+    // normalization mismatch.
+    AL_ASSERT_OK(al_unregister_plugin(kPlugin));
+
+    int op2 = -1;
+    AL_ASSERT_OK(
+        al_begin_global_action(pctx, "magnetics", "", READ_OP, &op2));
+    int control = -1;
+    AL_ASSERT_OK(al_contract::read_int_scalar(op2, "control", &control));
+    EXPECT_EQ(control, 42) << "the unbound sibling field must round-trip "
+                              "normally (control for the assertion below)";
+
+    int probe = -1;
+    AL_ASSERT_OK(al_contract::read_int_scalar(op2, "probe", &probe));
+    EXPECT_NE(probe, 42)
+        << "the bound plugin's inert write_data() must have absorbed the "
+           "write — 42 must never have reached the Memory backend, even "
+           "read back directly (unbound) afterward";
+    al_end_action(op2);
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+TEST_F(PluginTest, BoundPluginInterceptsReadInsteadOfBackend) {
+    al_contract::TempBase base;
+    al_contract::PulseId pulse{"test", "3", 12, 0};
+    const int pctx = open_memory_pulse(base, pulse);
+
+    // Write for real, with no plugin bound.
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", WRITE_OP, &op));
+    AL_ASSERT_OK(al_contract::write_int_scalar(op, "probe", 42));
+    al_end_action(op);
+
+    // Bind only for the read.
+    AL_ASSERT_OK(al_register_plugin(kPlugin));
+    AL_ASSERT_OK(al_bind_plugin("magnetics/probe", kPlugin));
+
+    int op2 = -1;
+    AL_ASSERT_OK(
+        al_begin_global_action(pctx, "magnetics", "", READ_OP, &op2));
+    int got = -1;
+    AL_ASSERT_OK(al_contract::read_int_scalar(op2, "probe", &got));
+    EXPECT_NE(got, 42)
+        << "the bound plugin's read_data() (returns 0, \"no data\") must "
+           "answer instead of the backend, even though 42 really is stored";
+    al_end_action(op2);
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// ===========================================================================
+// al_write_plugins_metadata (FUNCTIONALITY_INVENTORY.md:422-430, User Cluster
+// 3 + Part 3 cluster 1 provenance) — issue #8 ownership sweep.
+//
+// Writes, under the just-written IDS's "ids_properties/plugins/node" AOS, one
+// entry per distinct bound-and-put-capable path: the path itself, a nested
+// "put_operation" AOS with the bound plugin's provenance
+// (getName/getDescription/getCommit/getVersion/getRepository/getParameters),
+// and a nested "readback" AOS built from getReadbackName/* for any plugin
+// that opts in — empty here, since ContractTestPlugin declares no readback
+// capability for any path (access_layer_plugin_manager.cpp:359-489).
+// ===========================================================================
+TEST_F(PluginTest, WritePluginsMetadataStoresBoundPluginProvenance) {
+    al_contract::TempBase base;
+    al_contract::PulseId pulse{"test", "3", 12, 0};
+    const int pctx = open_memory_pulse(base, pulse);
+
+    AL_ASSERT_OK(al_register_plugin(kPlugin));
+    AL_ASSERT_OK(al_bind_plugin("magnetics/comment", kPlugin));
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", WRITE_OP, &op));
+    AL_ASSERT_OK(al_write_plugins_metadata(op));
+    al_end_action(op);
+
+    int op2 = -1;
+    AL_ASSERT_OK(
+        al_begin_global_action(pctx, "magnetics", "", READ_OP, &op2));
+    int nsize = 0;
+    int naos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(
+        op2, "ids_properties/plugins/node", "", &nsize, &naos));
+    ASSERT_EQ(nsize, 1) << "one bound put-capable path -> one node entry";
+
+    std::string path;
+    AL_ASSERT_OK(al_contract::read_char_array(naos, "path", &path));
+    EXPECT_EQ(path, "comment")
+        << "the dataobjectname prefix must be stripped from the stored path";
+
+    int put_size = 0;
+    int put_aos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(naos, "put_operation", "",
+                                             &put_size, &put_aos));
+    ASSERT_EQ(put_size, 1);
+    std::string name, version, commit, repository;
+    AL_ASSERT_OK(al_contract::read_char_array(put_aos, "name", &name));
+    AL_ASSERT_OK(al_contract::read_char_array(put_aos, "version", &version));
+    AL_ASSERT_OK(al_contract::read_char_array(put_aos, "commit", &commit));
+    AL_ASSERT_OK(
+        al_contract::read_char_array(put_aos, "repository", &repository));
+    EXPECT_EQ(name, "alcontract");
+    EXPECT_EQ(version, "0.0.0");
+    EXPECT_EQ(commit, "0000000");
+    EXPECT_EQ(repository, "in-repo");
+    if (put_aos != 0) al_end_action(put_aos);
+
+    int readback_size = -1;
+    int readback_aos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(naos, "readback", "",
+                                             &readback_size, &readback_aos));
+    EXPECT_EQ(readback_size, 0)
+        << "ContractTestPlugin declares no readback capability for any path";
+    if (readback_aos != 0) al_end_action(readback_aos);
+
+    if (naos != 0) al_end_action(naos);
+    al_end_action(op2);
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// ===========================================================================
+// al_bind_readback_plugins / al_unbind_readback_plugins
+// (FUNCTIONALITY_INVENTORY.md:378-389, User Cluster 3 + Part 3 cluster 4
+// readback metadata) — issue #8 ownership sweep.
+//
+// Documented as "function called before/after a get()"
+// (access_layer_plugin_manager.cpp:52,268): given metadata previously
+// written by al_write_plugins_metadata, al_bind_readback_plugins reads it
+// back and auto-registers + auto-binds any plugin that declared itself a
+// readback provider for the stored path — the whole point being that the
+// get()-side caller need not already know which plugins apply.
+// al_unbind_readback_plugins then auto-unregisters exactly what it
+// auto-bound. ContractTestPlugin opts into being its own readback provider
+// for one path via AL_CONTRACT_PLUGIN_READBACK_PATH (test_plugin_fixture.cpp)
+// — self-consistent with its own provenance, so the version check in
+// AccessLayerPluginManager::bind_readback_plugins passes.
+// ===========================================================================
+// Same fixture as PluginTest, plus the one extra env var that opts
+// ContractTestPlugin into readback capability for a single path.
+class ReadbackPlugins : public PluginTest {
+protected:
+    void SetUp() override {
+        PluginTest::SetUp();
+        setenv("AL_CONTRACT_PLUGIN_READBACK_PATH", "comment", 1);
+    }
+    void TearDown() override {
+        unsetenv("AL_CONTRACT_PLUGIN_READBACK_PATH");
+        PluginTest::TearDown();
+    }
+};
+
+TEST_F(ReadbackPlugins, BindReadbackPluginsAutoRegistersAndBindsFromStoredMetadata) {
+    al_contract::TempBase base;
+    al_contract::PulseId pulse{"test", "3", 12, 0};
+    const int pctx = open_memory_pulse(base, pulse);
+
+    // --- put-time: bind, then write metadata describing this plugin as its
+    // own readback provider for "comment" ---
+    AL_ASSERT_OK(al_register_plugin(kPlugin));
+    AL_ASSERT_OK(al_bind_plugin("magnetics/comment", kPlugin));
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, "magnetics", "", WRITE_OP, &op));
+    AL_ASSERT_OK(al_write_plugins_metadata(op));
+    al_end_action(op);
+    AL_ASSERT_OK(al_unregister_plugin(kPlugin));  // simulate a fresh session
+
+    ASSERT_FALSE(is_registered(kPlugin))
+        << "must start the get() side genuinely unregistered";
+
+    // --- get-time: bind_readback_plugins must find the stored metadata and
+    // re-register + bind the plugin on its own ---
+    int op2 = -1;
+    AL_ASSERT_OK(
+        al_begin_global_action(pctx, "magnetics", "", READ_OP, &op2));
+    AL_ASSERT_OK(al_bind_readback_plugins(op2));
+    EXPECT_TRUE(is_registered(kPlugin))
+        << "bind_readback_plugins must auto-register a plugin named in "
+           "stored metadata";
+    al_status_t rebind = al_bind_plugin("magnetics/comment", kPlugin);
+    EXPECT_NE(rebind.code, 0)
+        << "the path must already be bound after bind_readback_plugins (a "
+           "double-bind is a documented error) -- indirect ABI-observable "
+           "proof of the bind";
+
+    AL_ASSERT_OK(al_unbind_readback_plugins(op2));
+    EXPECT_FALSE(is_registered(kPlugin))
+        << "unbind_readback_plugins must auto-unregister what it auto-bound";
+
+    al_end_action(op2);
+    al_close_pulse(pctx, CLOSE_PULSE);
 }
 
 }  // namespace
