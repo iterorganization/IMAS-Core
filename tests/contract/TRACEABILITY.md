@@ -43,7 +43,7 @@ carry a `/<Backend>` (or `/<Backend>_<Type>_r<rank>`) suffix per instance.
 ## introspection, #3 round-trip matrix, #6 capability-gated, #7 plugins)
 
 The suite covers the **data-path, introspection, and plugin-management surface**
-end to end and pins the defects those issues surfaced (nine xfails, each with a
+end to end and pins the defects those issues surfaced (eleven xfails, each with a
 paired current-behavior tripwire). It does **not yet** cover the pulse-lifecycle
 detail, arrays-of-structures, deletion, occurrences, or the Plugin-author
 audience — those are the remaining build-order steps and appear below as explicit
@@ -205,7 +205,7 @@ the plugins issue has a concrete checklist rather than a blank slate.
 ## xfail bookkeeping — every xfail now has a paired tripwire
 
 The D2 discipline is "correct-contract `DISABLED_` test **plus** a paired
-current-behavior tripwire, so the xfail can't rot." All nine xfail rows satisfy
+current-behavior tripwire, so the xfail can't rot." All eleven xfail rows satisfy
 it — a fix to any underlying defect turns its tripwire red, forcing whoever fixed
 it to enable the paired `DISABLED_` correct-contract test:
 
