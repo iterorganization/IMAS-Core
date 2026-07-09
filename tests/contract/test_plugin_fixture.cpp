@@ -81,16 +81,35 @@ public:
     std::string getParameters() override { return ""; }
 
     // --- readback_plugin_feature -------------------------------------------
-    std::string getReadbackName(const std::string&, int*) override {
-        return "";
+    // By default this plugin declares no readback capability for any path
+    // (every getReadback* below returns ""), matching the plugin-lifecycle
+    // tests (issue #7). AL_CONTRACT_PLUGIN_READBACK_PATH opts a single field
+    // path in, for the readback-binding contract test (issue #8): when set
+    // and equal to `path`, the plugin declares itself as its own readback
+    // provider for that path, self-consistent with its own provenance (so
+    // AccessLayerPluginManager::bind_readback_plugins' version check passes).
+    bool is_readback_path(const std::string& path) const {
+        const char* readback_path =
+            std::getenv("AL_CONTRACT_PLUGIN_READBACK_PATH");
+        return readback_path != nullptr && path == readback_path;
     }
-    std::string getReadbackDescription(const std::string&) override {
-        return "";
+
+    std::string getReadbackName(const std::string& path, int* index) override {
+        if (!is_readback_path(path)) return "";
+        *index = 0;
+        return getName();
     }
-    std::string getReadbackCommit(const std::string&) override { return ""; }
-    std::string getReadbackVersion(const std::string&) override { return ""; }
-    std::string getReadbackRepository(const std::string&) override {
-        return "";
+    std::string getReadbackDescription(const std::string& path) override {
+        return is_readback_path(path) ? getDescription() : "";
+    }
+    std::string getReadbackCommit(const std::string& path) override {
+        return is_readback_path(path) ? getCommit() : "";
+    }
+    std::string getReadbackVersion(const std::string& path) override {
+        return is_readback_path(path) ? getVersion() : "";
+    }
+    std::string getReadbackRepository(const std::string& path) override {
+        return is_readback_path(path) ? getRepository() : "";
     }
     std::string getReadbackParameters(const std::string&) override {
         return "";

@@ -253,6 +253,28 @@ TEST_F(ContextInfo, ArraystructContextDescribesPathAndIndex) {
 }
 
 // ===========================================================================
+// al_build_uri_from_legacy_parameters: caller frees `*uri` (malloc-based,
+// src/al_context.cpp:241-261 `malloc`+`memcpy`+NUL) — issue #8 ownership
+// sweep. al_contract::build_uri already frees it on every call across this
+// whole suite; this test pins the ownership contract explicitly by calling
+// the raw ABI function directly instead of through that helper, mirroring
+// ContextInfo's explicit-free style above.
+// ===========================================================================
+TEST(UriOwnership, CallerFreesBuiltUri) {
+    al_contract::TempBase base;
+    PulseId pulse{/*database=*/"test", /*version=*/"3", /*pulse=*/12,
+                  /*run=*/0};
+    char* uri = nullptr;
+    al_status_t s = al_build_uri_from_legacy_parameters(
+        HDF5_BACKEND, pulse.pulse, pulse.run, base.str().c_str(),
+        pulse.database.c_str(), pulse.version.c_str(), "", &uri);
+    AL_ASSERT_OK(s);
+    ASSERT_NE(uri, nullptr);
+    EXPECT_NE(std::string(uri).find("pulse=12"), std::string::npos) << uri;
+    free(uri);
+}
+
+// ===========================================================================
 // al_get_backendID.
 // ===========================================================================
 TEST(GetBackendId, ReturnsTheBackendUsedToOpen) {
