@@ -45,3 +45,4 @@ python/lib/
 /vcpkg/
 /UDA-*/
 .idea
+/graphify-out
