@@ -67,6 +67,8 @@ add_executable(contract_tests
   test_version_sentinel.cpp
   test_capability_gated.cpp
   test_known_defects.cpp
+  test_structured_data.cpp
+  test_pulse_lifecycle.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
