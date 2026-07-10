@@ -268,3 +268,33 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 | HDF5 leaf/structure delete wipes the whole occurrence | `DeleteKnownDefects.DISABLED_Hdf5LeafDeleteLeavesSiblingIntact` | `DeleteKnownDefects.Hdf5LeafDeleteCurrentlyWipesWholeOccurrence` |
 | Memory root delete is a no-op | `DeleteKnownDefects.DISABLED_MemoryRootDeleteClearsWholeIds` | `DeleteKnownDefects.MemoryRootDeleteCurrentlyDoesNothing` |
 | ASCII delete is a no-op at every granularity | `DeleteKnownDefects.DISABLED_AsciiDeleteRemovesLeaf` | `DeleteKnownDefects.AsciiDeleteIsCurrentlyANoOp` |
+
+---
+
+# Part 4 — MDSplus backend (compile-guarded tier)  (issue #12)
+
+**Progress: 1 row landed so far** (tracer bullet, issue #13); the parity and
+unique rows below are not yet enumerated one-by-one (that's later #12
+sub-issues' job). Parity rows (a
+MDSplus instantiation of `EquilibriumSeedMatrix`/`CapabilityMatrix`/
+`AosMatrix`/`DataEntryModes`/`Occurrences`) and unique rows (struct-aware
+slice interpolation, timerange resampling, segments, timebase cache,
+version-drift check) are `gap (deferred — later #12 sub-issue)` until those
+issues land. Per issue #12's definition of done, every row must eventually
+reach one of four terminal statuses — `covered` / `xfail` / `divergence` /
+`terminal-gap` — and none may stay `gap`.
+
+Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
+defined only when `AL_BACKEND_MDSPLUS=ON`), so `test_mdsplus.cpp` compiles
+out entirely otherwise. Runtime-skipped (`GTEST_SKIP()`, never failed, per
+D4) when `MDSPLUS_MODELS_PATH` is unset. New CTest label `mdsplus`
+(`ctest -L mdsplus`). Characterization environment: `docker/mdsplus/`
+(aarch64, DD 4.1.1 baked model tree — see its README for the
+characterization-discovered deviation from the issue's Ubuntu 22.04 starting
+point).
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Tracer bullet: one equilibrium scalar (`vacuum_toroidal_field/r0`, reusing `equilibrium_seed.h`) write→read self-consistency round trip through the C ABI against a real MDSplus tree | `MdsplusTracerBullet.ScalarSurvivesWriteThenRead` | covered |
+| Parity: MDSplus instantiation of `EquilibriumSeedMatrix`, `CapabilityMatrix`, `AosMatrix`, `DataEntryModes`, `Occurrences` | — | gap (deferred — later #12 sub-issue) |
+| Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache, version-drift check | — | gap (deferred — later #12 sub-issue) |
