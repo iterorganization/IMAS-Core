@@ -49,8 +49,7 @@ inline ::testing::AssertionResult IsOk(const al_status_t& s) {
         return ::testing::AssertionSuccess();
     }
     return ::testing::AssertionFailure()
-           << "al_status_t.code=" << s.code
-           << " message=" << (s.message ? s.message : "(null)");
+           << "al_status_t.code=" << s.code << " message=" << s.message;
 }
 
 #define AL_ASSERT_OK(expr) ASSERT_TRUE(::al_contract::IsOk(expr))

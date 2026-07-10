@@ -1,0 +1,44 @@
+name: Contract suite — functional (blocking)
+
+# PRD user story 23 (issue #1): the whole suite runs in CI on every PR so a
+# change breaking any pinned capability fails fast. This is the BLOCKING
+# functional leg — a plain (non-sanitized) build that runs everything ctest
+# knows about, including the Death tests and the CurrentlyCorrupts tripwires
+# that the informational sanitizer leg (sanitizers.yml) excludes. An xfail
+# flipping to pass (a DISABLED_ test's tripwire going red) or a green test
+# going red both fail this check.
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+
+jobs:
+  contract-functional:
+    name: Contract tests (Linux, blocking)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # git describe needs full history for the version macro
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libhdf5-dev libboost-filesystem-dev
+
+      - name: Configure (tests on, no Python bindings)
+        run: >
+          cmake -S . -B build -G Ninja
+          -DAL_BUILD_TESTS=ON
+          -DAL_PYTHON_BINDINGS=OFF
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run the whole test suite
+        working-directory: build
+        run: ctest --output-on-failure

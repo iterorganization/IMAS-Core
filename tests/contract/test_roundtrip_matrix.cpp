@@ -391,17 +391,29 @@ TEST(RoundTripKnownDefects, DISABLED_AsciiComplexMaxdimRoundTrips) {
 }
 
 // Current-behavior tripwires for the ASCII rank-7 defects, so the DISABLED_
-// correct-contract tests above can't rot. The three datatypes fail differently:
-// INTEGER aborts the process (a death test), while DOUBLE and COMPLEX complete
-// the op but return corrupted bytes (assert non-survival). When ASCII is fixed
-// each tripwire goes red, forcing whoever fixed it to enable the paired
-// DISABLED_ test.
+// correct-contract tests above can't rot. INTEGER reliably aborts the process
+// (a plain death test). DOUBLE and COMPLEX overrun the heap (issue #9): most
+// runs complete the op and return corrupted bytes, but the overrun is UB and
+// intermittently faults instead (observed: occasional SIGBUS on macOS). Each
+// of those tripwires therefore runs the round trip in a death-test child that
+// exits kMaxdimSurvivedExit only on an intact round trip — corruption and
+// crash both keep the tripwire green; only a clean round trip turns it red,
+// forcing whoever fixed ASCII to enable the paired DISABLED_ test.
 //
-// NB: the DOUBLE/COMPLEX corruption is UB — deterministic in ordinary builds but
-// *masked under AddressSanitizer* (the data round-trips intact there), so the
-// two `…CurrentlyCorrupts` tripwires are excluded from the sanitizer CI leg
-// (.github/workflows/sanitizers.yml, `-E CurrentlyCorrupts`). They remain live
-// in the normal test run, which is where their rot-guard job matters.
+// NB: under AddressSanitizer the corruption is masked (the data round-trips
+// intact there), so the two `…CurrentlyCorrupts` tripwires are excluded from
+// the sanitizer CI leg (.github/workflows/sanitizers.yml,
+// `-E CurrentlyCorrupts`). Their rot-guard job runs in the blocking functional
+// leg (.github/workflows/contract-tests.yml) and in local `ctest` runs.
+constexpr int kMaxdimSurvivedExit = 77;
+
+template <typename T>
+void exit_with_maxdim_survival(const BackendCase& backend) {
+    const bool survives =
+        maxdim_round_trip_survives<T>(backend, /*rank=*/MAXDIM);
+    std::_Exit(survives ? kMaxdimSurvivedExit : 0);
+}
+
 TEST(RoundTripKnownDefectsDeath, AsciiIntegerMaxdimCurrentlyAborts) {
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     ASSERT_DEATH(run_round_trip_here<int>(kAscii, /*rank=*/MAXDIM), ".*")
@@ -410,15 +422,22 @@ TEST(RoundTripKnownDefectsDeath, AsciiIntegerMaxdimCurrentlyAborts) {
            "RoundTripKnownDefects.DISABLED_AsciiIntegerMaxdimRoundTrips.";
 }
 
-TEST(RoundTripKnownDefects, AsciiDoubleMaxdimCurrentlyCorrupts) {
-    EXPECT_FALSE(maxdim_round_trip_survives<double>(kAscii, /*rank=*/MAXDIM))
+TEST(RoundTripKnownDefectsDeath, AsciiDoubleMaxdimCurrentlyCorrupts) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    const ::testing::ExitedWithCode survived(kMaxdimSurvivedExit);
+    EXPECT_EXIT(
+        exit_with_maxdim_survival<double>(kAscii),
+        [&](int status) { return !survived(status); }, "")
         << "ASCII rank-7 DOUBLE now round-trips intact — the defect is fixed; "
            "enable RoundTripKnownDefects.DISABLED_AsciiDoubleMaxdimRoundTrips.";
 }
 
-TEST(RoundTripKnownDefects, AsciiComplexMaxdimCurrentlyCorrupts) {
-    EXPECT_FALSE(
-        maxdim_round_trip_survives<std::complex<double>>(kAscii, /*rank=*/MAXDIM))
+TEST(RoundTripKnownDefectsDeath, AsciiComplexMaxdimCurrentlyCorrupts) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    const ::testing::ExitedWithCode survived(kMaxdimSurvivedExit);
+    EXPECT_EXIT(
+        exit_with_maxdim_survival<std::complex<double>>(kAscii),
+        [&](int status) { return !survived(status); }, "")
         << "ASCII rank-7 COMPLEX now round-trips intact — the defect is fixed; "
            "enable RoundTripKnownDefects.DISABLED_AsciiComplexMaxdimRoundTrips.";
 }

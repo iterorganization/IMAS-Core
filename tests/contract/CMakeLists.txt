@@ -143,8 +143,10 @@ endif()
 # is the on-disk tier:
 #   unit        = pure lookups (Introspection.*), the in-RAM Memory backend
 #                 (*Memory* parametrized instances), the plugin ABI death
-#                 tests (KnownDefects*), and the plugin lifecycle suite
-#                 (Plugin*, an in-process registry — no on-disk backend).
+#                 tests (KnownDefects*), the plugin lifecycle suites
+#                 (Plugin* and ReadbackPlugins.*, an in-process registry over
+#                 the Memory backend — no on-disk backend), and the URI
+#                 builder ownership check (UriOwnership.*, pure string).
 #   integration = everything else (HDF5 / ASCII / Flexbuffers on disk).
 # Two disjoint discovery passes over the one binary; the TEST_FILTERs partition
 # the cases so each registers exactly once. TEST_FILTER needs CMake >= 3.22; on
@@ -157,10 +159,10 @@ endif()
 # second pass re-registers the unit cases and CTest sees duplicates.
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
+    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;integration")
 else()
   gtest_discover_tests(contract_tests
