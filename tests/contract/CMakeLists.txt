@@ -193,10 +193,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*\/Mdsplus:Occurrences.Mdsplus*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "MdsplusTracerBullet*:*\/Mdsplus:Occurrences.Mdsplus*"
+    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*"
     PROPERTIES LABELS "mdsplus")
 else()
   gtest_discover_tests(contract_tests

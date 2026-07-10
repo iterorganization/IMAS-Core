@@ -297,7 +297,7 @@ TEST(AosKnownDefects, AsciiAosReadCurrentlyReportsZero) {
 // oracle = content hash (decision D5). Flexbuffers is excluded for the same
 // reason as the AOS matrix above (read refused within the session).
 //
-// MDSplus (issue #14) is excluded too, for a Divergence rather than a defect:
+// MDSplus (issue #14) joins this fixture as a Divergence case, not a defect:
 // unlike the always-on backends, it resolves every path against a real
 // DD-baked model tree. Confirmed empirically -- the seed's SCALAR sub-shape
 // ("vacuum_toroidal_field/r0") round-trips fine (that is exactly what the
@@ -314,7 +314,9 @@ TEST(AosKnownDefects, AsciiAosReadCurrentlyReportsZero) {
 // al_end_action. Real DD-conformant AOS/timed paths do round-trip on MDSplus
 // through this exact write/read sequence -- the divergence is specific to
 // this generator's DD-agnostic shape choices, not a general MDSplus
-// limitation. See TRACEABILITY.md Part 4.
+// limitation. Skipped with GTEST_SKIP() (mirroring AosMatrix's
+// AosExpect::Divergence above) rather than run and fail. See TRACEABILITY.md
+// Part 4.
 // ===========================================================================
 class EquilibriumSeedMatrix : public ::testing::TestWithParam<BackendCase> {
 protected:
@@ -326,10 +328,23 @@ const BackendCase kSeedBackends[] = {
     {HDF5_BACKEND, "HDF5", /*on_disk=*/true},
     {MEMORY_BACKEND, "Memory", /*on_disk=*/false},
     {ASCII_BACKEND, "ASCII", /*on_disk=*/true},
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    {MDSPLUS_BACKEND, "Mdsplus", /*on_disk=*/true},
+#endif
 };
 
 TEST_P(EquilibriumSeedMatrix, RoundTripHashMatches) {
     const BackendCase b = GetParam();
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    if (b.id == MDSPLUS_BACKEND) {
+        GTEST_SKIP() << "Mdsplus requires real DD-conformant paths for the "
+                        "profile/AOS sub-shapes (issue #12 Q2) -- this "
+                        "generator's flat profiles_1d/psi write and generic "
+                        "constraints AOS are refused, not a defect (the "
+                        "scalar sub-shape is separately covered by "
+                        "MdsplusTracerBullet). See TRACEABILITY.md Part 4.";
+    }
+#endif
     if (b.on_disk) base_.make_legacy_tree(pulse_);
     const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
     ASSERT_FALSE(uri.empty());
@@ -774,12 +789,7 @@ TEST(Occurrences, FlexbuffersRefuses) {
 // transfer). homogeneous_time must be written for get_occurrences to see the
 // occurrence as filled at all (see comment above).
 TEST(Occurrences, MdsplusListsWrittenOccurrences) {
-    const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");
-    if (!models_path || !*models_path) {
-        GTEST_SKIP() << "MDSPLUS_MODELS_PATH is unset -- MDSplus "
-                        "characterization tests are skipped, not failed "
-                        "(TEST_STRATEGY.md D4).";
-    }
+    AL_CONTRACT_SKIP_IF_MDSPLUS_UNCONFIGURED();
     al_contract::TempBase base;
     PulseId pulse{"test", "3", 12, 0};
     base.make_legacy_tree(pulse);

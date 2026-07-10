@@ -33,14 +33,7 @@ namespace {
 
 class MdsplusTracerBullet : public ::testing::Test {
 protected:
-    void SetUp() override {
-        const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");
-        if (!models_path || !*models_path) {
-            GTEST_SKIP() << "MDSPLUS_MODELS_PATH is unset -- MDSplus "
-                            "characterization tests are skipped, not "
-                            "failed (TEST_STRATEGY.md D4).";
-        }
-    }
+    void SetUp() override { AL_CONTRACT_SKIP_IF_MDSPLUS_UNCONFIGURED(); }
 
     al_contract::TempBase base_;
     PulseId pulse_{/*database=*/"test", /*version=*/"3", /*pulse=*/13,
