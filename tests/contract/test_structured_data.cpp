@@ -5,6 +5,9 @@
 // nested), al_delete_data at its three documented granularities,
 // al_get_occurrences, and the realistic equilibrium-seed round trip.
 //
+// Per D2, the FUNCTIONALITY_INVENTORY / issue citation for every DISABLED_
+// expected-fail below lives in TRACEABILITY.md (xfail bookkeeping table).
+//
 // Same idioms as the existing suite: al_contract.h for the fixture/generator
 // layer, a per-file backend-capability table + TEST_P (test_capability_gated.cpp),
 // and local DISABLED_/tripwire pairs for genuine defects, never frozen as spec
