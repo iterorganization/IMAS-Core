@@ -30,6 +30,9 @@
 //                   handle; the cell is skipped here and the *correct* contract
 //                   is asserted (expected-fail) in the RoundTripKnownDefects.*
 //                   tests below, so a fix flips them to pass.
+//
+// Per D2, the FUNCTIONALITY_INVENTORY / issue citation for every DISABLED_
+// expected-fail below lives in TRACEABILITY.md (xfail bookkeeping table).
 
 #include "al_contract.h"
 

@@ -7,6 +7,9 @@
 // real null-deref defect on the wrong context type), and al_close_pulse's
 // CLOSE_PULSE vs ERASE_PULSE distinction.
 //
+// Per D2, the FUNCTIONALITY_INVENTORY / issue citation for every DISABLED_
+// expected-fail below lives in TRACEABILITY.md (xfail bookkeeping table).
+//
 // Flexbuffers is excluded from the mode-matrix and erase tests: it is a pure
 // in-process serialize/deserialize buffer with no persistent pulse state, so it
 // does not distinguish among the four open modes at all (src/flexbuffers_backend.cpp
