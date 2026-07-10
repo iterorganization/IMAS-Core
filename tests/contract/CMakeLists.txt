@@ -73,6 +73,7 @@ add_executable(contract_tests
   test_mdsplus.cpp
   test_mdsplus_real_paths.cpp
   test_mdsplus_version_drift.cpp
+  test_mdsplus_unique_surface.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
@@ -194,7 +195,12 @@ endif()
 # matrix (test_mdsplus_real_paths.cpp); "Mdsplus/MdsplusRealPathMatrix.*"
 # carves its instances into the same mdsplus pass. Issue #16 adds the
 # version-drift check (test_mdsplus_version_drift.cpp); "MdsplusVersionDrift*"
-# carves its two cases into the same mdsplus pass.
+# carves its two cases into the same mdsplus pass. Issue #17 adds the
+# MDSplus-unique surface (test_mdsplus_unique_surface.cpp):
+# "MdsplusStructAwareSliceInterpolation*", "MdsplusTimerangeResampling*",
+# "MdsplusSegmentBackedWrites*", "MdsplusSliceWriteKnownDefects*",
+# "MdsplusSliceWriteKnownDefectsDeath*", and "MdsplusTimebaseCache*" carve its
+# cases into the same mdsplus pass.
 #
 # Empirically discovered running this against a real build (issue #13,
 # CMake 3.28 + Ninja): gtest_discover_tests' PROPERTIES forwarding does NOT
@@ -211,10 +217,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*"
+    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
     PROPERTIES LABELS "mdsplus")
 else()
   gtest_discover_tests(contract_tests
