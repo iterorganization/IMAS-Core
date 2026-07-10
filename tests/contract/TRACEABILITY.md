@@ -281,32 +281,57 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 
 # Part 4 — MDSplus backend (compile-guarded tier)  (issue #12)
 
-**Progress: real-DD-path datatype × rank breadth landed (issue #15), on top of
-the parity sweep (issue #14) and the tracer bullet (issue #13).** MDSplus is a
-parameter/case in all five fixtures issue #14 named — `DataEntryModes`,
-`CapabilityMatrix`, `Occurrences`, `AosMatrix`, `EquilibriumSeedMatrix` — with
-every resulting row triaged to a terminal status (`covered` or `divergence`;
-no genuine defect surfaced, so no `xfail` this round). Issue #15 adds a
-dedicated real-DD-path breadth matrix (`test_mdsplus_real_paths.cpp`,
-`Mdsplus/MdsplusRealPathMatrix.*`) covering every `{CHAR, INTEGER, DOUBLE,
-COMPLEX} x rank {0..7}` cell the DD actually contains — the one parity area
-`RoundTripMatrix` structurally cannot join MDSplus for (its opaque synthetic
-paths have no model-tree node). The MDSplus-unique surface (struct-aware slice
-interpolation, timerange resampling, segments, timebase cache, version-drift
-check) remains `gap (deferred — later #12 sub-issue)`.
+**Progress: version-drift check landed (issue #16), on top of the real-DD-path
+datatype × rank breadth (issue #15), the parity sweep (issue #14), and the
+tracer bullet (issue #13).** MDSplus is a parameter/case in all five fixtures
+issue #14 named — `DataEntryModes`, `CapabilityMatrix`, `Occurrences`,
+`AosMatrix`, `EquilibriumSeedMatrix` — with every resulting row triaged to a
+terminal status (`covered` or `divergence`; no genuine defect surfaced, so no
+`xfail` this round). Issue #15 adds a dedicated real-DD-path breadth matrix
+(`test_mdsplus_real_paths.cpp`, `Mdsplus/MdsplusRealPathMatrix.*`) covering
+every `{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell the DD actually
+contains — the one parity area `RoundTripMatrix` structurally cannot join
+MDSplus for (its opaque synthetic paths have no model-tree node). Issue #16
+adds the version-drift check (`test_mdsplus_version_drift.cpp`,
+`MdsplusVersionDrift.*`), pinning both the matching-version and
+mismatched-version cases through the public C ABI. The remaining
+MDSplus-unique surface (struct-aware slice interpolation, timerange
+resampling, segments, timebase cache) stays `gap (deferred — later #12
+sub-issue)`.
+
+**Finding (issue #16): this closes Part 2 row B's "gap" for MDSplus, but not
+for HDF5.** Part 2 row B left the version-drift check a `gap` because forcing
+the mismatch needs writing a different backend-version value into the opened
+pulse after creation — for HDF5 that means poking its on-disk backend-version
+attribute directly via the HDF5 C API, which that suite has no include/link
+wiring for (out of scope there). MDSplus hits the identical shape of problem —
+the mismatch needs overwriting the pulse's stored `VERSION:BACK_MAJOR` tree
+node after creation, also unreachable through the C ABI — but the MDSplus tier
+is already a separate, compile-guarded, Docker-characterized target
+(`tests/contract/CMakeLists.txt`'s `AL_BACKEND_MDSPLUS` gate), so adding the
+raw MDSplus C++ API (`<mdsobjects.h>`) as a test-only, build-gated dependency
+of `contract_tests` was a small, low-blast-radius addition — unlike wiring the
+HDF5 C API into the always-on suite. So the gap is closed for MDSplus
+specifically because of that pre-existing gate, not because the underlying
+problem (a version-drift mismatch cannot be forced through the C ABI alone) is
+actually different between the two backends. **Part 2 row B itself is left
+unchanged** (HDF5 remains a terminal gap); this is a Part 4 finding about *why*
+the two backends diverged, not a fix to Part 2.
 
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
 defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
-`test_mdsplus.cpp`, `test_mdsplus_real_paths.cpp`, `test_pulse_lifecycle.cpp`,
-`test_structured_data.cpp`, and `test_capability_gated.cpp` compiles out
-entirely otherwise. Runtime-skipped (`GTEST_SKIP()`, never failed, per D4)
-when `MDSPLUS_MODELS_PATH` is unset. CTest label `mdsplus` (`ctest -L
-mdsplus`) covers the whole parity set plus the breadth matrix (issue #15
-extended the label's `TEST_FILTER` carve-out in `CMakeLists.txt` with
-`Mdsplus/MdsplusRealPathMatrix.*`). Characterization environment:
-`docker/mdsplus/` (aarch64, DD 4.1.1 baked model tree — see its README for
-the characterization-discovered deviation from the issue's Ubuntu 22.04
-starting point).
+`test_mdsplus.cpp`, `test_mdsplus_real_paths.cpp`, `test_mdsplus_version_drift.cpp`,
+`test_pulse_lifecycle.cpp`, `test_structured_data.cpp`, and
+`test_capability_gated.cpp` compiles out entirely otherwise. Runtime-skipped
+(`GTEST_SKIP()`, never failed, per D4) when `MDSPLUS_MODELS_PATH` is unset.
+CTest label `mdsplus` (`ctest -L mdsplus`) covers the whole parity set plus the
+breadth matrix and the version-drift check (issue #16 extended the label's
+`TEST_FILTER` carve-out in `CMakeLists.txt` with `MdsplusVersionDrift*`, and
+added a test-only `find_package(MDSplus)` + include/link wiring onto
+`contract_tests`, gated behind the same `AL_BACKEND_MDSPLUS` option).
+Characterization environment: `docker/mdsplus/` (aarch64, DD 4.1.1 baked model
+tree — see its README for the characterization-discovered deviation from the
+issue's Ubuntu 22.04 starting point).
 
 ## Characterization-discovered facts (issue #14)
 
@@ -374,11 +399,12 @@ the actual baked-from artifact directly —
 `build-mdsplus/_deps/data-dictionary-src/IDSDef.xml` (the DD-4.1.1 source
 `ALBuildDataDictionary.cmake` downloads and the model tree is compiled from)
 — which is still empirical characterization against the real shipped
-artifact (D2), just queried by hand instead of through the MCP wrapper. Every
-covered cell spans a different real IDS (`equilibrium`, `b_field_non_axisymmetric`,
-`amns_data`, `magnetics`, `temporary`, `balance_of_plant`, `bolometer`,
-`gyrokinetics_local`, `waves`, `runaway_electrons`), confirming the model
-tree's whole-DD bake, not one container.
+artifact (D2), just queried by hand instead of through the MCP wrapper. The
+18 covered cells collectively span 10 distinct real IDSs (`equilibrium`,
+`b_field_non_axisymmetric`, `amns_data`, `magnetics`, `temporary`,
+`balance_of_plant`, `bolometer`, `gyrokinetics_local`, `waves`,
+`runaway_electrons` — some, like `gyrokinetics_local`, backing more than one
+cell), confirming the model tree's whole-DD bake, not one container.
 
 **Characterization-discovered facts:**
 
@@ -425,8 +451,30 @@ tree's whole-DD bake, not one container.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
-| Real-path breadth: 18 (type, rank) cells with a plain leaf field (no AOS needed) round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local` — CHAR r1/r2, INTEGER r0–r2, DOUBLE r0–r5, COMPLEX r2/r4 | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0,INTEGER_r1,INTEGER_r2,DOUBLE_r0..DOUBLE_r5,COMPLEX_r2,COMPLEX_r4}` (13 cases; the fixture curates 5 more AOS-nested cells separately below, 18 covered in total) | covered |
+| Real-path breadth: 13 (type, rank) cells with a plain leaf field (no AOS needed) round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local` — CHAR r1/r2, INTEGER r0–r2, DOUBLE r0–r5, COMPLEX r2/r4 | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0,INTEGER_r1,INTEGER_r2,DOUBLE_r0..DOUBLE_r5,COMPLEX_r2,COMPLEX_r4}` (13 cases; the fixture curates 5 more AOS-nested cells separately below, 18 covered in total) | covered |
 | Real-path breadth: 5 (type, rank) cells reachable only inside a struct_array — INTEGER r3, DOUBLE r6 (`temporary`, 1 AOS level), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level), COMPLEX r1 (`waves`, 3 nested AOS levels, the deepest real case in the whole DD) — round-trip via the same `al_begin_arraystruct_action` idiom `AosMatrix` already proved against MDSplus | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{INTEGER_r3,DOUBLE_r6,COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | covered |
 | ↳ CHAR r0 (a bare scalar char) against a real STR_0D node (`equilibrium`'s `code/name`) — **divergence, not a defect**: MDSplus's real text node is inherently string-shaped (1-D) and correctly refuses a dim=0 read-back ("expected CHAR_DATA in 0D but got CHAR_DATA in 1D") instead of silently misreading it; contrast HDF5's genuine crash on the same synthetic shape (see characterization facts above) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`) | divergence |
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth: CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 (see characterization facts above for the per-type ceiling each hits) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()` with its specific reason) | terminal-gap |
-| Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache, version-drift check | — | gap (deferred — later #12 sub-issue) |
+| Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache | — | gap (deferred — later #12 sub-issue) |
+
+### Version-drift check (issue #16)
+
+`al_begin_dataentry_action` (`src/al_lowlevel.cpp:868-883`) compares
+`backend->getVersion(NULL)` (the compiled backend's own version) against
+`backend->getVersion(pctx)` (the version stored in the pulse being opened) on
+`OPEN_PULSE`/`FORCE_OPEN_PULSE` and throws `LOWLEVEL_ERR` on a mismatch. For
+MDSplus, the stored value is `VERSION:BACK_MAJOR`/`BACK_MINOR`
+(`src/mdsplus/mdsplus_backend.cpp`'s `saveVersion`, called once at pulse
+creation from the compiled `MDSPLUS_BACKEND_MAJOR`/`MINOR` constants, currently
+1/1). Forcing the mismatch case needs a value in the pulse different from
+what today's build would write — done here by opening the pulse's "ids" tree
+directly through the raw MDSplus C++ API (`<mdsobjects.h>`, not the C ABI) and
+overwriting `VERSION:BACK_MAJOR` after creation, mirroring the
+`ids_path`/`setDataEnv` environment-variable dance the backend itself uses
+internally. See the finding above on why this was achievable for MDSplus but
+stays a `gap` for HDF5 (Part 2 row B).
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Matching case: a pulse created and reopened by the same compiled backend carries the version it just wrote, so the drift check's comparison is a no-op and `OPEN_PULSE` succeeds | `MdsplusVersionDrift.MatchingVersionOpensCleanly` | covered |
+| Mismatching case: `VERSION:BACK_MAJOR` is overwritten (via the raw MDSplus tree API) to a value the compiled backend can never match; reopening through the C ABI hits `al_lowlevel.cpp`'s `(ver.first != sver.first)` branch and fails with `LOWLEVEL_ERR` (message contains "Compatibility"), never a silent open | `MdsplusVersionDrift.MismatchedBackendVersionRefusesOpen` | covered |

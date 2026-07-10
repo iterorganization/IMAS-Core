@@ -72,6 +72,7 @@ add_executable(contract_tests
   test_pulse_lifecycle.cpp
   test_mdsplus.cpp
   test_mdsplus_real_paths.cpp
+  test_mdsplus_version_drift.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
@@ -89,6 +90,18 @@ target_compile_features(contract_tests PRIVATE cxx_std_17)
 # unset, so "on but unconfigured" never fails either.
 if(AL_BACKEND_MDSPLUS)
   target_compile_definitions(contract_tests PRIVATE AL_CONTRACT_HAVE_MDSPLUS)
+
+  # test_mdsplus_version_drift.cpp (issue #16) forces the version-mismatch
+  # case by writing directly into the pulse's VERSION:BACK_MAJOR tree node
+  # through the raw MDSplus C++ API (<mdsobjects.h>) -- something reachable
+  # only outside the public C ABI. `al`'s own src/mdsplus/CMakeLists.txt
+  # already links MDSplus, but PRIVATEly, so it doesn't propagate here;
+  # find_package(MDSplus) is repeated (idempotent) to wire the same
+  # include dir / libs into contract_tests, test-only and build-gated behind
+  # the same AL_BACKEND_MDSPLUS option as the backend itself.
+  find_package(MDSplus REQUIRED)
+  target_include_directories(contract_tests PRIVATE ${MDSPLUS_INCLUDES})
+  target_link_libraries(contract_tests PRIVATE ${MDSPLUS_LIBRARIES})
 endif()
 
 ########################################################################################################################
@@ -179,7 +192,9 @@ endif()
 # mdsplus pass so `ctest -L mdsplus` covers the whole parity set, not just
 # the tracer bullet. Issue #15 adds the real-DD-path datatype x rank breadth
 # matrix (test_mdsplus_real_paths.cpp); "Mdsplus/MdsplusRealPathMatrix.*"
-# carves its instances into the same mdsplus pass.
+# carves its instances into the same mdsplus pass. Issue #16 adds the
+# version-drift check (test_mdsplus_version_drift.cpp); "MdsplusVersionDrift*"
+# carves its two cases into the same mdsplus pass.
 #
 # Empirically discovered running this against a real build (issue #13,
 # CMake 3.28 + Ninja): gtest_discover_tests' PROPERTIES forwarding does NOT
@@ -196,10 +211,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*"
+    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*"
     PROPERTIES LABELS "mdsplus")
 else()
   gtest_discover_tests(contract_tests
