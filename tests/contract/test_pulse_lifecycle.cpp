@@ -58,10 +58,30 @@ const ModeBackendCase kModeBackends[] = {
     {HDF5_BACKEND, "HDF5", /*on_disk=*/true, /*create_guards_existing=*/true},
     {MEMORY_BACKEND, "Memory", /*on_disk=*/false, /*create_guards_existing=*/true},
     {ASCII_BACKEND, "ASCII", /*on_disk=*/true, /*create_guards_existing=*/false},
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    // Confirmed empirically (issue #14): MDSplusBackend::openPulse's mode
+    // switch guards CREATE_PULSE against an existing "ids_001.tree" exactly
+    // like HDF5/Memory (src/mdsplus/mdsplus_backend.cpp:4507-4510) — no defect
+    // here, unlike ASCII's.
+    {MDSPLUS_BACKEND, "Mdsplus", /*on_disk=*/true, /*create_guards_existing=*/true},
+#endif
 };
 
 class DataEntryModes : public ::testing::TestWithParam<ModeBackendCase> {
 protected:
+    void SetUp() override {
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+        if (GetParam().id == MDSPLUS_BACKEND) {
+            const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");
+            if (!models_path || !*models_path) {
+                GTEST_SKIP() << "MDSPLUS_MODELS_PATH is unset -- MDSplus "
+                                "characterization tests are skipped, not "
+                                "failed (TEST_STRATEGY.md D4).";
+            }
+        }
+#endif
+    }
+
     al_contract::TempBase base_;
     PulseId pulse_{/*database=*/"test", /*version=*/"3", /*pulse=*/12, /*run=*/0};
 

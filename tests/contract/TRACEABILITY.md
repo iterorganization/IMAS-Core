@@ -273,28 +273,77 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 
 # Part 4 — MDSplus backend (compile-guarded tier)  (issue #12)
 
-**Progress: 1 row landed so far** (tracer bullet, issue #13); the parity and
-unique rows below are not yet enumerated one-by-one (that's later #12
-sub-issues' job). Parity rows (a
-MDSplus instantiation of `EquilibriumSeedMatrix`/`CapabilityMatrix`/
-`AosMatrix`/`DataEntryModes`/`Occurrences`) and unique rows (struct-aware
-slice interpolation, timerange resampling, segments, timebase cache,
-version-drift check) are `gap (deferred — later #12 sub-issue)` until those
-issues land. Per issue #12's definition of done, every row must eventually
-reach one of four terminal statuses — `covered` / `xfail` / `divergence` /
-`terminal-gap` — and none may stay `gap`.
+**Progress: parity sweep landed (issue #14), on top of the tracer bullet
+(issue #13).** MDSplus is now a parameter/case in all five fixtures issue #14
+named — `DataEntryModes`, `CapabilityMatrix`, `Occurrences`,
+`AosMatrix`, `EquilibriumSeedMatrix` — with every resulting row triaged to a
+terminal status (`covered` or `divergence`; no genuine defect surfaced, so no
+`xfail` this round). The MDSplus-unique surface (struct-aware slice
+interpolation, timerange resampling, segments, timebase cache, version-drift
+check) remains `gap (deferred — later #12 sub-issue)`.
 
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
-defined only when `AL_BACKEND_MDSPLUS=ON`), so `test_mdsplus.cpp` compiles
-out entirely otherwise. Runtime-skipped (`GTEST_SKIP()`, never failed, per
-D4) when `MDSPLUS_MODELS_PATH` is unset. New CTest label `mdsplus`
-(`ctest -L mdsplus`). Characterization environment: `docker/mdsplus/`
-(aarch64, DD 4.1.1 baked model tree — see its README for the
-characterization-discovered deviation from the issue's Ubuntu 22.04 starting
-point).
+defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
+`test_mdsplus.cpp`, `test_pulse_lifecycle.cpp`, `test_structured_data.cpp`,
+and `test_capability_gated.cpp` compiles out entirely otherwise.
+Runtime-skipped (`GTEST_SKIP()`, never failed, per D4) when
+`MDSPLUS_MODELS_PATH` is unset. CTest label `mdsplus` (`ctest -L mdsplus`)
+now covers the whole parity set, not just the tracer bullet (issue #14
+extended the label's `TEST_FILTER` carve-out in `CMakeLists.txt`).
+Characterization environment: `docker/mdsplus/` (aarch64, DD 4.1.1 baked
+model tree — see its README for the characterization-discovered deviation
+from the issue's Ubuntu 22.04 starting point).
+
+## Characterization-discovered facts (issue #14)
+
+Resolved empirically against the real baked DD-4.1.1 model tree (issue #12's
+explicit open items), not assumed:
+
+- **Occurrence-naming convention**: a *third* convention, distinct from HDF5's
+  `<ids>_<N>` and ASCII's `<ids>/<N>` — except it turns out to be the exact
+  same slash form as ASCII, `<ids>/<N>`. `mdsconvertPath`'s `SEPARATORS`
+  (`src/mdsplus/mdsplus_backend.cpp:25`) tokenizes on `/`, so
+  `"equilibrium/2"` resolves to the real, pre-baked structural child node the
+  model tree already contains for occurrence 2 — occurrence slots are static
+  model structure, never dynamically created. Confirmed:
+  `Occurrences.MdsplusListsWrittenOccurrences` writes occurrence 0 and
+  occurrence 2 (as `"equilibrium/2"`) and gets both back from
+  `al_get_occurrences`.
+- **`get_occurrences` is real** (`src/mdsplus/mdsplus_backend.cpp:4887-4954`):
+  it walks the IDS node's numeric-named children and reports an occurrence as
+  "filled" iff its `ids_properties/homogeneous_time` has nonzero length — so a
+  write that sets only a data field, without `homogeneous_time`, is invisible
+  to `get_occurrences` even though the data is genuinely there.
+- **`list_filled_paths` is NOT real**: it throws unconditionally
+  (`src/mdsplus/mdsplus_backend.cpp:4956-4958`, "not implemented in the
+  MDSplus Backend") — `BACKEND_ERR`, matching every other non-HDF5 always-on
+  backend. Confirmed via `CapabilityMatrix.ListFilledPathsPositiveOrRefused/Mdsplus`.
+- **`supportsTimeDataInterpolation()` is unconditionally `true`**
+  (`src/mdsplus/mdsplus_backend.h:255-257`) and slice read/write genuinely
+  round-trip (confirmed: a `CLOSEST_INTERP` slice read returns the exact
+  written value). **`supportsTimeRangeOperation()` is unconditionally `false`**
+  (`src/mdsplus/mdsplus_backend.cpp:5444-5446`) → `LOWLEVEL_ERR`, matching
+  Memory/ASCII/Flexbuffers.
+- **MDSplus requires real, DD-conformant paths for anything beyond a plain
+  scalar** (issue #12 Q2's premise, now with concrete evidence): a synthetic
+  field name with no corresponding model-tree node throws `%TREE-W-NNF, Node
+  Not Found` — immediately for a plain (non-timed) `al_write_data`, but
+  **deferred to `al_end_action`** for a timed write or an AOS flush (the value
+  is buffered in an in-memory `MDSplus::Apd`/segment first). This is why
+  `AosMatrix`'s and `EquilibriumSeedMatrix`'s synthetic-path bodies fail
+  MDSplus at flush time even though their early write calls report success —
+  see the divergence rows below. A real DD-conformant AOS
+  (`equilibrium/time_slice/global_quantities/ip`, confirmed separately during
+  characterization) round-trips through the identical begin/write/iterate/end
+  sequence without error, so this is specific to non-conformant paths, not a
+  general MDSplus AOS limitation.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
 | Tracer bullet: one equilibrium scalar (`vacuum_toroidal_field/r0`, reusing `equilibrium_seed.h`) write→read self-consistency round trip through the C ABI against a real MDSplus tree | `MdsplusTracerBullet.ScalarSurvivesWriteThenRead` | covered |
-| Parity: MDSplus instantiation of `EquilibriumSeedMatrix`, `CapabilityMatrix`, `AosMatrix`, `DataEntryModes`, `Occurrences` | — | gap (deferred — later #12 sub-issue) |
+| Parity: `DataEntryModes` mode matrix (`OPEN_PULSE` absent/present, `FORCE_OPEN_PULSE`, `CREATE_PULSE` guard) — `openPulse`'s mode switch guards `CREATE_PULSE` against an existing `ids_001.tree` exactly like HDF5/Memory (`src/mdsplus/mdsplus_backend.cpp:4507-4510`); no ASCII-style defect | `Backends/DataEntryModes.*/Mdsplus` (4 cases) | covered |
+| Parity: `CapabilityMatrix` — slice read/write positive (real interpolation round trip), timerange refused (`LOWLEVEL_ERR`), `list_filled_paths` refused (`BACKEND_ERR`) | `Backends/CapabilityMatrix.{TimeRangeReadPositiveOrRefused,SliceReadPositiveOrRefused,SliceWriteBeginPositiveOrRefused,ListFilledPathsPositiveOrRefused}/Mdsplus` (4 cases) | covered |
+| Parity: `Occurrences` — real implementation, `<ids>/<N>` naming convention (see characterization facts above) | `Occurrences.MdsplusListsWrittenOccurrences` | covered |
+| Parity: `AosMatrix` (top-level + nested write→iterate→read) — **divergence, not a defect**: MDSplus resolves every path against its real DD-baked model tree, so this fixture's synthetic field names (`"elements"`/`"val"`, `"outer"`/`"inner"`) have no corresponding node; `al_begin_arraystruct_action` and the per-element writes report success (buffered), but the flush at `al_end_action` throws `%TREE-W-NNF, Node Not Found`. Real DD-conformant AOS paths round-trip through the identical sequence (see characterization facts above) — the fixture's synthetic-path design simply cannot transfer to a model-tree-backed backend, the same reason `RoundTripMatrix` already excludes MDSplus (issue #12 Q5) | `Backends/AosMatrix.{TopLevelWriteIterateRead,NestedWriteIterateRead}/Mdsplus` (both `GTEST_SKIP()`, `AosExpect::Divergence`) | divergence |
+| Parity: `EquilibriumSeedMatrix` (composite scalar + timebase-carrying 2-D array + `constraints` AOS, hash oracle) — **divergence, not a defect**: the scalar sub-shape round-trips (already proven by the tracer bullet above), but the seed's flat-tensorized `profiles_1d/psi` write and its generic `constraints`/`{measured,weight}` AOS shape don't match the real equilibrium DD layout MDSplus enforces (real `profiles_1d` is a genuine dynamic AOS, not a flat dataset at that path; real `constraints` is a fixed container of specific constraint sub-objects, not a generic AOS) — both throw `%TREE-W-NNF, Node Not Found`. MDSplus is therefore **not instantiated** in `kSeedBackends[]` (same treatment as Flexbuffers, excluded for its own, different reason) rather than left as a permanently-red parametrized case; the exclusion and full reasoning are documented in `test_structured_data.cpp`'s `EquilibriumSeedMatrix` header comment | — (see `test_structured_data.cpp` comment; not instantiated) | divergence |
 | Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache, version-drift check | — | gap (deferred — later #12 sub-issue) |

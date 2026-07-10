@@ -41,6 +41,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <set>
 #include <string>
 #include <vector>
@@ -86,6 +87,20 @@ const CapBackend kBackends[] = {
      /*timerange=*/false, /*listpaths=*/false},
     {FLEXBUFFERS_BACKEND, "Flexbuffers", /*on_disk=*/true,
      /*slice=*/false, /*timerange=*/false, /*listpaths=*/false},
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    // Confirmed empirically (issue #14): seed_signal's fields ("ip" as a
+    // top-level dynamic leaf of "magnetics", timebase "time") are real DD
+    // paths, so this fixture is fully applicable, unlike AosMatrix/
+    // EquilibriumSeedMatrix above. supportsTimeDataInterpolation() is
+    // unconditionally true (src/mdsplus/mdsplus_backend.h:255-257) and slice
+    // read genuinely round-trips (CLOSEST/read gave back the written value).
+    // supportsTimeRangeOperation() is unconditionally false
+    // (src/mdsplus/mdsplus_backend.cpp:5444-5446) -> LOWLEVEL_ERR, matching
+    // the always-on non-HDF5 backends. list_filled_paths throws
+    // unconditionally (src/mdsplus/mdsplus_backend.cpp:4956-4958) -> BACKEND_ERR.
+    {MDSPLUS_BACKEND, "Mdsplus", /*on_disk=*/true, /*slice=*/true,
+     /*timerange=*/false, /*listpaths=*/false},
+#endif
 };
 
 // Write the 2-point dynamic signal through an ordinary GLOBAL write. Slice/
@@ -127,6 +142,19 @@ al_status_t read_slice_value(int op, double* out) {
 // ===========================================================================
 class CapabilityMatrix : public ::testing::TestWithParam<CapBackend> {
 protected:
+    void SetUp() override {
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+        if (GetParam().id == MDSPLUS_BACKEND) {
+            const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");
+            if (!models_path || !*models_path) {
+                GTEST_SKIP() << "MDSPLUS_MODELS_PATH is unset -- MDSplus "
+                                "characterization tests are skipped, not "
+                                "failed (TEST_STRATEGY.md D4).";
+            }
+        }
+#endif
+    }
+
     al_contract::TempBase base_;
     PulseId pulse_{/*database=*/"test", /*version=*/"3", /*pulse=*/12, /*run=*/0};
 

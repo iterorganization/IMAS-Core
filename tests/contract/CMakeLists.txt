@@ -172,6 +172,11 @@ endif()
 # MdsplusTracerBullet* is carved out of the integration pass into its own
 # third pass (issue #13: new CTest label "mdsplus") so `ctest -L mdsplus`
 # selects it without also pulling in every other on-disk backend case.
+# Issue #14 joins MDSplus onto four more fixtures (DataEntryModes,
+# CapabilityMatrix, AosMatrix, Occurrences) as a "Mdsplus"-named parameter/
+# case; "*/Mdsplus" and "Occurrences.Mdsplus*" carve those into the same
+# mdsplus pass so `ctest -L mdsplus` covers the whole parity set, not just
+# the tracer bullet.
 #
 # Empirically discovered running this against a real build (issue #13,
 # CMake 3.28 + Ninja): gtest_discover_tests' PROPERTIES forwarding does NOT
@@ -188,10 +193,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*\/Mdsplus:Occurrences.Mdsplus*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "MdsplusTracerBullet*"
+    TEST_FILTER "MdsplusTracerBullet*:*\/Mdsplus:Occurrences.Mdsplus*"
     PROPERTIES LABELS "mdsplus")
 else()
   gtest_discover_tests(contract_tests
