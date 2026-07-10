@@ -213,7 +213,7 @@ void run_cell(const PathSpec& spec) {
         for (const char* name : spec.aos_chain) {
             int size = 1;
             int aos  = -1;
-            AL_ASSERT_OK(al_begin_arraystruct_action(ctx, name, "", &size,
+            AL_EXPECT_OK(al_begin_arraystruct_action(ctx, name, "", &size,
                                                      &aos));
             aos_ctxs.push_back(aos);
             ctx = aos;
@@ -238,7 +238,7 @@ void run_cell(const PathSpec& spec) {
         for (const char* name : spec.aos_chain) {
             int size = 0;
             int aos  = -1;
-            AL_ASSERT_OK(al_begin_arraystruct_action(ctx, name, "", &size,
+            AL_EXPECT_OK(al_begin_arraystruct_action(ctx, name, "", &size,
                                                      &aos));
             EXPECT_EQ(size, 1) << "single-element AOS size must round-trip";
             aos_ctxs.push_back(aos);
