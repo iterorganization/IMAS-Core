@@ -281,23 +281,26 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 
 # Part 4 — MDSplus backend (compile-guarded tier)  (issue #12)
 
-**Progress: version-drift check landed (issue #16), on top of the real-DD-path
-datatype × rank breadth (issue #15), the parity sweep (issue #14), and the
-tracer bullet (issue #13).** MDSplus is a parameter/case in all five fixtures
-issue #14 named — `DataEntryModes`, `CapabilityMatrix`, `Occurrences`,
-`AosMatrix`, `EquilibriumSeedMatrix` — with every resulting row triaged to a
-terminal status (`covered` or `divergence`; no genuine defect surfaced, so no
-`xfail` this round). Issue #15 adds a dedicated real-DD-path breadth matrix
-(`test_mdsplus_real_paths.cpp`, `Mdsplus/MdsplusRealPathMatrix.*`) covering
-every `{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell the DD actually
-contains — the one parity area `RoundTripMatrix` structurally cannot join
-MDSplus for (its opaque synthetic paths have no model-tree node). Issue #16
-adds the version-drift check (`test_mdsplus_version_drift.cpp`,
+**Progress: the MDSplus-unique surface landed (issue #17), closing Part 4's
+last deferred row, on top of the version-drift check (issue #16), the
+real-DD-path datatype × rank breadth (issue #15), the parity sweep (issue
+#14), and the tracer bullet (issue #13).** MDSplus is a parameter/case in all
+five fixtures issue #14 named — `DataEntryModes`, `CapabilityMatrix`,
+`Occurrences`, `AosMatrix`, `EquilibriumSeedMatrix` — with every resulting row
+triaged to a terminal status (`covered` or `divergence`; no genuine defect
+surfaced, so no `xfail` this round). Issue #15 adds a dedicated real-DD-path
+breadth matrix (`test_mdsplus_real_paths.cpp`, `Mdsplus/MdsplusRealPathMatrix.*`)
+covering every `{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell the DD
+actually contains — the one parity area `RoundTripMatrix` structurally cannot
+join MDSplus for (its opaque synthetic paths have no model-tree node). Issue
+#16 adds the version-drift check (`test_mdsplus_version_drift.cpp`,
 `MdsplusVersionDrift.*`), pinning both the matching-version and
-mismatched-version cases through the public C ABI. The remaining
-MDSplus-unique surface (struct-aware slice interpolation, timerange
-resampling, segments, timebase cache) stays `gap (deferred — later #12
-sub-issue)`.
+mismatched-version cases through the public C ABI. Issue #17 adds the
+MDSplus-unique surface (`test_mdsplus_unique_surface.cpp`) — struct-aware
+slice interpolation (`covered`), timerange resampling (`covered`, but with no
+unique surface — see below), segment-backed dynamic writes (`covered`, plus
+one genuine `xfail` crash defect it surfaced), and the timebase cache
+(`covered`) — see its own subsection below for details.
 
 **Finding (issue #16): this closes Part 2 row B's "gap" for MDSplus, but not
 for HDF5.** Part 2 row B left the version-drift check a `gap` because forcing
@@ -321,14 +324,21 @@ the two backends diverged, not a fix to Part 2.
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
 defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
 `test_mdsplus.cpp`, `test_mdsplus_real_paths.cpp`, `test_mdsplus_version_drift.cpp`,
-`test_pulse_lifecycle.cpp`, `test_structured_data.cpp`, and
-`test_capability_gated.cpp` compiles out entirely otherwise. Runtime-skipped
-(`GTEST_SKIP()`, never failed, per D4) when `MDSPLUS_MODELS_PATH` is unset.
-CTest label `mdsplus` (`ctest -L mdsplus`) covers the whole parity set plus the
-breadth matrix and the version-drift check (issue #16 extended the label's
-`TEST_FILTER` carve-out in `CMakeLists.txt` with `MdsplusVersionDrift*`, and
-added a test-only `find_package(MDSplus)` + include/link wiring onto
-`contract_tests`, gated behind the same `AL_BACKEND_MDSPLUS` option).
+`test_mdsplus_unique_surface.cpp`, `test_pulse_lifecycle.cpp`,
+`test_structured_data.cpp`, and `test_capability_gated.cpp` compiles out
+entirely otherwise. Runtime-skipped (`GTEST_SKIP()`, never failed, per D4)
+when `MDSPLUS_MODELS_PATH` is unset. CTest label `mdsplus` (`ctest -L mdsplus`)
+covers the whole parity set plus the breadth matrix, the version-drift check,
+and the unique surface (issue #16 extended the label's `TEST_FILTER`
+carve-out in `CMakeLists.txt` with `MdsplusVersionDrift*`, and added a
+test-only `find_package(MDSplus)` + include/link wiring onto `contract_tests`,
+gated behind the same `AL_BACKEND_MDSPLUS` option; issue #17 extends the same
+carve-out with `MdsplusStructAwareSliceInterpolation*`,
+`MdsplusTimerangeResampling*`, `MdsplusSegmentBackedWrites*`,
+`MdsplusSliceWriteKnownDefects*`, `MdsplusSliceWriteKnownDefectsDeath*`, and
+`MdsplusTimebaseCache*` -- no new build plumbing needed, since every case in
+the file, including its crash-class death test, goes through the public C
+ABI only and adds no raw MDSplus C++ API dependency).
 Characterization environment: `docker/mdsplus/` (aarch64, DD 4.1.1 baked model
 tree — see its README for the characterization-discovered deviation from the
 issue's Ubuntu 22.04 starting point).
@@ -455,7 +465,95 @@ cell), confirming the model tree's whole-DD bake, not one container.
 | Real-path breadth: 5 (type, rank) cells reachable only inside a struct_array — INTEGER r3, DOUBLE r6 (`temporary`, 1 AOS level), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level), COMPLEX r1 (`waves`, 3 nested AOS levels, the deepest real case in the whole DD) — round-trip via the same `al_begin_arraystruct_action` idiom `AosMatrix` already proved against MDSplus | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{INTEGER_r3,DOUBLE_r6,COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | covered |
 | ↳ CHAR r0 (a bare scalar char) against a real STR_0D node (`equilibrium`'s `code/name`) — **divergence, not a defect**: MDSplus's real text node is inherently string-shaped (1-D) and correctly refuses a dim=0 read-back ("expected CHAR_DATA in 0D but got CHAR_DATA in 1D") instead of silently misreading it; contrast HDF5's genuine crash on the same synthetic shape (see characterization facts above) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`) | divergence |
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth: CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 (see characterization facts above for the per-type ceiling each hits) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()` with its specific reason) | terminal-gap |
-| Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache | — | gap (deferred — later #12 sub-issue) |
+| Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache | see the "MDSplus-unique surface" subsection below | covered / xfail (issue #17) |
+
+### MDSplus-unique surface (issue #17)
+
+`test_mdsplus_unique_surface.cpp` — behavior with no HDF5-tier analogue,
+because it depends on MDSplus's real segment-based time-series storage, not
+just its real-DD-path model tree. Real path used throughout:
+`equilibrium/time_slice` (a `timebasepath="time"` struct_array — each element
+carries its own `time` leaf, matching DD 4.1.1's own `coordinate1
+"time_slice(itime)/time"`) and its `global_quantities/ip` leaf, the same path
+named as the round-tripping proof in the `AosMatrix`/`EquilibriumSeedMatrix`
+divergence notes above and in `test_mdsplus_real_paths.cpp`'s header.
+
+- **Struct-aware slice interpolation**: `al_begin_arraystruct_action` on a
+  SLICE_OP context reaches `MDSplusBackend::readSliceApd`
+  (`mdsplus_backend.cpp:3359`) instead of the plain-leaf `readSlice`; for
+  `LINEAR_INTERP` it calls `interpolateStruct` (`mdsplus_backend.cpp:3675`),
+  which interpolates every numeric leaf of the struct, not just one —
+  confirmed by writing two leaves (`time`, `global_quantities/ip`) inside the
+  same AOS element and observing both come back correctly interpolated from
+  one call. HDF5's slice mode has no such capability (it only ever
+  interpolates a single scalar leaf).
+- **Timerange resampling**: no unique MDSplus surface exists.
+  `supportsTimeRangeOperation()` is unconditionally `false`
+  (`mdsplus_backend.cpp:5444-5446`), so `al_lowlevel.cpp`'s capability gate
+  refuses `al_begin_timerange_action` with `LOWLEVEL_ERR` before the backend
+  is reached at all — already pinned as parity by
+  `CapabilityMatrix.TimeRangeReadPositiveOrRefused/Mdsplus`
+  (`test_capability_gated.cpp`). This file re-asserts the same refusal
+  directly against its own real DD path so the finding is self-contained.
+- **Segment-backed dynamic writes**: `MDSplusBackend::beginWriteArraystruct`
+  dispatches to `writeDynamicApd` (`mdsplus_backend.cpp:2688`) with
+  `append=true` specifically for a SLICE_OP write against a timebase-carrying
+  AOS (`mdsplus_backend.cpp:5257,5264,5317,5324`) — genuinely appending one
+  more element's serialized `MDSplus::Apd` as a new segment, rather than the
+  whole-container rewrite a GLOBAL_OP write does
+  (`mdsplus_backend.cpp:5243,5245,5292,5295`). Confirmed by appending five
+  elements one WRITE session at a time and reading every one back
+  independently — in contrast to HDF5's own scalar slice-append defect
+  (`Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior`,
+  `test_capability_gated.cpp`), MDSplus keeps all of them. One caveat found
+  empirically: the very first element of a brand-new AOS must still be
+  established via an ordinary GLOBAL write — appending it via SLICE_OP hits
+  the same first-segment fragility as the crash defect below (writeDynamicApd
+  can't create a segment from nothing under `append=true`); once the AOS has
+  its first segment, further SLICE_OP appends succeed. A narrower shape — a
+  bare top-level scalar leaf slice-appended against a *separate* external
+  timebase field, mirroring `Hdf5SliceAppend`'s own idiom verbatim — was tried
+  first and empirically throws `%TREE-E-NOSEGMENTS` the first time either
+  field is written with no pre-existing segment in the other; dropped in
+  favor of the AOS-append form, which is the one this codebase's write
+  dispatch already treats as the deliberate, first-class append path. Whether
+  the scalar-leaf shape is a distinct, fixable defect is left unresolved —
+  out of scope for this pass.
+- **New defect found (xfail)**: `MDSplusBackend::writeData`'s SLICE_OP branch
+  (`mdsplus_backend.cpp:4586-4591`) dereferences `size[0]` unconditionally —
+  `if(size[0] > 1) writeTimedData(...); else writeSlice(...);` — but the C ABI
+  passes `size == nullptr` for any dim=0 (scalar) write. Writing **any**
+  scalar field inside a SLICE_OP write action therefore segfaults MDSplus,
+  unconditionally — discovered when this file's first draft tried the exact
+  idiom `Hdf5SliceAppend` uses to seed `homogeneous_time` inside its
+  slice-write loop (fine on HDF5, crashes on MDSplus). Pinned per D2:
+  `MdsplusSliceWriteKnownDefects.DISABLED_ScalarWriteWithinSliceActionSucceeds`
+  (correct contract) +
+  `MdsplusSliceWriteKnownDefectsDeath.ScalarWriteWithinSliceActionCurrentlyCrashes`
+  (current-behavior death-test tripwire).
+- **Timebase cache**: `MDSplusBackend` caches computed segment/timebase-index
+  mappings per node (`segmentIdxMap`, `mdsplus_backend.h:283`), populated by
+  `getSegmentIdxFromSliceIdx` (`mdsplus_backend.cpp:3221`) and reused by every
+  subsequent `getApdSliceAt` call (e.g. both lookups a single `LINEAR_INTERP`
+  struct-aware read needs). Every touch site shows it is invalidated
+  unconditionally (a whole-map clear, not scoped to the written node) at the
+  *start* of every write dispatch (`writeData`, `mdsplus_backend.cpp:4577`;
+  `beginWriteArraystruct`, `mdsplus_backend.cpp:4634`) and again at the *end*
+  of an AOS write (`mdsplus_backend.cpp:5342`) and at `deleteData`
+  (`mdsplus_backend.cpp:2141`) — so no write path through the C ABI can leave
+  a stale segment map for a later read. Confirmed by warming the cache with a
+  slice-interpolated read, forcing an intervening write (an unrelated GLOBAL
+  scalar write, then a SLICE_OP append growing the very AOS whose segment map
+  was cached), and showing a repeated slice read afterwards is neither
+  corrupted by the invalidation nor stale to the new layout.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Struct-aware slice interpolation (CLOSEST/PREVIOUS/LINEAR, whole-struct) | `MdsplusStructAwareSliceInterpolation.{ClosestPicksNearerElement,PreviousPicksLastElementAtOrBelow,LinearInterpolatesWholeStruct}` | covered |
+| Timerange resampling — no unique MDSplus surface, refused unconditionally | `MdsplusTimerangeResampling.RefusedWithNoUniqueSurface` | covered |
+| Segment-backed dynamic writes — incremental AOS appends all persist | `MdsplusSegmentBackedWrites.AppendedElementsAllPersist` | covered |
+| ↳ a dim=0 scalar `al_write_data` inside a SLICE_OP action segfaults MDSplus (`size[0]` dereferenced unconditionally against a `nullptr` size) | `MdsplusSliceWriteKnownDefects.DISABLED_ScalarWriteWithinSliceActionSucceeds` + tripwire `MdsplusSliceWriteKnownDefectsDeath.ScalarWriteWithinSliceActionCurrentlyCrashes` | **xfail** |
+| Timebase/segment-index cache survives an intervening invalidating write without staleness or corruption | `MdsplusTimebaseCache.SurvivesInterveningWritesWithoutStaleness` | covered |
 
 ### Version-drift check (issue #16)
 
