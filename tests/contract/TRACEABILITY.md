@@ -281,26 +281,32 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 
 # Part 4 — MDSplus backend (compile-guarded tier)  (issue #12)
 
-**Progress: parity sweep landed (issue #14), on top of the tracer bullet
-(issue #13).** MDSplus is now a parameter/case in all five fixtures issue #14
-named — `DataEntryModes`, `CapabilityMatrix`, `Occurrences`,
-`AosMatrix`, `EquilibriumSeedMatrix` — with every resulting row triaged to a
-terminal status (`covered` or `divergence`; no genuine defect surfaced, so no
-`xfail` this round). The MDSplus-unique surface (struct-aware slice
+**Progress: real-DD-path datatype × rank breadth landed (issue #15), on top of
+the parity sweep (issue #14) and the tracer bullet (issue #13).** MDSplus is a
+parameter/case in all five fixtures issue #14 named — `DataEntryModes`,
+`CapabilityMatrix`, `Occurrences`, `AosMatrix`, `EquilibriumSeedMatrix` — with
+every resulting row triaged to a terminal status (`covered` or `divergence`;
+no genuine defect surfaced, so no `xfail` this round). Issue #15 adds a
+dedicated real-DD-path breadth matrix (`test_mdsplus_real_paths.cpp`,
+`Mdsplus/MdsplusRealPathMatrix.*`) covering every `{CHAR, INTEGER, DOUBLE,
+COMPLEX} x rank {0..7}` cell the DD actually contains — the one parity area
+`RoundTripMatrix` structurally cannot join MDSplus for (its opaque synthetic
+paths have no model-tree node). The MDSplus-unique surface (struct-aware slice
 interpolation, timerange resampling, segments, timebase cache, version-drift
 check) remains `gap (deferred — later #12 sub-issue)`.
 
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
 defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
-`test_mdsplus.cpp`, `test_pulse_lifecycle.cpp`, `test_structured_data.cpp`,
-and `test_capability_gated.cpp` compiles out entirely otherwise.
-Runtime-skipped (`GTEST_SKIP()`, never failed, per D4) when
-`MDSPLUS_MODELS_PATH` is unset. CTest label `mdsplus` (`ctest -L mdsplus`)
-now covers the whole parity set, not just the tracer bullet (issue #14
-extended the label's `TEST_FILTER` carve-out in `CMakeLists.txt`).
-Characterization environment: `docker/mdsplus/` (aarch64, DD 4.1.1 baked
-model tree — see its README for the characterization-discovered deviation
-from the issue's Ubuntu 22.04 starting point).
+`test_mdsplus.cpp`, `test_mdsplus_real_paths.cpp`, `test_pulse_lifecycle.cpp`,
+`test_structured_data.cpp`, and `test_capability_gated.cpp` compiles out
+entirely otherwise. Runtime-skipped (`GTEST_SKIP()`, never failed, per D4)
+when `MDSPLUS_MODELS_PATH` is unset. CTest label `mdsplus` (`ctest -L
+mdsplus`) covers the whole parity set plus the breadth matrix (issue #15
+extended the label's `TEST_FILTER` carve-out in `CMakeLists.txt` with
+`Mdsplus/MdsplusRealPathMatrix.*`). Characterization environment:
+`docker/mdsplus/` (aarch64, DD 4.1.1 baked model tree — see its README for
+the characterization-discovered deviation from the issue's Ubuntu 22.04
+starting point).
 
 ## Characterization-discovered facts (issue #14)
 
@@ -354,4 +360,73 @@ explicit open items), not assumed:
 | Parity: `Occurrences` — real implementation, `<ids>/<N>` naming convention (see characterization facts above) | `Occurrences.MdsplusListsWrittenOccurrences` | covered |
 | Parity: `AosMatrix` (top-level + nested write→iterate→read) — **divergence, not a defect**: MDSplus resolves every path against its real DD-baked model tree, so this fixture's synthetic field names (`"elements"`/`"val"`, `"outer"`/`"inner"`) have no corresponding node; `al_begin_arraystruct_action` and the per-element writes report success (buffered), but the flush at `al_end_action` throws `%TREE-W-NNF, Node Not Found`. Real DD-conformant AOS paths round-trip through the identical sequence (see characterization facts above) — the fixture's synthetic-path design simply cannot transfer to a model-tree-backed backend, the same reason `RoundTripMatrix` already excludes MDSplus (issue #12 Q5) | `Backends/AosMatrix.{TopLevelWriteIterateRead,NestedWriteIterateRead}/Mdsplus` (both `GTEST_SKIP()`, `AosExpect::Divergence`) | divergence |
 | Parity: `EquilibriumSeedMatrix` (composite scalar + timebase-carrying 2-D array + `constraints` AOS, hash oracle) — **divergence, not a defect**: the scalar sub-shape round-trips (already proven by the tracer bullet above), but the seed's flat-tensorized `profiles_1d/psi` write and its generic `constraints`/`{measured,weight}` AOS shape don't match the real equilibrium DD layout MDSplus enforces (real `profiles_1d` is a genuine dynamic AOS, not a flat dataset at that path; real `constraints` is a fixed container of specific constraint sub-objects, not a generic AOS) — both throw `%TREE-W-NNF, Node Not Found`. MDSplus **is** instantiated in `kSeedBackends[]` (mirroring `AosMatrix` above), and the case is skipped in-place via `GTEST_SKIP()` rather than run and fail | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/Mdsplus` (`GTEST_SKIP()`) | divergence |
+
+### Real-DD-path datatype × rank breadth (issue #15)
+
+Where the rows above join MDSplus to the *existing* fixtures' synthetic
+shapes, this matrix instead curates one **real** DD-4.1.1 path per
+`{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell — the axis
+`RoundTripMatrix` already sweeps on the always-on tier, but against opaque
+paths MDSplus cannot resolve (issue #12 Q2/Q5). Path curation method: the
+`imas-dd` MCP tool CLAUDE.md names was not present in this session's MCP
+configuration, so the same question it would answer was resolved by walking
+the actual baked-from artifact directly —
+`build-mdsplus/_deps/data-dictionary-src/IDSDef.xml` (the DD-4.1.1 source
+`ALBuildDataDictionary.cmake` downloads and the model tree is compiled from)
+— which is still empirical characterization against the real shipped
+artifact (D2), just queried by hand instead of through the MCP wrapper. Every
+covered cell spans a different real IDS (`equilibrium`, `b_field_non_axisymmetric`,
+`amns_data`, `magnetics`, `temporary`, `balance_of_plant`, `bolometer`,
+`gyrokinetics_local`, `waves`, `runaway_electrons`), confirming the model
+tree's whole-DD bake, not one container.
+
+**Characterization-discovered facts:**
+
+- **Five (type, rank) cells exist in the DD only inside a struct_array** —
+  INTEGER rank 3, DOUBLE rank 6, and COMPLEX ranks 1/3/5. Each is reachable
+  through the identical `al_begin_arraystruct_action` idiom `AosMatrix`
+  already proved round-trips against MDSplus for real DD-conformant paths (a
+  single element is written, no breadth beyond one element — AOS breadth
+  itself stays `AosMatrix`/#14's job): INTEGER r3 and DOUBLE r6 use the DD's
+  own generic self-test IDS, `temporary` (`constant_integer3d/value`,
+  `constant_float6d/value`, one AOS level); COMPLEX r3/r5 use
+  `runaway_electrons` (`distribution/markers/orbit_integrals[_instant]/values`,
+  one AOS level, since `distribution` itself is a plain structure, not an
+  AOS); COMPLEX r1 is the deepest real case found anywhere in the whole DD —
+  `waves`' `coherent_wave/full_wave/e_field/plus/values` needs **three**
+  nested AOS levels (`coherent_wave`, `full_wave`, `e_field/plus`) — and
+  round-trips through the same idiom generalized to three descents. All five
+  passed as plain round trips; no genuine defect surfaced from the AOS
+  descent itself.
+- **CHAR's rank axis is one off from the DD's own `STR_ND` suffix**: the
+  C-ABI's `dim` parameter for CHAR_DATA models a *string* at dim=1 (DD
+  `STR_0D`) and an *array of strings* at dim=2 (DD `STR_1D`) — dim=0 (a bare
+  scalar char) has no DD analogue at all. Confirmed empirically by CHAR r0's
+  divergence below.
+- **CHAR r0 against a real STR_0D node is a divergence, not a crash**:
+  writing a dim=0 (bare scalar char) value to `equilibrium`'s `code/name`
+  (a real STR_0D node) and reading it back at dim=0 fails with "Wrong
+  dimension of Data returned by backend: expected CHAR_DATA in 0D but got
+  CHAR_DATA in 1D" — MDSplus's real text node is inherently string-shaped
+  (1-D), so it correctly refuses the mismatched rank instead of silently
+  misreading it. This contrasts with HDF5's genuine CHAR-scalar crash
+  (`RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips`): MDSplus's
+  behavior is a clean, typed refusal against a real DD node, and RoundTripMatrix's
+  synthetic "dim=0 CHAR" shape simply has no DD counterpart to transfer to —
+  the same divergence pattern as `AosMatrix`/`EquilibriumSeedMatrix` above,
+  just surfacing on a single scalar cell instead of a whole fixture.
+- **Thirteen (type, rank) cells are terminal-gap — the DD contains no field
+  of that type at that rank, at any nesting depth, anywhere in DD 4.1.1**:
+  CHAR ranks 3–7 (only `STR_0D`/`STR_1D` exist), INTEGER ranks 4–7 (max is
+  `INT_3D`), DOUBLE rank 7 (max is `FLT_6D`), COMPLEX rank 0 (no scalar
+  complex type at all) and ranks 6–7 (max is `CPX_5D`). Each cell's own test
+  instance records this via `GTEST_SKIP()` with the specific empirical
+  reason, rather than being silently absent from the matrix.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Real-path breadth: 18 (type, rank) cells with a plain leaf field (no AOS needed) round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local` — CHAR r1/r2, INTEGER r0–r2, DOUBLE r0–r5, COMPLEX r2/r4 | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0,INTEGER_r1,INTEGER_r2,DOUBLE_r0..DOUBLE_r5,COMPLEX_r2,COMPLEX_r4}` (13 cases; the fixture curates 5 more AOS-nested cells separately below, 18 covered in total) | covered |
+| Real-path breadth: 5 (type, rank) cells reachable only inside a struct_array — INTEGER r3, DOUBLE r6 (`temporary`, 1 AOS level), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level), COMPLEX r1 (`waves`, 3 nested AOS levels, the deepest real case in the whole DD) — round-trip via the same `al_begin_arraystruct_action` idiom `AosMatrix` already proved against MDSplus | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{INTEGER_r3,DOUBLE_r6,COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | covered |
+| ↳ CHAR r0 (a bare scalar char) against a real STR_0D node (`equilibrium`'s `code/name`) — **divergence, not a defect**: MDSplus's real text node is inherently string-shaped (1-D) and correctly refuses a dim=0 read-back ("expected CHAR_DATA in 0D but got CHAR_DATA in 1D") instead of silently misreading it; contrast HDF5's genuine crash on the same synthetic shape (see characterization facts above) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`) | divergence |
+| ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth: CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 (see characterization facts above for the per-type ceiling each hits) | `Mdsplus/MdsplusRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()` with its specific reason) | terminal-gap |
 | Unique: struct-aware slice interpolation, timerange resampling, segments, timebase cache, version-drift check | — | gap (deferred — later #12 sub-issue) |
