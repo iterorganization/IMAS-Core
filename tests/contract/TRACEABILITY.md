@@ -648,3 +648,170 @@ blocked-by-environment) was not invoked.
 |---|---|---|
 | Tracer bullet (issue #23): one equilibrium scalar (`vacuum_toroidal_field/r0`), seeded through the plain HDF5 backend, reads back byte-identical through the UDA backend in remote mode, across the real reference stack | `UdaSmokeRoundTrip.ScalarSeededViaHdf5ReadsBackThroughUda` | covered |
 | Read-only parity fixture (issue #24): the full equilibrium-seed composite (scalar + timebase-carrying 2-D array + constraints AOS, `equilibrium_seed.h`, issue #4/D5), seeded through HDF5 and reopened through UDA, asserted via the seed's own unmodified FNV-1a hash oracle — **divergence, not a defect**: the generator's flat `profiles_1d/psi` leaf and generic `constraints` AOS have no counterpart in equilibrium's real DD-4.1.1 layout (`profiles_1d` is itself a struct_array, not a plain field). Confirmed empirically against the reference stack: `al_plugin_read_data` fails immediately with "cannot find node equilibrium/profiles_1d/psi in data dictionary (profiles_1d not found)". The same wall MDSplus hits on its own `EquilibriumSeedMatrix`/`Mdsplus` row (Part 4) — nothing to fix, the fixture's synthetic composite shape simply cannot transfer to a DD-schema-validating backend; the scalar sub-shape alone is real DD and is already covered by the tracer bullet above. The seed-then-reopen attempt genuinely runs every time (unlike EquilibriumSeedMatrix's per-backend skip, this suite has no other instance to keep it exercised): the test asserts the *specific* failure signature before `GTEST_SKIP()`'ing, so a future change that resolves the divergence fails the assertion loudly instead of this row silently going stale | `UdaEquilibriumSeedParity.HdfSeededReadsBackThroughUda` | divergence |
+
+**Progress (issue #25, parity breadth): zero blank rows remain in Part 5.**
+Every C-ABI-reachable read-side capability from `FUNCTIONALITY_INVENTORY.md`
+Part 1 now has a UDA verdict at a terminal status. `test_uda_real_paths.cpp`
+adds the real-DD-path datatype × rank breadth matrix (issue #15's curated set,
+reused as-is, adapted to the seed(HDF5)-then-reopen(UDA) shape); `test_uda_
+breadth.cpp` adds AOS traversal, occurrences, `list_filled_paths`, pulse
+open-mode/error-behavior parity, and slice/time-range reads. Two genuine new
+defects were discovered and pinned (xfail, D2 correct-contract + tripwire),
+not fixed — both explained in full below.
+
+## Real-DD-path datatype × rank breadth (issue #25, reusing issue #15's set)
+
+`test_uda_real_paths.cpp`, `Uda/UdaRealPathMatrix.*` — the UDA analogue of
+`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set
+reused as-is** (same 34 cells, same 10 IDSs), adapted to seed(HDF5)-then-
+reopen(UDA) instead of MDSplus's direct write→read. `terminal_gap_reason`
+carries over unchanged (a DD-4.1.1 fact, independent of backend); a UDA-only
+`divergence_reason` and `known_defect_reason` were added where the two
+backends diverge for different reasons on the same cell.
+
+**Characterization-discovered facts:**
+
+- **13 terminal-gap cells carry over unchanged** from the MDSplus matrix (CHAR
+  r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7) — the DD itself
+  contains no field of that (type, rank) at any nesting depth, independent of
+  backend.
+- **CHAR r0 is a divergence for a different reason than MDSplus's**: MDSplus's
+  own CHAR r0 divergence is a clean, typed dimension-mismatch refusal from its
+  *real* backend. UDA's fixture never even reaches that question: seeding this
+  cell requires writing a dim=0 CHAR value through the *plain HDF5 backend*
+  used for fixture setup, which reproduces the pre-existing, independently-
+  pinned `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` /
+  `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` crash
+  (TRACEABILITY.md Part 1) on this real DD leaf too. Not run, to avoid
+  crashing the seed step — a fixture-setup-backend defect already pinned
+  elsewhere, not a new UDA finding.
+- **18 cells round-trip cleanly**, including all 5 AOS-nested cells that are
+  *not* dynamic leaves (INTEGER r3, DOUBLE r6 via `temporary`'s static
+  self-test fields) and every plain (non-AOS) cell of every datatype,
+  including COMPLEX r2/r4 — confirming UDA's remote get() correctly forwards
+  static, non-AOS, and statically-nested-in-AOS fields alike.
+- **NEW DEFECT discovered (xfail): a *dynamic* (time-varying) DD leaf nested
+  inside a struct_array silently returns empty/absent data through UDA remote
+  mode + `backend=hdf5`, instead of what was written.** Confirmed empirically
+  against the reference stack by comparing the request trace's `dynamic_flags`
+  field across passing and failing cells: `temporary/constant_integer3d/value`
+  and `temporary/constant_float6d/value` (both AOS-nested, `dynamic_flags=0`)
+  round-trip cleanly, while `waves/coherent_wave/full_wave/e_field/plus/values`
+  (COMPLEX r1, 3 AOS levels), `runaway_electrons/distribution/markers/
+  orbit_integrals_instant/values` (COMPLEX r3) and `…/orbit_integrals/values`
+  (COMPLEX r5) — all `dynamic_flags=1` — come back with `read_shape={}` /
+  zero elements. The same wall independently reproduces on a DOUBLE leaf
+  outside this matrix, `equilibrium/time_slice/global_quantities/ip`
+  (`test_uda_breadth.cpp`'s `UdaAosKnownDefects`), which additionally shows
+  the *scalar* failure mode: a rank-0 dynamic leaf inside an AOS comes back
+  with `code==0` but the HDF5 "absent" sentinel value (`-9.0e40`) instead of
+  what was written, rather than an empty array. Root cause is not yet
+  isolated to a specific line (out of this issue's "pin, don't fix" scope),
+  but the shape strongly suggests the server-side `IMAS` plugin's HDF5-backend
+  translation of a struct_array element index does not compose with a
+  dynamic (time-tensorized) leaf's own leading time-index dimension. Pinned
+  centrally by `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` +
+  tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel`
+  (`test_uda_breadth.cpp`); the three affected matrix cells cite it via their
+  own `known_defect_reason` rather than duplicating the pin three times.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Real-path breadth: 15 (type, rank) cells with a plain leaf field (no AOS) or a *static* AOS-nested field round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local`, `temporary` — CHAR r1/r2, INTEGER r0–r3, DOUBLE r0–r6, COMPLEX r2/r4 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0..INTEGER_r3,DOUBLE_r0..DOUBLE_r6,COMPLEX_r2,COMPLEX_r4}` (15 cases) | covered |
+| ↳ CHAR r0 (a bare scalar char) — **divergence, not a new UDA defect**: seeding this cell would reproduce the already-pinned HDF5 CHAR-scalar crash (`RoundTripKnownDefects`/Part 1) in fixture setup; not attempted | `Uda/UdaRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`, not run) | divergence |
+| ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
+| ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) — see `UdaAosKnownDefects` below for the pinned tripwire | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect) | **xfail** |
+
+## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
+
+`test_uda_breadth.cpp` — every remaining C-ABI-reachable read-side capability
+from `FUNCTIONALITY_INVENTORY.md` Part 1 not already covered by the tracer
+bullet, the equilibrium-seed parity fixture, or the real-path matrix above.
+Same seed(HDF5)-then-reopen(UDA) shape throughout.
+
+**Characterization-discovered facts:**
+
+- **AOS traversal (top-level) hits the same dynamic-leaf-inside-AOS defect
+  described above**: `equilibrium/time_slice` (a real DD struct_array,
+  `timebasepath="time"`) correctly reports its written size (3) through
+  `al_begin_arraystruct_action`, and iteration genuinely advances (the request
+  trace shows three distinct `time_slice[0..2]/global_quantities/ip`
+  directives), but every element's `global_quantities/ip` value comes back as
+  the HDF5 absent-scalar sentinel (`-9.0e40`) instead of what was written.
+  Pinned as the canonical instance of the defect: `UdaAosKnownDefects.
+  DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.
+  DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested (multi-level) AOS
+  traversal is exercised separately and successfully by the real-path
+  matrix's *static* AOS-nested cells above (INTEGER r3, DOUBLE r6) — the
+  traversal mechanism itself (begin/iterate/end across nesting) works; only
+  a *dynamic* leaf's value fails to come back correctly.
+- **`al_get_occurrences` is real through UDA remote mode** (the reference
+  `IMAS` server plugin implements `getOccurrences`, confirmed via the PRD's
+  static finding): occurrence 0 and occurrence 2 (HDF5's own `<ids>_<N>`
+  naming convention, seeded via HDF5 exactly like
+  `Occurrences.Hdf5ListsWrittenOccurrences`) both list correctly through the
+  UDA client, ownership (`malloc`'d list, caller frees) unchanged.
+- **`al_list_filled_paths` is real through UDA remote mode**, restricted to
+  `backend=hdf5` (`UDABackend::list_filled_paths` throws for any other
+  backend value — this fixture already uses `backend=hdf5` throughout, so the
+  restriction is never hit): every seeded leaf (`ids_properties/
+  homogeneous_time`, `vacuum_toroidal_field/r0`) is discoverable, ownership
+  (caller frees the list and every string) unchanged.
+- **`OPEN_PULSE` genuinely round-trips to the server at open time** — this
+  corrects an initial assumption from static reading that UDA's `openPulse`
+  is purely local URI/env parsing. The debug trace shows `al_begin_
+  dataentry_action` itself issuing `IMAS::open(...)`; when the remote pulse
+  dir does not exist, the server-side HDF5 backend refuses immediately
+  ("HDF5 master file not found"), which the UDA client re-throws through the
+  C ABI as a non-zero `al_status_t`. This is genuine **parity** with the
+  on-disk backends' `DataEntryModes.OpenPulseFailsWhenAbsent` contract
+  (Part 1) — UDA remote mode does not weaken it.
+- **Reading a real DD leaf that was never written (but whose IDS/occurrence
+  was seeded) succeeds and returns the HDF5 absent-scalar sentinel**
+  (`-9.0e40`), exactly matching the local HDF5 backend's own documented
+  contract (`al_lowlevel.cpp`'s `Lowlevel::setDefaultValue`, the same
+  sentinel `RoundTripMatrix`'s generator is careful never to *write*,
+  TRACEABILITY.md Part 1) — transparent parity, not a UDA-specific behavior,
+  since the remote `get()` forwards straight through to the server-side
+  HDF5 backend's own read semantics.
+- **Reading a real DD IDS that was never written at all (no occurrence ever
+  created) fails cleanly** — the server-side HDF5 backend has no file for
+  that IDS at all, distinct from "leaf absent within an existing IDS file"
+  above.
+- **Slice reads round-trip correctly through UDA remote mode**: a real DD
+  dynamic top-level leaf (`vacuum_toroidal_field/b0`, coordinate1 `time`) with
+  `CLOSEST_INTERP` at a UDA `al_begin_slice_action` correctly resolves to the
+  nearer sample — note this leaf is *not* nested inside a struct_array, so it
+  does not hit the AOS defect above; `supportsTimeDataInterpolation()`'s
+  server-version gate (`IMAS::version()` 1.8.0 > 1.4.0) already permits it.
+- **NEW DEFECT discovered (xfail), distinct from the AOS one above and not
+  UDA-specific in origin: `al_begin_timerange_action`'s `OperationContext`
+  constructor (`src/al_context.cpp`, the `(ctx, dataobject, access, range,
+  tmin, tmax, dtime, interp)` overload) never assigns the base `interpmode`
+  member — only `time_range.interpolation_method`** — unlike the GLOBAL_OP
+  and SLICE_OP constructors, which both set it. Every always-on backend's
+  `readData()` ignores `getInterpmode()` for a TIMERANGE_OP context (they
+  consult `time_range` instead), so the uninitialized member is silently
+  never observed on any other backend — until UDA's remote `readData()`
+  directive-builder (`src/uda/uda_backend.cpp`) calls `op_ctx->
+  getInterpmode()` *unconditionally*, regardless of rangemode, to fill the
+  outgoing directive's `interp=` field. Confirmed empirically: the garbage
+  value trips `uda_utilities.hpp`'s `InterpMode` convertor's default case,
+  throwing `std::runtime_error("unknown interp mode: <garbage int>")`,
+  surfaced through the C ABI as `al_plugin_read_data: unknown interp mode:
+  ...`. Pinned: `UdaSliceAndTimeRange.
+  DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire
+  `UdaSliceAndTimeRange.
+  TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode`.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| AOS traversal, top-level (size + iteration mechanism correct; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` (mechanism proof); see the xfail row below for the value defect | covered (indirect) |
+| ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
+| `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` naming convention, ownership pinned | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
+| `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
+| `OPEN_PULSE` refuses an absent remote pulse — genuine parity with the on-disk backends' `DataEntryModes.OpenPulseFailsWhenAbsent` | `UdaBreadthTest.OpenPulseFailsWhenRemotePathAbsent` | covered |
+| Reading an unwritten leaf on a seeded IDS returns the HDF5 absent-scalar sentinel — transparent parity with the local HDF5 backend's own contract, not UDA-specific | `UdaBreadthTest.ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel` | covered |
+| Reading a never-written IDS fails cleanly | `UdaBreadthTest.ReadFailsForNeverWrittenIds` | covered |
+| Slice read (`CLOSEST_INTERP`) on a real DD dynamic top-level leaf round-trips correctly through UDA remote mode | `UdaSliceAndTimeRange.SliceReadThroughReopen` | covered |
+| ↳ time-range read (no resampling) fails with an "unknown interp mode" exception — `OperationContext`'s TIMERANGE_OP constructor never initializes the base `interpmode` member, only observable because UDA's remote directive-builder reads it unconditionally | `UdaSliceAndTimeRange.DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire `UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode` | **xfail** |

@@ -75,6 +75,8 @@ add_executable(contract_tests
   test_mdsplus_version_drift.cpp
   test_mdsplus_unique_surface.cpp
   test_uda.cpp
+  test_uda_real_paths.cpp
+  test_uda_breadth.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
@@ -237,7 +239,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
     TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
@@ -247,9 +249,13 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   # of the integration pass above, so `ctest -L uda` selects exactly the UDA
   # characterization suite without pulling in every other on-disk backend case.
   # Issue #24 joins the read-only equilibrium-seed parity fixture
-  # (UdaEquilibriumSeedParity*) to the same pass.
+  # (UdaEquilibriumSeedParity*) to the same pass. Issue #25 (parity breadth)
+  # joins the real-DD-path datatype x rank matrix (test_uda_real_paths.cpp,
+  # Uda/UdaRealPathMatrix.*) and the AOS/occurrences/list_filled_paths/pulse-
+  # modes/errors/slice/timerange breadth suite (test_uda_breadth.cpp,
+  # UdaBreadthTest.*, UdaSliceAndTimeRange.*).
   gtest_discover_tests(contract_tests
-    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*"
+    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*"
     PROPERTIES LABELS "uda")
 else()
   gtest_discover_tests(contract_tests
