@@ -586,3 +586,65 @@ stays a `gap` for HDF5 (Part 2 row B).
 |---|---|---|
 | Matching case: a pulse created and reopened by the same compiled backend carries the version it just wrote, so the drift check's comparison is a no-op and `OPEN_PULSE` succeeds | `MdsplusVersionDrift.MatchingVersionOpensCleanly` | covered |
 | Mismatching case: `VERSION:BACK_MAJOR` is overwritten (via the raw MDSplus tree API) to a value the compiled backend can never match; reopening through the C ABI hits `al_lowlevel.cpp`'s `(ver.first != sver.first)` branch and fails with `LOWLEVEL_ERR` (message contains "Compatibility"), never a silent open | `MdsplusVersionDrift.MismatchedBackendVersionRefusesOpen` | covered |
+
+---
+
+# Part 5 — UDA backend (compile-guarded tier)  (PRD #21)
+
+Same shape as Part 4: a compile-guarded characterization tier for a backend the
+core has no compile-time coupling to, exercised entirely through the public C
+ABI (decision D1). Unlike MDSplus, UDA is a **remote client** to a reference
+stack it does not embed (a real `uda_server` running the `IMAS` server plugin,
+linked against a server-side IMAS-Core); the tier's tests build and drive that
+stack from `docker/uda/`, never asserting on server internals — the subject
+under test is always the IMAS-Core UDA client. And unlike MDSplus, UDA is
+read-only in remote mode (the reference `IMAS` server plugin has no
+`writeData`/`deleteData` handler — confirmed empirically, see
+`docker/uda/README.md`), so parity arrives via a seed-then-reopen fixture
+(seed through the plain HDF5 backend, reopen the identical path through UDA)
+rather than a write→read round trip.
+
+Build-gated by `AL_CONTRACT_HAVE_UDA` (`tests/contract/CMakeLists.txt`, defined
+when `AL_BACKEND_UDA` or `AL_BACKEND_UDAFAT` is `ON`), so every UDA case in
+`test_uda.cpp` compiles out entirely otherwise. Runtime-skipped
+(`GTEST_SKIP()`, never failed, per D4) when `UDA_HOST` is unset — an ordinary
+local build or an always-on CI leg without the reference stack standing behind
+it never sees these tests fail. CTest label `uda` (`ctest -L uda`) selects the
+whole tier.
+
+## Pinned reference stack (issue #23's spike, `docker/uda/`)
+
+| Component | Source | Pin |
+|-----------|--------|-----|
+| UDA server | [`ukaea/uda`](https://github.com/ukaea/uda) | tag **2.9.3** |
+| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0** |
+| Data Dictionary | `imas-data-dictionary` (PyPI wheel) | **4.1.1** |
+| Base image | `ubuntu:24.04` | arm64 |
+
+Gate decision (issue #23): **FULL-STACK TIER CONFIRMED** — the `IMAS` server
+plugin is built and registered linked against the workspace's own IMAS-Core
+(`docker/uda/run.sh` fails loudly on the mapping-only `NO_IMAS` degradation the
+PRD forbids), not a stub. The fallback tier (client-side-only, remote rows
+blocked-by-environment) was not invoked.
+
+## Characterization-discovered facts (issue #24)
+
+- **UDA validates every remote read path against the DD schema it loads at
+  startup** (`$IDSDEF_PATH`/`$IMAS_PREFIX/include/IDSDef.xml`,
+  `src/uda/uda_xml.cpp`), the same shape of constraint MDSplus enforces via its
+  baked model tree (`CLAUDE.md`, TRACEABILITY.md Part 4) — but arrived at
+  differently: MDSplus resolves against a compiled binary tree, UDA against the
+  DD XML text at runtime. A real DD-conformant path (`vacuum_toroidal_field/r0`)
+  round-trips through the seed-then-reopen fixture; a synthetic/generic one does
+  not — see the divergence row below.
+- **`ids_properties/homogeneous_time` is a hard precondition for any remote
+  read** (`UDABackend::readData`'s `cache_mode=none` path,
+  `src/uda/uda_backend.cpp:646-665`, calls `get_homogeneous_flag` before
+  resolving any other field and throws if it is absent) — both fixtures below
+  seed it explicitly ahead of the field(s) under test, a fixture-setup detail,
+  not part of either test's assertion.
+
+| Capability | Test(s) | Status |
+|---|---|---|
+| Tracer bullet (issue #23): one equilibrium scalar (`vacuum_toroidal_field/r0`), seeded through the plain HDF5 backend, reads back byte-identical through the UDA backend in remote mode, across the real reference stack | `UdaSmokeRoundTrip.ScalarSeededViaHdf5ReadsBackThroughUda` | covered |
+| Read-only parity fixture (issue #24): the full equilibrium-seed composite (scalar + timebase-carrying 2-D array + constraints AOS, `equilibrium_seed.h`, issue #4/D5), seeded through HDF5 and reopened through UDA, asserted via the seed's own unmodified FNV-1a hash oracle — **divergence, not a defect**: the generator's flat `profiles_1d/psi` leaf and generic `constraints` AOS have no counterpart in equilibrium's real DD-4.1.1 layout (`profiles_1d` is itself a struct_array, not a plain field). Confirmed empirically against the reference stack: `al_plugin_read_data` fails immediately with "cannot find node equilibrium/profiles_1d/psi in data dictionary (profiles_1d not found)". The same wall MDSplus hits on its own `EquilibriumSeedMatrix`/`Mdsplus` row (Part 4) — nothing to fix, the fixture's synthetic composite shape simply cannot transfer to a DD-schema-validating backend; the scalar sub-shape alone is real DD and is already covered by the tracer bullet above. The seed-then-reopen attempt genuinely runs every time (unlike EquilibriumSeedMatrix's per-backend skip, this suite has no other instance to keep it exercised): the test asserts the *specific* failure signature before `GTEST_SKIP()`'ing, so a future change that resolves the divergence fails the assertion loudly instead of this row silently going stale | `UdaEquilibriumSeedParity.HdfSeededReadsBackThroughUda` | divergence |
