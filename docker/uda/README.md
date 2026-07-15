@@ -118,29 +118,40 @@ subtask (#21 area 3).
     is set`;
   - `$IDSDEF_PATH` set but the file missing → `IDSDef.xml not found at either
     $IDSDEF_PATH or $IMAS_PREFIX/include/IDSDef.xml`.
-- **Remote-write / delete error surface:** the reference `IMAS` server plugin
-  has no `writeData`/`deleteData` handler. Issuing the exact directives the
-  client emits to the running server (`uda_cli --request "IMAS::writeData(...)"`
-  / `"IMAS::deleteData(...)"`) both return `[handle_request]: Unknown function
-  requested!`. The UDA backend catches the resulting `uda::UDAException` and
-  re-throws it as an `ALException` carrying that text, which surfaces at the C
-  ABI as a non-zero `al_status_t`. This empirically confirms the static finding
-  that remote mode is read-only by construction; the exact C-ABI-level pin
-  (correct-contract + tripwire, driven through `al_write_data`) is the
-  write-path subtask's job, not the spike's.
-- **Fetch-mode cache-directory naming/reuse semantics** (from source; full
-  empirical characterization deferred to the fetch-mode subtask): the local
-  cache dir is the `local_cache` URI option when given, else
+- **Remote-write / delete error surface, exact C-ABI pin confirmed (issue
+  #27):** the reference `IMAS` server plugin has no `writeData`/`deleteData`
+  handler; raw `uda_cli --request "IMAS::writeData(...)"` /
+  `"IMAS::deleteData(...)"` both return `[handle_request]: Unknown function
+  requested!`. But the two C-ABI entry points surface that dispatch failure
+  *differently* — a divergence only visible by driving the actual client
+  library calls, not by probing with `uda_cli`: `UDABackend::deleteData`
+  issues its directive via `uda::Client::get()`, whose error path does
+  propagate the server's failure as a non-zero `al_status_t` carrying that
+  exact text. `UDABackend::writeData` issues its directive via
+  `uda::Client::put()` instead, which does not throw on an in-band server
+  dispatch failure — so `al_write_data` reports `al_status_t.code == 0`
+  (false success) and the write is silently dropped. Pinned:
+  `UdaUniqueSurfaceTest.RemoteWriteReportsSuccessButNeverPersists` (reopens via
+  remote mode afterward and confirms the scalar is unchanged) and
+  `UdaUniqueSurfaceTest.RemoteDeleteFailsWithUnknownFunctionRequested`.
+- **Fetch-mode cache-directory naming/reuse semantics, fully characterized
+  (issue #27):** the local cache dir is the `local_cache` URI option when
+  given (still joined with the remote path's `relative_path()`, i.e. it
+  overrides only the cache *root*, not the whole path) or else
   `${TMPDIR}/uda-cache-of-${USER}/<remote_path>` (falling back to
   `${TMPDIR}/uda-cache` when `$USER` is unset) (`src/uda/uda_backend.cpp`
   `fetch_files`). A file already present in the cache is **not** re-downloaded
-  (`download_file` early-returns on existence), so a mutated or stale local copy
-  persists across sessions — the divergence the fetch-mode subtask pins.
-  Empirical exercise is deferred deliberately, not overlooked: fetch mode
-  downloads via a `BYTES::read` directive to a **`BYTES` server plugin** that
-  this reference stack does not register (only `IMAS` is), so a complete
-  download+reuse round trip needs that extra server plugin — which the fetch
-  subtask stands up. The spike's gate does not depend on it.
+  (`download_file` early-returns on existence, confirmed via its own verbose
+  trace line), so a locally-written value persists across sessions even
+  though it never reached the server — the write-divergence pin. The `BYTES`
+  server plugin this needs ships and is registered **by default** in
+  `ukaea/uda`'s own build (`source/plugins/CMakeLists.txt` builds
+  `bytes`/`help`/`template`/`testplugin`/`uda` unless `BUILD_PLUGINS` is set,
+  each `uda_plugin()` call appending itself to the installed
+  `udaPlugins.conf`) — confirmed present on this image without any
+  `docker/uda/` change. The prior note that this reference stack "does not
+  register" `BYTES` was an unverified assumption from this spike; it did not
+  hold up empirically and is corrected here.
 - **Reference plugin reported version:** `IMAS::version()` → **1.8.0** (see the
   pinned-stack note above for the `supportsTimeRangeOperation` consequence).
 - **Pinned stack identifiers** (for the Part 5 header): UDA server **2.9.3**,

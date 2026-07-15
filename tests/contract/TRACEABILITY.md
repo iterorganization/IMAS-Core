@@ -816,15 +816,14 @@ Same seed(HDF5)-then-reopen(UDA) shape throughout.
 | Slice read (`CLOSEST_INTERP`) on a real DD dynamic top-level leaf round-trips correctly through UDA remote mode | `UdaSliceAndTimeRange.SliceReadThroughReopen` | covered |
 | ↳ time-range read (no resampling) fails with an "unknown interp mode" exception — `OperationContext`'s TIMERANGE_OP constructor never initializes the base `interpmode` member, only observable because UDA's remote directive-builder reads it unconditionally | `UdaSliceAndTimeRange.DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire `UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode` | **xfail** |
 
-## UDA-unique surface, first half (issue #26): cache modes, runtime DD loading, datapath, capability negotiation
+## UDA-unique surface (issues #26 + #27): cache modes, runtime DD loading, datapath, capability negotiation, fetch mode, write/delete pins
 
-`test_uda_unique_surface.cpp` — the first of two dedicated unique-surface
-files (the write-pin/fetch-mode half is the sibling issue). Six areas, all
-against the reference stack (UDA server 2.9.3 / `IMAS` plugin 1.8.0 / DD
-4.1.1). A second, older DD version (**3.42.0**, `IDSDEF_PATH_OLDER`) was added
-to `docker/uda/Dockerfile` for the wrong-version-DD row below; it is a real,
-independently-sourced pin (`imas-data-dictionary==3.42.0` from PyPI), recorded
-here alongside the header's existing stack identifiers.
+`test_uda_unique_surface.cpp` — one dedicated unique-surface file covering all
+ten areas, against the reference stack (UDA server 2.9.3 / `IMAS` plugin 1.8.0
+/ DD 4.1.1). A second, older DD version (**3.42.0**, `IDSDEF_PATH_OLDER`) was
+added to `docker/uda/Dockerfile` for the wrong-version-DD row below; it is a
+real, independently-sourced pin (`imas-data-dictionary==3.42.0` from PyPI),
+recorded here alongside the header's existing stack identifiers.
 
 **Characterization-discovered facts:**
 
@@ -927,6 +926,61 @@ here alongside the header's existing stack identifiers.
   support time range operations.") rather than being refused outright,
   distinct from the separate, already-pinned uninitialized-interpmode defect
   on the subsequent read (`UdaSliceAndTimeRange`, above).
+- **Fetch mode: download, local-backend handoff, cache reuse, all confirmed
+  end-to-end (issue #27)** — the `BYTES` server plugin fetch mode needs ships
+  and is registered **by default** in `ukaea/uda`'s own build (corrects this
+  file's `docker/uda/README.md` spike note that it wasn't registered; that was
+  an unverified assumption, not an empirical finding). `UDABackend`'s
+  constructor lists the remote pulse's files and downloads `master.h5` via
+  `BYTES::read`, then delegates every subsequent `Backend` virtual straight to
+  a freshly constructed local backend over the download — confirmed by a
+  correct scalar read-back. A reopen against the same cache reuses it without
+  re-downloading, confirmed directly via `download_file`'s own verbose trace
+  lines (`"...cache directory already exists"`, `"...cached local file
+  already exists"`), not inferred.
+- **`local_cache` overrides only the cache *root*, not the whole path**: with
+  an explicit `local_cache`, `fetch_files` still joins it with the remote
+  path's `relative_path()` (`uda_backend.cpp:428-429`) — the same nesting the
+  default `$TMPDIR/uda-cache-of-$USER/<remote_path>` formula applies, just
+  under a different root.
+- **The stale-cache / write-divergence pin, end-to-end (issue #27)**: a write
+  through fetch mode "succeeds" (`UDABackend::writeData` delegates straight to
+  the local backend once `access_local_` is set, `uda_backend.cpp:1107-1109`
+  — there is no upload path back to the server at all), but lands only on the
+  local cache copy. Confirmed three ways in one test: (1) the write reports
+  success; (2) reopening the identical pulse via ordinary *remote* mode shows
+  the server-side data is genuinely unchanged; (3) reopening *fetch* mode
+  again still serves the divergent local value, because `download_file`'s
+  early-exists-return (area 7) never re-fetches the true server-side value —
+  the divergence is permanent until the cache dir is manually cleared. (Pinned
+  against a brand-new field, not the already-seeded scalar: overwriting
+  pre-existing data through a fresh `WRITE_OP` session hits a separate, HDF5-
+  backend-wide limitation — `HDF5Writer::write_ND_Data` unconditionally calls
+  `H5Dcreate2` for any dataset not already tracked in *this session's*
+  in-memory map, with no `H5Lexists` check against the file
+  (`hdf5_writer.cpp:417-423`) — orthogonal to UDA and out of this issue's
+  scope; exercising it here would have conflated two different defects.)
+- **NEW DEFECT discovered (xfail): remote write and delete diverge in how
+  they surface the same underlying dispatch failure (issue #27)** — a finding
+  only visible by driving the actual client library calls, not by probing the
+  server with `uda_cli` directly (as issue #23's spike did): the reference
+  `IMAS` server plugin has no `writeData`/`deleteData` handler at all; both
+  raw directives return `[handle_request]: Unknown function requested!`.
+  `UDABackend::deleteData` issues its directive via `uda::Client::get()`,
+  whose error path *does* propagate that failure — caught as a
+  `uda::UDAException`, re-thrown as an `ALException`, surfacing at
+  `al_delete_data` as a non-zero `al_status_t` carrying that exact text: the
+  intended, correctly-refused contract, confirmed and covered.
+  `UDABackend::writeData` issues its directive via `uda::Client::put()`
+  instead, which does **not** throw on an in-band server dispatch failure
+  (only on transport-level faults) — so `al_write_data` reports
+  `al_status_t.code == 0` (false success) while nothing is persisted. This is
+  a more dangerous pin than a clean refusal: the caller is told the write
+  succeeded with no signal that the server never received it, confirmed by
+  reopening via remote mode afterward and finding the value unchanged.
+  Pinned: `UdaUniqueSurfaceTest.DISABLED_RemoteWriteFailsWithDispatchError` +
+  tripwire
+  `UdaUniqueSurfaceTest.RemoteWriteCurrentlyReportsSuccessButNeverPersists`.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -939,3 +993,18 @@ here alongside the header's existing stack identifiers.
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
 | Version-drift check inertness: open never fails on the version-drift comparison, both sides hardcoded placeholders | `UdaUniqueSurfaceTest.VersionDriftCheckNeverFiresRegardlessOfStoredPulse` | divergence |
 | Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
+| `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
+| ↳ stale-cache / write-divergence pin: a fetch-mode write succeeds locally only, server-side pulse (reopened via remote mode) is unchanged, divergent local copy persists across close/reopen | `UdaUniqueSurfaceTest.FetchModeWriteDivergesFromServerAndStalePersistsAcrossReopen` | covered |
+| Remote delete pinned unsupported (correctly refused): no `deleteData` handler on the reference plugin, `al_delete_data` surfaces the server's exact dispatch-failure text | `UdaUniqueSurfaceTest.RemoteDeleteFailsWithUnknownFunctionRequested` | covered |
+| ↳ remote write reports **false success** instead of the same refusal: `uda::Client::put()`'s error path does not propagate the dispatch failure deleteData's `get()` surfaces, so `al_write_data` returns `code == 0` while nothing is persisted (confirmed by reopening and finding the value unchanged) | `UdaUniqueSurfaceTest.DISABLED_RemoteWriteFailsWithDispatchError` + tripwire `UdaUniqueSurfaceTest.RemoteWriteCurrentlyReportsSuccessButNeverPersists` | **xfail** |
+
+**Progress (issue #27): UDA's unique surface is now fully characterized —
+areas 1-6 (issue #26) plus fetch mode and the write/delete pins (areas 7-10)
+close out `test_uda_unique_surface.cpp`. One new genuine defect discovered and
+pinned (xfail, D2 correct-contract + tripwire): remote write silently reports
+success without persisting, unlike remote delete's clean refusal. The
+`docker/uda/` spike's assumption that the `BYTES` plugin fetch mode needs
+wasn't registered on this reference stack did not hold up empirically — it
+ships and registers by default in `ukaea/uda`'s own build — and is corrected
+in `docker/uda/README.md` alongside this issue's findings.
