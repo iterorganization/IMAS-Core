@@ -77,6 +77,7 @@ add_executable(contract_tests
   test_uda.cpp
   test_uda_real_paths.cpp
   test_uda_breadth.cpp
+  test_uda_unique_surface.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
@@ -239,7 +240,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
     TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
@@ -254,8 +255,11 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   # Uda/UdaRealPathMatrix.*) and the AOS/occurrences/list_filled_paths/pulse-
   # modes/errors/slice/timerange breadth suite (test_uda_breadth.cpp,
   # UdaBreadthTest.*, UdaSliceAndTimeRange.*).
+  # Issue #26 (unique-surface, first half) joins UdaUniqueSurfaceTest* to the
+  # same pass: cache modes, runtime DD loading, datapath, and capability
+  # negotiation (test_uda_unique_surface.cpp).
   gtest_discover_tests(contract_tests
-    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*"
+    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
     PROPERTIES LABELS "uda")
 else()
   gtest_discover_tests(contract_tests

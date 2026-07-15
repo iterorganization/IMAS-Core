@@ -18,6 +18,7 @@ Part 5 header:
 | UDA server | [`ukaea/uda`](https://github.com/ukaea/uda) | tag **2.9.3** |
 | `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0** |
 | Data Dictionary | `imas-data-dictionary` (PyPI wheel) | **4.1.1** |
+| Data Dictionary (older, unique-surface wrong-version row, `IDSDEF_PATH_OLDER`) | `imas-data-dictionary` (PyPI wheel) | **3.42.0** |
 | Base image | `ubuntu:24.04` | arm64 |
 
 `IMAS` plugin reported version (from `IMAS::version()`, confirmed against the
