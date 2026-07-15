@@ -70,11 +70,40 @@ add_executable(contract_tests
   test_plugins.cpp
   test_structured_data.cpp
   test_pulse_lifecycle.cpp
+  test_mdsplus.cpp
+  test_mdsplus_real_paths.cpp
+  test_mdsplus_version_drift.cpp
+  test_mdsplus_unique_surface.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
 add_dependencies(contract_tests al)
 target_compile_features(contract_tests PRIVATE cxx_std_17)
+
+########################################################################################################################
+# MDSplus build gate (issue #13 / TEST_STRATEGY.md D4 "compile-guarded tier").
+#
+# test_mdsplus.cpp wraps its whole body in #ifdef AL_CONTRACT_HAVE_MDSPLUS, so
+# it compiles out to nothing when the backend is off — a developer without
+# MDSplus installed never pays for it, and CI legs that build with
+# AL_BACKEND_MDSPLUS=OFF are unaffected. When the backend is on, the file's
+# lone test still runtime-skips (GTEST_SKIP()) if MDSPLUS_MODELS_PATH is
+# unset, so "on but unconfigured" never fails either.
+if(AL_BACKEND_MDSPLUS)
+  target_compile_definitions(contract_tests PRIVATE AL_CONTRACT_HAVE_MDSPLUS)
+
+  # test_mdsplus_version_drift.cpp (issue #16) forces the version-mismatch
+  # case by writing directly into the pulse's VERSION:BACK_MAJOR tree node
+  # through the raw MDSplus C++ API (<mdsobjects.h>) -- something reachable
+  # only outside the public C ABI. `al`'s own src/mdsplus/CMakeLists.txt
+  # already links MDSplus, but PRIVATEly, so it doesn't propagate here;
+  # find_package(MDSplus) is repeated (idempotent) to wire the same
+  # include dir / libs into contract_tests, test-only and build-gated behind
+  # the same AL_BACKEND_MDSPLUS option as the backend itself.
+  find_package(MDSplus REQUIRED)
+  target_include_directories(contract_tests PRIVATE ${MDSPLUS_INCLUDES})
+  target_link_libraries(contract_tests PRIVATE ${MDSPLUS_LIBRARIES})
+endif()
 
 ########################################################################################################################
 # Test plugin fixture (issue #7, TEST_STRATEGY.md step 5).
@@ -157,13 +186,44 @@ endif()
 # TEST_FILTER uses gtest's one-"-"-then-colon-separated negative syntax
 # ("*:-a:b:c", NOT "*:-a:-b:-c") so the two passes stay disjoint — otherwise the
 # second pass re-registers the unit cases and CTest sees duplicates.
+# MdsplusTracerBullet* is carved out of the integration pass into its own
+# third pass (issue #13: new CTest label "mdsplus") so `ctest -L mdsplus`
+# selects it without also pulling in every other on-disk backend case.
+# Issue #14 joins MDSplus onto four more fixtures (DataEntryModes,
+# CapabilityMatrix, AosMatrix, Occurrences) as a "Mdsplus"-named parameter/
+# case; "*/Mdsplus" and "Occurrences.Mdsplus*" carve those into the same
+# mdsplus pass so `ctest -L mdsplus` covers the whole parity set, not just
+# the tracer bullet. Issue #15 adds the real-DD-path datatype x rank breadth
+# matrix (test_mdsplus_real_paths.cpp); "Mdsplus/MdsplusRealPathMatrix.*"
+# carves its instances into the same mdsplus pass. Issue #16 adds the
+# version-drift check (test_mdsplus_version_drift.cpp); "MdsplusVersionDrift*"
+# carves its two cases into the same mdsplus pass. Issue #17 adds the
+# MDSplus-unique surface (test_mdsplus_unique_surface.cpp):
+# "MdsplusStructAwareSliceInterpolation*", "MdsplusTimerangeResampling*",
+# "MdsplusSegmentBackedWrites*", "MdsplusSliceWriteKnownDefects*",
+# "MdsplusSliceWriteKnownDefectsDeath*", and "MdsplusTimebaseCache*" carve its
+# cases into the same mdsplus pass.
+#
+# Empirically discovered running this against a real build (issue #13,
+# CMake 3.28 + Ninja): gtest_discover_tests' PROPERTIES forwarding does NOT
+# actually preserve a multi-element LABELS list through its escaped-";"
+# encoding -- it collapses to just the first token ("contract"), silently
+# dropping "unit"/"integration" as bogus trailing property names with no
+# value. That pre-existing defect (present in the two passes below
+# unmodified by this issue) means `ctest -L unit`/`-L integration` currently
+# select nothing; it is out of this issue's scope to fix. The new mdsplus
+# pass sidesteps it by using a single-element LABELS list, which has no
+# separator to lose.
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   gtest_discover_tests(contract_tests
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
     PROPERTIES LABELS "contract\;integration")
+  gtest_discover_tests(contract_tests
+    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
+    PROPERTIES LABELS "mdsplus")
 else()
   gtest_discover_tests(contract_tests
     PROPERTIES LABELS "contract")

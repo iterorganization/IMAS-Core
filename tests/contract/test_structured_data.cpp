@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -55,7 +56,19 @@ constexpr const char* kIds = "magnetics";
 // AOS-size lookup (ascii_backend.cpp:656-682) depends on that same sequential
 // position via `getline`, so it always finds nothing. See AosKnownDefects
 // below for the paired DISABLED_/tripwire.
-enum class AosExpect { RoundTrip, Refused, KnownDefect };
+// MDSplus is a Divergence, not a defect (issue #14): unlike every other
+// backend here, it resolves paths against a real DD-baked model tree, so
+// this fixture's synthetic field names ("elements"/"val", "outer"/"inner")
+// have no corresponding node. Confirmed empirically: al_begin_arraystruct_action
+// and the per-element al_write_data calls all report success (buffered in an
+// in-memory MDSplus::Apd), but the AOS flush at al_end_action throws
+// "%TREE-W-NNF, Node Not Found". Real DD-conformant AOS paths (e.g.
+// equilibrium/time_slice/global_quantities/ip) round-trip through this exact
+// same begin/write/iterate/end sequence without error — this is a structural
+// requirement of MDSplus's storage model (issue #12 Q2), not a bug, so it is
+// not paired with a DISABLED_/tripwire like KnownDefect. See TRACEABILITY.md
+// Part 4.
+enum class AosExpect { RoundTrip, Refused, KnownDefect, Divergence };
 
 struct AosBackendCase {
     int         id;
@@ -71,6 +84,9 @@ const AosBackendCase kAosBackends[] = {
     {MEMORY_BACKEND, "Memory", /*on_disk=*/false, AosExpect::RoundTrip},
     {ASCII_BACKEND, "ASCII", /*on_disk=*/true, AosExpect::KnownDefect},
     {FLEXBUFFERS_BACKEND, "Flexbuffers", /*on_disk=*/true, AosExpect::Refused},
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    {MDSPLUS_BACKEND, "Mdsplus", /*on_disk=*/true, AosExpect::Divergence},
+#endif
 };
 
 // Shared by AosMatrix and DeleteMatrix below (their backend-descriptor
@@ -96,6 +112,12 @@ TEST_P(AosMatrix, TopLevelWriteIterateRead) {
     if (b.expect == AosExpect::KnownDefect) {
         GTEST_SKIP() << "known defect for " << b.name
                      << " AOS read — see AosKnownDefects.*";
+    }
+    if (b.expect == AosExpect::Divergence) {
+        GTEST_SKIP() << b.name << " requires real DD-conformant AOS paths "
+                        "(issue #12 Q2) -- this fixture's synthetic field "
+                        "names are refused, not a defect. See "
+                        "TRACEABILITY.md Part 4.";
     }
     const int pctx = open_fresh_pulse(b.id, b.on_disk, base_, pulse_);
     constexpr int kN = 3;
@@ -148,6 +170,12 @@ TEST_P(AosMatrix, NestedWriteIterateRead) {
     if (b.expect == AosExpect::KnownDefect) {
         GTEST_SKIP() << "known defect for " << b.name
                      << " AOS read — see AosKnownDefects.*";
+    }
+    if (b.expect == AosExpect::Divergence) {
+        GTEST_SKIP() << b.name << " requires real DD-conformant AOS paths "
+                        "(issue #12 Q2) -- this fixture's synthetic field "
+                        "names are refused, not a defect. See "
+                        "TRACEABILITY.md Part 4.";
     }
     const int pctx = open_fresh_pulse(b.id, b.on_disk, base_, pulse_);
     constexpr int kOuter = 2, kInner = 2;
@@ -271,6 +299,27 @@ TEST(AosKnownDefects, AsciiAosReadCurrentlyReportsZero) {
 // Equilibrium seed: realistic scalar + timebase-carrying 2-D array + AOS,
 // oracle = content hash (decision D5). Flexbuffers is excluded for the same
 // reason as the AOS matrix above (read refused within the session).
+//
+// MDSplus (issue #14) joins this fixture as a Divergence case, not a defect:
+// unlike the always-on backends, it resolves every path against a real
+// DD-baked model tree. Confirmed empirically -- the seed's SCALAR sub-shape
+// ("vacuum_toroidal_field/r0") round-trips fine (that is exactly what the
+// issue #13 tracer bullet, tests/contract/test_mdsplus.cpp, already pins),
+// but the seed's other two sub-shapes don't match the real equilibrium DD
+// layout MDSplus enforces: writing "profiles_1d/psi" as a flat tensorized
+// 2-D array (the HDF5-tensorization convention this generator targets)
+// throws "%TREE-W-NNF, Node Not Found" immediately, because MDSplus's real
+// profiles_1d is a genuine dynamic array-of-structures, not a flat dataset at
+// that path; and the "constraints" AOS's generic {measured, weight} fields
+// don't exist in the real DD equilibrium/constraints structure (a fixed
+// container of specific constraint-type sub-objects), so the AOS write
+// buffers successfully but throws the same NNF when flushed at
+// al_end_action. Real DD-conformant AOS/timed paths do round-trip on MDSplus
+// through this exact write/read sequence -- the divergence is specific to
+// this generator's DD-agnostic shape choices, not a general MDSplus
+// limitation. Skipped with GTEST_SKIP() (mirroring AosMatrix's
+// AosExpect::Divergence above) rather than run and fail. See TRACEABILITY.md
+// Part 4.
 // ===========================================================================
 class EquilibriumSeedMatrix : public ::testing::TestWithParam<BackendCase> {
 protected:
@@ -282,10 +331,23 @@ const BackendCase kSeedBackends[] = {
     {HDF5_BACKEND, "HDF5", /*on_disk=*/true},
     {MEMORY_BACKEND, "Memory", /*on_disk=*/false},
     {ASCII_BACKEND, "ASCII", /*on_disk=*/true},
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    {MDSPLUS_BACKEND, "Mdsplus", /*on_disk=*/true},
+#endif
 };
 
 TEST_P(EquilibriumSeedMatrix, RoundTripHashMatches) {
     const BackendCase b = GetParam();
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+    if (b.id == MDSPLUS_BACKEND) {
+        GTEST_SKIP() << "Mdsplus requires real DD-conformant paths for the "
+                        "profile/AOS sub-shapes (issue #12 Q2) -- this "
+                        "generator's flat profiles_1d/psi write and generic "
+                        "constraints AOS are refused, not a defect (the "
+                        "scalar sub-shape is separately covered by "
+                        "MdsplusTracerBullet). See TRACEABILITY.md Part 4.";
+    }
+#endif
     if (b.on_disk) base_.make_legacy_tree(pulse_);
     const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
     ASSERT_FALSE(uri.empty());
@@ -627,6 +689,20 @@ TEST_F(DeleteKnownDefects, AsciiDeleteIsCurrentlyANoOp) {
 // (src/ascii_backend.cpp:194-197), so occurrence N must be passed as
 // "<ids>/<N>" to produce the on-disk stem "<ids><N>" its own directory scan
 // expects. Memory and Flexbuffers throw unconditionally (not implemented).
+//
+// MDSplus (issue #14) implements it for real too, resolved empirically as a
+// THIRD convention: occurrence N must be passed as "<ids>/<N>", same slash
+// form as ASCII (mdsconvertPath's SEPARATORS, src/mdsplus/mdsplus_backend.cpp:25,
+// tokenizes on '/' and turns "equilibrium/2" into the real child node
+// "EQUILIBRIUM:2" the baked model already contains -- occurrence subnodes are
+// pre-baked structural slots, not dynamically created). get_occurrences
+// (src/mdsplus/mdsplus_backend.cpp:4887-4954) walks ids_node's numeric-named
+// children and reports an occurrence "filled" iff its
+// ids_properties/homogeneous_time has nonzero length, so the write below must
+// set homogeneous_time, not just the scalar. list_filled_paths is NOT
+// real on MDSplus -- it throws unconditionally
+// (src/mdsplus/mdsplus_backend.cpp:4956-4958, "not implemented in the MDSplus
+// Backend"), confirmed via CapabilityMatrix below.
 TEST(Occurrences, Hdf5ListsWrittenOccurrences) {
     al_contract::TempBase base;
     PulseId pulse{"test", "3", 12, 0};
@@ -707,5 +783,43 @@ TEST(Occurrences, FlexbuffersRefuses) {
         << "get_occurrences is not implemented in the Serialize (Flexbuffers) backend";
     al_close_pulse(pctx, CLOSE_PULSE);
 }
+
+#ifdef AL_CONTRACT_HAVE_MDSPLUS
+// MDSplus resolves paths against a real DD-baked model tree, so this reuses
+// equilibrium_seed's real DD path instead of the synthetic "magnetics"/"leaf"
+// the other three Occurrences.* cases use (see the divergence notes on
+// EquilibriumSeedMatrix/AosMatrix above for why a synthetic path can't
+// transfer). homogeneous_time must be written for get_occurrences to see the
+// occurrence as filled at all (see comment above).
+TEST(Occurrences, MdsplusListsWrittenOccurrences) {
+    AL_CONTRACT_SKIP_IF_MDSPLUS_UNCONFIGURED();
+    al_contract::TempBase base;
+    PulseId pulse{"test", "3", 12, 0};
+    base.make_legacy_tree(pulse);
+    const std::string uri = al_contract::build_uri(MDSPLUS_BACKEND, base.str(), pulse);
+    int pctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx));
+
+    for (const char* name : {equilibrium_seed::kIds, "equilibrium/2"}) {
+        int op = -1;
+        AL_ASSERT_OK(al_begin_global_action(pctx, name, "", WRITE_OP, &op));
+        AL_EXPECT_OK(al_contract::write_data<double>(op, equilibrium_seed::kScalar, {}, {6.2}));
+        int ht = 1;
+        AL_EXPECT_OK(al_write_data(op, "ids_properties/homogeneous_time", "", &ht,
+                                   INTEGER_DATA, 0, nullptr));
+        AL_ASSERT_OK(al_end_action(op));
+    }
+
+    int* occ = nullptr;
+    int  n   = -1;
+    AL_ASSERT_OK(al_get_occurrences(pctx, equilibrium_seed::kIds, &occ, &n));
+    ASSERT_EQ(n, 2);
+    EXPECT_EQ(occ[0], 0);
+    EXPECT_EQ(occ[1], 2);
+    free(occ);  // malloc'd (src/mdsplus/mdsplus_backend.cpp:4949) -> free() is correct.
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+#endif  // AL_CONTRACT_HAVE_MDSPLUS
 
 }  // namespace
