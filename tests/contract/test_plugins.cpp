@@ -385,8 +385,7 @@ al_status_t register_unloadable(const std::filesystem::path& dir,
 // robust to the exact downstream text (which depends on dlsym's null-handle
 // diagnostic, and on no global "create" symbol existing).
 bool status_reports_dlopen(const al_status_t& s) {
-    return s.message != nullptr &&
-           std::string(s.message).find("dlopen") != std::string::npos;
+    return std::string(s.message).find("dlopen") != std::string::npos;
 }
 
 // CORRECT-CONTRACT test, expected-fail (DISABLED_): the error must attribute the
@@ -400,7 +399,7 @@ TEST_F(PluginTest, DISABLED_RegisterUnloadableSharedLibReportsDlopenFailure) {
     EXPECT_NE(s.code, 0);
     EXPECT_TRUE(status_reports_dlopen(s))
         << "correct contract: report the dlopen failure (dlerror). Got: "
-        << (s.message ? s.message : "(null)");
+        << s.message;
     fs::remove_all(dir);
 }
 

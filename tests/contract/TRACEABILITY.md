@@ -258,8 +258,8 @@ whoever fixed it to enable the paired `DISABLED_` correct-contract test:
 |---|---|---|
 | HDF5 CHAR scalar crashes | `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` | `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` |
 | ASCII rank-7 INTEGER aborts | `…DISABLED_AsciiIntegerMaxdimRoundTrips` | `RoundTripKnownDefectsDeath.AsciiIntegerMaxdimCurrentlyAborts` |
-| ASCII rank-7 DOUBLE corrupts | `…DISABLED_AsciiDoubleMaxdimRoundTrips` | `RoundTripKnownDefects.AsciiDoubleMaxdimCurrentlyCorrupts` |
-| ASCII rank-7 COMPLEX corrupts | `…DISABLED_AsciiComplexMaxdimRoundTrips` | `RoundTripKnownDefects.AsciiComplexMaxdimCurrentlyCorrupts` |
+| ASCII rank-7 DOUBLE corrupts (or crashes) | `…DISABLED_AsciiDoubleMaxdimRoundTrips` | `RoundTripKnownDefectsDeath.AsciiDoubleMaxdimCurrentlyCorrupts` |
+| ASCII rank-7 COMPLEX corrupts (or crashes) | `…DISABLED_AsciiComplexMaxdimRoundTrips` | `RoundTripKnownDefectsDeath.AsciiComplexMaxdimCurrentlyCorrupts` |
 | `build_uri` can't address FLEXBUFFERS | `…DISABLED_BuildUriSupportsFlexbuffers` | `RoundTripKnownDefects.BuildUriFlexbuffersCurrentlyFails` |
 | slice append doesn't accumulate | `Hdf5SliceAppend.DISABLED_AppendedSlicesAllPersist` | `Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior` |
 | plugin setvalue (int) unregistered-name crash | `KnownDefects.DISABLED_SetValueIntScalarUnregisteredPluginReturnsError` | `KnownDefectsDeath.SetValueIntScalarUnregisteredPluginCurrentlyCrashes` |
