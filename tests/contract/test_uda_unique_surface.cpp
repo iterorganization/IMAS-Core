@@ -1,7 +1,7 @@
-// UDA-unique surface (issue #26, TRACEABILITY.md Part 5): the first half of
-// UDA's unique surface -- cache modes, runtime DD loading, datapath, and
-// capability negotiation. The write-pin / fetch-mode half is the sibling
-// issue. Six areas, each a dedicated block below:
+// UDA-unique surface (issues #26 + #27, TRACEABILITY.md Part 5): the whole of
+// UDA's unique surface -- cache modes, runtime DD loading, datapath,
+// capability negotiation (#26, areas 1-6), plus fetch mode and the
+// write/delete pins (#27, areas 7-10):
 //   1. URI option surface (plugin, init_args, dd_version, cache_mode invalid
 //      value, verbose, host/port).
 //   2. Cache-mode invisibility (none/ids/struct identical reads; cache
@@ -14,6 +14,13 @@
 //   5. Version-drift check inertness (UDABackend::getVersion is a
 //      placeholder on both sides of al_lowlevel.cpp's comparison).
 //   6. Server-version-gated supportsTimeRangeOperation() (> 1.4.0).
+//   7. Fetch mode: download, local-backend handoff, cache reuse.
+//   8. Fetch mode: local_cache URI option override.
+//   9. Fetch mode: the stale-cache / write-divergence pin -- a fetch-mode
+//      write mutates only the local cache copy (there is no upload path), so
+//      the divergent copy keeps being served.
+//   10. Remote-mode write and delete pinned unsupported (no writeData /
+//       deleteData handler on the reference server plugin).
 //
 // Same seed(HDF5)-then-reopen(UDA) shape as the rest of the tier (issue #24):
 // the plain HDF5 backend seeds a pulse dir, the UDA backend in remote mode
@@ -92,6 +99,22 @@ protected:
         std::error_code    ec;
         std::filesystem::create_directories(dir, ec);
         return dir;
+    }
+
+    // Mirrors UDABackend::fetch_files' default cache-directory formula
+    // (src/uda/uda_backend.cpp:427-429) exactly, so tests can assert the
+    // fetch-mode cache landed where the spike (#23) characterized without a
+    // seam into backend internals: cache_path = $TMPDIR/uda-cache-of-$USER
+    // (or $TMPDIR/uda-cache if $USER is unset) joined with remote_path's
+    // relative_path() (an absolute path's relative_path() strips the leading
+    // "/", so this nests the whole pulse_dir under the cache root).
+    static std::string default_fetch_cache_dir(const std::string& pulse_dir) {
+        namespace fs = std::filesystem;
+        const char* user = std::getenv("USER");
+        fs::path    root = user && *user
+                              ? fs::temp_directory_path() / ("uda-cache-of-" + std::string{user})
+                              : fs::temp_directory_path() / "uda-cache";
+        return (root / fs::path{pulse_dir}.relative_path()).string();
     }
 
     // Seed the standard equilibrium precondition
@@ -798,6 +821,369 @@ TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion1
     if (s.code == 0) {
         al_end_action(op);
     }
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+}
+
+// ===========================================================================
+// Area 7: fetch mode -- download, local-backend handoff, cache reuse.
+//
+// UDABackend::UDABackend calls fetch_files(uri) unconditionally when
+// fetch=1/true (src/uda/uda_backend.cpp:272-274), which lists the remote
+// pulse's files via "<plugin>::listFiles(...)" (dispatched to the reference
+// server's BYTES plugin -- built and registered by ukaea/uda's own
+// source/plugins/CMakeLists.txt by default, confirmed present in
+// udaPlugins.conf on this reference image; the fetch-mode subtask's own
+// server-side dependency, distinct from the IMAS plugin every other test in
+// this tier uses), then for backend=hdf5 downloads only "master.h5" via
+// "BYTES::read(...)" (fetch_files(backend), uda_backend.cpp:391-393). Once
+// access_local_ is set, every subsequent Backend virtual (openPulse,
+// readData, writeData, deleteData, closePulse, ...) delegates straight to a
+// freshly constructed local backend pointed at the downloaded copy -- so a
+// fetch-mode pulse behaves exactly like the plain local backend from here
+// on, confirmed by reading back the seeded scalar unchanged.
+// ===========================================================================
+TEST_F(UdaUniqueSurfaceTest, FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string cache_dir = default_fetch_cache_dir(pulse_dir);
+    // Guard against a stale cache dir from a prior interrupted run polluting
+    // this test's "must genuinely download" assertion.
+    std::error_code ec;
+    std::filesystem::remove_all(cache_dir, ec);
+
+    const std::string uri = al_contract::uda_uri_base() +
+                             "?fetch=1&backend=hdf5&path=" + pulse_dir +
+                             "&verbose=1";
+
+    // --- first open: must genuinely download -------------------------------
+    testing::internal::CaptureStdout();
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
+    std::string captured = testing::internal::GetCapturedStdout();
+
+    EXPECT_NE(captured.find("UDABackend creating local cache directory"),
+              std::string::npos)
+        << "first fetch-mode open must create a fresh local cache directory; "
+           "captured: " << captured;
+    EXPECT_NE(captured.find("UDABackend files downloaded to"), std::string::npos)
+        << "first fetch-mode open must report a genuine download; captured: "
+        << captured;
+    ASSERT_TRUE(std::filesystem::exists(cache_dir))
+        << "the cache directory must be created at the location #23's spike "
+           "characterized (local_cache override or "
+           "$TMPDIR/uda-cache-of-$USER/<remote_path>): " << cache_dir;
+    ASSERT_TRUE(std::filesystem::exists(std::filesystem::path{cache_dir} / "master.h5"))
+        << "the downloaded HDF5 master file must exist in the cache dir";
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    std::vector<int>    shape;
+    std::vector<double> data;
+    AL_EXPECT_OK(al_contract::read_data<double>(op, equilibrium_seed::kScalar, 0,
+                                                &shape, &data));
+    ASSERT_EQ(data.size(), 1u);
+    EXPECT_EQ(data[0], 6.2)
+        << "seeded data must read back correctly once handed off to the "
+           "local backend";
+    al_end_action(op);
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+
+    // --- second open: must reuse the cache, not re-download -----------------
+    testing::internal::CaptureStdout();
+    pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
+    captured = testing::internal::GetCapturedStdout();
+
+    EXPECT_NE(captured.find("UDABackend cache directory already exists"),
+              std::string::npos)
+        << "a reopen must find the cache directory already present; "
+           "captured: " << captured;
+    EXPECT_NE(captured.find("UDABackend cached local file already exists"),
+              std::string::npos)
+        << "a reopen must not re-download master.h5 -- download_file's "
+           "early-exists-return must fire; captured: " << captured;
+
+    op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    shape.clear();
+    data.clear();
+    AL_EXPECT_OK(al_contract::read_data<double>(op, equilibrium_seed::kScalar, 0,
+                                                &shape, &data));
+    ASSERT_EQ(data.size(), 1u);
+    EXPECT_EQ(data[0], 6.2) << "the reused cache must still serve correct data";
+    al_end_action(op);
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+
+    std::filesystem::remove_all(cache_dir, ec);
+}
+
+// ===========================================================================
+// Area 8: fetch mode -- the local_cache URI option overrides the default
+// cache-directory naming (fetch_files(const uri::Uri&), uda_backend.cpp:414,
+// 428). Distinct from area 7: this characterizes the override itself, not
+// the default-naming/reuse behavior.
+// ===========================================================================
+TEST_F(UdaUniqueSurfaceTest, FetchModeLocalCacheOptionOverridesDefaultCacheDir) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string explicit_cache_root = base_.str() + "/explicit-cache";
+    // local_cache replaces only the cache *root*: fetch_files still joins it
+    // with remote_path_.relative_path() (uda_backend.cpp:428-429), so the
+    // download still lands nested under the given root, not at its top level.
+    const std::string expected_cache_dir =
+        (std::filesystem::path{explicit_cache_root} /
+         std::filesystem::path{pulse_dir}.relative_path())
+            .string();
+
+    const std::string uri = al_contract::uda_uri_base() +
+                             "?fetch=1&backend=hdf5&path=" + pulse_dir +
+                             "&local_cache=" + explicit_cache_root;
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
+
+    EXPECT_TRUE(std::filesystem::exists(
+        std::filesystem::path{expected_cache_dir} / "master.h5"))
+        << "an explicit local_cache overrides the cache *root* only -- the "
+           "remote path is still nested underneath it, same as the default "
+           "formula's own nesting (area 7): " << expected_cache_dir;
+    EXPECT_FALSE(std::filesystem::exists(default_fetch_cache_dir(pulse_dir)))
+        << "the default cache root must NOT be used when local_cache is given";
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    std::vector<int>    shape;
+    std::vector<double> data;
+    AL_EXPECT_OK(al_contract::read_data<double>(op, equilibrium_seed::kScalar, 0,
+                                                &shape, &data));
+    ASSERT_EQ(data.size(), 1u);
+    EXPECT_EQ(data[0], 6.2);
+    al_end_action(op);
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+}
+
+// ===========================================================================
+// Area 9: the stale-cache / write-divergence pin -- the trap a physicist
+// could hit. UDABackend::writeData delegates straight to the local backend
+// once access_local_ is set (uda_backend.cpp:1107-1109): there is no upload
+// path back to the server at all. Combined with download_file's
+// early-exists-return (area 7/8), a fetch-mode write "succeeds" but only ever
+// lands on the local cache copy; because that copy is never re-downloaded,
+// the divergent value keeps being served on every later fetch-mode open,
+// while the server-side pulse (read through ordinary remote mode) never
+// changes. Pinned end-to-end, not fixed.
+//
+// Writes a real DD-4.1.1 leaf ("code/output_flag") that was never seeded, not
+// the already-seeded scalar: HDF5Writer::write_ND_Data unconditionally calls
+// HDF5DataSetHandler::create for any dataset not already tracked in this
+// session's `opened_data_sets` map (hdf5_writer.cpp:417-423, no H5Lexists
+// check against the file) -- so a WRITE_OP that overwrites data seeded in a
+// *prior* session hits "Unable to create HDF5 dataset" (H5Dcreate2 fails on
+// an already-linked name). That is a genuine, separate HDF5-backend
+// limitation on updating pre-existing data in a fresh session, orthogonal to
+// UDA fetch mode -- exercising it here would conflate two different defects.
+// Writing a brand-new field sidesteps it while still proving the same
+// divergence: a "successful" fetch-mode write that never reaches the server.
+// ===========================================================================
+TEST_F(UdaUniqueSurfaceTest, FetchModeWriteDivergesFromServerAndStalePersistsAcrossReopen) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string cache_root = base_.str() + "/write-divergence-cache";
+    const char*       kNewField  = "code/output_flag";
+
+    const std::string fetch_uri = al_contract::uda_uri_base() +
+                                  "?fetch=1&backend=hdf5&path=" + pulse_dir +
+                                  "&local_cache=" + cache_root;
+
+    // --- write through fetch mode: lands only on the local cache copy ------
+    {
+        int pulse_ctx = -1;
+        AL_ASSERT_OK(
+            al_begin_dataentry_action(fetch_uri.c_str(), OPEN_PULSE, &pulse_ctx));
+        int op = -1;
+        AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                            WRITE_OP, &op));
+        AL_EXPECT_OK(al_contract::write_data<int>(op, kNewField, {}, {42}))
+            << "a write through fetch mode must \"succeed\" (it lands on the "
+               "local cache copy) -- this is the trap, not a crash";
+        AL_ASSERT_OK(al_end_action(op));
+        EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
+    }
+
+    // --- confirm the server-side pulse is unchanged (reopen via remote mode) ---
+    {
+        const std::string remote_uri = uda_uri_with(pulse_dir);
+        int                pulse_ctx = -1;
+        AL_ASSERT_OK(
+            al_begin_dataentry_action(remote_uri.c_str(), OPEN_PULSE, &pulse_ctx));
+        int op = -1;
+        AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                            READ_OP, &op));
+        std::vector<int> shape;
+        std::vector<int> data;
+        al_status_t      s = al_contract::read_data<int>(op, kNewField, 0, &shape,
+                                                          &data);
+        AL_EXPECT_OK(s) << "reading an absent field reports success (the "
+                           "ordinary absent-leaf contract), not an error";
+        ASSERT_EQ(data.size(), 1u);
+        EXPECT_EQ(data[0], al_contract::kEmptyInt)
+            << "the fetch-mode write must never reach the server -- there is "
+               "no upload path (UDABackend::writeData delegates straight to "
+               "the local backend once access_local_ is set)";
+        al_end_action(op);
+        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    }
+
+    // --- the divergent local copy persists across close/reopen -------------
+    {
+        int pulse_ctx = -1;
+        AL_ASSERT_OK(
+            al_begin_dataentry_action(fetch_uri.c_str(), OPEN_PULSE, &pulse_ctx));
+        int op = -1;
+        AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                            READ_OP, &op));
+        std::vector<int> shape;
+        std::vector<int> data;
+        AL_EXPECT_OK(al_contract::read_data<int>(op, kNewField, 0, &shape, &data));
+        ASSERT_EQ(data.size(), 1u);
+        EXPECT_EQ(data[0], 42)
+            << "the divergent local copy must keep being served on later "
+               "opens -- download_file's early-exists-return never re-fetches "
+               "the genuine server-side (absent) value, so the divergence is "
+               "permanent until the cache dir is manually cleared";
+        al_end_action(op);
+        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    }
+}
+
+// ===========================================================================
+// Area 10: remote write and delete pinned unsupported. Remote mode is
+// read-only by construction: the reference server plugin dispatches no
+// writeData/deleteData handler at all -- issue #23's spike confirmed this by
+// issuing the exact directives via uda_cli, both returning "[handle_request]:
+// Unknown function requested!". But the two C-ABI entry points surface that
+// dispatch failure very differently, a divergence only visible by driving the
+// actual client library calls (not the spike's uda_cli probing of the raw
+// directive):
+//   - UDABackend::deleteData (uda_backend.cpp:1159-1186) issues
+//     "IMAS::deleteData(...)" via uda::Client::get(), whose error-checking
+//     path does surface the server's dispatch failure -- caught as a
+//     uda::UDAException, re-thrown as an ALException, reaching al_delete_data
+//     as a non-zero al_status_t carrying that exact text. This is the
+//     intended, correctly-refused contract -- covered, not a defect.
+//   - UDABackend::writeData (uda_backend.cpp:1104-1157) issues
+//     "IMAS::writeData(...)" via uda::Client::put() instead, which never
+//     throws on an in-band server dispatch failure (only on transport-level
+//     faults) -- so writeData returns normally and al_write_data reports
+//     al_status_t.code == 0. NEW DEFECT (xfail): the caller is told the write
+//     succeeded, with no signal at all that nothing was persisted
+//     server-side -- more dangerous than a clean refusal (confirmed by
+//     reopening via ordinary remote mode afterward and finding the scalar
+//     unchanged). The correct contract mirrors deleteData's: a remote write
+//     must refuse with the same dispatch-failure text, not report false
+//     success.
+// ===========================================================================
+
+// Shared by the correct-contract test and its tripwire below (mirrors
+// UdaAosKnownDefects' pattern in test_uda_breadth.cpp): writes through remote
+// mode and returns the write's own al_status_t plus whether the value
+// genuinely reached the server (reopened via a fresh remote-mode session).
+al_status_t remote_write_status_and_confirm_unpersisted(
+    const std::string& pulse_dir, bool* reached_server) {
+    const std::string uri = al_contract::uda_uri_base() +
+                             "?backend=hdf5&cache_mode=none&path=" + pulse_dir;
+
+    al_status_t write_status;
+    {
+        int pulse_ctx = -1;
+        EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx)
+                      .code,
+                  0);
+        int op = -1;
+        EXPECT_EQ(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                         WRITE_OP, &op)
+                      .code,
+                  0);
+        write_status = al_contract::write_data<double>(
+            op, equilibrium_seed::kScalar, {}, {9.9});
+        al_end_action(op);
+        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    }
+
+    int pulse_ctx = -1;
+    EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx).code,
+              0);
+    int op = -1;
+    EXPECT_EQ(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                     READ_OP, &op)
+                  .code,
+              0);
+    std::vector<int>    shape;
+    std::vector<double> data;
+    EXPECT_EQ(al_contract::read_data<double>(op, equilibrium_seed::kScalar, 0,
+                                             &shape, &data)
+                  .code,
+              0);
+    *reached_server = (data.size() == 1u && data[0] == 9.9);
+    al_end_action(op);
+    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+
+    return write_status;
+}
+
+// CORRECT-CONTRACT, expected-fail (DISABLED_): a remote write must be refused
+// with the same dispatch-failure text deleteData surfaces, not silently
+// report success.
+TEST_F(UdaUniqueSurfaceTest, DISABLED_RemoteWriteFailsWithDispatchError) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    bool               reached_server = false;
+    al_status_t        s = remote_write_status_and_confirm_unpersisted(
+        pulse_dir, &reached_server);
+    EXPECT_NE(s.code, 0) << "remote mode must refuse a write -- there is no "
+                            "writeData handler on the reference server plugin";
+    EXPECT_NE(std::string(s.message).find("Unknown function requested"),
+              std::string::npos)
+        << "expected the server's exact dispatch-failure text, got: "
+        << s.message;
+}
+
+// CURRENT-BEHAVIOR tripwire: al_write_data reports success (code == 0) every
+// time, even though the value never reaches the server.
+TEST_F(UdaUniqueSurfaceTest, RemoteWriteCurrentlyReportsSuccessButNeverPersists) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    bool               reached_server = false;
+    al_status_t        s = remote_write_status_and_confirm_unpersisted(
+        pulse_dir, &reached_server);
+    EXPECT_EQ(s.code, 0)
+        << "a remote write now fails -- enable "
+           "DISABLED_RemoteWriteFailsWithDispatchError (uda::Client::put()'s "
+           "error path in UDABackend::writeData, src/uda/uda_backend.cpp, now "
+           "surfaces the server's dispatch failure); got: " << s.message;
+    EXPECT_FALSE(reached_server)
+        << "the falsely-successful write must never actually reach the "
+           "server -- remote mode is read-only by construction regardless of "
+           "what al_write_data reported";
+}
+
+TEST_F(UdaUniqueSurfaceTest, RemoteDeleteFailsWithUnknownFunctionRequested) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string uri = uda_uri_with(pulse_dir);
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                        WRITE_OP, &op));
+
+    al_status_t s = al_delete_data(op, equilibrium_seed::kScalar);
+    EXPECT_NE(s.code, 0) << "remote mode must refuse a delete -- there is no "
+                            "deleteData handler on the reference server plugin";
+    EXPECT_NE(std::string(s.message).find("Unknown function requested"),
+              std::string::npos)
+        << "expected the server's exact dispatch-failure text, got: "
+        << s.message;
+
+    al_end_action(op);
     al_close_pulse(pulse_ctx, CLOSE_PULSE);
 }
 
