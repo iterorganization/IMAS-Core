@@ -663,7 +663,7 @@ not fixed — both explained in full below.
 
 `test_uda_real_paths.cpp`, `Uda/UdaRealPathMatrix.*` — the UDA analogue of
 `test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set
-reused as-is** (same 34 cells, same 10 IDSs), adapted to seed(HDF5)-then-
+reused as-is** (same 32 cells, same 10 IDSs), adapted to seed(HDF5)-then-
 reopen(UDA) instead of MDSplus's direct write→read. `terminal_gap_reason`
 carries over unchanged (a DD-4.1.1 fact, independent of backend); a UDA-only
 `divergence_reason` and `known_defect_reason` were added where the two
