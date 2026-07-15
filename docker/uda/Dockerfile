@@ -85,6 +85,23 @@ RUN python3 -m venv /opt/ddvenv \
     && grep -q "<version>${DD_VERSION}</version>" /opt/IDSDef.xml
 ENV IDSDEF_PATH="/opt/IDSDef.xml"
 
+# --- A second, older DD version for the unique-surface "wrong-version DD"
+# characterization (issue #26, test_uda_unique_surface.cpp) -- a real,
+# pre-3-to-4-cliff IDSDef.xml, so the client can genuinely load a schema that
+# disagrees with the reference stack's own DD 4.1.1, exposed as
+# IDSDEF_PATH_OLDER. Not the default $IDSDEF_PATH (that stays DD 4.1.1 for
+# every other test); tests that need it swap $IDSDEF_PATH to this value for
+# one backend construction and restore it, and skip if this var is unset.
+ARG DD_VERSION_OLDER=3.42.0
+LABEL org.iter.imas-core.dd-version-older="3.42.0"
+RUN python3 -m venv /opt/ddvenv-older \
+    && /opt/ddvenv-older/bin/pip install --no-cache-dir "imas-data-dictionary==${DD_VERSION_OLDER}" \
+    && cp "$(/opt/ddvenv-older/bin/idsinfo idspath)" /opt/IDSDef-older.xml \
+    && test -s /opt/IDSDef-older.xml \
+    && grep -q "<version>${DD_VERSION_OLDER}</version>" /opt/IDSDef-older.xml \
+    && rm -rf /opt/ddvenv-older
+ENV IDSDEF_PATH_OLDER="/opt/IDSDef-older.xml"
+
 # --- IMAS UDA server plugin source (iterorganization/UDA-Plugins, pinned) ---
 # Cloned (not tarball) so the plugin's git_describe-derived version resolves to
 # the tag and the plugin reports 1.8.0 at run time. The plugin is *built* at run

@@ -815,3 +815,127 @@ Same seed(HDF5)-then-reopen(UDA) shape throughout.
 | Reading a never-written IDS fails cleanly | `UdaBreadthTest.ReadFailsForNeverWrittenIds` | covered |
 | Slice read (`CLOSEST_INTERP`) on a real DD dynamic top-level leaf round-trips correctly through UDA remote mode | `UdaSliceAndTimeRange.SliceReadThroughReopen` | covered |
 | ↳ time-range read (no resampling) fails with an "unknown interp mode" exception — `OperationContext`'s TIMERANGE_OP constructor never initializes the base `interpmode` member, only observable because UDA's remote directive-builder reads it unconditionally | `UdaSliceAndTimeRange.DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire `UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode` | **xfail** |
+
+## UDA-unique surface, first half (issue #26): cache modes, runtime DD loading, datapath, capability negotiation
+
+`test_uda_unique_surface.cpp` — the first of two dedicated unique-surface
+files (the write-pin/fetch-mode half is the sibling issue). Six areas, all
+against the reference stack (UDA server 2.9.3 / `IMAS` plugin 1.8.0 / DD
+4.1.1). A second, older DD version (**3.42.0**, `IDSDEF_PATH_OLDER`) was added
+to `docker/uda/Dockerfile` for the wrong-version-DD row below; it is a real,
+independently-sourced pin (`imas-data-dictionary==3.42.0` from PyPI), recorded
+here alongside the header's existing stack identifiers.
+
+**Characterization-discovered facts:**
+
+- **URI options accepted/rejected:** `cache_mode` rejects anything outside
+  `{none, ids, struct}` at open time, purely client-side, before any network
+  round trip (`UDABackend::process_options`). `verbose` toggles debug tracing
+  on stdout (captured directly via `CaptureStdout`, not inferred). `plugin`
+  naming a name the reference stack never registered fails at open — the
+  client's `init` directive reaches a real server with no such plugin.
+  `init_args` is accepted but has **no observable effect** against the
+  reference `IMAS` plugin: its `init()` handler (`imas_plugin.cpp`,
+  `handle_request`) takes no arguments at all, only tracking a per-connection
+  `_init` bool — confirmed by reading the plugin's own dispatch, then
+  empirically (a read with arbitrary `init_args` behaves identically to one
+  without). `dd_version` override is forwarded verbatim on every directive but
+  is never consulted by any backend on either side of the wire (client schema
+  resolution is driven by the file loaded at `$IDSDEF_PATH`; the server's HDF5
+  backend is DD-agnostic) — accepted, no observable effect. A host that
+  resolves but a port nothing listens on fails to connect, distinct from every
+  post-connection request failure characterized above.
+- **Cache-mode invisibility holds only where a mode's own population point is
+  reached.** `none` and `ids` agree on any field; `ids` populates the whole
+  (or datapath-scoped) IDS at `beginAction`, `struct` populates lazily, per
+  struct_array, only inside `beginArraystructAction` — so for a field
+  genuinely covered by all three (a static leaf nested one level inside a
+  struct_array), all three return the identical value. But a plain top-level
+  field is **never** populated under `cache_mode=struct` (it never enters any
+  struct_array), so it silently reads back as the ordinary absent-leaf
+  sentinel even though it was genuinely written — the caching strategy
+  working as designed (scoped to structs, not IDS-wide), not a defect.
+- **NEW DEFECT discovered (xfail), found while characterizing "cache cleared
+  on close": closing a UDA remote-mode session leaks a server-side pulse
+  handle.** Root cause traced by comparing the exact directives exchanged
+  (`verbose=1`): `UDABackend::openPulse`/`closePulse` both strip `cache_mode`
+  and `verbose` before building the `uri=` argument sent to the server, so
+  `IMAS::open(...)` and `IMAS::close(...)` agree on the same key — but two of
+  the *read*-triggering directive builders don't follow that convention:
+  `readData`'s `cache_mode=None` branch and `populate_cache` (used by `ids`
+  and `struct` alike, both in `src/uda/uda_backend.cpp`) each build their own
+  `IMAS::get(uri=...)` from the same query object but only ever remove
+  `"backend"` — never `cache_mode`/`verbose` — so their `uri=` differs from
+  the one `open`/`close` agreed on. (`beginArraystructAction`'s own `None`-mode
+  branch does strip both, matching `open`/`close` — this is specifically a
+  `readData`/`populate_cache` inconsistency, not a blanket "every `get()` path"
+  one.) The reference `IMAS` plugin's `get()` handler treats an unrecognized
+  `uri=` as a new pulse and implicit-opens it (`imas_plugin.cpp`), creating a
+  second, real server-side HDF5 file handle that the client's `close()`
+  directive can never reach (it only ever sends the stripped key) — leaked for
+  the lifetime of the server's per-connection process. HDF5's default file
+  locking then blocks a later *local* open of the identical on-disk file until
+  that server process exits. Reproduces identically whether the read went
+  through `readData`'s `None`-mode path or `populate_cache`'s `ids`/`struct`-
+  mode path (both hit the same unstripped-uri bug), so this is not an
+  `ids`-specific finding despite living in the cache-mode area: the
+  client-side RAM cache genuinely *is* cleared on close
+  (`UDABackend::closePulse`), but a server-side resource opened on the read
+  path outlives it regardless. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle`
+  + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle`.
+- **Runtime DD loading — present / absent / wrong-version, all through
+  `al_begin_dataentry_action`** (the constructor loads `IDSDef.xml`
+  unconditionally, before any network access): present is the reference
+  stack's default (DD 4.1.1, restated here as the area-3 baseline). Absent has
+  two distinct failure messages, matching issue #23's empirical findings:
+  neither `$IDSDEF_PATH` nor `$IMAS_PREFIX` set → "neither IMAS_PREFIX or
+  IDSDEF_PATH environmental variable is set"; `$IDSDEF_PATH` set but the file
+  missing → "IDSDef.xml not found at either $IDSDEF_PATH or
+  $IMAS_PREFIX/include/IDSDef.xml". **Wrong-version is a silent divergence,
+  not an error**: pointing `$IDSDEF_PATH` at a real, structurally valid, but
+  older DD (3.42.0) than the reference stack's own 4.1.1 loads without
+  complaint — `load_xml()`/`get_dd_version()` never compare the loaded file's
+  version against anything (not the data's actual DD version, not the
+  server's). A real path stable across both schemas
+  (`vacuum_toroidal_field/r0`) round-trips exactly as if the "correct" DD had
+  been loaded — nothing signals that a version-drifted schema is in use. Same
+  practical risk class NORTH_STAR.md flags for COCOS-sign-flip-bearing paths:
+  this mechanism checks path existence only, never semantic version
+  agreement.
+- **`datapath` genuinely hides data, not just reorders fetch priority.**
+  With `cache_mode=ids` and a non-empty `datapath`, `populate_cache` only
+  requests paths under `<ids>/<datapath>`'s subtree
+  (`UDABackend::beginAction`, `uda_backend.cpp:1016-1032`). A real, written
+  field *outside* that subtree is not in the cache and is not one of the two
+  homogeneous-time/version preconditions, so `readData` falls through to
+  `return 0` — the ordinary absent-leaf contract — even though the plain
+  HDF5 backend underneath genuinely has it. This is the evidence backing the
+  `FUNCTIONALITY_INVENTORY.md`/`CLAUDE.md` claim (corrected by this issue)
+  that UDA is the one living exception to "no backend uses `datapath`".
+- **Version-drift check inertness, confirmed from source**:
+  `al_lowlevel.cpp`'s open-time comparison
+  (`getVersion(NULL)` vs. `getVersion(pctx)`) can never fire for UDA — both
+  sides are hardcoded `{0, 0}` placeholders (`UDABackend::getVersion`,
+  `uda_backend.h`'s `UDA_BACKEND_VERSION_MAJOR/MINOR` and the "temporary
+  placeholder" non-null-ctx branch), so `(0!=0)||(0<0)` is always false
+  regardless of what is genuinely stored remotely.
+- **`supportsTimeRangeOperation()` capability negotiation confirmed against
+  the reference server**: the reference plugin reports `1.8.0` (issue #23),
+  so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
+  pass `al_lowlevel.cpp`'s capability gate ("Selected backend does not
+  support time range operations.") rather than being refused outright,
+  distinct from the separate, already-pinned uninitialized-interpmode defect
+  on the subsequent read (`UdaSliceAndTimeRange`, above).
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| URI option surface: `cache_mode` invalid value throws; `verbose` toggles debug tracing (captured directly); `plugin` naming an unregistered plugin fails at open; `init_args` accepted with no observable effect against the reference plugin; `dd_version` override accepted with no observable effect; wrong port fails to connect | `UdaUniqueSurfaceTest.{InvalidCacheModeThrows,VerboseTrueEmitsDebugTracingOnStdout,VerboseAbsentEmitsNoDebugTracing,PluginOptionNamingUnregisteredPluginFailsAtOpen,InitArgsAcceptedAndIgnoredByReferencePlugin,DdVersionOverrideAcceptedWithNoObservableEffect,WrongPortFailsToConnectDistinctlyFromRequestFailures}` | covered |
+| Cache-mode invisibility: `none`/`ids`/`struct` agree on a field all three can reach (a static AOS-nested leaf) | `UdaUniqueSurfaceTest.CacheModeNoneIdsStructAgreeForAosCoveredField` | covered |
+| ↳ `struct` mode never populates a field outside every struct_array — scoped-caching design, not a defect | `UdaUniqueSurfaceTest.CacheModeStructNeverPopulatesFieldsOutsideAnyArraystruct` | divergence |
+| ↳ closing a UDA session leaks a server-side pulse handle (uri-stripping mismatch between `open`/`close` and every `get()`-directive builder), blocking a later local reopen of the same file | `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle` + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle` | **xfail** |
+| Runtime DD loading: present (baseline), absent (both failure messages), wrong-version (silent, no cross-check) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage,DdWrongVersionLoadsSilentlyWithNoCrossVersionCheck}` | covered |
+| ↳ wrong-version DD loads silently with no cross-version check — a genuine gap in the drift-detection story, distinct from a crash/refusal | (same test as above) | divergence |
+| `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
+| Version-drift check inertness: open never fails on the version-drift comparison, both sides hardcoded placeholders | `UdaUniqueSurfaceTest.VersionDriftCheckNeverFiresRegardlessOfStoredPulse` | divergence |
+| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
