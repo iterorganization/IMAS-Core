@@ -237,7 +237,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
     TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
@@ -246,8 +246,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
   # sidestep of the multi-label-drop defect the mdsplus pass uses), carved out
   # of the integration pass above, so `ctest -L uda` selects exactly the UDA
   # characterization suite without pulling in every other on-disk backend case.
+  # Issue #24 joins the read-only equilibrium-seed parity fixture
+  # (UdaEquilibriumSeedParity*) to the same pass.
   gtest_discover_tests(contract_tests
-    TEST_FILTER "UdaSmokeRoundTrip*"
+    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*"
     PROPERTIES LABELS "uda")
 else()
   gtest_discover_tests(contract_tests
