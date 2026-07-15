@@ -80,6 +80,38 @@ inline constexpr const char* kUnregisteredPluginName =
   } while (0)
 
 // ---------------------------------------------------------------------------
+// UDA runtime skip (TEST_STRATEGY.md D4, PRD #21 user story 16): the UDA tier
+// is a *client* to a remote UDA reference stack (docker/uda/). When that stack
+// is not standing behind the client the tests skip, never fail -- an ordinary
+// local build (no server) and always-on CI legs are unaffected. The gate is the
+// UDA_HOST env var, which docker/uda/run.sh exports before running the suite and
+// which a plain workstation never sets. Same macro-not-function rationale as the
+// MDSplus skip above: GTEST_SKIP() must unwind the calling SetUp()/TEST body.
+// ---------------------------------------------------------------------------
+#define AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED()                              \
+  do {                                                                      \
+    const char* uda_host = std::getenv("UDA_HOST");                        \
+    if (!uda_host || !*uda_host) {                                         \
+      GTEST_SKIP() << "UDA_HOST is unset -- UDA characterization tests "    \
+                      "are skipped, not failed: no reference stack is "     \
+                      "reachable (TEST_STRATEGY.md D4, docker/uda/).";      \
+    }                                                                      \
+  } while (0)
+
+// Build the base of a UDA remote-mode URI ("imas://<host>:<port>/uda") from the
+// UDA_HOST / UDA_PORT env the reference stack exports. The parser only treats a
+// URI as UDA when it carries an authority (host non-empty), which requires the
+// "imas://host:port/..." form -- NOT "imas:uda://..." (that leaves the authority
+// unparsed; see include/uri_parser.h parse_authority). Port defaults to UDA's
+// canonical 56565 when UDA_PORT is unset.
+inline std::string uda_uri_base() {
+    const char* host = std::getenv("UDA_HOST");
+    const char* port = std::getenv("UDA_PORT");
+    return std::string("imas://") + (host ? host : "localhost") + ":" +
+           (port && *port ? port : "56565") + "/uda";
+}
+
+// ---------------------------------------------------------------------------
 // BackendCase descriptor for value-parametrized tests (TEST_P).
 // ---------------------------------------------------------------------------
 struct BackendCase {
