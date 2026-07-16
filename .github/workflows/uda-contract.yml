@@ -1,0 +1,84 @@
+name: UDA contract suite (non-blocking)
+
+# Issue #29 (parent #21): a dedicated, informational CI leg for the UDA tier
+# (tests/contract/test_uda*.cpp, TRACEABILITY.md Part 5), mirroring the
+# mdsplus-contract leg (mdsplus-contract.yml) and its rationale: UDA is one of
+# the two DD-coupled backends (CLAUDE.md), and lands as a non-blocking leg only
+# now that issue #28 has triaged the whole baseline to terminal statuses, so
+# this leg is green (modulo pinned defects) from its first run and there is
+# never a red informational leg to maintain.
+#
+# Runs on a GitHub-hosted arm64 runner: docker/uda/Dockerfile is aarch64 (the
+# pinned reference stack docker/uda/README.md documents), matching the
+# mdsplus-contract leg's own runner choice.
+#
+# One cache layer, unlike the mdsplus leg's two: the UDA image
+# (docker/uda/Dockerfile) is the pinned, source-independent reference stack
+# (UDA server + IMAS plugin source + IDSDef.xml); it does not COPY the repo, so
+# it is cached across ordinary pushes and only Dockerfile/run.sh edits bust the
+# cache. IMAS-Core itself and the IMAS server plugin are always built fresh
+# from the mounted workspace by docker/uda/run.sh, by design (README.md
+# "Design: toolchain image + build-workspace-at-runtime") — never baked into
+# the image — so there is no second, workspace-keyed cache: CMake's own
+# dependency tracking is the only reuse mdsplus's layer 2 gets from a restored
+# build-mdsplus/ directory, and the UDA leg has no equivalent artifact to
+# restore, only source it must always rebuild against.
+
+on:
+  push:
+  pull_request:
+
+env:
+  IMAGE_TAG: imas-core-uda:ci
+
+jobs:
+  uda-contract:
+    name: UDA contract suite (aarch64, non-blocking)
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true  # informational leg, not a gate
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # git describe needs full history for the version macro
+
+      - name: Cache reference-stack image (keyed on Dockerfile + run.sh)
+        id: cache-image
+        uses: actions/cache@v4
+        with:
+          path: /tmp/uda-image.tar
+          key: uda-image-${{ hashFiles('docker/uda/Dockerfile', 'docker/uda/run.sh') }}
+
+      - name: Build reference-stack image
+        if: steps.cache-image.outputs.cache-hit != 'true'
+        run: |
+          docker build --platform linux/arm64 -f docker/uda/Dockerfile -t "${IMAGE_TAG}" docker/uda
+          docker save "${IMAGE_TAG}" -o /tmp/uda-image.tar
+
+      - name: Load cached reference-stack image
+        if: steps.cache-image.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/uda-image.tar
+
+      - name: Verify pinned stack identifiers match TRACEABILITY Part 5 header
+        run: |
+          set -euo pipefail
+          uda_server=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.uda-server-version" }}' "${IMAGE_TAG}")
+          uda_plugins=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.uda-plugins-version" }}' "${IMAGE_TAG}")
+          dd_version=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.dd-version" }}' "${IMAGE_TAG}")
+          echo "Image labels: uda-server=${uda_server} uda-plugins=${uda_plugins} dd=${dd_version}"
+          header=tests/contract/TRACEABILITY.md
+          grep -q "tag \*\*${uda_server}\*\*" "${header}"
+          grep -q "tag \*\*${uda_plugins}\*\*" "${header}"
+          grep -q "\*\*${dd_version}\*\*" "${header}"
+          echo "Image stack identifiers match ${header}'s Part 5 pinned-reference-stack table."
+
+      - name: Run the UDA contract tier
+        run: >
+          docker run --rm --platform linux/arm64
+          -v "$PWD":/workspace -w /workspace
+          "${IMAGE_TAG}" uda-run.sh
+
+      - name: Note
+        if: always()
+        run: echo "UDA leg is informational (issue #21/#29). Red-by-design only for un-pinned defects; TRACEABILITY.md Part 5 (issue #28) records the pinned baseline this leg should stay green against."
