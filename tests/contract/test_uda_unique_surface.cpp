@@ -923,10 +923,11 @@ TEST_F(UdaUniqueSurfaceTest,
 // in the codebase gated on a remote party's reported version rather than a
 // compile-time constant. Against this reference stack the plugin reports
 // 1.8.0 (docker/uda/README.md), so the capability is granted: an
-// al_begin_timerange_action call must pass al_lowlevel.cpp's capability gate
+// al_begin_timerange_action call must return its exact success status
+// (`s.code == 0`) after passing al_lowlevel.cpp's capability gate
 // (src/al_lowlevel.cpp:1053, "Selected backend does not support time range
-// operations.") rather than being refused outright. This is deliberately
-// scoped to the *capability* boundary only -- the subsequent read on this
+// operations."). This is deliberately scoped to the *capability* boundary
+// only -- the subsequent read on this
 // same call already has its own pinned defect
 // (UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode,
 // test_uda_breadth.cpp), which is a separate, uninitialized-interpmode bug
@@ -964,16 +965,11 @@ TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion1
     al_status_t s = al_begin_timerange_action(pulse_ctx, equilibrium_seed::kIds,
                                               READ_OP, 1.0, 2.0, &dtime,
                                               &dtime_shape, UNDEFINED_INTERP, &op);
-    EXPECT_EQ(std::string(s.message).find(
-                  "does not support time range operations"),
-              std::string::npos)
-        << "the reference server (plugin 1.8.0 > 1.4.0) must grant the "
-           "time-range capability -- al_begin_timerange_action must not be "
-           "refused with the 'does not support time range operations' "
-           "message; got: " << s.message;
-    if (s.code == 0) {
-        AL_EXPECT_OK(al_end_action(op));
-    }
+    EXPECT_EQ(s.code, 0)
+        << "the reference server (plugin 1.8.0 > 1.4.0) must pass the "
+           "time-range capability gate and successfully begin the action; "
+           "got code " << s.code << ", message: " << s.message;
+    if (s.code == 0) AL_EXPECT_OK(al_end_action(op));
     AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 

@@ -985,11 +985,12 @@ recorded here alongside the header's existing stack identifiers.
   with baseline `UdaUniqueSurfaceTest.MatchingStoredVersionOpensThroughUda`.
 - **`supportsTimeRangeOperation()` capability negotiation confirmed against
   the reference server**: the reference plugin reports `1.8.0` (issue #23),
-  so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
-  pass `al_lowlevel.cpp`'s capability gate ("Selected backend does not
-  support time range operations.") rather than being refused outright,
-  distinct from the separate, already-pinned uninitialized-interpmode defect
-  on the subsequent read (`UdaSliceAndTimeRange`, above).
+  so `1.8.0 > 1.4.0` grants the capability —
+  `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180`
+  asserts the exact begin-action status, `s.code == 0`, rather than merely
+  excluding the capability-refusal text. The separately pinned
+  uninitialized-interpmode defect occurs only on the subsequent read
+  (`UdaSliceAndTimeRange`, above).
 - **Fetch mode: download, local-backend handoff, cache reuse, all confirmed
   end-to-end (issue #27)** — the `BYTES` server plugin fetch mode needs ships
   and is registered **by default** in `ukaea/uda`'s own build (corrects this
@@ -1057,7 +1058,8 @@ recorded here alongside the header's existing stack identifiers.
 | ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
 | Version-drift check inertness: the client's own drift check never fires (both sides hardcoded placeholders); a pulse whose stored backend version (`999.0`, rewritten out-of-band by `hdf5_fixture_tool`) can never match is refused only by the forwarded SERVER-side HDF5 error (`UNKNOWN_ERR`, "No backend writer with version: 999.0") | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesMismatchedStoredBackendVersion` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyDefersToServerSideRefusal` (baseline: `MatchingStoredVersionOpensThroughUda`) | **xfail** |
-| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability; the exact `al_begin_timerange_action` verdict is `s.code == 0` | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| ↳ Boundary (`<=1.4.0` refused, `>1.4.0` accepted): the pinned reference stack exposes only its fixed 1.8.0 server-owned `IMAS::version()` result, and the public C ABI has no reported-version override or injectable server fixture. The positive side is covered above; retain this explicit gap until a second pinned server/plugin image or a public test seam exists. | reference-stack limitation (issue #40) | **terminal gap** |
 | Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
 | `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
 | ↳ stale-cache / write-divergence pin: a fetch-mode write succeeds locally only, server-side pulse (reopened via remote mode) is unchanged, divergent local copy persists across close/reopen | `UdaUniqueSurfaceTest.FetchModeWriteDivergesFromServerAndStalePersistsAcrossReopen` | covered |
