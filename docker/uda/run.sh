@@ -131,8 +131,12 @@ cd "${BUILD_DIR}/tests/contract"
 if [ "${AL_UDA_DEDICATED_CI:-0}" = "1" ]; then
   results="${BUILD_DIR}/uda-ctest-results.xml"
   ctest -L uda --output-on-failure --output-junit "${results}"
-  total=$(sed -n 's/.*<testsuite[^>]*[[:space:]]tests="\([0-9]*\)".*/\1/p' "${results}" | head -1)
-  skipped=$(sed -n 's/.*<testsuite[^>]*[[:space:]]skipped="\([0-9]*\)".*/\1/p' "${results}" | head -1)
+  # CTest writes the <testsuite> attributes one per line — flatten the file
+  # before extracting them, and take only the suite header (the <testcase>
+  # elements carry no tests=/skipped= attributes).
+  suite_header=$(tr '\n\t' '  ' < "${results}" | grep -o '<testsuite [^>]*>' | head -1)
+  total=$(printf '%s' "${suite_header}" | grep -o 'tests="[0-9]*"' | head -1 | grep -o '[0-9]*')
+  skipped=$(printf '%s' "${suite_header}" | grep -o 'skipped="[0-9]*"' | head -1 | grep -o '[0-9]*')
   total=${total:-0}
   skipped=${skipped:-0}
   executed=$((total - skipped))
