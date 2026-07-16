@@ -31,12 +31,6 @@
 
 namespace {
 
-// Build the UDA remote-mode URI for a seeded HDF5 pulse dir.
-std::string uda_uri_for(const std::string& pulse_dir) {
-    return al_contract::uda_uri_base() + "?backend=hdf5&cache_mode=none&path=" +
-           pulse_dir;
-}
-
 // Exercise ERASE_PULSE entirely through the public C ABI, then report whether
 // the same remote pulse remains openable. Shared by the disabled correct-
 // contract test and its current-behavior tripwire below.
@@ -51,7 +45,7 @@ UdaEraseResult uda_remote_reopen_after_erase() {
     const std::string pulse_dir = base.str() + "/pulse";
     std::error_code    ec;
     std::filesystem::create_directories(pulse_dir, ec);
-    const std::string uda_uri = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     int         pulse_ctx = -1;
     al_status_t created = al_begin_dataentry_action(
@@ -64,7 +58,9 @@ UdaEraseResult uda_remote_reopen_after_erase() {
     int         reopened_ctx = -1;
     al_status_t reopened =
         al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &reopened_ctx);
-    if (reopened.code == 0) al_close_pulse(reopened_ctx, CLOSE_PULSE);
+    if (reopened.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(reopened_ctx, CLOSE_PULSE));
+    }
     return {created.code, erased.code, reopened.code};
 }
 
@@ -119,7 +115,7 @@ std::vector<double> dynamic_leaf_inside_aos_values_via_uda() {
 
     // --- seed via HDF5 -------------------------------------------------------
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         EXPECT_EQ(al_begin_dataentry_action(hdf5_uri.c_str(), FORCE_CREATE_PULSE,
                                             &pulse_ctx)
@@ -156,7 +152,7 @@ std::vector<double> dynamic_leaf_inside_aos_values_via_uda() {
     // --- reopen through UDA, remote mode ------------------------------------
     std::vector<double> values;
     {
-        const std::string uda_uri = uda_uri_for(pulse_dir);
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         EXPECT_EQ(
             al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx).code,
@@ -239,7 +235,7 @@ TEST_F(UdaBreadthTest, OccurrencesListsWrittenOccurrencesThroughReopen) {
 
     // --- seed via HDF5: occurrence 0 and occurrence 2 -----------------------
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -259,7 +255,7 @@ TEST_F(UdaBreadthTest, OccurrencesListsWrittenOccurrencesThroughReopen) {
 
     // --- list occurrences through UDA, remote mode --------------------------
     {
-        const std::string uda_uri = uda_uri_for(pulse_dir);
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE,
                                                &pulse_ctx));
@@ -302,7 +298,7 @@ TEST_F(UdaBreadthTest, ListFilledPathsThroughReopen) {
 
     // --- seed via HDF5 -------------------------------------------------------
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -319,7 +315,7 @@ TEST_F(UdaBreadthTest, ListFilledPathsThroughReopen) {
 
     // --- list_filled_paths through UDA, remote mode -------------------------
     {
-        const std::string uda_uri = uda_uri_for(pulse_dir);
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE,
                                                &pulse_ctx));
@@ -361,19 +357,21 @@ TEST_F(UdaBreadthTest, ListFilledPathsThroughReopen) {
 // remote mode does not weaken it.
 TEST_F(UdaBreadthTest, OpenPulseFailsWhenRemotePathAbsent) {
     const std::string absent_dir = base_.str() + "/never-seeded";
-    const std::string uda_uri    = uda_uri_for(absent_dir);
-    int                pulse_ctx  = -1;
-    al_status_t        s = al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE,
-                                               &pulse_ctx);
+    const std::string uda_uri    = al_contract::uda_hdf5_uri_for(absent_dir);
+    int               pulse_ctx = -1;
+    al_status_t s =
+        al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx);
     EXPECT_NE(s.code, 0) << "OPEN_PULSE must fail when the remote pulse does "
                             "not exist, matching the on-disk backends' "
                             "parity contract";
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
 TEST_F(UdaBreadthTest, ForceOpenPulseCreatesRemotePulseWhenAbsent) {
     const std::string pulse_dir = fresh_pulse_dir();
-    const std::string uda_uri   = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(
@@ -391,7 +389,7 @@ TEST_F(UdaBreadthTest, ForceOpenPulseCreatesRemotePulseWhenAbsent) {
 
 TEST_F(UdaBreadthTest, CreatePulseRefusesExistingRemotePulse) {
     const std::string pulse_dir = fresh_pulse_dir();
-    const std::string uda_uri   = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), FORCE_CREATE_PULSE,
@@ -403,12 +401,14 @@ TEST_F(UdaBreadthTest, CreatePulseRefusesExistingRemotePulse) {
                                                &create_ctx);
     EXPECT_NE(s.code, 0)
         << "CREATE_PULSE must refuse an existing remote pulse";
-    if (s.code == 0) al_close_pulse(create_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(create_ctx, CLOSE_PULSE));
+    }
 }
 
 TEST_F(UdaBreadthTest, ForceCreatePulseAcceptsExistingRemotePulse) {
     const std::string pulse_dir = fresh_pulse_dir();
-    const std::string uda_uri   = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), FORCE_CREATE_PULSE,
@@ -460,7 +460,7 @@ TEST_F(UdaBreadthTest, ErasePulseCurrentlyLeavesRemotePulseOpenable) {
 TEST_F(UdaBreadthTest, ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel) {
     const std::string pulse_dir = fresh_pulse_dir();
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -474,7 +474,7 @@ TEST_F(UdaBreadthTest, ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel) 
         EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
     }
 
-    const std::string uda_uri = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx));
     int op = -1;
@@ -491,8 +491,8 @@ TEST_F(UdaBreadthTest, ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel) 
     EXPECT_EQ(data[0], al_contract::kEmptyDouble)
         << "unwritten leaf must read back as the HDF5 absent-scalar "
            "sentinel, forwarded transparently through UDA";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // A read against a real-DD-conformant but never-written IDS (the pulse dir
@@ -501,7 +501,7 @@ TEST_F(UdaBreadthTest, ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel) 
 TEST_F(UdaBreadthTest, ReadFailsForNeverWrittenIds) {
     const std::string pulse_dir = fresh_pulse_dir();
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -514,7 +514,7 @@ TEST_F(UdaBreadthTest, ReadFailsForNeverWrittenIds) {
         EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
     }
 
-    const std::string uda_uri = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx));
     // "magnetics" is a real DD 4.1.1 IDS never written to this pulse dir.
@@ -527,8 +527,8 @@ TEST_F(UdaBreadthTest, ReadFailsForNeverWrittenIds) {
         op, "code/output_flag", 1, &shape, &data);
     EXPECT_NE(s.code, 0) << "reading a never-written IDS must fail, not "
                             "return stale/default data";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -550,7 +550,7 @@ public:
     // fixture instance passed in by the TEST_F body.
     std::string seed_dynamic_signal() {
         const std::string pulse_dir = fresh_pulse_dir();
-        const std::string hdf5_uri  = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         EXPECT_EQ(al_begin_dataentry_action(hdf5_uri.c_str(), FORCE_CREATE_PULSE,
                                             &pulse_ctx)
@@ -582,7 +582,7 @@ public:
 
 TEST_F(UdaSliceAndTimeRange, SliceReadThroughReopen) {
     const std::string pulse_dir = seed_dynamic_signal();
-    const std::string uda_uri   = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx));
 
@@ -626,7 +626,7 @@ TEST_F(UdaSliceAndTimeRange, SliceReadThroughReopen) {
 al_status_t timerange_read_without_resampling_via_uda(
     UdaSliceAndTimeRange* fixture, void** buf, int* size) {
     const std::string pulse_dir = fixture->seed_dynamic_signal();
-    const std::string uda_uri   = uda_uri_for(pulse_dir);
+    const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     EXPECT_EQ(
         al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx).code, 0);
@@ -642,8 +642,8 @@ al_status_t timerange_read_without_resampling_via_uda(
               0);
     al_status_t s = al_read_data(op, "vacuum_toroidal_field/b0", "time", buf,
                                  DOUBLE_DATA, 1, size);
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     return s;
 }
 
