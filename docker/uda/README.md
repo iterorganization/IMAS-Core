@@ -16,7 +16,7 @@ Part 5 header:
 | Component | Source | Pin |
 |-----------|--------|-----|
 | UDA server | [`ukaea/uda`](https://github.com/ukaea/uda) | tag **2.9.3** |
-| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0** |
+| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0**, commit **`ede25b921081d8fc2d66c5b5ca152c664b50ee78`** |
 | Data Dictionary | `imas-data-dictionary` (PyPI wheel) | **4.1.1** |
 | Data Dictionary (older, unique-surface wrong-version row, `IDSDEF_PATH_OLDER`) | `imas-data-dictionary` (PyPI wheel) | **3.42.0** |
 | Base image | `ubuntu:24.04` | arm64 |
@@ -26,6 +26,12 @@ running stack): **1.8.0**. Since 1.8.0 > 1.4.0, the UDA backend's
 `supportsTimeRangeOperation()` returns *true* against this reference stack
 (`src/uda/uda_backend.cpp` parses `IMAS::version()` as a semver and compares
 `> 1.4.0`) — the row-8 verdict a later subtask pins.
+
+The Docker build clones the `1.8.0` tag, verifies that `HEAD` is exactly the
+commit above, and verifies that `git describe --tags --exact-match HEAD` still
+yields `1.8.0`. A moved tag therefore fails the build. The image exposes both
+values as `org.iter.imas-core.uda-plugins-version` and
+`org.iter.imas-core.uda-plugins-commit` labels.
 
 ## Design: toolchain image + build-workspace-at-runtime
 
@@ -155,7 +161,8 @@ subtask (#21 area 3).
 - **Reference plugin reported version:** `IMAS::version()` → **1.8.0** (see the
   pinned-stack note above for the `supportsTimeRangeOperation` consequence).
 - **Pinned stack identifiers** (for the Part 5 header): UDA server **2.9.3**,
-  `IMAS` plugin **1.8.0**, DD **4.1.1**, base `ubuntu:24.04` (arm64). Also
-  recorded as `org.iter.imas-core.*` image labels.
+  `IMAS` plugin **1.8.0** at commit
+  **`ede25b921081d8fc2d66c5b5ca152c664b50ee78`**, DD **4.1.1**, base
+  `ubuntu:24.04` (arm64). Also recorded as `org.iter.imas-core.*` image labels.
 
 [#21]: https://github.com/yohannmarguier/IMAS-Core/issues/21

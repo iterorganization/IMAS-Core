@@ -617,7 +617,7 @@ whole tier.
 | Component | Source | Pin |
 |-----------|--------|-----|
 | UDA server | [`ukaea/uda`](https://github.com/ukaea/uda) | tag **2.9.3** |
-| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0** |
+| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0**, commit **`ede25b921081d8fc2d66c5b5ca152c664b50ee78`** |
 | Data Dictionary | `imas-data-dictionary` (PyPI wheel) | **4.1.1** |
 | Base image | `ubuntu:24.04` | arm64 |
 
