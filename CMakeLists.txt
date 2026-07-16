@@ -322,4 +322,14 @@ endif()
 
 if(AL_BUILD_MDSPLUS_MODELS)
   add_subdirectory(models/mdsplus)
+
+  # The MDSplus contract tier opens pulses against the baked model tree, so
+  # `cmake --build . --target contract_tests` must build the model too — a
+  # workflow that builds only contract_tests otherwise runs against an absent
+  # model and fails with %TREE-E-FOPENR (issue #42). Wired here, after both
+  # targets exist: tests/ is added before models/mdsplus/, so the dependency
+  # cannot be declared from tests/contract/CMakeLists.txt.
+  if(AL_BACKEND_MDSPLUS AND TARGET contract_tests)
+    add_dependencies(contract_tests al-mdsplus-model)
+  endif()
 endif()
