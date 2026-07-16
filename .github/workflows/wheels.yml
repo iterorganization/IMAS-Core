@@ -381,8 +381,21 @@ jobs:
         # The same script every wheel job runs as CIBW before-build; running it
         # here keeps a single source of truth for the closure. It is idempotent
         # against a partially restored tree: vcpkg skips installed packages and
-        # the UDA build is skipped when uda-cpp.pc is already installed.
-        run: bash ./ci/wheels/cibw_before_build_win.sh
+        # the UDA build is skipped when uda-cpp.pc is already installed — which
+        # also makes the retry loop below resume where the last attempt left
+        # off. The backoff exists because vcpkg's own retries are seconds
+        # apart: a rate-limiting upstream (HTTP 429 from gitlab.dkrz.de for
+        # libaec, issue #44) needs minutes for its window to reset.
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if bash ./ci/wheels/cibw_before_build_win.sh; then
+              exit 0
+            fi
+            echo "Dependency install attempt ${attempt} failed (upstream rate limit?); backing off $((attempt * 90))s"
+            sleep $((attempt * 90))
+          done
+          echo "FATAL: dependency closure install failed after 5 attempts"
+          exit 1
 
   build_wheels_windows:
     name: build_wheels (Python ${{ matrix.python }}, win_amd64)
