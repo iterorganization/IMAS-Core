@@ -226,11 +226,16 @@ TEST(UdaAosKnownDefects, DynamicLeafInsideAosCurrentlyReturnsSentinel) {
 // implements getOccurrences (PRD #21's static finding, confirmed empirically
 // here). Seeded exactly like Occurrences.Hdf5ListsWrittenOccurrences
 // (test_structured_data.cpp) -- occurrence 0 as "equilibrium", occurrence 2
-// as HDF5's own "<ids>_<N>" naming convention "equilibrium_2" -- then listed
-// through UDA remote mode.
+// as HDF5's own "<ids>_<N>" name "equilibrium_2" -- then listed and read
+// through UDA remote mode, whose public occurrence name is "<ids>/<N>".
 // ===========================================================================
 TEST_F(UdaBreadthTest, OccurrencesListsWrittenOccurrencesThroughReopen) {
     const std::string pulse_dir = fresh_pulse_dir();
+    constexpr const char* kHdf5OccurrenceNames[] = {"equilibrium",
+                                                     "equilibrium_2"};
+    constexpr const char* kUdaOccurrenceNames[] = {"equilibrium",
+                                                    "equilibrium/2"};
+    constexpr double kOccurrenceValues[] = {6.2, 8.4};
 
     // --- seed via HDF5: occurrence 0 and occurrence 2 -----------------------
     {
@@ -239,17 +244,17 @@ TEST_F(UdaBreadthTest, OccurrencesListsWrittenOccurrencesThroughReopen) {
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
 
-        for (const char* name : {"equilibrium", "equilibrium_2"}) {
+        for (size_t i = 0; i < 2; ++i) {
             int op = -1;
-            AL_ASSERT_OK(
-                al_begin_global_action(pulse_ctx, name, "", WRITE_OP, &op));
+            AL_ASSERT_OK(al_begin_global_action(
+                pulse_ctx, kHdf5OccurrenceNames[i], "", WRITE_OP, &op));
             AL_EXPECT_OK(al_contract::write_data<int>(
                 op, "ids_properties/homogeneous_time", {}, {1}));
             AL_EXPECT_OK(al_contract::write_data<double>(
-                op, equilibrium_seed::kScalar, {}, {6.2}));
+                op, equilibrium_seed::kScalar, {}, {kOccurrenceValues[i]}));
             AL_ASSERT_OK(al_end_action(op));
         }
-        EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
+        AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 
     // --- list occurrences through UDA, remote mode --------------------------
@@ -268,7 +273,21 @@ TEST_F(UdaBreadthTest, OccurrencesListsWrittenOccurrencesThroughReopen) {
         EXPECT_EQ(occ[1], 2);
         free(occ);  // malloc'd by UDABackend::get_occurrences.
 
-        EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
+        // UDA uses the public "<ids>/<N>" occurrence names.
+        for (size_t i = 0; i < 2; ++i) {
+            int op = -1;
+            AL_ASSERT_OK(al_begin_global_action(
+                pulse_ctx, kUdaOccurrenceNames[i], "", READ_OP, &op));
+            std::vector<int>    shape;
+            std::vector<double> data;
+            AL_ASSERT_OK(al_contract::read_data<double>(
+                op, equilibrium_seed::kScalar, 0, &shape, &data));
+            ASSERT_EQ(data.size(), 1u);
+            EXPECT_DOUBLE_EQ(data[0], kOccurrenceValues[i]);
+            AL_ASSERT_OK(al_end_action(op));
+        }
+
+        AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 }
 
