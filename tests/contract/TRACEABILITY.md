@@ -912,12 +912,23 @@ recorded here alongside the header's existing stack identifiers.
   that server process exits. Reproduces identically whether the read went
   through `readData`'s `None`-mode path or `populate_cache`'s `ids`/`struct`-
   mode path (both hit the same unstripped-uri bug), so this is not an
-  `ids`-specific finding despite living in the cache-mode area: the
-  client-side RAM cache genuinely *is* cleared on close
-  (`UDABackend::closePulse`), but a server-side resource opened on the read
-  path outlives it regardless. Pinned:
+  `ids`-specific finding despite living in the cache-mode area. Pinned:
   `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle`
   + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle`.
+- **Client-cache invalidation across close/reopen is a terminal gap (issue
+  #38).** No stable public-C-ABI oracle exists against the pinned stack: the
+  required seed-A/read/close/mutate-to-B/reopen sequence cannot reach its
+  mutation step because the separately pinned server-handle leak keeps the
+  per-IDS HDF5 file locked. A fresh fixture process with
+  `HDF5_USE_FILE_LOCKING=FALSE` still fails to reopen that external IDS file
+  for writing (observed for `cache_mode=none`); the process therefore cannot
+  produce B for a new UDA context to observe. The C ABI provides no control to
+  restart the reference server/connection between those steps, and remote UDA
+  writes are independently unsupported. Do not treat
+  `UDABackend::closePulse`'s `cache_.clear()` as a behavioral verdict. The
+  paired server-handle-leak xfail immediately above remains distinct; when it
+  is fixed or the stack gains a restart seam, this row must become the
+  A→B→reopen test for `none`, `ids`, and `struct`.
 - **Runtime DD loading — present / absent / wrong-version, all through
   `al_begin_dataentry_action`** (the constructor loads `IDSDef.xml`
   unconditionally, before any network access): present is the reference
@@ -1041,6 +1052,7 @@ recorded here alongside the header's existing stack identifiers.
 | Cache-mode invisibility: `none`/`ids`/`struct` agree on a field all three can reach (a static AOS-nested leaf) | `UdaUniqueSurfaceTest.CacheModeNoneIdsStructAgreeForAosCoveredField` | covered |
 | ↳ `struct` mode reports success but returns the absent sentinel for a genuinely written top-level field, so cache-mode selection changes the physics value | `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` + tripwire `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField` | **xfail** |
 | ↳ closing a UDA session leaks a server-side pulse handle (uri-stripping mismatch between `open`/`close` and every `get()`-directive builder), blocking a later local reopen of the same file | `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle` + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle` | **xfail** |
+| ↳ client cache invalidation across close/reopen: the required A→B fixture mutation is blocked by that distinct leaked server handle; neither the C ABI nor the pinned stack offers a server/connection restart seam | issue #38's attempted C-ABI fixture mutation (fresh process, `HDF5_USE_FILE_LOCKING=FALSE`) deterministically fails before B can be written; do not infer a verdict from source inspection | **terminal gap** |
 | Runtime DD loading: present baseline and absent DD (both failure messages) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage}` | covered |
 | ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
