@@ -39,6 +39,11 @@ jobs:
       - name: Build
         run: cmake --build build
 
+      # Issue #31: an empty `ctest -L unit` exits 0, so a broken label
+      # partition is invisible to the test run below — check it explicitly.
+      - name: Verify unit/integration label partition
+        run: bash tests/contract/check_label_partition.sh build/tests/contract
+
       - name: Run the whole test suite
         working-directory: build
         run: ctest --output-on-failure
