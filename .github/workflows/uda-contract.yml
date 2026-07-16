@@ -65,11 +65,13 @@ jobs:
           set -euo pipefail
           uda_server=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.uda-server-version" }}' "${IMAGE_TAG}")
           uda_plugins=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.uda-plugins-version" }}' "${IMAGE_TAG}")
+          uda_plugins_commit=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.uda-plugins-commit" }}' "${IMAGE_TAG}")
           dd_version=$(docker inspect -f '{{ index .Config.Labels "org.iter.imas-core.dd-version" }}' "${IMAGE_TAG}")
-          echo "Image labels: uda-server=${uda_server} uda-plugins=${uda_plugins} dd=${dd_version}"
+          echo "Image labels: uda-server=${uda_server} uda-plugins=${uda_plugins}@${uda_plugins_commit} dd=${dd_version}"
           header=tests/contract/TRACEABILITY.md
           grep -q "tag \*\*${uda_server}\*\*" "${header}"
           grep -q "tag \*\*${uda_plugins}\*\*" "${header}"
+          grep -q "commit \*\*\`${uda_plugins_commit}\`\*\*" "${header}"
           grep -q "\*\*${dd_version}\*\*" "${header}"
           echo "Image stack identifiers match ${header}'s Part 5 pinned-reference-stack table."
 

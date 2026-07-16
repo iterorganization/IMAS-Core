@@ -10,7 +10,8 @@
 #
 # Pinned stack identifiers (recorded for TRACEABILITY Part 5):
 #   - UDA server ....... ukaea/uda            tag 2.9.3
-#   - IMAS UDA plugin .. iterorganization/UDA-Plugins  tag 1.8.0
+#   - IMAS UDA plugin .. iterorganization/UDA-Plugins  tag 1.8.0,
+#                        commit ede25b921081d8fc2d66c5b5ca152c664b50ee78
 #   - Data Dictionary .. IDSDef.xml           DD 4.1.1
 FROM ubuntu:24.04
 
@@ -19,10 +20,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Pinned stack versions (single source of truth; also surfaced as image labels).
 ARG UDA_VERSION=2.9.3
 ARG UDA_PLUGINS_VERSION=1.8.0
+ARG UDA_PLUGINS_COMMIT=ede25b921081d8fc2d66c5b5ca152c664b50ee78
 ARG DD_VERSION=4.1.1
 
 LABEL org.iter.imas-core.uda-server-version="2.9.3"
-LABEL org.iter.imas-core.uda-plugins-version="1.8.0"
+LABEL org.iter.imas-core.uda-plugins-version="${UDA_PLUGINS_VERSION}"
+LABEL org.iter.imas-core.uda-plugins-commit="${UDA_PLUGINS_COMMIT}"
 LABEL org.iter.imas-core.dd-version="4.1.1"
 
 # --- Toolchain + UDA server + IMAS-Core + plugin build/runtime dependencies ---
@@ -104,12 +107,24 @@ ENV IDSDEF_PATH_OLDER="/opt/IDSDef-older.xml"
 
 # --- IMAS UDA server plugin source (iterorganization/UDA-Plugins, pinned) ---
 # Cloned (not tarball) so the plugin's git_describe-derived version resolves to
-# the tag and the plugin reports 1.8.0 at run time. The plugin is *built* at run
-# time (docker/uda/run.sh) because it must link the workspace's IMAS-Core
+# the tag and the plugin reports 1.8.0 at run time. Pin both the human-readable
+# tag and its immutable commit: if the upstream tag is moved, the build fails
+# instead of silently changing the reference image. The plugin is *built* at
+# run time (docker/uda/run.sh) because it must link the workspace's IMAS-Core
 # (al-core.pc) — the subject under test — and must NOT fall back to the
 # mapping-only NO_IMAS degradation.
 RUN git clone --branch "${UDA_PLUGINS_VERSION}" --depth 1 \
-      https://github.com/iterorganization/UDA-Plugins.git /opt/uda-plugins-src
+      https://github.com/iterorganization/UDA-Plugins.git /opt/uda-plugins-src \
+    && actual_commit="$(git -C /opt/uda-plugins-src rev-parse HEAD)" \
+    && if [ "${actual_commit}" != "${UDA_PLUGINS_COMMIT}" ]; then \
+         echo "UDA-Plugins tag ${UDA_PLUGINS_VERSION} resolved to ${actual_commit}, expected ${UDA_PLUGINS_COMMIT}" >&2; \
+         exit 1; \
+       fi \
+    && actual_version="$(git -C /opt/uda-plugins-src describe --tags --exact-match HEAD)" \
+    && if [ "${actual_version}" != "${UDA_PLUGINS_VERSION}" ]; then \
+         echo "UDA-Plugins git-describe yielded ${actual_version}, expected ${UDA_PLUGINS_VERSION}" >&2; \
+         exit 1; \
+       fi
 
 COPY run.sh /usr/local/bin/uda-run.sh
 RUN chmod +x /usr/local/bin/uda-run.sh
