@@ -89,20 +89,32 @@ fi
 sed -i 's/^\( *user *= *\)$/\1root/' "${PREFIX}/etc/xinetd.conf"
 xinetd -dontfork -f "${PREFIX}/etc/xinetd.conf" &
 XINETD_PID=$!
-# Wait for the listener before running the client.
+# Wait for the listener before running the client; a server that never comes
+# up is a bootstrap failure, not something to paper over — the contract tier
+# would GTEST_SKIP() every case and CTest would exit 0 having tested nothing
+# (issue #41).
+listening=0
 for _ in $(seq 1 30); do
   if bash -c "exec 3<>/dev/tcp/localhost/56565" 2>/dev/null; then
     exec 3>&- 2>/dev/null || true
+    listening=1
     break
   fi
   sleep 0.5
 done
+if [ "${listening}" != 1 ]; then
+  echo "FATAL: UDA server never started listening on localhost:56565 (xinetd pid ${XINETD_PID})"
+  exit 1
+fi
 echo "UDA server listening on localhost:56565 (xinetd pid ${XINETD_PID})"
 # Sanity ping through UDA's own CLI (independent of IMAS-Core) so a server-side
-# failure is distinguishable from a client-side one.
+# failure is distinguishable from a client-side one. Fatal: a stack whose own
+# CLI cannot talk to the server must not proceed to a CTest run whose UDA cases
+# would all skip-and-pass (issue #41).
 UDA_HOST=localhost UDA_PORT=56565 "${PREFIX}/bin/uda_cli" \
   --host localhost --port 56565 --request "help::help()" >/dev/null 2>&1 \
-  && echo "uda_cli help::help() OK" || echo "WARN: uda_cli ping failed (continuing)"
+  || { echo "FATAL: uda_cli help::help() ping failed — server unusable"; exit 1; }
+echo "uda_cli help::help() OK"
 
 echo "==> [4/4] Running the UDA contract tier"
 export UDA_HOST=localhost UDA_PORT=56565
@@ -110,4 +122,25 @@ if [ "$#" -gt 0 ]; then
   exec "$@"
 fi
 cd "${BUILD_DIR}/tests/contract"
-ctest -L uda --output-on-failure
+
+# Dedicated-CI mode (AL_UDA_DEDICATED_CI=1, set by uda-contract.yml): inside
+# the reference-stack job, "server unreachable -> skip" is not a valid green.
+# Parse CTest's machine-readable JUnit output and fail unless a nonzero number
+# of UDA tests actually executed (issue #41). Ordinary developer builds keep
+# the compile-gate/runtime-skip behavior: without the flag nothing changes.
+if [ "${AL_UDA_DEDICATED_CI:-0}" = "1" ]; then
+  results="${BUILD_DIR}/uda-ctest-results.xml"
+  ctest -L uda --output-on-failure --output-junit "${results}"
+  total=$(sed -n 's/.*<testsuite[^>]*[[:space:]]tests="\([0-9]*\)".*/\1/p' "${results}" | head -1)
+  skipped=$(sed -n 's/.*<testsuite[^>]*[[:space:]]skipped="\([0-9]*\)".*/\1/p' "${results}" | head -1)
+  total=${total:-0}
+  skipped=${skipped:-0}
+  executed=$((total - skipped))
+  echo "Dedicated-CI check: ${total} UDA tests selected, ${skipped} skipped, ${executed} executed."
+  if [ "${executed}" -le 0 ]; then
+    echo "FATAL: dedicated UDA tier executed zero tests (all skipped or none selected) — the reference stack verified nothing (issue #41)."
+    exit 1
+  fi
+else
+  ctest -L uda --output-on-failure
+fi
