@@ -47,13 +47,6 @@
 
 namespace {
 
-std::string uda_uri_with(const std::string& pulse_dir, const std::string& extra_query = "") {
-    std::string uri = al_contract::uda_uri_base() +
-                       "?backend=hdf5&cache_mode=none&path=" + pulse_dir;
-    if (!extra_query.empty()) uri += "&" + extra_query;
-    return uri;
-}
-
 // RAII env-var save/restore -- several characterizations here (runtime DD
 // loading's absent/wrong-version rows) must mutate process-global getenv()
 // state for exactly one UDABackend construction and then put it back,
@@ -122,7 +115,7 @@ protected:
     // (vacuum_toroidal_field/r0) through the plain HDF5 backend. Returns the
     // pulse dir.
     std::string seed_scalar(const std::string& pulse_dir, double r0 = 6.2) const {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         EXPECT_EQ(al_begin_dataentry_action(hdf5_uri.c_str(), FORCE_CREATE_PULSE,
                                             &pulse_ctx)
@@ -157,7 +150,7 @@ protected:
 // discipline is kept uniform with the rest of the tier regardless.
 TEST_F(UdaUniqueSurfaceTest, InvalidCacheModeThrows) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     // Replace the valid cache_mode=none with an invalid value.
     std::string bad_uri = uri;
     const auto  pos     = bad_uri.find("cache_mode=none");
@@ -179,7 +172,8 @@ TEST_F(UdaUniqueSurfaceTest, InvalidCacheModeThrows) {
 // stdout around the open call rather than asserting on internal state.
 TEST_F(UdaUniqueSurfaceTest, VerboseTrueEmitsDebugTracingOnStdout) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir, "verbose=true");
+    const std::string uri =
+        al_contract::uda_hdf5_uri_for(pulse_dir, "none", "verbose=true");
 
     testing::internal::CaptureStdout();
     int pulse_ctx = -1;
@@ -194,7 +188,8 @@ TEST_F(UdaUniqueSurfaceTest, VerboseTrueEmitsDebugTracingOnStdout) {
 
 TEST_F(UdaUniqueSurfaceTest, VerboseAbsentEmitsNoDebugTracing) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);  // no verbose= at all
+    const std::string uri =
+        al_contract::uda_hdf5_uri_for(pulse_dir);  // no verbose= at all
 
     testing::internal::CaptureStdout();
     int pulse_ctx = -1;
@@ -213,7 +208,8 @@ TEST_F(UdaUniqueSurfaceTest, VerboseAbsentEmitsNoDebugTracing) {
 // ("<plugin>::init(...)") reaches a real server that has no such plugin.
 TEST_F(UdaUniqueSurfaceTest, PluginOptionNamingUnregisteredPluginFailsAtOpen) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir, "plugin=NoSuchImasPlugin");
+    const std::string uri = al_contract::uda_hdf5_uri_for(
+        pulse_dir, "none", "plugin=NoSuchImasPlugin");
 
     int         pulse_ctx = -1;
     al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
@@ -234,7 +230,8 @@ TEST_F(UdaUniqueSurfaceTest, PluginOptionNamingUnregisteredPluginFailsAtOpen) {
 // identically to one without.
 TEST_F(UdaUniqueSurfaceTest, InitArgsAcceptedAndIgnoredByReferencePlugin) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri = uda_uri_with(pulse_dir, "init_args=some_key=1;other_key=2");
+    const std::string uri = al_contract::uda_hdf5_uri_for(
+        pulse_dir, "none", "init_args=some_key=1;other_key=2");
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
@@ -263,7 +260,8 @@ TEST_F(UdaUniqueSurfaceTest, InitArgsAcceptedAndIgnoredByReferencePlugin) {
 // schema).
 TEST_F(UdaUniqueSurfaceTest, DdVersionOverrideAcceptedWithNoObservableEffect) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri = uda_uri_with(pulse_dir, "dd_version=not.a.real.version");
+    const std::string uri = al_contract::uda_hdf5_uri_for(
+        pulse_dir, "none", "dd_version=not.a.real.version");
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
@@ -321,7 +319,7 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
 
     // --- seed temporary/constant_integer3d(1 element)/value via HDF5 -------
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -343,9 +341,8 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
     // --- reopen through UDA under each cache mode ---------------------------
     for (const char* mode : {"none", "ids", "struct"}) {
         SCOPED_TRACE(mode);
-        const std::string uri = al_contract::uda_uri_base() +
-                                 "?backend=hdf5&cache_mode=" + std::string(mode) +
-                                 "&path=" + pulse_dir;
+        const std::string uri =
+            al_contract::uda_hdf5_uri_for(pulse_dir, mode);
         int pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
         int op = -1;
@@ -389,8 +386,8 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
 // same written value as none and ids for a top-level field.
 TEST_F(UdaUniqueSurfaceTest, DISABLED_CacheModeStructPreservesTopLevelField) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri = al_contract::uda_uri_base() +
-                             "?backend=hdf5&cache_mode=struct&path=" + pulse_dir;
+    const std::string uri =
+        al_contract::uda_hdf5_uri_for(pulse_dir, "struct");
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
@@ -414,8 +411,8 @@ TEST_F(UdaUniqueSurfaceTest, DISABLED_CacheModeStructPreservesTopLevelField) {
 TEST_F(UdaUniqueSurfaceTest,
        CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri = al_contract::uda_uri_base() +
-                             "?backend=hdf5&cache_mode=struct&path=" + pulse_dir;
+    const std::string uri =
+        al_contract::uda_hdf5_uri_for(pulse_dir, "struct");
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
@@ -496,7 +493,7 @@ al_status_t local_reopen_status_after_uda_session_closes(const char* cache_mode)
     std::error_code       ec;
     std::filesystem::create_directories(pulse_dir, ec);
 
-    const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+    const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
     {
         int pulse_ctx = -1;
         EXPECT_EQ(al_begin_dataentry_action(hdf5_uri.c_str(), FORCE_CREATE_PULSE,
@@ -521,9 +518,8 @@ al_status_t local_reopen_status_after_uda_session_closes(const char* cache_mode)
     }
 
     {
-        const std::string uda_uri = al_contract::uda_uri_base() +
-                                    "?backend=hdf5&cache_mode=" +
-                                    std::string(cache_mode) + "&path=" + pulse_dir;
+        const std::string uda_uri =
+            al_contract::uda_hdf5_uri_for(pulse_dir, cache_mode);
         int pulse_ctx = -1;
         EXPECT_EQ(
             al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx).code,
@@ -583,7 +579,7 @@ TEST_F(UdaUniqueSurfaceTest, ClosingUdaSessionCurrentlyLeaksServerSideHandle) {
 // every other test in the tier; restated here as the baseline area-3 row.
 TEST_F(UdaUniqueSurfaceTest, DdPresentLoadsAndOpenSucceeds) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
     AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
@@ -595,7 +591,7 @@ TEST_F(UdaUniqueSurfaceTest, DdPresentLoadsAndOpenSucceeds) {
 // al_status_t carrying the exact message.
 TEST_F(UdaUniqueSurfaceTest, DdAbsentNeitherEnvVarSetFailsWithClearMessage) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     ScopedEnv idsdef(/*name=*/"IDSDEF_PATH", /*value=*/nullptr);
     ScopedEnv prefix(/*name=*/"IMAS_PREFIX", /*value=*/nullptr);
@@ -616,7 +612,7 @@ TEST_F(UdaUniqueSurfaceTest, DdAbsentNeitherEnvVarSetFailsWithClearMessage) {
 // load_xml()'s pugixml parse fails, distinct message from the unset-env case.
 TEST_F(UdaUniqueSurfaceTest, DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     ScopedEnv idsdef(/*name=*/"IDSDEF_PATH",
                     /*value=*/"/nonexistent/path/IDSDef.xml");
@@ -665,7 +661,7 @@ TEST_F(UdaUniqueSurfaceTest, DISABLED_DdWrongVersionIsRejected) {
     }
 
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri       = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     ScopedEnv idsdef(/*name=*/"IDSDEF_PATH", /*value=*/older_dd);
 
@@ -691,7 +687,7 @@ TEST_F(UdaUniqueSurfaceTest,
     }
 
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri       = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     ScopedEnv idsdef(/*name=*/"IDSDEF_PATH", /*value=*/older_dd);
 
@@ -739,7 +735,7 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
 
     // --- seed two real DD fields in different subtrees via HDF5 -------------
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -759,8 +755,8 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
     }
 
     // --- reopen through UDA, cache_mode=ids, datapath scoped to one subtree ---
-    const std::string uda_uri = al_contract::uda_uri_base() +
-                                "?backend=hdf5&cache_mode=ids&path=" + pulse_dir;
+    const std::string uda_uri =
+        al_contract::uda_hdf5_uri_for(pulse_dir, "ids");
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx));
 
@@ -830,7 +826,7 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
 TEST_F(UdaUniqueSurfaceTest,
        DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri       = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int               pulse_ctx = -1;
     al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
     EXPECT_NE(s.code, 0)
@@ -846,7 +842,7 @@ TEST_F(UdaUniqueSurfaceTest,
 TEST_F(UdaUniqueSurfaceTest,
        VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     al_status_t        s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
     AL_EXPECT_OK(s) << "OPEN_PULSE must never fail on the version-drift "
@@ -878,7 +874,7 @@ TEST_F(UdaUniqueSurfaceTest,
 TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion180) {
     const std::string pulse_dir = fresh_pulse_dir();
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -897,7 +893,7 @@ TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion1
         EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
     }
 
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
 
@@ -1109,7 +1105,8 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeWriteDivergesFromServerAndStalePersistsAcr
 
     // --- confirm the server-side pulse is unchanged (reopen via remote mode) ---
     {
-        const std::string remote_uri = uda_uri_with(pulse_dir);
+        const std::string remote_uri =
+            al_contract::uda_hdf5_uri_for(pulse_dir);
         int                pulse_ctx = -1;
         AL_ASSERT_OK(
             al_begin_dataentry_action(remote_uri.c_str(), OPEN_PULSE, &pulse_ctx));
@@ -1187,8 +1184,7 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeWriteDivergesFromServerAndStalePersistsAcr
 // genuinely reached the server (reopened via a fresh remote-mode session).
 al_status_t remote_write_status_and_confirm_unpersisted(
     const std::string& pulse_dir, bool* reached_server) {
-    const std::string uri = al_contract::uda_uri_base() +
-                             "?backend=hdf5&cache_mode=none&path=" + pulse_dir;
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     al_status_t write_status;
     {
@@ -1264,7 +1260,7 @@ TEST_F(UdaUniqueSurfaceTest, RemoteWriteCurrentlyReportsSuccessButNeverPersists)
 
 TEST_F(UdaUniqueSurfaceTest, RemoteDeleteFailsWithUnknownFunctionRequested) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
-    const std::string uri = uda_uri_with(pulse_dir);
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
 
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));

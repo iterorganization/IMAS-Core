@@ -62,7 +62,7 @@ TEST_F(UdaSmokeRoundTrip, ScalarSeededViaHdf5ReadsBackThroughUda) {
 
     // --- seed one scalar through the plain HDF5 backend (fixture setup) ---
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -88,9 +88,7 @@ TEST_F(UdaSmokeRoundTrip, ScalarSeededViaHdf5ReadsBackThroughUda) {
         // cache_mode=none takes readData's direct per-field IMAS::get path --
         // the simplest remote read, sufficient for the tracer bullet. backend=
         // hdf5 tells the server which local backend to open behind the plugin.
-        const std::string uda_uri = al_contract::uda_uri_base() +
-                                    "?backend=hdf5&cache_mode=none&path=" +
-                                    pulse_dir;
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
         int pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE,
                                                &pulse_ctx));
@@ -157,7 +155,7 @@ TEST_F(UdaEquilibriumSeedParity, HdfSeededReadsBackThroughUda) {
 
     // --- seed the full composite shape through the plain HDF5 backend ---
     {
-        const std::string hdf5_uri = "imas:hdf5?path=" + pulse_dir;
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
         int pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
                                                FORCE_CREATE_PULSE, &pulse_ctx));
@@ -181,9 +179,7 @@ TEST_F(UdaEquilibriumSeedParity, HdfSeededReadsBackThroughUda) {
 
     // --- read the same composite shape back through UDA, remote mode ---
     {
-        const std::string uda_uri = al_contract::uda_uri_base() +
-                                    "?backend=hdf5&cache_mode=none&path=" +
-                                    pulse_dir;
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
         int pulse_ctx = -1;
         AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE,
                                                &pulse_ctx));

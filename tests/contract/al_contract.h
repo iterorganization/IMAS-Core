@@ -179,6 +179,22 @@ inline std::string uda_uri_base() {
            (port && *port ? port : "56565") + "/uda";
 }
 
+// Shared addressing for the UDA characterization machine. Keep operation
+// lifecycles in the tests themselves; only centralize the URI shapes that every
+// HDF5-seed/UDA-reopen fixture must agree on.
+inline std::string hdf5_uri_for(const std::string& pulse_dir) {
+    return "imas:hdf5?path=" + pulse_dir;
+}
+
+inline std::string uda_hdf5_uri_for(
+    const std::string& pulse_dir, const std::string& cache_mode = "none",
+    const std::string& extra_query = "") {
+    std::string uri = uda_uri_base() + "?backend=hdf5&cache_mode=" +
+                      cache_mode + "&path=" + pulse_dir;
+    if (!extra_query.empty()) uri += "&" + extra_query;
+    return uri;
+}
+
 // ---------------------------------------------------------------------------
 // BackendCase descriptor for value-parametrized tests (TEST_P).
 // ---------------------------------------------------------------------------
