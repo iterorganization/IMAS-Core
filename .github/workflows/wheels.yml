@@ -198,85 +198,15 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: windows-2022
-            triplet: x64-windows
-            python: 310
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 311
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 312
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 313
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 314
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
+          # Windows wheels are built by the dedicated build_wheels_windows job
+          # below: they share a vcpkg dependency tree prepared once by the
+          # windows_deps job (issue #44), and keeping them in this matrix would
+          # force `needs: windows_deps` onto the Linux/macOS legs too.
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
-
-      # Recent changes in GitHub Actions Cache's API have rendered the x-gha binary caching provider useless.
-      # See https://github.com/microsoft/vcpkg-tool/pull/1662
-      # - uses: actions/github-script@v7
-      #   if: startsWith(matrix.os, 'windows')
-      #   # requirement for vcpkg binary caching https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-actions-cache
-      #   with:
-      #     script: |
-      #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-      #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '')
 
       - uses: actions/setup-python@v6
         with:
@@ -284,67 +214,15 @@ jobs:
           python-version: "3.12"
           cache: 'pip'
 
-      - name: Install cibuildwheel for windows
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          python -m pip install cibuildwheel==3.1.0
-
       - name: Restore cibuildwheel cache
         id: cache
         uses: actions/cache@v6
         with:
           path: |
-            ~\AppData\Local\pypa\cibuildwheel\Cache
             ~/Library/Caches/cibuildwheel
             ~/.cache/cibuildwheel
           # cf. CIBW_CACHE_PATH
           key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-${{ matrix.platform_id }}"
-
-      - name: Cache restore windows deps
-        if: startsWith(matrix.os, 'windows')
-        id: cache-win-deps
-        uses: actions/cache/restore@v6
-        env:
-          cache-name: win-deps
-        with:
-          path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-b  # this key is never hit (-a is).
-          restore-keys: |
-            ${{ matrix.os }}-${{ env.cache-name }}-a
-            ${{ matrix.os }}-${{ env.cache-name }}-
-
-      - name: Build wheels for windows
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
-          python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
-        env:
-          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          CIBW_PLATFORM: ${{ matrix.cibw_platform }}
-          CIBW_ARCHS: ${{ matrix.cibw_archs }}
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
-          CIBW_CONFIG_SETTINGS: >
-            cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
-            cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
-            cmake.define.${{ matrix.AL_BACKEND_UDA }}
-          # cmake.args="--debug-find;--debug-output"
-
-      - name: Cache store windows deps
-        # always(): also if previous step failed
-        # and also if steps.cache-win-deps.outputs.cache-hit == 'true'
-        # It is difficult to predict when the cache will be there (gha erases in time) and/or up to date (changes in the build),
-        # making it difficult to manually bump the version of the cache. So, instead, we will override the cache always, even if
-        # it was completely up to date and it sped up the Build wheels for windows job (above). The performance hit of storing
-        # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
-        if: ${{ always()  && startsWith(matrix.os, 'windows') }}
-        id: cache-win-deps-save
-        uses: actions/cache/save@v6
-        env:
-          cache-name: win-deps
-        with:
-          path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
       - uses: pypa/cibuildwheel@v4.1.0
         if: startsWith(matrix.os, 'ubuntu-')
@@ -450,10 +328,139 @@ jobs:
           path: wheelhouse/*.whl
           retention-days: 1
 
+  # Issue #44: prepare the pinned x64-windows vcpkg dependency closure ONCE,
+  # then let every Windows wheel job restore it read-only. Previously all five
+  # cold matrix jobs independently ran vcpkg against the same upstream source
+  # hosts and the same mutable cache key: a rate-limited host (HTTP 429 from
+  # gitlab.dkrz.de for libaec) failed the whole blocking workflow, and the five
+  # always-save steps raced on one key. Now a cold workflow downloads each
+  # source archive at most once (both C:\vcpkg\installed and the
+  # content-addressed C:\vcpkg\downloads are cached), and only this job ever
+  # saves the cache.
+  windows_deps:
+    name: Prepare Windows vcpkg dependencies
+    runs-on: windows-2022
+    env:
+      # The before-build script's default (matrix.UDA_REF was never exported to
+      # the Windows build environment, so Windows has always built this
+      # version); pinned explicitly here because it is part of the cache key.
+      UDA_REF: "2.8.1"
+      VCPKG_ROOT: C:/vcpkg
+      VCPKG_TARGET_TRIPLET: x64-windows
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute content-addressed cache key
+        id: key
+        # Key covers the manifest (vcpkg.json), the dependency-install script,
+        # the triplet, the UDA ref, and the runner's vcpkg baseline commit —
+        # any of these changing invalidates the prepared tree. restore-keys
+        # allow warm partial reuse; the exact key is what wheel jobs consume.
+        run: |
+          vcpkg_commit=$(git -C /c/vcpkg rev-parse HEAD 2>/dev/null || echo unknown)
+          echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-uda${UDA_REF}-${{ hashFiles('vcpkg.json', 'ci/wheels/cibw_before_build_win.sh') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache vcpkg installed tree and downloads
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+          restore-keys: |
+            win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-uda${{ env.UDA_REF }}-
+
+      - name: Install the pinned dependency closure (cold cache only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        # The same script every wheel job runs as CIBW before-build; running it
+        # here keeps a single source of truth for the closure. It is idempotent
+        # against a partially restored tree: vcpkg skips installed packages and
+        # the UDA build is skipped when uda-cpp.pc is already installed.
+        run: bash ./ci/wheels/cibw_before_build_win.sh
+
+  build_wheels_windows:
+    name: build_wheels (Python ${{ matrix.python }}, win_amd64)
+    runs-on: windows-2022
+    needs: [windows_deps]
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        python: [310, 311, 312, 313, 314]
+
+    # Recent changes in GitHub Actions Cache's API have rendered the x-gha
+    # binary caching provider useless.
+    # See https://github.com/microsoft/vcpkg-tool/pull/1662 — vcpkg reuse is
+    # instead provided by the windows_deps job's prepared-tree cache above.
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
+
+      - uses: actions/setup-python@v6
+        with:
+          # python installation used when to start cibuildwheel
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install cibuildwheel for windows
+        run: |
+          python -m pip install cibuildwheel==3.1.0
+
+      - name: Restore cibuildwheel cache
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~\AppData\Local\pypa\cibuildwheel\Cache
+          # cf. CIBW_CACHE_PATH
+          key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-win_amd64"
+
+      - name: Restore prepared windows deps (read-only)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\downloads
+          key: ${{ needs.windows_deps.outputs.cache-key }}
+          # The key was saved (or verified) by windows_deps in this same run; a
+          # miss means the prepared tree is unavailable and this job would fall
+          # back to a cold upstream fetch — the stampede issue #44 removes.
+          fail-on-cache-miss: true
+
+      - name: Build wheels for windows
+        run: |
+          python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
+          python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
+        env:
+          UDA_REF: "2.8.1"  # keep in sync with windows_deps.env.UDA_REF
+          CIBW_BUILD: cp${{ matrix.python }}-win_amd64
+          CIBW_PLATFORM: windows
+          CIBW_ARCHS: AMD64
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
+          CIBW_CONFIG_SETTINGS: >
+            cmake.define.AL_BACKEND_HDF5=ON
+            cmake.define.AL_BACKEND_MDSPLUS=OFF
+            cmake.define.AL_BACKEND_UDA=OFF
+          # cmake.args="--debug-find;--debug-output"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cibw-wheels-cp${{ matrix.python }}-win_amd64
+          path: wheelhouse/*.whl
+          retention-days: 1
+
   publish_wheels_testpypi:
     # only publish to TestPyPI on develop pushes and not from forks
     if: github.ref=='refs/heads/develop' && github.repository_owner == 'iterorganization'
-    needs: [build_wheels]
+    needs: [build_wheels, build_wheels_windows]
     runs-on: ubuntu-24.04
     permissions:
       # IMPORTANT: this permission is mandatory for Trusted Publishing
@@ -480,7 +487,7 @@ jobs:
   publish_wheels_pypi:
     # only publish to PyPI on tag pushes and not from forks
     if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'iterorganization'
-    needs: [build_wheels]
+    needs: [build_wheels, build_wheels_windows]
     runs-on: ubuntu-24.04
     permissions:
       # IMPORTANT: this permission is mandatory for Trusted Publishing
