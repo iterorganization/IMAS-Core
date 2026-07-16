@@ -89,6 +89,17 @@ jobs:
           cmake --build build-mdsplus --target contract_tests -j\$(nproc)
           "
 
+      - name: Verify baked DD model tree is present (cache-hit and cache-miss paths)
+        run: |
+          set -euo pipefail
+          for f in ids_model.tree ids_model.datafile ids_model.characteristics; do
+            if [ ! -s "build-mdsplus/models/mdsplus/${f}" ]; then
+              echo "FATAL: missing/empty model file build-mdsplus/models/mdsplus/${f} — the MDSplus tier would fail with %TREE-E-FOPENR (issue #42)"
+              exit 1
+            fi
+          done
+          echo "Baked DD model tree complete under build-mdsplus/models/mdsplus."
+
       - name: Run MDSplus contract suite
         run: >
           docker run --rm --platform linux/arm64
