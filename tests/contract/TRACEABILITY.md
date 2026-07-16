@@ -709,18 +709,22 @@ backends diverge for different reasons on the same cell.
   isolated to a specific line (out of this issue's "pin, don't fix" scope),
   but the shape strongly suggests the server-side `IMAS` plugin's HDF5-backend
   translation of a struct_array element index does not compose with a
-  dynamic (time-tensorized) leaf's own leading time-index dimension. Pinned
-  centrally by `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` +
-  tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel`
-  (`test_uda_breadth.cpp`); the three affected matrix cells cite it via their
-  own `known_defect_reason` rather than duplicating the pin three times.
+  dynamic (time-tensorized) leaf's own leading time-index dimension. Each of
+  the three COMPLEX cells is pinned against its exact real DD path, rank, and
+  AOS nesting by the parameterized pair `Uda/UdaRealPathMatrixKnownDefects.
+  DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,
+  COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.
+  DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,
+  COMPLEX_r5}` (`test_uda_real_paths.cpp`). The DOUBLE-scalar
+  `UdaAosKnownDefects` pair remains an independent pin and AOS-mechanism proof,
+  not a substitute for these exact matrix cases.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
 | Real-path breadth: 15 (type, rank) cells with a plain leaf field (no AOS) or a *static* AOS-nested field round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local`, `temporary` — CHAR r1/r2, INTEGER r0–r3, DOUBLE r0–r6, COMPLEX r2/r4 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0..INTEGER_r3,DOUBLE_r0..DOUBLE_r6,COMPLEX_r2,COMPLEX_r4}` (15 cases) | covered |
 | ↳ CHAR r0 (a bare scalar char) — **divergence, not a new UDA defect**: seeding this cell would reproduce the already-pinned HDF5 CHAR-scalar crash (`RoundTripKnownDefects`/Part 1) in fixture setup; not attempted | `Uda/UdaRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`, not run) | divergence |
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
-| ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) — see `UdaAosKnownDefects` below for the pinned tripwire | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect) | **xfail** |
+| ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) | Breadth cells: `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect). Exact correct-contract pair: `Uda/UdaRealPathMatrixKnownDefects.DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | **xfail** |
 
 ## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
 
