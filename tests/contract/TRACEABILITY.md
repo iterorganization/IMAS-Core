@@ -394,7 +394,7 @@ explicit open items), not assumed:
   (`equilibrium/time_slice/global_quantities/ip`, confirmed separately during
   characterization) round-trips through the identical begin/write/iterate/end
   sequence without error, so this is specific to non-conformant paths, not a
-  general MDSplus AOS limitation.
+  general MDSplus AOS Limit.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -675,16 +675,15 @@ backends diverge for different reasons on the same cell.
   r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7) — the DD itself
   contains no field of that (type, rank) at any nesting depth, independent of
   backend.
-- **CHAR r0 is a divergence for a different reason than MDSplus's**: MDSplus's
-  own CHAR r0 divergence is a clean, typed dimension-mismatch refusal from its
-  *real* backend. UDA's fixture never even reaches that question: seeding this
-  cell requires writing a dim=0 CHAR value through the *plain HDF5 backend*
-  used for fixture setup, which reproduces the pre-existing, independently-
-  pinned `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` /
-  `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` crash
-  (TRACEABILITY.md Part 1) on this real DD leaf too. Not run, to avoid
-  crashing the seed step — a fixture-setup-backend defect already pinned
-  elsewhere, not a new UDA finding.
+- **CHAR r0 is a terminal gap, blocked by fixture setup**: UDA's fixture never
+  reaches the remote-backend question because seeding this cell requires
+  writing a dim=0 CHAR value through the *plain HDF5 backend*. That reproduces
+  the pre-existing, independently pinned
+  `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` /
+  `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` defect
+  (TRACEABILITY.md Part 1) on this real DD leaf too. The UDA cell is not run,
+  to avoid crashing before UDA participates; that makes this row an explicit
+  terminal gap rather than a legitimate storage-model divergence.
 - **18 cells round-trip cleanly**, including all 5 AOS-nested cells that are
   *not* dynamic leaves (INTEGER r3, DOUBLE r6 via `temporary`'s static
   self-test fields) and every plain (non-AOS) cell of every datatype,
@@ -722,7 +721,7 @@ backends diverge for different reasons on the same cell.
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
 | Real-path breadth: 15 (type, rank) cells with a plain leaf field (no AOS) or a *static* AOS-nested field round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local`, `temporary` — CHAR r1/r2, INTEGER r0–r3, DOUBLE r0–r6, COMPLEX r2/r4 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0..INTEGER_r3,DOUBLE_r0..DOUBLE_r6,COMPLEX_r2,COMPLEX_r4}` (15 cases) | covered |
-| ↳ CHAR r0 (a bare scalar char) — **divergence, not a new UDA defect**: seeding this cell would reproduce the already-pinned HDF5 CHAR-scalar crash (`RoundTripKnownDefects`/Part 1) in fixture setup; not attempted | `Uda/UdaRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`, not run) | divergence |
+| ↳ CHAR r0 (a bare scalar char) — the UDA verdict cannot be exercised because fixture setup would reproduce the already-pinned HDF5 CHAR-scalar crash (`RoundTripKnownDefects`/Part 1) before UDA participates | `Uda/UdaRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`, not run) | terminal-gap |
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
 | ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) | Breadth cells: `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect). Exact correct-contract pair: `Uda/UdaRealPathMatrixKnownDefects.DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | **xfail** |
 
@@ -827,7 +826,7 @@ the lifecycle cases drive the remote UDA URI directly through the C ABI.
 |---|---|---|
 | AOS traversal, top-level (size + iteration mechanism correct; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` (mechanism proof); see the xfail row below for the value defect | covered (indirect) |
 | ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
-| `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` naming convention, ownership pinned | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
+| `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` storage naming and UDA's `<ids>/<N>` public naming pinned; every reported occurrence is reopened and read | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
 | `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
 | `al_begin_dataentry_action` mode matrix: `OPEN_PULSE` refuses an absent remote pulse; `FORCE_OPEN_PULSE` creates one; `CREATE_PULSE` refuses an existing one; `FORCE_CREATE_PULSE` accepts an existing one — genuine parity with the on-disk lifecycle contract | `UdaBreadthTest.{OpenPulseFailsWhenRemotePathAbsent,ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered |
 | `al_close_pulse(..., CLOSE_PULSE)` retains the remote pulse for a later `OPEN_PULSE` | asserted by the reopen checks in `UdaBreadthTest.{ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered (indirect) |
@@ -865,16 +864,18 @@ recorded here alongside the header's existing stack identifiers.
   backend is DD-agnostic) — accepted, no observable effect. A host that
   resolves but a port nothing listens on fails to connect, distinct from every
   post-connection request failure characterized above.
-- **Cache-mode invisibility holds only where a mode's own population point is
-  reached.** `none` and `ids` agree on any field; `ids` populates the whole
-  (or datapath-scoped) IDS at `beginAction`, `struct` populates lazily, per
-  struct_array, only inside `beginArraystructAction` — so for a field
-  genuinely covered by all three (a static leaf nested one level inside a
-  struct_array), all three return the identical value. But a plain top-level
-  field is **never** populated under `cache_mode=struct` (it never enters any
-  struct_array), so it silently reads back as the ordinary absent-leaf
-  sentinel even though it was genuinely written — the caching strategy
-  working as designed (scoped to structs, not IDS-wide), not a defect.
+- **NEW DEFECT discovered (xfail): cache mode changes a physics value for a
+  top-level field.** `none` and `ids` agree on any field; `ids` populates the
+  whole (or datapath-scoped) IDS at `beginAction`, while `struct` populates
+  lazily, per struct_array, only inside `beginArraystructAction`. A static leaf
+  nested inside a struct_array therefore returns the identical value under all
+  three modes. A plain top-level field, however, is never populated under
+  `cache_mode=struct`, so it silently reads back as the absent-leaf sentinel
+  even though it was genuinely written. That violates issue #26's requirement
+  that cache modes never alter data. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` +
+  tripwire
+  `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField`.
 - **NEW DEFECT discovered (xfail), found while characterizing "cache cleared
   on close": closing a UDA remote-mode session leaks a server-side pulse
   handle.** Root cause traced by comparing the exact directives exchanged
@@ -912,9 +913,9 @@ recorded here alongside the header's existing stack identifiers.
   neither `$IDSDEF_PATH` nor `$IMAS_PREFIX` set → "neither IMAS_PREFIX or
   IDSDEF_PATH environmental variable is set"; `$IDSDEF_PATH` set but the file
   missing → "IDSDef.xml not found at either $IDSDEF_PATH or
-  $IMAS_PREFIX/include/IDSDef.xml". **Wrong-version is a silent divergence,
-  not an error**: pointing `$IDSDEF_PATH` at a real, structurally valid, but
-  older DD (3.42.0) than the reference stack's own 4.1.1 loads without
+  $IMAS_PREFIX/include/IDSDef.xml". **Wrong-version acceptance is a defect**:
+  pointing `$IDSDEF_PATH` at a real, structurally valid, but older DD (3.42.0)
+  than the reference stack's own 4.1.1 loads without
   complaint — `load_xml()`/`get_dd_version()` never compare the loaded file's
   version against anything (not the data's actual DD version, not the
   server's). A real path stable across both schemas
@@ -922,7 +923,9 @@ recorded here alongside the header's existing stack identifiers.
   been loaded — nothing signals that a version-drifted schema is in use. Same
   practical risk class NORTH_STAR.md flags for COCOS-sign-flip-bearing paths:
   this mechanism checks path existence only, never semantic version
-  agreement.
+  agreement. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire
+  `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck`.
 - **`datapath` genuinely hides data, not just reorders fetch priority.**
   With `cache_mode=ids` and a non-empty `datapath`, `populate_cache` only
   requests paths under `<ids>/<datapath>`'s subtree
@@ -933,13 +936,18 @@ recorded here alongside the header's existing stack identifiers.
   HDF5 backend underneath genuinely has it. This is the evidence backing the
   `FUNCTIONALITY_INVENTORY.md`/`CLAUDE.md` claim (corrected by this issue)
   that UDA is the one living exception to "no backend uses `datapath`".
-- **Version-drift check inertness, confirmed from source**:
+- **NEW DEFECT discovered (xfail): version-drift check inertness, confirmed
+  from source**:
   `al_lowlevel.cpp`'s open-time comparison
   (`getVersion(NULL)` vs. `getVersion(pctx)`) can never fire for UDA — both
   sides are hardcoded `{0, 0}` placeholders (`UDABackend::getVersion`,
   `uda_backend.h`'s `UDA_BACKEND_VERSION_MAJOR/MINOR` and the "temporary
   placeholder" non-null-ctx branch), so `(0!=0)||(0<0)` is always false
-  regardless of what is genuinely stored remotely.
+  regardless of what is genuinely stored remotely. An unavailable stored
+  version must not be treated as verified compatibility. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified`
+  + tripwire
+  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse`.
 - **`supportsTimeRangeOperation()` capability negotiation confirmed against
   the reference server**: the reference plugin reports `1.8.0` (issue #23),
   so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
@@ -976,7 +984,7 @@ recorded here alongside the header's existing stack identifiers.
   the divergence is permanent until the cache dir is manually cleared. (Pinned
   against a brand-new field, not the already-seeded scalar: overwriting
   pre-existing data through a fresh `WRITE_OP` session hits a separate, HDF5-
-  backend-wide limitation — `HDF5Writer::write_ND_Data` unconditionally calls
+  backend-wide Limit — `HDF5Writer::write_ND_Data` unconditionally calls
   `H5Dcreate2` for any dataset not already tracked in *this session's*
   in-memory map, with no `H5Lexists` check against the file
   (`hdf5_writer.cpp:417-423`) — orthogonal to UDA and out of this issue's
@@ -1007,12 +1015,12 @@ recorded here alongside the header's existing stack identifiers.
 |---|---|---|
 | URI option surface: `cache_mode` invalid value throws; `verbose` toggles debug tracing (captured directly); `plugin` naming an unregistered plugin fails at open; `init_args` accepted with no observable effect against the reference plugin; `dd_version` override accepted with no observable effect; wrong port fails to connect | `UdaUniqueSurfaceTest.{InvalidCacheModeThrows,VerboseTrueEmitsDebugTracingOnStdout,VerboseAbsentEmitsNoDebugTracing,PluginOptionNamingUnregisteredPluginFailsAtOpen,InitArgsAcceptedAndIgnoredByReferencePlugin,DdVersionOverrideAcceptedWithNoObservableEffect,WrongPortFailsToConnectDistinctlyFromRequestFailures}` | covered |
 | Cache-mode invisibility: `none`/`ids`/`struct` agree on a field all three can reach (a static AOS-nested leaf) | `UdaUniqueSurfaceTest.CacheModeNoneIdsStructAgreeForAosCoveredField` | covered |
-| ↳ `struct` mode never populates a field outside every struct_array — scoped-caching design, not a defect | `UdaUniqueSurfaceTest.CacheModeStructNeverPopulatesFieldsOutsideAnyArraystruct` | divergence |
+| ↳ `struct` mode reports success but returns the absent sentinel for a genuinely written top-level field, so cache-mode selection changes the physics value | `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` + tripwire `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField` | **xfail** |
 | ↳ closing a UDA session leaks a server-side pulse handle (uri-stripping mismatch between `open`/`close` and every `get()`-directive builder), blocking a later local reopen of the same file | `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle` + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle` | **xfail** |
-| Runtime DD loading: present (baseline), absent (both failure messages), wrong-version (silent, no cross-check) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage,DdWrongVersionLoadsSilentlyWithNoCrossVersionCheck}` | covered |
-| ↳ wrong-version DD loads silently with no cross-version check — a genuine gap in the drift-detection story, distinct from a crash/refusal | (same test as above) | divergence |
+| Runtime DD loading: present baseline and absent DD (both failure messages) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage}` | covered |
+| ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
-| Version-drift check inertness: open never fails on the version-drift comparison, both sides hardcoded placeholders | `UdaUniqueSurfaceTest.VersionDriftCheckNeverFiresRegardlessOfStoredPulse` | divergence |
+| Version-drift check inertness: open treats an unavailable stored version as compatible because both sides are hardcoded placeholders | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse` | **xfail** |
 | Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
 | Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
 | `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
@@ -1031,8 +1039,8 @@ ships and registers by default in `ukaea/uda`'s own build — and is corrected
 in `docker/uda/README.md` alongside this issue's findings.
 
 **Progress summary (issue #28): zero blank rows remain in Part 5 — every one
-of its 31 rows is terminal (19 `covered`/`covered (indirect)`, 5
-`divergence`, 6 `xfail`, 1 `terminal-gap`), each xfail row's `DISABLED_`
+of its 31 rows is terminal (19 `covered`/`covered (indirect)`, 1
+`divergence`, 9 `xfail`, 2 `terminal-gap`), each xfail row's `DISABLED_`
 correct-contract test and current-behavior tripwire both verified present in
 `test_uda_real_paths.cpp`/`test_uda_breadth.cpp`/
 `test_uda_unique_surface.cpp`, and every divergence

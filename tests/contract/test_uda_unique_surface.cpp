@@ -4,8 +4,8 @@
 // write/delete pins (#27, areas 7-10):
 //   1. URI option surface (plugin, init_args, dd_version, cache_mode invalid
 //      value, verbose, host/port).
-//   2. Cache-mode invisibility (none/ids/struct identical reads; cache
-//      cleared on close).
+//   2. Cache-mode invisibility (none/ids/struct identical reads; top-level
+//      struct-mode data-loss defect; cache cleared on close).
 //   3. Runtime DD loading (IDSDef.xml present / absent / wrong-version).
 //   4. datapath partial-get via cache_mode=ids -- the only living use of
 //      al_begin_global_action's datapath argument anywhere in the codebase
@@ -169,7 +169,9 @@ TEST_F(UdaUniqueSurfaceTest, InvalidCacheModeThrows) {
     EXPECT_NE(s.code, 0) << "an invalid cache_mode value must be rejected";
     EXPECT_NE(std::string(s.message).find("invalid cache mode"), std::string::npos)
         << "expected the documented rejection message, got: " << s.message;
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
 // verbose: "1"/"true" -> debug tracing on stdout; anything else (including
@@ -183,7 +185,7 @@ TEST_F(UdaUniqueSurfaceTest, VerboseTrueEmitsDebugTracingOnStdout) {
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
     const std::string captured = testing::internal::GetCapturedStdout();
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 
     EXPECT_NE(captured.find("UDABackend openPulse"), std::string::npos)
         << "verbose=true must emit UDABackend's debug tracing; captured: "
@@ -198,7 +200,7 @@ TEST_F(UdaUniqueSurfaceTest, VerboseAbsentEmitsNoDebugTracing) {
     int pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
     const std::string captured = testing::internal::GetCapturedStdout();
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 
     EXPECT_EQ(captured.find("UDABackend openPulse"), std::string::npos)
         << "verbose unset must default to no debug tracing; captured: "
@@ -217,7 +219,9 @@ TEST_F(UdaUniqueSurfaceTest, PluginOptionNamingUnregisteredPluginFailsAtOpen) {
     al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
     EXPECT_NE(s.code, 0) << "an unregistered plugin name must fail at open, "
                             "not silently fall back to the default";
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
 // init_args: passed through to "<plugin>::init(<args>)" with ';' rewritten to
@@ -244,8 +248,8 @@ TEST_F(UdaUniqueSurfaceTest, InitArgsAcceptedAndIgnoredByReferencePlugin) {
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], 6.2) << "arbitrary init_args must not change read "
                                "behavior against the reference plugin";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // dd_version: an explicit override is forwarded verbatim as a query param on
@@ -273,8 +277,8 @@ TEST_F(UdaUniqueSurfaceTest, DdVersionOverrideAcceptedWithNoObservableEffect) {
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], 6.2) << "an arbitrary dd_version override must not "
                                "change read behavior -- no backend consults it";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // host/port: parsed from the URI authority (UDABackend constructor +
@@ -292,20 +296,23 @@ TEST_F(UdaUniqueSurfaceTest, WrongPortFailsToConnectDistinctlyFromRequestFailure
     int         pulse_ctx = -1;
     al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
     EXPECT_NE(s.code, 0) << "a port nothing listens on must fail at open";
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
 // ===========================================================================
 // Area 2: cache-mode invisibility.
 // ===========================================================================
-// The three cache modes are a performance knob: none takes readData's direct
-// per-field IMAS::get path; ids pre-fetches the whole (or datapath-scoped,
-// area 4) IDS at beginAction time; struct pre-fetches each struct_array's
-// leaves at its own begin_arraystruct_action, and *only* that (a plain
-// top-level field is never in scope for struct mode -- see the second test
-// below). For a field genuinely covered by all three (a static, non-dynamic
-// leaf nested one level inside a struct_array, so struct mode's own populate
-// point is reached), all three must return the exact same physics value.
+// The three cache modes are performance knobs and must not change physics
+// values: none takes readData's direct per-field IMAS::get path; ids
+// pre-fetches the whole (or datapath-scoped, area 4) IDS at beginAction time;
+// struct pre-fetches each struct_array's leaves at its own
+// begin_arraystruct_action. A field covered by all three (a static,
+// non-dynamic leaf nested one level inside a struct_array, so struct mode's
+// own population point is reached) does return the exact same value. The D2
+// pair below pins the defect for a top-level field that struct mode currently
+// drops instead.
 TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
     const std::string pulse_dir = fresh_pulse_dir();
     const std::vector<int> kShape = {2, 3, 2};  // shape_for_rank(3)
@@ -356,13 +363,15 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
             << "cache_mode=" << mode << " must return the same value as every "
                                         "other cache mode for a field its own "
                                         "population point covers";
-        al_end_action(raos);
-        al_end_action(op);
-        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        AL_EXPECT_OK(al_end_action(raos));
+        AL_EXPECT_OK(al_end_action(op));
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 }
 
-// Cache-mode invisibility does NOT extend to struct mode's own *scope*:
+// NEW DEFECT (xfail): cache-mode invisibility currently does not extend to a
+// top-level field under struct mode. The mode's implementation only populates
+// its cache inside beginArraystructAction:
 // UDABackend::beginAction only populates the cache for cache_mode=ids
 // (src/uda/uda_backend.cpp:1016); struct mode populates lazily, per
 // struct_array, only inside beginArraystructAction (cache_.count(path) miss ->
@@ -372,10 +381,38 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeNoneIdsStructAgreeForAosCoveredField) {
 // mode, and readData's fallthrough (`cache_.count(path)` miss, not one of the
 // two homogeneous-time/version preconditions, cache_mode_ != None ->
 // `return 0`, uda_backend.cpp:724-726) reports it as the ordinary absent-leaf
-// contract -- silently wrong-looking unless you know the scope rule. This is
-// the caching strategy working as designed, not a defect: struct mode is
-// scoped to structs, not the whole IDS.
-TEST_F(UdaUniqueSurfaceTest, CacheModeStructNeverPopulatesFieldsOutsideAnyArraystruct) {
+// contract. That loses a genuinely written physics value based solely on the
+// cache-mode selection, violating issue #26's requirement that none/ids/
+// struct return identical data.
+
+// CORRECT-CONTRACT, expected-fail (DISABLED_): struct mode must return the
+// same written value as none and ids for a top-level field.
+TEST_F(UdaUniqueSurfaceTest, DISABLED_CacheModeStructPreservesTopLevelField) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string uri = al_contract::uda_uri_base() +
+                             "?backend=hdf5&cache_mode=struct&path=" + pulse_dir;
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pulse_ctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    std::vector<int>    shape;
+    std::vector<double> data;
+    AL_EXPECT_OK(al_contract::read_data<double>(op, equilibrium_seed::kScalar,
+                                                0, &shape, &data));
+    ASSERT_EQ(data.size(), 1u);
+    EXPECT_EQ(data[0], 6.2)
+        << "cache_mode=struct must preserve a written top-level physics value "
+           "exactly as cache_mode=none and cache_mode=ids do";
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+}
+
+// CURRENT-BEHAVIOR tripwire: struct mode reports success but returns the
+// ordinary absent-leaf sentinel for the genuinely written top-level field.
+TEST_F(UdaUniqueSurfaceTest,
+       CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
     const std::string uri = al_contract::uda_uri_base() +
                              "?backend=hdf5&cache_mode=struct&path=" + pulse_dir;
@@ -394,12 +431,12 @@ TEST_F(UdaUniqueSurfaceTest, CacheModeStructNeverPopulatesFieldsOutsideAnyArrays
                        "not an error";
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], al_contract::kEmptyDouble)
-        << "cache_mode=struct never populates a field that lives outside "
-           "every struct_array the caller enters, even though it was "
-           "genuinely written -- struct mode's scope is per-struct_array, "
-           "not IDS-wide like ids mode";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        << "struct mode now preserves the written value -- enable "
+           "DISABLED_CacheModeStructPreservesTopLevelField; until then its "
+           "per-struct_array population scope must keep reproducing this "
+           "known data-loss defect";
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -502,7 +539,7 @@ al_status_t local_reopen_status_after_uda_session_closes(const char* cache_mode)
                                                   &shape, &data)
                       .code,
                   0);
-        al_end_action(op);
+        AL_EXPECT_OK(al_end_action(op));
         EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
     }
 
@@ -549,7 +586,7 @@ TEST_F(UdaUniqueSurfaceTest, DdPresentLoadsAndOpenSucceeds) {
     const std::string uri = uda_uri_with(pulse_dir);
     int                pulse_ctx = -1;
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx));
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // Absent: neither $IDSDEF_PATH nor $IMAS_PREFIX set -> load_xml() throws
@@ -570,7 +607,9 @@ TEST_F(UdaUniqueSurfaceTest, DdAbsentNeitherEnvVarSetFailsWithClearMessage) {
                   "neither IMAS_PREFIX or IDSDEF_PATH"),
               std::string::npos)
         << "expected the documented missing-env-var message, got: " << s.message;
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
 // Absent: $IDSDEF_PATH set but points at a file that does not exist ->
@@ -587,10 +626,14 @@ TEST_F(UdaUniqueSurfaceTest, DdAbsentFileMissingAtIdsDefPathFailsWithClearMessag
     EXPECT_NE(s.code, 0) << "open must fail when IDSDEF_PATH names a missing file";
     EXPECT_NE(std::string(s.message).find("IDSDef.xml not found"), std::string::npos)
         << "expected the documented not-found message, got: " << s.message;
-    if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
 
-// Wrong-version: $IDSDEF_PATH points at a real, structurally valid, but
+// NEW DEFECT (xfail): $IDSDEF_PATH can point at a real, structurally valid,
+// but wrong-version DD without the client rejecting it. The correct contract
+// and current-behavior tripwire below use an older DD:
 // *older* DD (3.42.0, IDSDEF_PATH_OLDER, docker/uda/Dockerfile) than the
 // reference stack's own DD 4.1.1. load_xml()/get_dd_version() do not compare
 // the loaded file's version against anything -- there is no cross-check
@@ -609,7 +652,37 @@ TEST_F(UdaUniqueSurfaceTest, DdAbsentFileMissingAtIdsDefPathFailsWithClearMessag
 // this mechanism checks path existence only, never semantic version
 // agreement). Skipped, not failed, if the second DD version was not baked
 // into this reference image (docker/uda/Dockerfile).
-TEST_F(UdaUniqueSurfaceTest, DdWrongVersionLoadsSilentlyWithNoCrossVersionCheck) {
+
+// CORRECT-CONTRACT, expected-fail (DISABLED_): opening data written against a
+// different DD must be refused rather than silently treating path agreement
+// as semantic version compatibility.
+TEST_F(UdaUniqueSurfaceTest, DISABLED_DdWrongVersionIsRejected) {
+    const char* older_dd = std::getenv("IDSDEF_PATH_OLDER");
+    if (!older_dd || !*older_dd) {
+        GTEST_SKIP() << "IDSDEF_PATH_OLDER is unset -- the reference image "
+                        "does not carry a second DD version (docker/uda/"
+                        "Dockerfile); this row is skipped, not failed.";
+    }
+
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir(), /*r0=*/6.2);
+    const std::string uri       = uda_uri_with(pulse_dir);
+
+    ScopedEnv idsdef(/*name=*/"IDSDEF_PATH", /*value=*/older_dd);
+
+    int         pulse_ctx = -1;
+    al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
+    EXPECT_NE(s.code, 0)
+        << "a DD 3.42.0 client must refuse data served from the DD 4.1.1 "
+           "reference stack instead of silently assuming compatibility";
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
+}
+
+// CURRENT-BEHAVIOR tripwire: the wrong-version DD loads silently and a path
+// stable across the two DD versions reads as if the versions agreed.
+TEST_F(UdaUniqueSurfaceTest,
+       DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck) {
     const char* older_dd = std::getenv("IDSDEF_PATH_OLDER");
     if (!older_dd || !*older_dd) {
         GTEST_SKIP() << "IDSDEF_PATH_OLDER is unset -- the reference image "
@@ -636,10 +709,11 @@ TEST_F(UdaUniqueSurfaceTest, DdWrongVersionLoadsSilentlyWithNoCrossVersionCheck)
            "back correctly under the wrong-version schema";
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], 6.2)
-        << "no signal distinguishes this from a correct-version read -- the "
-           "version drift is silent";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        << "wrong-version loading is now rejected -- enable "
+           "DISABLED_DdWrongVersionIsRejected; until then this stable path "
+           "must keep exposing the silent cross-version acceptance defect";
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -724,8 +798,8 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
                "prioritizes fetch order";
     }
 
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -745,10 +819,32 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
 // ((ver.first!=sver.first)||(ver.second<sver.second)) is therefore always
 // (0!=0)||(0<0) = false -- the version-drift check can never fire for UDA,
 // regardless of what is genuinely stored remotely. Directly testable only as
-// a positive: open must always succeed on this axis (there is no way to force
-// a "drifted" placeholder to differ from itself).
+// a positive: open currently always succeeds on this axis (there is no way to
+// force a "drifted" placeholder to differ from itself). The correct contract
+// is to refuse an open whose stored backend version cannot be retrieved; a
+// placeholder equality must not be treated as verified compatibility.
 // ===========================================================================
-TEST_F(UdaUniqueSurfaceTest, VersionDriftCheckNeverFiresRegardlessOfStoredPulse) {
+
+// CORRECT-CONTRACT, expected-fail (DISABLED_): UDA must not open a remote
+// pulse when it cannot obtain a real stored backend version to compare.
+TEST_F(UdaUniqueSurfaceTest,
+       DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified) {
+    const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
+    const std::string uri       = uda_uri_with(pulse_dir);
+    int               pulse_ctx = -1;
+    al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
+    EXPECT_NE(s.code, 0)
+        << "OPEN_PULSE must refuse unverifiable compatibility rather than "
+           "compare two hardcoded {0,0} placeholders";
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
+}
+
+// CURRENT-BEHAVIOR tripwire: placeholder equality makes the compatibility
+// check accept every remote pulse without examining its stored version.
+TEST_F(UdaUniqueSurfaceTest,
+       VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
     const std::string uri = uda_uri_with(pulse_dir);
     int                pulse_ctx = -1;
@@ -757,7 +853,7 @@ TEST_F(UdaUniqueSurfaceTest, VersionDriftCheckNeverFiresRegardlessOfStoredPulse)
                        "comparison for UDA -- both sides of the comparison "
                        "are hardcoded {0,0} placeholders "
                        "(UDABackend::getVersion), so it is structurally inert";
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -819,9 +915,9 @@ TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion1
            "refused with the 'does not support time range operations' "
            "message; got: " << s.message;
     if (s.code == 0) {
-        al_end_action(op);
+        AL_EXPECT_OK(al_end_action(op));
     }
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
@@ -885,8 +981,8 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeDownloadsHandsOffToLocalBackendAndReusesCa
     EXPECT_EQ(data[0], 6.2)
         << "seeded data must read back correctly once handed off to the "
            "local backend";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 
     // --- second open: must reuse the cache, not re-download -----------------
     testing::internal::CaptureStdout();
@@ -912,8 +1008,8 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeDownloadsHandsOffToLocalBackendAndReusesCa
                                                 &shape, &data));
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], 6.2) << "the reused cache must still serve correct data";
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 
     std::filesystem::remove_all(cache_dir, ec);
 }
@@ -959,13 +1055,14 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeLocalCacheOptionOverridesDefaultCacheDir) 
                                                 &shape, &data));
     ASSERT_EQ(data.size(), 1u);
     EXPECT_EQ(data[0], 6.2);
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 // ===========================================================================
-// Area 9: the stale-cache / write-divergence pin -- the trap a physicist
-// could hit. UDABackend::writeData delegates straight to the local backend
+// Area 9: the stale-cache / write-divergence pin -- the trap an HLI
+// implementer could hit. UDABackend::writeData delegates straight to the
+// local backend
 // once access_local_ is set (uda_backend.cpp:1107-1109): there is no upload
 // path back to the server at all. Combined with download_file's
 // early-exists-return (area 7/8), a fetch-mode write "succeeds" but only ever
@@ -981,7 +1078,7 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeLocalCacheOptionOverridesDefaultCacheDir) 
 // check against the file) -- so a WRITE_OP that overwrites data seeded in a
 // *prior* session hits "Unable to create HDF5 dataset" (H5Dcreate2 fails on
 // an already-linked name). That is a genuine, separate HDF5-backend
-// limitation on updating pre-existing data in a fresh session, orthogonal to
+// Limit on updating pre-existing data in a fresh session, orthogonal to
 // UDA fetch mode -- exercising it here would conflate two different defects.
 // Writing a brand-new field sidesteps it while still proving the same
 // divergence: a "successful" fetch-mode write that never reaches the server.
@@ -1030,8 +1127,8 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeWriteDivergesFromServerAndStalePersistsAcr
             << "the fetch-mode write must never reach the server -- there is "
                "no upload path (UDABackend::writeData delegates straight to "
                "the local backend once access_local_ is set)";
-        al_end_action(op);
-        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        AL_EXPECT_OK(al_end_action(op));
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 
     // --- the divergent local copy persists across close/reopen -------------
@@ -1051,8 +1148,8 @@ TEST_F(UdaUniqueSurfaceTest, FetchModeWriteDivergesFromServerAndStalePersistsAcr
                "opens -- download_file's early-exists-return never re-fetches "
                "the genuine server-side (absent) value, so the divergence is "
                "permanent until the cache dir is manually cleared";
-        al_end_action(op);
-        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        AL_EXPECT_OK(al_end_action(op));
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 }
 
@@ -1106,8 +1203,8 @@ al_status_t remote_write_status_and_confirm_unpersisted(
                   0);
         write_status = al_contract::write_data<double>(
             op, equilibrium_seed::kScalar, {}, {9.9});
-        al_end_action(op);
-        al_close_pulse(pulse_ctx, CLOSE_PULSE);
+        AL_EXPECT_OK(al_end_action(op));
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 
     int pulse_ctx = -1;
@@ -1125,8 +1222,8 @@ al_status_t remote_write_status_and_confirm_unpersisted(
                   .code,
               0);
     *reached_server = (data.size() == 1u && data[0] == 9.9);
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 
     return write_status;
 }
@@ -1183,8 +1280,8 @@ TEST_F(UdaUniqueSurfaceTest, RemoteDeleteFailsWithUnknownFunctionRequested) {
         << "expected the server's exact dispatch-failure text, got: "
         << s.message;
 
-    al_end_action(op);
-    al_close_pulse(pulse_ctx, CLOSE_PULSE);
+    AL_EXPECT_OK(al_end_action(op));
+    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 
 }  // namespace
