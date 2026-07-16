@@ -75,10 +75,16 @@ jobs:
           grep -q "\*\*${dd_version}\*\*" "${header}"
           echo "Image stack identifiers match ${header}'s Part 5 pinned-reference-stack table."
 
+      # AL_UDA_DEDICATED_CI=1: inside the dedicated reference-stack job a
+      # server bootstrap failure must fail the job, not skip every test —
+      # uda-run.sh makes the listener wait and the uda_cli ping fatal, and
+      # fails unless a nonzero number of UDA tests actually executed
+      # (issue #41). Developer builds without the flag keep skip semantics.
       - name: Run the UDA contract tier
         run: >
           docker run --rm --platform linux/arm64
           -v "$PWD":/workspace -w /workspace
+          -e AL_UDA_DEDICATED_CI=1
           "${IMAGE_TAG}" uda-run.sh
 
       - name: Note
