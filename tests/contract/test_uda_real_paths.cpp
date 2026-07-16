@@ -61,11 +61,27 @@ struct PathSpec {
     // leaf nested inside a struct_array silently comes back empty/absent
     // through UDA remote mode + backend=hdf5, instead of what was written.
     // Distinct from divergence_reason -- this is a real bug (xfail), not a
-    // legitimate storage-model difference; the cell is skipped here (not run
-    // into the known-wrong assertion) and the defect itself is pinned once,
-    // centrally, by UdaAosKnownDefects's DISABLED_/tripwire pair.
+    // legitimate storage-model difference; the cell is skipped in the breadth
+    // matrix (not run into the known-wrong assertion) and pinned exactly by
+    // UdaRealPathMatrixKnownDefects's DISABLED_/tripwire pair below.
     const char*              known_defect_reason = nullptr;
 };
+
+// Keep the three exact known-defect cells as named specs so the breadth matrix
+// and the DISABLED_/tripwire pair below exercise identical IDS paths, ranks,
+// and AOS nesting without duplicating that configuration.
+const PathSpec kComplexR1DynamicAosSpec{
+    DType::Complex, 1, "waves", {"coherent_wave", "full_wave", "e_field/plus"},
+    "values", nullptr, nullptr,
+    "dynamic leaf nested in a struct_array (3 AOS levels)"};
+const PathSpec kComplexR3DynamicAosSpec{
+    DType::Complex, 3, "runaway_electrons", {"distribution/markers"},
+    "orbit_integrals_instant/values", nullptr, nullptr,
+    "dynamic leaf nested in a struct_array (1 AOS level)"};
+const PathSpec kComplexR5DynamicAosSpec{
+    DType::Complex, 5, "runaway_electrons", {"distribution/markers"},
+    "orbit_integrals/values", nullptr, nullptr,
+    "dynamic leaf nested in a struct_array (1 AOS level)"};
 
 // Identical path/rank/aos_chain curation to test_mdsplus_real_paths.cpp's
 // kPathSpecs (issue #25 acceptance criterion 2: "curated real-path set reused
@@ -136,29 +152,17 @@ const PathSpec kPathSpecs[] = {
     // inside-AOS defect (test_uda_breadth.cpp): the field comes back
     // empty/absent through UDA remote mode + backend=hdf5 instead of what
     // was written.
-    {DType::Complex, 1, "waves", {"coherent_wave", "full_wave", "e_field/plus"},
-     "values", nullptr, nullptr,
-     "dynamic leaf nested in a struct_array (3 AOS levels) -- see "
-     "UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel "
-     "(test_uda_breadth.cpp)"},
+    kComplexR1DynamicAosSpec,
     {DType::Complex, 2, "gyrokinetics_local", {},
      "non_linear/fields_zonal_2d/phi_potential_perturbed_norm", nullptr},
     // Same known defect as COMPLEX r1 above: orbit_integrals_instant/values
     // is a dynamic leaf nested one level inside runaway_electrons/
     // distribution/markers.
-    {DType::Complex, 3, "runaway_electrons", {"distribution/markers"},
-     "orbit_integrals_instant/values", nullptr, nullptr,
-     "dynamic leaf nested in a struct_array (1 AOS level) -- see "
-     "UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel "
-     "(test_uda_breadth.cpp)"},
+    kComplexR3DynamicAosSpec,
     {DType::Complex, 4, "gyrokinetics_local", {},
      "non_linear/fields_4d/phi_potential_perturbed_norm", nullptr},
     // Same known defect as COMPLEX r1/r3 above.
-    {DType::Complex, 5, "runaway_electrons", {"distribution/markers"},
-     "orbit_integrals/values", nullptr, nullptr,
-     "dynamic leaf nested in a struct_array (1 AOS level) -- see "
-     "UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel "
-     "(test_uda_breadth.cpp)"},
+    kComplexR5DynamicAosSpec,
     {DType::Complex, 6, nullptr, {}, nullptr,
      "DD 4.1.1 has no CPX_6D anywhere"},
     {DType::Complex, 7, nullptr, {}, nullptr,
@@ -191,8 +195,9 @@ void read_leaf_and_expect(int ctx, const char* leaf, int rank,
 // segment, a single element each, mirroring test_mdsplus_real_paths.cpp's
 // run_cell), then reopen the identical pulse dir through the UDA backend in
 // remote mode and read the same path back.
-template <class T>
-void run_cell(const PathSpec& spec) {
+template <class T, class ReadExpectation>
+void run_cell_with_read_expectation(const PathSpec& spec,
+                                    ReadExpectation&& expect_read) {
     al_contract::TempBase base;
     const std::string pulse_dir = base.str() + "/pulse";
     std::error_code ec;
@@ -263,7 +268,7 @@ void run_cell(const PathSpec& spec) {
             ctx = aos;
         }
 
-        read_leaf_and_expect<T>(ctx, spec.leaf, spec.rank, shape, written);
+        expect_read(ctx, spec, shape, written);
 
         for (auto it = aos_ctxs.rbegin(); it != aos_ctxs.rend(); ++it) {
             AL_EXPECT_OK(al_end_action(*it));
@@ -271,6 +276,17 @@ void run_cell(const PathSpec& spec) {
         AL_ASSERT_OK(al_end_action(op));
         EXPECT_EQ(al_close_pulse(pulse_ctx, CLOSE_PULSE).code, 0);
     }
+}
+
+template <class T>
+void run_cell(const PathSpec& spec) {
+    run_cell_with_read_expectation<T>(
+        spec, [](int ctx, const PathSpec& read_spec,
+                 const std::vector<int>& shape,
+                 const std::vector<T>& written) {
+            read_leaf_and_expect<T>(ctx, read_spec.leaf, read_spec.rank, shape,
+                                    written);
+        });
 }
 
 class UdaRealPathMatrix : public ::testing::TestWithParam<PathSpec> {
@@ -319,6 +335,51 @@ std::string NameUdaRealPathMatrixCase(
 
 INSTANTIATE_TEST_SUITE_P(Uda, UdaRealPathMatrix, ::testing::ValuesIn(kPathSpecs),
                          NameUdaRealPathMatrixCase);
+
+// Exact D2 pins for the three COMPLEX matrix cells affected by the dynamic-
+// leaf-inside-AOS defect. The disabled correct-contract test and enabled
+// current-behavior tripwire deliberately share run_cell_with_read_expectation,
+// so both traverse the same public C ABI and the same real DD path. A targeted
+// fix to any one rank/path makes that case's tripwire fail independently.
+class UdaRealPathMatrixKnownDefects
+    : public ::testing::TestWithParam<PathSpec> {
+protected:
+    void SetUp() override { AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED(); }
+};
+
+TEST_P(UdaRealPathMatrixKnownDefects,
+       DISABLED_DynamicComplexLeafInsideAosRoundTrips) {
+    run_cell<std::complex<double>>(GetParam());
+}
+
+TEST_P(UdaRealPathMatrixKnownDefects,
+       DynamicComplexLeafInsideAosCurrentlyReadsEmpty) {
+    run_cell_with_read_expectation<std::complex<double>>(
+        GetParam(), [](int ctx, const PathSpec& spec,
+                       const std::vector<int>&,
+                       const std::vector<std::complex<double>>&) {
+            std::vector<int>                  read_shape;
+            std::vector<std::complex<double>> read_data;
+            AL_EXPECT_OK(al_contract::read_data<std::complex<double>>(
+                ctx, spec.leaf, spec.rank, &read_shape, &read_data));
+            EXPECT_TRUE(read_shape.empty() && read_data.empty())
+                << "this exact COMPLEX r" << spec.rank
+                << " dynamic leaf now returns data through UDA remote mode -- "
+                   "enable its paired DISABLED_DynamicComplexLeafInsideAosRoundTrips "
+                   "case";
+        });
+}
+
+const PathSpec kComplexDynamicAosKnownDefectSpecs[] = {
+    kComplexR1DynamicAosSpec,
+    kComplexR3DynamicAosSpec,
+    kComplexR5DynamicAosSpec,
+};
+
+INSTANTIATE_TEST_SUITE_P(
+    Uda, UdaRealPathMatrixKnownDefects,
+    ::testing::ValuesIn(kComplexDynamicAosKnownDefectSpecs),
+    NameUdaRealPathMatrixCase);
 
 }  // namespace
 
