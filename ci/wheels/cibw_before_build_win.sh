@@ -69,8 +69,26 @@ vcpkg install --classic ${UDA_DEPS[@]}
 # N.B. all the deps in vcpkgs.json will be installed (if missing) via vcpkg's cmake toolchain file
 
 
+# Skip the UDA fetch+build entirely when a restored dependency cache already
+# provides the installed client (uda-cpp.pc is the last artifact the install
+# produces); the windows_deps CI job's cache key includes UDA_REF and this
+# script's hash, so a version bump still rebuilds from a cold cache (issue #44).
+if test -f "${USEFUL_CMAKE_INSTALL_PREFIX}/lib/pkgconfig/uda-cpp.pc" ;then
+    echo "UDA already installed under ${USEFUL_CMAKE_INSTALL_PREFIX} (restored cache) - skipping UDA build"
+else
+# Reuse the UDA source archive from vcpkg's downloads directory when present:
+# the windows_deps CI job caches C:\vcpkg\downloads, so each wheel job restores
+# the archive instead of re-fetching it from GitHub (issue #44). A fresh
+# download is copied back there so the cache saved by that job includes it.
+UDA_TARBALL_CACHE="${VCPKG_ROOT}/downloads/UDA-${UDA_REF}.tar.gz"
 if ! test -f ${UDA_REF}.tar.gz ;then
-curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${UDA_REF}.tar.gz
+    if test -f "${UDA_TARBALL_CACHE}" ;then
+        cp "${UDA_TARBALL_CACHE}" ${UDA_REF}.tar.gz
+    else
+        curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${UDA_REF}.tar.gz
+        mkdir -p "${VCPKG_ROOT}/downloads"
+        cp ${UDA_REF}.tar.gz "${UDA_TARBALL_CACHE}"
+    fi
 fi
 if ! test -d UDA-${UDA_REF} ;then
 tar zxf ${UDA_REF}.tar.gz
@@ -95,6 +113,7 @@ if test -d UDA-${UDA_REF} ;then
 # install UDA
     cmake --install build --config Release
 )
+fi
 fi
 # delvewheel is the equivalent of delocate/auditwheel for windows.
 python -m pip install delvewheel wheel
