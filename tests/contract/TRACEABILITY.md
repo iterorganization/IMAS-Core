@@ -408,7 +408,13 @@ Where the rows above join MDSplus to the *existing* fixtures' synthetic
 shapes, this matrix instead curates one **real** DD-4.1.1 path per
 `{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell — the axis
 `RoundTripMatrix` already sweeps on the always-on tier, but against opaque
-paths MDSplus cannot resolve (issue #12 Q2/Q5). Path curation method: the
+paths MDSplus cannot resolve (issue #12 Q2/Q5). The curated set is the shared
+`al_contract::real_dd::catalog()` (`real_dd_path_catalog.{h,cpp}`, issue #46):
+the IDS, struct_array chain, leaf, and terminal-gap DD facts are identical for
+MDSplus and UDA and live in exactly one place, so the two matrices cannot
+silently diverge; only each backend's own storage-model verdicts stay local
+(`RealDdPathCatalog.*` plus the per-backend `*RealPathCatalog.CoversEveryCatalogKeyOnce`
+meta-tests fail if a matrix drops a cell). Path curation method: the
 `imas-dd` MCP tool CLAUDE.md names was not present in this session's MCP
 configuration, so the same question it would answer was resolved by walking
 the actual baked-from artifact directly —
@@ -661,12 +667,15 @@ not fixed — both explained in full below.
 ## Real-DD-path datatype × rank breadth (issue #25, reusing issue #15's set)
 
 `test_uda_real_paths.cpp`, `Uda/UdaRealPathMatrix.*` — the UDA analogue of
-`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set
-reused as-is** (same 32 cells, same 10 IDSs), adapted to seed(HDF5)-then-
-reopen(UDA) instead of MDSplus's direct write→read. `terminal_gap_reason`
-carries over unchanged (a DD-4.1.1 fact, independent of backend); a UDA-only
-`divergence_reason` and `known_defect_reason` were added where the two
-backends diverge for different reasons on the same cell.
+`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set,
+now the shared `al_contract::real_dd::catalog()`** (`real_dd_path_catalog.{h,cpp}`,
+issue #46 — one source of truth for both matrices, same 32 cells, same 10
+IDSs), adapted to seed(HDF5)-then-reopen(UDA) instead of MDSplus's direct
+write→read. `terminal_gap_reason` lives in the shared catalog (a DD-4.1.1 fact,
+independent of backend); UDA-only `divergence_reason`/`known_defect_reason`
+verdicts stay local to `test_uda_real_paths.cpp` where the two backends diverge
+for different reasons on the same cell. `UdaRealPathCatalog.CoversEveryCatalogKeyOnce`
+fails if the UDA matrix ever drops or duplicates a catalog cell.
 
 **Characterization-discovered facts:**
 
@@ -714,8 +723,8 @@ backends diverge for different reasons on the same cell.
   COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.
   DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,
   COMPLEX_r5}` (`test_uda_real_paths.cpp`). The DOUBLE-scalar
-  `UdaAosKnownDefects` pair remains an independent pin and AOS-mechanism proof,
-  not a substitute for these exact matrix cases.
+  `UdaAosKnownDefects` pair remains an independent value-transport pin, not a
+  substitute for these exact matrix cases or the active traversal proof below.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -734,20 +743,25 @@ the lifecycle cases drive the remote UDA URI directly through the C ABI.
 
 **Characterization-discovered facts:**
 
-- **AOS traversal (top-level) hits the same dynamic-leaf-inside-AOS defect
-  described above**: `equilibrium/time_slice` (a real DD struct_array,
-  `timebasepath="time"`) correctly reports its written size (3) through
-  `al_begin_arraystruct_action`, and iteration genuinely advances (the request
-  trace shows three distinct `time_slice[0..2]/global_quantities/ip`
-  directives), but every element's `global_quantities/ip` value comes back as
-  the HDF5 absent-scalar sentinel (`-9.0e40`) instead of what was written.
-  Pinned as the canonical instance of the defect: `UdaAosKnownDefects.
-  DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.
-  DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested (multi-level) AOS
-  traversal is exercised separately and successfully by the real-path
-  matrix's *static* AOS-nested cells above (INTEGER r3, DOUBLE r6) — the
-  traversal mechanism itself (begin/iterate/end across nesting) works; only
-  a *dynamic* leaf's value fails to come back correctly.
+- **AOS traversal (top-level) has a discriminating active C-ABI proof**:
+  `temporary/constant_integer3d` is a real DD-4.1.1 struct_array with a static
+  `value` leaf known to round-trip through UDA. Three elements with distinct,
+  order-sensitive values are seeded through HDF5 in physical index order
+  0→2→1 (so setup does not mirror the asserted traversal), then read in order
+  0→1→2 around successive `al_iterate_over_arraystruct(..., 1)` calls after
+  reopening through UDA.
+  `UdaBreadthTest.AosTraversalAdvancesAcrossDistinctStaticElements` asserts the
+  exact sequence, so a successful no-op, repeated element, or reordered
+  element fails. It also ends the AOS action and verifies through the same
+  public function that the invalid context returns an error status.
+- **The dynamic-leaf-inside-AOS value defect remains separately pinned**:
+  `equilibrium/time_slice` correctly reports its written size (3), but every
+  element's `global_quantities/ip` value comes back as the HDF5 absent-scalar
+  sentinel (`-9.0e40`) instead of what was written. The canonical D2 pair is
+  `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire
+  `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested
+  (multi-level) traversal is also exercised by the real-path matrix's static
+  AOS cells (INTEGER r3, DOUBLE r6).
 - **`al_get_occurrences` is real through UDA remote mode** (the reference
   `IMAS` server plugin implements `getOccurrences`, confirmed via the PRD's
   static finding): occurrence 0 and occurrence 2 (HDF5's own `<ids>_<N>`
@@ -823,7 +837,7 @@ the lifecycle cases drive the remote UDA URI directly through the C ABI.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
-| AOS traversal, top-level (size + iteration mechanism correct; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` (mechanism proof); see the xfail row below for the value defect | covered (indirect) |
+| AOS traversal, top-level (reported size + exact three-element forward sequence; invalid ended context returns an error; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaBreadthTest.AosTraversalAdvancesAcrossDistinctStaticElements` | covered |
 | ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
 | `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` storage naming and UDA's `<ids>/<N>` public naming pinned; every reported occurrence is reopened and read | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
 | `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
