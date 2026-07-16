@@ -93,10 +93,10 @@ unchanged). Issue #8 (`6-ownership-sweep.md`) closed every remaining row:
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| `al_begin_dataentry_action` opens a data entry from a URI | :90-107 | ✓ (Memory) | ✓ (HDF5, ASCII) | `FORCE_CREATE_PULSE` asserted OK in every suite. `OPEN_PULSE` fails when absent / `FORCE_OPEN_PULSE` creates when absent / `OPEN_PULSE` succeeds once present / `CREATE_PULSE` refuses an existing pulse (HDF5, Memory): `Backends/DataEntryModes.*`. MDSplus: joined too — see Part 4. UDA: `OPEN_PULSE` genuinely round-trips to the server and fails when the remote pulse dir is absent, genuine parity — see Part 5 | covered |
+| `al_begin_dataentry_action` opens a data entry from a URI | :90-107 | ✓ (Memory) | ✓ (HDF5, ASCII) | `FORCE_CREATE_PULSE` asserted OK in every suite. `OPEN_PULSE` fails when absent / `FORCE_OPEN_PULSE` creates when absent / `OPEN_PULSE` succeeds once present / `CREATE_PULSE` refuses an existing pulse (HDF5, Memory): `Backends/DataEntryModes.*`. MDSplus: joined too — see Part 4. UDA: all four modes now have the same lifecycle verdict (`UdaBreadthTest.{OpenPulse*,ForceOpenPulse*,CreatePulse*,ForceCreatePulse*}`) — see Part 5 | covered |
 | ↳ ASCII's `CREATE_PULSE` has no existence guard — **silently overwrites/truncates an existing pulse** instead of refusing it | :90-107; src/ascii_backend.cpp:107-157 | ✓ | — | `ModeKnownDefects.DISABLED_AsciiCreatePulseFailsWhenAlreadyExists` + tripwire `ModeKnownDefects.AsciiCreatePulseCurrentlyOverwritesSilently` | **xfail** |
-| `al_close_pulse` closes (`CLOSE_PULSE`) / erases (`ERASE_PULSE`) | :109-116 | ✓ (Memory) | ✓ (HDF5, ASCII) | `CLOSE_PULSE` asserted `code==0` in every suite. UDA: closes locally but leaks a server-side pulse handle (uri-stripping mismatch) — xfail, see Part 5 | covered (indirect) |
-| ↳ `ERASE_PULSE` is not implemented by any always-on backend — **behaves identically to `CLOSE_PULSE`** (none of HDF5/ASCII/Memory's `closePulse` reference their `mode` parameter); a later plain `OPEN_PULSE` on the "erased" pulse still succeeds | :109-116; src/hdf5/{hdf5_reader,hdf5_writer}.cpp closePulse, src/ascii_backend.cpp:165-169, src/memory_backend.h:505-509 | ✓ (Memory) | ✓ (HDF5, ASCII) | `ErasePulseKnownDefects.DISABLED_{Hdf5,Ascii,Memory}EraseMakesPulseUnopenable` + tripwires `ErasePulseKnownDefects.{Hdf5,Ascii,Memory}EraseCurrentlyLeavesPulseOpenable` | **xfail** |
+| `al_close_pulse` closes (`CLOSE_PULSE`) / erases (`ERASE_PULSE`) | :109-116 | ✓ (Memory) | ✓ (HDF5, ASCII) | `CLOSE_PULSE` asserted `code==0` in every suite. UDA: `CLOSE_PULSE` retains an openable remote pulse; read-bearing sessions separately leak a server-side handle through a URI mismatch — see Part 5 | covered (indirect) |
+| ↳ `ERASE_PULSE` is not implemented by any always-on backend — **behaves identically to `CLOSE_PULSE`** (none of HDF5/ASCII/Memory's `closePulse` reference their `mode` parameter); a later plain `OPEN_PULSE` on the "erased" pulse still succeeds | :109-116; src/hdf5/{hdf5_reader,hdf5_writer}.cpp closePulse, src/ascii_backend.cpp:165-169, src/memory_backend.h:505-509 | ✓ (Memory) | ✓ (HDF5, ASCII) | `ErasePulseKnownDefects.DISABLED_{Hdf5,Ascii,Memory}EraseMakesPulseUnopenable` + tripwires `ErasePulseKnownDefects.{Hdf5,Ascii,Memory}EraseCurrentlyLeavesPulseOpenable`. UDA carries the same defect across the remote boundary: `UdaBreadthTest.DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.ErasePulseCurrentlyLeavesRemotePulseOpenable` (Part 5) | **xfail** |
 | `al_context_info` describes a context (pulse/operation/arraystruct); **caller frees `*info`** (verified `malloc`-based) | :118-126 | ✓ | ✓ | `ContextInfo.{NullContextReturnsLiteralString, PulseContextDescribesItsUri, OperationContextDescribesDataobjectAndAccessmode, ArraystructContextDescribesPathAndIndex}` (frees via `free()`) | covered |
 | `al_get_backendID` returns the active `BACKEND` for a context | :128-135 | — | ✓ | `GetBackendId.ReturnsTheBackendUsedToOpen` (HDF5 only) | covered |
 | ↳ no context-type check — a non-pulse context is `static_cast` (not `dynamic_cast`) to `DataEntryContext*` with no validation, so it **silently "succeeds" with an undefined-behavior value** instead of erroring (confirmed empirically: it does not crash) | :128-135; src/al_lowlevel.cpp al_get_backendID | — | ✓ | `GetBackendIdKnownDefects.DISABLED_WrongContextTypeReturnsError` + tripwire `GetBackendIdKnownDefects.WrongContextTypeCurrentlySucceedsViaUnsafeCast` (HDF5 only) | **xfail** |
@@ -725,9 +725,10 @@ backends diverge for different reasons on the same cell.
 ## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
 
 `test_uda_breadth.cpp` — every remaining C-ABI-reachable read-side capability
-from `FUNCTIONALITY_INVENTORY.md` Part 1 not already covered by the tracer
-bullet, the equilibrium-seed parity fixture, or the real-path matrix above.
-Same seed(HDF5)-then-reopen(UDA) shape throughout.
+and pulse-lifecycle mode from `FUNCTIONALITY_INVENTORY.md` Part 1 not already
+covered by the tracer bullet, the equilibrium-seed parity fixture, or the
+real-path matrix above. Read cases use the seed(HDF5)-then-reopen(UDA) shape;
+the lifecycle cases drive the remote UDA URI directly through the C ABI.
 
 **Characterization-discovered facts:**
 
@@ -766,6 +767,20 @@ Same seed(HDF5)-then-reopen(UDA) shape throughout.
   C ABI as a non-zero `al_status_t`. This is genuine **parity** with the
   on-disk backends' `DataEntryModes.OpenPulseFailsWhenAbsent` contract
   (Part 1) — UDA remote mode does not weaken it.
+- **All four open modes are forwarded with their documented lifecycle
+  distinctions through UDA remote mode.** `FORCE_OPEN_PULSE` creates an absent
+  remote HDF5 pulse that a later `OPEN_PULSE` can reopen; `CREATE_PULSE`
+  refuses an existing pulse; and `FORCE_CREATE_PULSE` accepts an existing
+  pulse. Each lifecycle check closes through `CLOSE_PULSE` and reopens through
+  the same UDA URI, using only the public C ABI.
+- **NEW DEFECT discovered (xfail): `ERASE_PULSE` behaves exactly like
+  `CLOSE_PULSE` through the reference stack.** `al_close_pulse(...,
+  ERASE_PULSE)` reports success, but a later `OPEN_PULSE` on the same remote
+  URI also succeeds. This carries the server-side HDF5 backend's already-known
+  ignore-the-close-mode defect across the UDA boundary; it is pinned here as
+  an exact UDA verdict by `UdaBreadthTest.
+  DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.
+  ErasePulseCurrentlyLeavesRemotePulseOpenable`.
 - **Reading a real DD leaf that was never written (but whose IDS/occurrence
   was seeded) succeeds and returns the HDF5 absent-scalar sentinel**
   (`-9.0e40`), exactly matching the local HDF5 backend's own documented
@@ -810,7 +825,9 @@ Same seed(HDF5)-then-reopen(UDA) shape throughout.
 | ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
 | `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` naming convention, ownership pinned | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
 | `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
-| `OPEN_PULSE` refuses an absent remote pulse — genuine parity with the on-disk backends' `DataEntryModes.OpenPulseFailsWhenAbsent` | `UdaBreadthTest.OpenPulseFailsWhenRemotePathAbsent` | covered |
+| `al_begin_dataentry_action` mode matrix: `OPEN_PULSE` refuses an absent remote pulse; `FORCE_OPEN_PULSE` creates one; `CREATE_PULSE` refuses an existing one; `FORCE_CREATE_PULSE` accepts an existing one — genuine parity with the on-disk lifecycle contract | `UdaBreadthTest.{OpenPulseFailsWhenRemotePathAbsent,ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered |
+| `al_close_pulse(..., CLOSE_PULSE)` retains the remote pulse for a later `OPEN_PULSE` | asserted by the reopen checks in `UdaBreadthTest.{ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered (indirect) |
+| ↳ `al_close_pulse(..., ERASE_PULSE)` reports success but leaves the remote pulse openable, carrying the server-side HDF5 close-mode defect across the UDA boundary | `UdaBreadthTest.DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.ErasePulseCurrentlyLeavesRemotePulseOpenable` | **xfail** |
 | Reading an unwritten leaf on a seeded IDS returns the HDF5 absent-scalar sentinel — transparent parity with the local HDF5 backend's own contract, not UDA-specific | `UdaBreadthTest.ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel` | covered |
 | Reading a never-written IDS fails cleanly | `UdaBreadthTest.ReadFailsForNeverWrittenIds` | covered |
 | Slice read (`CLOSEST_INTERP`) on a real DD dynamic top-level leaf round-trips correctly through UDA remote mode | `UdaSliceAndTimeRange.SliceReadThroughReopen` | covered |
