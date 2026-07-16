@@ -733,7 +733,7 @@ fails if the UDA matrix ever drops or duplicates a catalog cell.
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
 | ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) | Breadth cells: `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect). Exact correct-contract pair: `Uda/UdaRealPathMatrixKnownDefects.DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | **xfail** |
 
-## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
+## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issues #25 + #37)
 
 `test_uda_breadth.cpp` — every remaining C-ABI-reachable read-side capability
 and pulse-lifecycle mode from `FUNCTIONALITY_INVENTORY.md` Part 1 not already
