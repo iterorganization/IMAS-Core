@@ -315,20 +315,16 @@ one genuine `xfail` crash defect it surfaced), and the timebase cache
 for HDF5.** Part 2 row B left the version-drift check a `gap` because forcing
 the mismatch needs writing a different backend-version value into the opened
 pulse after creation — for HDF5 that means poking its on-disk backend-version
-attribute directly via the HDF5 C API, which that suite has no include/link
-wiring for (out of scope there). MDSplus hits the identical shape of problem —
-the mismatch needs overwriting the pulse's stored `VERSION:BACK_MAJOR` tree
-node after creation, also unreachable through the C ABI — but the MDSplus tier
-is already a separate, compile-guarded, Docker-characterized target
-(`tests/contract/CMakeLists.txt`'s `AL_BACKEND_MDSPLUS` gate), so adding the
-raw MDSplus C++ API (`<mdsobjects.h>`) as a test-only, build-gated dependency
-of `contract_tests` was a small, low-blast-radius addition — unlike wiring the
-HDF5 C API into the always-on suite. So the gap is closed for MDSplus
-specifically because of that pre-existing gate, not because the underlying
-problem (a version-drift mismatch cannot be forced through the C ABI alone) is
-actually different between the two backends. **Part 2 row B itself is left
-unchanged** (HDF5 remains a terminal gap); this is a Part 4 finding about *why*
-the two backends diverged, not a fix to Part 2.
+attribute directly via the HDF5 C API, which that suite originally had no
+include/link wiring for. MDSplus hits the identical shape of problem — the
+mismatch needs overwriting the pulse's stored `VERSION:BACK_MAJOR` tree node
+after creation, also unreachable through the C ABI. Both are now solved with
+the same producer/observer split: all raw-API fixture mutation lives in
+standalone, build-gated setup tools (`mdsplus_fixture_tool` for the tree
+node, issue #35; `hdf5_fixture_tool` for the HDF5 attribute, issue #36) that
+the tests invoke as subprocesses, so `contract_tests` itself carries no
+MDSplus or HDF5 API dependency and every asserted behavior stays on the
+public C ABI. **Part 2 row B is closed for HDF5 too** (see Part 2).
 
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
 defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
@@ -575,12 +571,15 @@ MDSplus, the stored value is `VERSION:BACK_MAJOR`/`BACK_MINOR`
 (`src/mdsplus/mdsplus_backend.cpp`'s `saveVersion`, called once at pulse
 creation from the compiled `MDSPLUS_BACKEND_MAJOR`/`MINOR` constants, currently
 1/1). Forcing the mismatch case needs a value in the pulse different from
-what today's build would write — done here by opening the pulse's "ids" tree
-directly through the raw MDSplus C++ API (`<mdsobjects.h>`, not the C ABI) and
-overwriting `VERSION:BACK_MAJOR` after creation, mirroring the
-`ids_path`/`setDataEnv` environment-variable dance the backend itself uses
-internally. See the finding above on why this was achievable for MDSplus but
-stays a `gap` for HDF5 (Part 2 row B).
+what today's build would write — done by the standalone, build-gated
+`mdsplus_fixture_tool` (issue #35), which opens the pulse's "ids" tree
+through the raw MDSplus C++ API (`<mdsobjects.h>`) and overwrites
+`VERSION:BACK_MAJOR` after creation, mirroring the `ids_path`/`setDataEnv`
+environment-variable dance the backend itself uses internally. The test
+invokes the tool as a subprocess and asserts exclusively through `al_*`
+APIs: `contract_tests` has no direct MDSplus include or link dependency, so
+a rewrite satisfying the C ABI is judged by exactly the C ABI. The identical
+split now also closes the HDF5 side (Part 2 row B, issue #36).
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -944,10 +943,21 @@ recorded here alongside the header's existing stack identifiers.
   `uda_backend.h`'s `UDA_BACKEND_VERSION_MAJOR/MINOR` and the "temporary
   placeholder" non-null-ctx branch), so `(0!=0)||(0<0)` is always false
   regardless of what is genuinely stored remotely. An unavailable stored
-  version must not be treated as verified compatibility. Pinned:
-  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified`
-  + tripwire
-  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse`.
+  version must not be treated as verified compatibility. Pinned with a
+  genuinely MISMATCHED stored fixture (issue #39): the pulse's
+  `HDF5_BACKEND_VERSION` is rewritten to `999.0` out-of-band by
+  `hdf5_fixture_tool` (issue #36's isolated producer; fixture preparation
+  only — every asserted behavior stays on the public C ABI). Observed against
+  the reference stack: the mismatched pulse is REFUSED, but by the
+  SERVER-side HDF5 open (the server plugin's own IMAS-Core hits
+  `HDF5BackendFactory`'s "No backend writer with version: 999.0"), forwarded
+  to the client as exactly `UNKNOWN_ERR` (-1); the client-side check itself
+  stays inert — its own `LOWLEVEL_ERR` "Compatibility …" refusal never
+  appears, which is what the active tripwire pins. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesMismatchedStoredBackendVersion`
+  (client-side refusal, correct contract) + tripwire
+  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyDefersToServerSideRefusal`,
+  with baseline `UdaUniqueSurfaceTest.MatchingStoredVersionOpensThroughUda`.
 - **`supportsTimeRangeOperation()` capability negotiation confirmed against
   the reference server**: the reference plugin reports `1.8.0` (issue #23),
   so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
@@ -1020,7 +1030,7 @@ recorded here alongside the header's existing stack identifiers.
 | Runtime DD loading: present baseline and absent DD (both failure messages) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage}` | covered |
 | ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
-| Version-drift check inertness: open treats an unavailable stored version as compatible because both sides are hardcoded placeholders | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse` | **xfail** |
+| Version-drift check inertness: the client's own drift check never fires (both sides hardcoded placeholders); a pulse whose stored backend version (`999.0`, rewritten out-of-band by `hdf5_fixture_tool`) can never match is refused only by the forwarded SERVER-side HDF5 error (`UNKNOWN_ERR`, "No backend writer with version: 999.0") | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesMismatchedStoredBackendVersion` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyDefersToServerSideRefusal` (baseline: `MatchingStoredVersionOpensThroughUda`) | **xfail** |
 | Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
 | Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
 | `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
