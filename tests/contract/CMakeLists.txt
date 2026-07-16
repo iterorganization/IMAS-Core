@@ -248,8 +248,12 @@ endif()
 # version-dependent forwarding in the middle. The tier definitions (which
 # suites are unit / integration / mdsplus / uda, per issues #13-#17 and
 # #23-#26) are documented and maintained in assign_contract_labels.cmake.in.
-gtest_discover_tests(contract_tests
-  PROPERTIES LABELS "contract")
+# No LABELS here: ctest MERGES labels across set_tests_properties calls
+# (append semantics), so a discovery-time "contract" could not be removed by
+# the labeler and would leak onto the mdsplus/uda tiers, changing what
+# `ctest -L contract` (sanitizers.yml) selects. assign_contract_labels.cmake
+# assigns each test its complete, final label list instead.
+gtest_discover_tests(contract_tests)
 
 # Bake the generated registration file's path into the labeler. A single
 # discovery pass for contract_tests means GoogleTest writes
