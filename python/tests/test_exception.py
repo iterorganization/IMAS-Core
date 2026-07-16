@@ -7,7 +7,8 @@ import imas_core
 
 @pytest.mark.parametrize(
     "message, status",
-    itertools.product(["an exception", "another exception"], [None, -3, 44]),
+    # materialized: pytest 10 rejects non-Collection iterables as argvalues
+    list(itertools.product(["an exception", "another exception"], [None, -3, 44])),
 )
 def test_ALException(message, status):
     match = message
