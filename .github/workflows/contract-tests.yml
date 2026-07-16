@@ -15,8 +15,16 @@ on:
 
 jobs:
   contract-functional:
-    name: Contract tests (Linux, blocking)
+    name: Contract tests (Linux, ${{ matrix.build_type }}, blocking)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both build modes (issue #32): the dlopen-failure plugin pin is
+        # build-mode dependent — assert-abort death test in Debug, swallowed
+        # assert tripwire under NDEBUG (RelWithDebInfo) — so each branch needs
+        # its own leg or one of them never runs anywhere.
+        build_type: [RelWithDebInfo, Debug]
 
     steps:
       - name: Checkout code
@@ -34,7 +42,7 @@ jobs:
           cmake -S . -B build -G Ninja
           -DAL_BUILD_TESTS=ON
           -DAL_PYTHON_BINDINGS=OFF
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
 
       - name: Build
         run: cmake --build build

@@ -30,6 +30,7 @@
 
 #include <gtest/gtest.h>
 
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -351,15 +352,22 @@ TEST_F(PluginTest, UnregisterNeverBoundPluginLeavesItRegistered_CurrentBehavior)
 // ===========================================================================
 // DEFECT (D2): dlopen failure in registerPlugin is guarded only by an assert.
 // FUNCTIONALITY_INVENTORY.md:355-360, src/al_lowlevel.cpp:350-357: a failed
-// dlopen() is printf'd and asserted; under -DNDEBUG (this build:
-// RelWithDebInfo/Release) the assert is stripped, so the null handle flows on.
+// dlopen() is printf'd and asserted, so current behavior is BUILD-MODE
+// DEPENDENT and the pins below are too (issue #32):
 //
-// Empirically characterized on this platform: the null handle reaches dlsym,
-// whose own null-check throws — so registerPlugin returns LOWLEVEL_ERR with the
-// *misleading* "Cannot load symbol create" message rather than reporting the
-// dlopen failure, and does NOT crash. (In an assert-enabled build the stripped
-// assert would instead fire -> SIGABRT; that death only exists there, which is
-// why this pair is a plain xfail, not a death test.)
+//   - assert-enabled builds (Debug, no NDEBUG): the assert fires -> SIGABRT.
+//     Pinned with a death test so the abort happens in a child process and
+//     the suite itself survives.
+//   - NDEBUG builds (Release/RelWithDebInfo): the assert is stripped and the
+//     null handle flows on to dlsym, whose own null-check throws — so
+//     registerPlugin returns LOWLEVEL_ERR with the *misleading* "Cannot load
+//     symbol create" message rather than reporting the dlopen failure, and
+//     does NOT crash.
+//
+// Either way the correct contract is the same (a nonzero status attributing
+// the actual dlopen error) — the DISABLED_ test below stays build-mode
+// independent and becomes enableable once registerPlugin handles the failed
+// dlopen instead of asserting on it.
 // ===========================================================================
 
 // Points IMAS_AL_PLUGINS at a temp dir holding a garbage <name>_plugin.so that
@@ -403,11 +411,12 @@ TEST_F(PluginTest, DISABLED_RegisterUnloadableSharedLibReportsDlopenFailure) {
     fs::remove_all(dir);
 }
 
-// CURRENT-BEHAVIOR tripwire: pins that the returned status does NOT mention the
-// dlopen failure — the NDEBUG-stripped assert lets the null handle flow past
-// dlopen, so the failure is swallowed and only a downstream symptom is reported.
-// If the status starts naming dlopen, the handling was fixed — enable the
-// DISABLED_ test above.
+#ifdef NDEBUG
+// CURRENT-BEHAVIOR tripwire (NDEBUG builds): pins that the returned status does
+// NOT mention the dlopen failure — the NDEBUG-stripped assert lets the null
+// handle flow past dlopen, so the failure is swallowed and only a downstream
+// symptom is reported. If the status starts naming dlopen, the handling was
+// fixed — enable the DISABLED_ test above.
 TEST_F(PluginTest, RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior) {
     namespace fs = std::filesystem;
     const fs::path dir = fs::temp_directory_path() /
@@ -423,6 +432,44 @@ TEST_F(PluginTest, RegisterUnloadableSharedLibSwallowsAssert_CurrentBehavior) {
            "PluginTest.RegisterUnloadableSharedLibReportsDlopenFailure.";
     fs::remove_all(dir);
 }
+#else
+// CURRENT-BEHAVIOR tripwire (assert-enabled builds): the product assertion at
+// src/al_lowlevel.cpp fires on the failed dlopen and aborts. Run the call in a
+// death-test child so the runner survives; pin SIGABRT + the assertion text
+// specifically, so an unrelated crash is not mistaken for this defect. The
+// fixture artifacts are created and removed by the PARENT — the child dying
+// must not leak the temp dir (issue #32).
+TEST_F(PluginTest, RegisterUnloadableSharedLibAbortsOnAssert_CurrentBehavior) {
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() /
+                         ("al_contract_badplugin_" +
+                          std::to_string(::getpid()) + "_b");
+    // threadsafe-style death tests RE-EXECUTE the whole test in the child,
+    // which would recompute `dir` with the child's own pid and leave that
+    // directory behind; hand the parent's path down via the environment so
+    // parent and child agree on the one directory the parent removes below.
+    // overwrite=0: the re-executed child runs this line too and must NOT
+    // replace the inherited parent value with its own pid-derived path.
+    setenv("AL_CONTRACT_BADPLUGIN_DIR", dir.string().c_str(), /*overwrite=*/0);
+    const std::filesystem::path used_dir =
+        std::getenv("AL_CONTRACT_BADPLUGIN_DIR");
+    ASSERT_EXIT(
+        {
+            const char* d = std::getenv("AL_CONTRACT_BADPLUGIN_DIR");
+            register_unloadable(d != nullptr ? fs::path(d) : dir,
+                                "unloadable_b");
+        },
+        ::testing::KilledBySignal(SIGABRT), "[Aa]ssert")
+        << "expected the registerPlugin dlopen assert to abort in an "
+           "assert-enabled build (src/al_lowlevel.cpp, "
+           "FUNCTIONALITY_INVENTORY.md:355-360). If this no longer dies, the "
+           "handling was fixed — enable "
+           "PluginTest.RegisterUnloadableSharedLibReportsDlopenFailure.";
+    unsetenv("AL_CONTRACT_BADPLUGIN_DIR");
+    fs::remove_all(used_dir);
+}
+#endif
 
 // ===========================================================================
 // al_plugin_* low-level reentry (FUNCTIONALITY_INVENTORY.md:854-895, Part 3
