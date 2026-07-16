@@ -69,6 +69,7 @@ add_executable(contract_tests
   test_known_defects.cpp
   test_plugins.cpp
   test_backend_factory.cpp
+  test_hdf5_version_drift.cpp
   test_structured_data.cpp
   test_pulse_lifecycle.cpp
   test_mdsplus.cpp
@@ -86,6 +87,27 @@ add_dependencies(contract_tests al)
 target_compile_features(contract_tests PRIVATE cxx_std_17)
 
 ########################################################################################################################
+# HDF5 drift-fixture producer (issue #36).
+#
+# The stored-backend-version drift check is asserted through the public C ABI
+# (test_hdf5_version_drift.cpp), but preparing a MISMATCHED pulse requires
+# rewriting master.h5's HDF5_BACKEND_VERSION attribute — out-of-band HDF5 C
+# API surgery that must NOT leak into contract_tests. It lives in a separate
+# tool the tests invoke as a subprocess; contract_tests only learns the tool's
+# path (and gates the test file's compilation on it).
+if(AL_BACKEND_HDF5)
+  find_package(HDF5 COMPONENTS C REQUIRED)
+  add_executable(al-hdf5-fixture-tool hdf5_fixture_tool.cpp)
+  target_include_directories(al-hdf5-fixture-tool PRIVATE ${HDF5_C_INCLUDE_DIRS})
+  target_link_libraries(al-hdf5-fixture-tool PRIVATE ${HDF5_C_LIBRARIES})
+  target_compile_definitions(al-hdf5-fixture-tool PRIVATE ${HDF5_C_DEFINITIONS})
+  target_compile_features(al-hdf5-fixture-tool PRIVATE cxx_std_17)
+  add_dependencies(contract_tests al-hdf5-fixture-tool)
+  target_compile_definitions(contract_tests PRIVATE
+    AL_CONTRACT_HDF5_FIXTURE_TOOL="$<TARGET_FILE:al-hdf5-fixture-tool>")
+endif()
+
+########################################################################################################################
 # MDSplus build gate (issue #13 / TEST_STRATEGY.md D4 "compile-guarded tier").
 #
 # test_mdsplus.cpp wraps its whole body in #ifdef AL_CONTRACT_HAVE_MDSPLUS, so
@@ -97,17 +119,23 @@ target_compile_features(contract_tests PRIVATE cxx_std_17)
 if(AL_BACKEND_MDSPLUS)
   target_compile_definitions(contract_tests PRIVATE AL_CONTRACT_HAVE_MDSPLUS)
 
-  # test_mdsplus_version_drift.cpp (issue #16) forces the version-mismatch
-  # case by writing directly into the pulse's VERSION:BACK_MAJOR tree node
-  # through the raw MDSplus C++ API (<mdsobjects.h>) -- something reachable
-  # only outside the public C ABI. `al`'s own src/mdsplus/CMakeLists.txt
-  # already links MDSplus, but PRIVATEly, so it doesn't propagate here;
-  # find_package(MDSplus) is repeated (idempotent) to wire the same
-  # include dir / libs into contract_tests, test-only and build-gated behind
-  # the same AL_BACKEND_MDSPLUS option as the backend itself.
+  # MDSplus drift-fixture producer (issue #35). test_mdsplus_version_drift.cpp
+  # (issue #16) forces the version-mismatch case by overwriting the pulse's
+  # VERSION:BACK_MAJOR tree node — reachable only through the raw MDSplus C++
+  # API (<mdsobjects.h>), i.e. outside the public C ABI that is the contract
+  # suite's one seam. That mutation is fixture PREPARATION, so it lives in a
+  # separate build-gated tool the test invokes as a subprocess; contract_tests
+  # itself has no MDSplus include or link dependency, and a rewrite satisfying
+  # the C ABI is judged by exactly the C ABI. find_package(MDSplus) is
+  # repeated (idempotent) for the tool only.
   find_package(MDSplus REQUIRED)
-  target_include_directories(contract_tests PRIVATE ${MDSPLUS_INCLUDES})
-  target_link_libraries(contract_tests PRIVATE ${MDSPLUS_LIBRARIES})
+  add_executable(al-mdsplus-fixture-tool mdsplus_fixture_tool.cpp)
+  target_include_directories(al-mdsplus-fixture-tool PRIVATE ${MDSPLUS_INCLUDES})
+  target_link_libraries(al-mdsplus-fixture-tool PRIVATE ${MDSPLUS_LIBRARIES})
+  target_compile_features(al-mdsplus-fixture-tool PRIVATE cxx_std_17)
+  add_dependencies(contract_tests al-mdsplus-fixture-tool)
+  target_compile_definitions(contract_tests PRIVATE
+    AL_CONTRACT_MDSPLUS_FIXTURE_TOOL="$<TARGET_FILE:al-mdsplus-fixture-tool>")
 endif()
 
 ########################################################################################################################
