@@ -37,6 +37,37 @@ std::string uda_uri_for(const std::string& pulse_dir) {
            pulse_dir;
 }
 
+// Exercise ERASE_PULSE entirely through the public C ABI, then report whether
+// the same remote pulse remains openable. Shared by the disabled correct-
+// contract test and its current-behavior tripwire below.
+struct UdaEraseResult {
+    int create_code;
+    int erase_code;
+    int reopen_code;
+};
+
+UdaEraseResult uda_remote_reopen_after_erase() {
+    al_contract::TempBase base;
+    const std::string pulse_dir = base.str() + "/pulse";
+    std::error_code    ec;
+    std::filesystem::create_directories(pulse_dir, ec);
+    const std::string uda_uri = uda_uri_for(pulse_dir);
+
+    int         pulse_ctx = -1;
+    al_status_t created = al_begin_dataentry_action(
+        uda_uri.c_str(), FORCE_CREATE_PULSE, &pulse_ctx);
+    if (created.code != 0) return {created.code, -1, -1};
+
+    al_status_t erased = al_close_pulse(pulse_ctx, ERASE_PULSE);
+    if (erased.code != 0) return {created.code, erased.code, -1};
+
+    int         reopened_ctx = -1;
+    al_status_t reopened =
+        al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &reopened_ctx);
+    if (reopened.code == 0) al_close_pulse(reopened_ctx, CLOSE_PULSE);
+    return {created.code, erased.code, reopened.code};
+}
+
 class UdaBreadthTest : public ::testing::Test {
 protected:
     void SetUp() override { AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED(); }
@@ -317,6 +348,82 @@ TEST_F(UdaBreadthTest, OpenPulseFailsWhenRemotePathAbsent) {
                             "not exist, matching the on-disk backends' "
                             "parity contract";
     if (s.code == 0) al_close_pulse(pulse_ctx, CLOSE_PULSE);
+}
+
+TEST_F(UdaBreadthTest, ForceOpenPulseCreatesRemotePulseWhenAbsent) {
+    const std::string pulse_dir = fresh_pulse_dir();
+    const std::string uda_uri   = uda_uri_for(pulse_dir);
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(
+        al_begin_dataentry_action(uda_uri.c_str(), FORCE_OPEN_PULSE, &pulse_ctx));
+    AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+
+    int reopened_ctx = -1;
+    al_status_t reopened =
+        al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &reopened_ctx);
+    AL_EXPECT_OK(reopened);
+    if (reopened.code == 0) {
+        EXPECT_EQ(al_close_pulse(reopened_ctx, CLOSE_PULSE).code, 0);
+    }
+}
+
+TEST_F(UdaBreadthTest, CreatePulseRefusesExistingRemotePulse) {
+    const std::string pulse_dir = fresh_pulse_dir();
+    const std::string uda_uri   = uda_uri_for(pulse_dir);
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), FORCE_CREATE_PULSE,
+                                           &pulse_ctx));
+    AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+
+    int         create_ctx = -1;
+    al_status_t s = al_begin_dataentry_action(uda_uri.c_str(), CREATE_PULSE,
+                                               &create_ctx);
+    EXPECT_NE(s.code, 0)
+        << "CREATE_PULSE must refuse an existing remote pulse";
+    if (s.code == 0) al_close_pulse(create_ctx, CLOSE_PULSE);
+}
+
+TEST_F(UdaBreadthTest, ForceCreatePulseAcceptsExistingRemotePulse) {
+    const std::string pulse_dir = fresh_pulse_dir();
+    const std::string uda_uri   = uda_uri_for(pulse_dir);
+
+    int pulse_ctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uda_uri.c_str(), FORCE_CREATE_PULSE,
+                                           &pulse_ctx));
+    AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+
+    int replaced_ctx = -1;
+    al_status_t replaced = al_begin_dataentry_action(
+        uda_uri.c_str(), FORCE_CREATE_PULSE, &replaced_ctx);
+    AL_EXPECT_OK(replaced);
+    if (replaced.code == 0) {
+        EXPECT_EQ(al_close_pulse(replaced_ctx, CLOSE_PULSE).code, 0);
+    }
+}
+
+// CORRECT-CONTRACT, expected-fail (DISABLED_): ERASE_PULSE promises to close
+// and remove the pulse, so a later OPEN_PULSE must fail.
+TEST_F(UdaBreadthTest, DISABLED_ErasePulseMakesRemotePulseUnopenable) {
+    const UdaEraseResult result = uda_remote_reopen_after_erase();
+    ASSERT_EQ(result.create_code, 0) << "test setup must create the remote pulse";
+    ASSERT_EQ(result.erase_code, 0) << "ERASE_PULSE itself must report success";
+    EXPECT_NE(result.reopen_code, 0)
+        << "ERASE_PULSE must remove the remote pulse";
+}
+
+// CURRENT-BEHAVIOR tripwire: the reference stack's server-side HDF5 backend
+// accepts ERASE_PULSE but treats it like CLOSE_PULSE, leaving the pulse
+// openable. When this changes, this test goes red and the correct-contract
+// test above must be enabled.
+TEST_F(UdaBreadthTest, ErasePulseCurrentlyLeavesRemotePulseOpenable) {
+    const UdaEraseResult result = uda_remote_reopen_after_erase();
+    ASSERT_EQ(result.create_code, 0) << "test setup must create the remote pulse";
+    ASSERT_EQ(result.erase_code, 0) << "ERASE_PULSE itself must report success";
+    EXPECT_EQ(result.reopen_code, 0)
+        << "ERASE_PULSE now removes the remote pulse -- enable "
+           "UdaBreadthTest.DISABLED_ErasePulseMakesRemotePulseUnopenable";
 }
 
 // A read against a real DD leaf that was never written (the IDS/occurrence
