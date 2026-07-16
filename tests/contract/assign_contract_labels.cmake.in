@@ -1,0 +1,82 @@
+# assign_contract_labels.cmake — post-discovery CTest label assignment
+# (issue #31).
+#
+# Processed by ctest via the directory TEST_INCLUDE_FILES property, AFTER the
+# gtest_discover_tests include has registered every test. It re-reads the
+# generated registration file, classifies each test name, and assigns LABELS
+# with a plain set_tests_properties call — the one mechanism that carries a
+# multi-element label list identically across the supported CMake range.
+# gtest_discover_tests' own PROPERTIES forwarding collapses a multi-element
+# LABELS list to its first token on some CMake versions (empirically 3.28),
+# and TEST_FILTER (the old multi-pass partition) does not exist on the
+# declared 3.21 floor at all; parsing + relabeling depends on neither.
+#
+# The classification below mirrors the tier definitions documented in
+# tests/contract/CMakeLists.txt:
+#   unit        — pure lookups, in-RAM Memory backend instances, plugin ABI
+#                 death tests, plugin lifecycle suites, URI ownership.
+#   mdsplus     — the compile-gated MDSplus tier (single "mdsplus" label).
+#   uda         — the compile-gated UDA tier (single "uda" label).
+#   integration — everything else (HDF5 / ASCII / Flexbuffers on disk).
+# The if/elseif chain makes the partition disjoint by construction: exactly
+# one branch fires per test.
+#
+# This file parses exactly the single discovery pass's output; if another
+# gtest_discover_tests call is ever added for contract_tests, add its
+# generated "_tests.cmake" file here.
+
+set(_al_contract_tests_file "@_AL_CONTRACT_DISCOVERED_TESTS_FILE@")
+
+if(EXISTS "${_al_contract_tests_file}")
+  file(STRINGS "${_al_contract_tests_file}" _al_add_test_lines REGEX "^add_test")
+  foreach(_al_line IN LISTS _al_add_test_lines)
+    # The generated add_test name quoting is version-dependent: bracket
+    # arguments ("add_test([=[Name]=] ...", CMake >= ~3.22), double quotes for
+    # names with special characters on older versions, bare words otherwise
+    # ("add_test( Name ...", 3.21).
+    set(_al_name "")
+    if(_al_line MATCHES "^add_test\\( *\\[=+\\[([^]]+)\\]")
+      set(_al_name "${CMAKE_MATCH_1}")
+    elseif(_al_line MATCHES "^add_test\\( *\"([^\"]+)\"")
+      set(_al_name "${CMAKE_MATCH_1}")
+    elseif(_al_line MATCHES "^add_test\\( *([^ ]+) ")
+      set(_al_name "${CMAKE_MATCH_1}")
+    endif()
+    if(NOT _al_name STREQUAL "")
+      if(_al_name MATCHES "^Introspection\\." OR
+         _al_name MATCHES "Memory" OR
+         _al_name MATCHES "^KnownDefects" OR
+         _al_name MATCHES "^Plugin" OR
+         _al_name MATCHES "^ReadbackPlugins\\." OR
+         _al_name MATCHES "^UriOwnership\\.")
+        set_tests_properties("${_al_name}" PROPERTIES LABELS "contract;unit")
+      elseif(_al_name MATCHES "^MdsplusTracerBullet" OR
+             # "/Mdsplus" as the whole instance suffix: pretty names end
+             # "/Mdsplus" on newer CMake but "/Mdsplus#GetParam()=..." on 3.21.
+             _al_name MATCHES "/Mdsplus(#|$)" OR
+             _al_name MATCHES "^Occurrences\\.Mdsplus" OR
+             _al_name MATCHES "^Mdsplus/MdsplusRealPathMatrix\\." OR
+             _al_name MATCHES "^MdsplusVersionDrift" OR
+             _al_name MATCHES "^MdsplusStructAwareSliceInterpolation" OR
+             _al_name MATCHES "^MdsplusTimerangeResampling" OR
+             _al_name MATCHES "^MdsplusSegmentBackedWrites" OR
+             _al_name MATCHES "^MdsplusSliceWriteKnownDefects" OR
+             _al_name MATCHES "^MdsplusTimebaseCache")
+        set_tests_properties("${_al_name}" PROPERTIES LABELS "mdsplus")
+      elseif(_al_name MATCHES "^UdaSmokeRoundTrip" OR
+             _al_name MATCHES "^UdaEquilibriumSeedParity" OR
+             _al_name MATCHES "^Uda/UdaRealPathMatrix\\." OR
+             _al_name MATCHES "^Uda/UdaRealPathMatrixKnownDefects\\." OR
+             _al_name MATCHES "^UdaBreadthTest" OR
+             _al_name MATCHES "^UdaAosKnownDefects" OR
+             _al_name MATCHES "^UdaSliceAndTimeRange" OR
+             _al_name MATCHES "^UdaUniqueSurfaceTest")
+        set_tests_properties("${_al_name}" PROPERTIES LABELS "uda")
+      else()
+        set_tests_properties("${_al_name}" PROPERTIES LABELS "contract;integration")
+      endif()
+    endif()
+  endforeach()
+  unset(_al_add_test_lines)
+endif()
+unset(_al_contract_tests_file)
