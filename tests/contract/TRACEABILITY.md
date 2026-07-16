@@ -1031,13 +1031,15 @@ ships and registers by default in `ukaea/uda`'s own build — and is corrected
 in `docker/uda/README.md` alongside this issue's findings.
 
 **Progress summary (issue #28): zero blank rows remain in Part 5 — every one
-of its 28 rows is terminal (17 `covered`/`covered (indirect)`, 5
-`divergence`, 5 `xfail`, 1 `terminal-gap`), each xfail row's `DISABLED_`
+of its 31 rows is terminal (19 `covered`/`covered (indirect)`, 5
+`divergence`, 6 `xfail`, 1 `terminal-gap`), each xfail row's `DISABLED_`
 correct-contract test and current-behavior tripwire both verified present in
-`test_uda_breadth.cpp`/`test_uda_unique_surface.cpp`, and every divergence
+`test_uda_real_paths.cpp`/`test_uda_breadth.cpp`/
+`test_uda_unique_surface.cpp`, and every divergence
 row's reasoning is backed by prose above its table, not just the one-line
 cell. The pinned stack identifiers above (UDA server 2.9.3, UDA-Plugins
-1.8.0, DD 4.1.1, plus the older DD 3.42.0 pin) match `docker/uda/`
+1.8.0 at commit `ede25b921081d8fc2d66c5b5ca152c664b50ee78`, DD 4.1.1,
+plus the older DD 3.42.0 pin) match `docker/uda/`
 verbatim. The corresponding shared always-on rows in Part 1/Part 2 above now
 each carry a one-line "UDA: … see Part 5" note, mirroring Part 4's own
 issue-#18 closure (Cluster 3 plugin management and Cluster 4
