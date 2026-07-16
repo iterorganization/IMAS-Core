@@ -194,6 +194,7 @@ std::vector<double> dynamic_leaf_inside_aos_values_via_uda() {
 // CORRECT-CONTRACT, expected-fail (DISABLED_): every element's written value
 // must round-trip.
 TEST(UdaAosKnownDefects, DISABLED_DynamicLeafInsideAosRoundTrips) {
+    AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED();
     const std::vector<double> values = dynamic_leaf_inside_aos_values_via_uda();
     ASSERT_EQ(values.size(), 3u);
     for (int i = 0; i < 3; ++i) {
@@ -207,6 +208,7 @@ TEST(UdaAosKnownDefects, DISABLED_DynamicLeafInsideAosRoundTrips) {
 // test goes red, forcing whoever fixed it to enable the correct-contract
 // test above.
 TEST(UdaAosKnownDefects, DynamicLeafInsideAosCurrentlyReturnsSentinel) {
+    AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED();
     const std::vector<double> values = dynamic_leaf_inside_aos_values_via_uda();
     ASSERT_EQ(values.size(), 3u);
     for (double v : values) {
