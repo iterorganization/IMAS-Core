@@ -1,0 +1,27 @@
+name: Workflow lint
+
+# Issue #43: a plain YAML scalar in a `run:` line silently turns ` #` into a
+# YAML comment, truncating the shell command (both backend Note steps shipped
+# that way). actionlint runs shellcheck over every run: script, so this class
+# of truncation fails before push lands instead of turning jobs red at runtime.
+
+on:
+  push:
+    paths:
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color

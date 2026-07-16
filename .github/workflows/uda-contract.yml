@@ -83,4 +83,8 @@ jobs:
 
       - name: Note
         if: always()
-        run: echo "UDA leg is informational (issue #21/#29). Red-by-design only for un-pinned defects; TRACEABILITY.md Part 5 (issue #28) records the pinned baseline this leg should stay green against."
+        # Block scalar, not a plain scalar: in a plain scalar ` #` starts a YAML
+        # comment even inside shell-looking quotes, truncating the command into
+        # an unterminated string (issue #43).
+        run: |
+          echo "UDA leg is informational (issue #21/#29). Red-by-design only for un-pinned defects; TRACEABILITY.md Part 5 (issue #28) records the pinned baseline this leg should stay green against."

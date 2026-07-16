@@ -100,4 +100,8 @@ jobs:
 
       - name: Note
         if: always()
-        run: echo "MDSplus leg is informational (issue #12/#18). Red-by-design until the characterization baseline is triaged; promotion to a blocking gate is Task 3."
+        # Block scalar, not a plain scalar: in a plain scalar ` #` starts a YAML
+        # comment even inside shell-looking quotes, truncating the command into
+        # an unterminated string (issue #43).
+        run: |
+          echo "MDSplus leg is informational (issue #12/#18). Red-by-design until the characterization baseline is triaged; promotion to a blocking gate is Task 3."
