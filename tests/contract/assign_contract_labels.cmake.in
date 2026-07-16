@@ -48,7 +48,10 @@ if(EXISTS "${_al_contract_tests_file}")
          _al_name MATCHES "^KnownDefects" OR
          _al_name MATCHES "^Plugin" OR
          _al_name MATCHES "^ReadbackPlugins\\." OR
-         _al_name MATCHES "^UriOwnership\\.")
+         _al_name MATCHES "^UriOwnership\\." OR
+         # issue #47: unknown-backend refusals at the factory boundary — no
+         # backend substrate is ever constructed, so the tier is hermetic
+         _al_name MATCHES "^BackendFactory\\.")
         set_tests_properties("${_al_name}" PROPERTIES LABELS "contract;unit")
       elseif(_al_name MATCHES "^MdsplusTracerBullet" OR
              # "/Mdsplus" as the whole instance suffix: pretty names end

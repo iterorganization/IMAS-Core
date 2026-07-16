@@ -68,6 +68,7 @@ add_executable(contract_tests
   test_capability_gated.cpp
   test_known_defects.cpp
   test_plugins.cpp
+  test_backend_factory.cpp
   test_structured_data.cpp
   test_pulse_lifecycle.cpp
   test_mdsplus.cpp
