@@ -10,6 +10,17 @@ ctest --preset unit            # fast hermetic inner loop (< 1 s)
 ctest --preset tests           # everything the test build registers
 ```
 
+For the tiers that need a Docker backend (MDSplus, UDA), the [`./test`](../test)
+dispatcher at the repo root wraps the image build + `docker run` recipes behind
+one verb and delegates all cmake/ctest flags to these same presets:
+
+```sh
+./test common      # host-native: the three preset commands above
+./test mdsplus     # Docker: bake the DD model tree, run the mdsplus tier
+./test uda         # Docker: assemble the UDA reference stack, run the uda tier
+./test all         # every tier + a PASS/FAIL summary table
+```
+
 ## What lives where
 
 | Suite | Location | Framework | Purpose |
@@ -31,7 +42,7 @@ there) and verified disjoint by `tests/contract/check_label_partition.sh`.
 | `tests` / `tests-debug` | *(all)* | Contract suite + smoke tests, in the build mode CI's blocking legs use (both modes matter — issue #32) | — |
 | `sanitize` | `contract` | The suite under ASan/UBSan (`AL_CONTRACT_SANITIZE=ON`), excluding `Death` and `CurrentlyCorrupts` cases — see the comments in `sanitizers.yml` for why | Linux for leak detection; on macOS prepend `ASAN_OPTIONS=detect_leaks=0` |
 | `mdsplus` | `mdsplus` | MDSplus tier against the DD model tree the `mdsplus` configure preset bakes | MDSplus installed; configure downloads the DD (`-DDD_VERSION=<tag>` to pin) |
-| *(no preset)* | `uda` | UDA tier against the pinned reference stack | `docker/uda/run.sh` builds and runs it inside the container image (see `docker/uda/README.md`); there is deliberately no host preset |
+| *(no preset)* | `uda` | UDA tier against the pinned reference stack | `./test uda` (or `docker/uda/run.sh` inside the container — see `docker/uda/README.md`); there is deliberately no host preset |
 
 Each test preset (except the run-everything ones' smoke tests) fails on an
 empty selection (`noTestsAction: error`), so a broken label partition can't
