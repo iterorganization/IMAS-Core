@@ -1,0 +1,118 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "tests",
+      "displayName": "Test build (RelWithDebInfo)",
+      "description": "Smoke + contract suites against the public C ABI; no Python bindings. Mirrors the blocking CI leg (contract-tests.yml).",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "AL_BUILD_TESTS": "ON",
+        "AL_PYTHON_BINDINGS": "OFF",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "tests-debug",
+      "displayName": "Test build (Debug)",
+      "description": "Debug leg of contract-tests.yml: the dlopen-failure plugin pin is build-mode dependent (issue #32), so CI runs both modes.",
+      "inherits": "tests",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "sanitize",
+      "displayName": "Sanitized test build (ASan/UBSan)",
+      "description": "AL_CONTRACT_SANITIZE=ON instruments libal and contract_tests (TEST_STRATEGY.md D7). Mirrors sanitizers.yml. Never combine with a wheel build: the bindings would link a sanitized libal without the ASan runtime.",
+      "inherits": "tests",
+      "binaryDir": "${sourceDir}/build-san",
+      "cacheVariables": { "AL_CONTRACT_SANITIZE": "ON" }
+    },
+    {
+      "name": "mdsplus",
+      "displayName": "MDSplus test build (bakes the DD model tree)",
+      "description": "MDSplus backend + baked model tree + tests. Pass -DDD_VERSION=<tag> to pin the DD (models/mdsplus defaults to 'main'; mdsplus-contract.yml pins its own). Downloads the DD at configure time.",
+      "inherits": "tests",
+      "binaryDir": "${sourceDir}/build-mdsplus",
+      "cacheVariables": {
+        "AL_BACKEND_MDSPLUS": "ON",
+        "AL_BUILD_MDSPLUS_MODELS": "ON",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "tests", "configurePreset": "tests" },
+    { "name": "tests-debug", "configurePreset": "tests-debug" },
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
+      "targets": [ "contract_tests" ]
+    },
+    {
+      "name": "mdsplus",
+      "configurePreset": "mdsplus",
+      "targets": [ "contract_tests" ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "unit",
+      "displayName": "Hermetic inner loop: pure lookups, Memory backend, plugin registry",
+      "configurePreset": "tests",
+      "filter": { "include": { "label": "^unit$" } },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "integration",
+      "displayName": "On-disk tier: HDF5 / ASCII / Flexbuffers backends",
+      "configurePreset": "tests",
+      "filter": { "include": { "label": "^integration$" } },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "tests",
+      "displayName": "Everything registered in the test build (contract + smoke)",
+      "configurePreset": "tests",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "tests-debug",
+      "displayName": "Everything, Debug build (issue #32 leg)",
+      "configurePreset": "tests-debug",
+      "inherits": "tests"
+    },
+    {
+      "name": "sanitize",
+      "displayName": "Contract suite under ASan/UBSan (informational CI leg)",
+      "configurePreset": "sanitize",
+      "filter": {
+        "include": { "label": "^contract$" },
+        "exclude": { "name": "Death|CurrentlyCorrupts" }
+      },
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=0:abort_on_error=0",
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/tests/contract/sanitizer_suppressions.txt:print_suppressions=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=0"
+      },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "mdsplus",
+      "displayName": "MDSplus tier against the baked model tree",
+      "configurePreset": "mdsplus",
+      "filter": { "include": { "label": "^mdsplus$" } },
+      "environment": {
+        "MDSPLUS_MODELS_PATH": "${sourceDir}/build-mdsplus/models/mdsplus"
+      },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    }
+  ]
+}

@@ -68,17 +68,15 @@ jobs:
           key: mdsplus-model-${{ env.DD_VERSION }}-${{ hashFiles('common/cmake/ALBuildDataDictionary.cmake', 'models/mdsplus/CMakeLists.txt') }}
 
       - name: Configure (bakes the DD model tree on a cache miss)
+        # The `mdsplus` preset (CMakePresets.json) carries the backend/model/
+        # test flags and the build-mdsplus binary dir; only the DD pin stays
+        # here, next to the cache key it feeds.
         if: steps.cache-model.outputs.cache-hit != 'true'
         run: >
           docker run --rm --platform linux/arm64
           -v "$PWD":/workspace -w /workspace
           "${IMAGE_TAG}" bash -c "
-          cmake -B build-mdsplus -G Ninja
-          -DAL_BACKEND_MDSPLUS=ON
-          -DAL_BUILD_MDSPLUS_MODELS=ON
-          -DAL_BUILD_TESTS=ON
-          -DDD_VERSION=${DD_VERSION}
-          -DCMAKE_BUILD_TYPE=Release
+          cmake --preset mdsplus -DDD_VERSION=${DD_VERSION}
           "
 
       - name: Build contract suite
@@ -86,7 +84,7 @@ jobs:
           docker run --rm --platform linux/arm64
           -v "$PWD":/workspace -w /workspace
           "${IMAGE_TAG}" bash -c "
-          cmake --build build-mdsplus --target contract_tests -j\$(nproc)
+          cmake --build --preset mdsplus
           "
 
       - name: Verify baked DD model tree is present (cache-hit and cache-miss paths)
@@ -108,12 +106,13 @@ jobs:
           echo "Baked DD model tree complete under build-mdsplus/models/mdsplus."
 
       - name: Run MDSplus contract suite
+        # The `mdsplus` test preset selects the tier (-L mdsplus) and points
+        # MDSPLUS_MODELS_PATH at the baked model tree under build-mdsplus/.
         run: >
           docker run --rm --platform linux/arm64
           -v "$PWD":/workspace -w /workspace
-          -e MDSPLUS_MODELS_PATH=/workspace/build-mdsplus/models/mdsplus
           "${IMAGE_TAG}" bash -c "
-          cd build-mdsplus/tests/contract && ctest -L mdsplus --output-on-failure
+          ctest --preset mdsplus
           "
 
       - name: Note

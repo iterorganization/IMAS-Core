@@ -15,7 +15,7 @@ on:
 
 jobs:
   contract-functional:
-    name: Contract tests (Linux, ${{ matrix.build_type }}, blocking)
+    name: Contract tests (Linux, ${{ matrix.preset }}, blocking)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -23,8 +23,14 @@ jobs:
         # Both build modes (issue #32): the dlopen-failure plugin pin is
         # build-mode dependent — assert-abort death test in Debug, swallowed
         # assert tripwire under NDEBUG (RelWithDebInfo) — so each branch needs
-        # its own leg or one of them never runs anywhere.
-        build_type: [RelWithDebInfo, Debug]
+        # its own leg or one of them never runs anywhere. The presets
+        # (CMakePresets.json) are the single source of truth for flags and
+        # binary dirs; builddir here only feeds the label-partition check.
+        include:
+          - preset: tests        # RelWithDebInfo
+            builddir: build
+          - preset: tests-debug
+            builddir: build-debug
 
     steps:
       - name: Checkout code
@@ -38,20 +44,15 @@ jobs:
           sudo apt-get install -y ninja-build libhdf5-dev libboost-filesystem-dev
 
       - name: Configure (tests on, no Python bindings)
-        run: >
-          cmake -S . -B build -G Ninja
-          -DAL_BUILD_TESTS=ON
-          -DAL_PYTHON_BINDINGS=OFF
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        run: cmake --preset ${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build --preset ${{ matrix.preset }}
 
       # Issue #31: an empty `ctest -L unit` exits 0, so a broken label
       # partition is invisible to the test run below — check it explicitly.
       - name: Verify unit/integration label partition
-        run: bash tests/contract/check_label_partition.sh build/tests/contract
+        run: bash tests/contract/check_label_partition.sh ${{ matrix.builddir }}/tests/contract
 
       - name: Run the whole test suite
-        working-directory: build
-        run: ctest --output-on-failure
+        run: ctest --preset ${{ matrix.preset }}

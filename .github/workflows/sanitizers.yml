@@ -32,23 +32,19 @@ jobs:
           sudo apt-get install -y ninja-build libhdf5-dev libboost-filesystem-dev
 
       - name: Configure (sanitized, tests on, no Python bindings)
-        # AL_CONTRACT_SANITIZE instruments both libal and the test binary. Python
-        # bindings are off: a sanitized libal must not be linked into a wheel
-        # whose bindings lack the ASan runtime (see tests/contract/CMakeLists.txt).
-        run: >
-          cmake -S . -B build-san -G Ninja
-          -DAL_BUILD_TESTS=ON
-          -DAL_CONTRACT_SANITIZE=ON
-          -DAL_PYTHON_BINDINGS=OFF
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        # The `sanitize` preset (CMakePresets.json) sets AL_CONTRACT_SANITIZE,
+        # which instruments both libal and the test binary. Python bindings are
+        # off: a sanitized libal must not be linked into a wheel whose bindings
+        # lack the ASan runtime (see tests/contract/CMakeLists.txt).
+        run: cmake --preset sanitize
 
       - name: Build contract suite
-        run: cmake --build build-san --target contract_tests
+        run: cmake --build --preset sanitize
 
       - name: Run contract suite under sanitizers
-        working-directory: build-san
-        # Scope to the contract suite; halt/abort_on_error=0 so the whole suite
-        # runs and reports everything at once (informational leg). Two exclusions:
+        # The `sanitize` test preset carries the ASAN/LSAN/UBSAN_OPTIONS
+        # (halt/abort_on_error=0 so the whole suite runs and reports everything
+        # at once — informational leg) and two exclusions:
         #  * `Death` tests deliberately crash child processes (asserting today's
         #    crash-class defects) — not a memory-safety target, and ASan would
         #    report the intentional crash as an error.
@@ -58,11 +54,7 @@ jobs:
         #    fail here. They guard against rot in the blocking functional leg
         #    (contract-tests.yml). Real leaks/UAF in the ordinary paths still
         #    surface.
-        env:
-          ASAN_OPTIONS: detect_leaks=1:halt_on_error=0:abort_on_error=0
-          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/contract/sanitizer_suppressions.txt:print_suppressions=1
-          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=0
-        run: ctest -L contract -E "Death|CurrentlyCorrupts" --output-on-failure
+        run: ctest --preset sanitize
 
       - name: Note
         if: always()
