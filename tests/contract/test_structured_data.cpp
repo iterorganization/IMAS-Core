@@ -296,30 +296,26 @@ TEST(AosKnownDefects, AsciiAosReadCurrentlyReportsZero) {
 }
 
 // ===========================================================================
-// Equilibrium seed: realistic scalar + timebase-carrying 2-D array + AOS,
-// oracle = content hash (decision D5). Flexbuffers is excluded for the same
-// reason as the AOS matrix above (read refused within the session).
+// Equilibrium seed: realistic scalar + top-level timebase array + a real
+// time_slice/profiles_1d/constraints AOS, oracle = a *structural* content hash
+// (decision D5; issue #33). Flexbuffers is excluded for the same reason as the
+// AOS matrix above (read refused within the session).
 //
-// MDSplus (issue #14) joins this fixture as a Divergence case, not a defect:
-// unlike the always-on backends, it resolves every path against a real
-// DD-baked model tree. Confirmed empirically -- the seed's SCALAR sub-shape
-// ("vacuum_toroidal_field/r0") round-trips fine (that is exactly what the
-// issue #13 tracer bullet, tests/contract/test_mdsplus.cpp, already pins),
-// but the seed's other two sub-shapes don't match the real equilibrium DD
-// layout MDSplus enforces: writing "profiles_1d/psi" as a flat tensorized
-// 2-D array (the HDF5-tensorization convention this generator targets)
-// throws "%TREE-W-NNF, Node Not Found" immediately, because MDSplus's real
-// profiles_1d is a genuine dynamic array-of-structures, not a flat dataset at
-// that path; and the "constraints" AOS's generic {measured, weight} fields
-// don't exist in the real DD equilibrium/constraints structure (a fixed
-// container of specific constraint-type sub-objects), so the AOS write
-// buffers successfully but throws the same NNF when flushed at
-// al_end_action. Real DD-conformant AOS/timed paths do round-trip on MDSplus
-// through this exact write/read sequence -- the divergence is specific to
-// this generator's DD-agnostic shape choices, not a general MDSplus
-// limitation. Skipped with GTEST_SKIP() (mirroring AosMatrix's
-// AosExpect::Divergence above) rather than run and fail. See TRACEABILITY.md
-// Part 4.
+// MDSplus (issue #14) now joins this fixture as a full participant, not a
+// skipped Divergence: issue #33 made every seed path DD-4.1.1-conformant
+// (validated against the baked-from IDSDef.xml), so MDSplus resolves them
+// against its DD-baked model tree and round-trips the whole composite -- the
+// same real time_slice AOS write/read idiom test_mdsplus_unique_surface.cpp
+// already proves for time_slice/{time,global_quantities/ip}. The earlier seed
+// modelled profiles_1d/psi as a flat top-level leaf and constraints as a
+// generic {measured,weight} AOS; those shapes have no node in the real DD, so
+// MDSplus and UDA could only skip. That fixture invalidity is gone.
+//
+// UDA is the one backend that still cannot round-trip the whole seed: its
+// remote-mode + backend=hdf5 path returns dynamic leaves nested inside a
+// struct_array as absent, so the time_slice AOS leaves diverge (the
+// independently-pinned UdaAosKnownDefects defect). That is triaged as a UDA
+// xfail in test_uda.cpp, not fixture invalidity. See TRACEABILITY.md Parts 4/5.
 // ===========================================================================
 class EquilibriumSeedMatrix : public ::testing::TestWithParam<BackendCase> {
 protected:
@@ -338,16 +334,6 @@ const BackendCase kSeedBackends[] = {
 
 TEST_P(EquilibriumSeedMatrix, RoundTripHashMatches) {
     const BackendCase b = GetParam();
-#ifdef AL_CONTRACT_HAVE_MDSPLUS
-    if (b.id == MDSPLUS_BACKEND) {
-        GTEST_SKIP() << "Mdsplus requires real DD-conformant paths for the "
-                        "profile/AOS sub-shapes (issue #12 Q2) -- this "
-                        "generator's flat profiles_1d/psi write and generic "
-                        "constraints AOS are refused, not a defect (the "
-                        "scalar sub-shape is separately covered by "
-                        "MdsplusTracerBullet). See TRACEABILITY.md Part 4.";
-    }
-#endif
     if (b.on_disk) base_.make_legacy_tree(pulse_);
     const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
     ASSERT_FALSE(uri.empty());
@@ -356,13 +342,80 @@ TEST_P(EquilibriumSeedMatrix, RoundTripHashMatches) {
     AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx));
     AL_ASSERT_OK(equilibrium_seed::write(pctx));
 
-    uint64_t hash = 0;
-    AL_ASSERT_OK(equilibrium_seed::read_and_hash(pctx, &hash));
-    EXPECT_EQ(hash, equilibrium_seed::expected_hash())
-        << "equilibrium seed (scalar + timebase-carrying 2-D array + "
-           "constraints AOS) must round-trip exactly";
+    std::vector<equilibrium_seed::Obs> obs;
+    AL_ASSERT_OK(equilibrium_seed::read_back(pctx, &obs));
+
+    // Assert exact rank/extents field-by-field before hashing (issue #33), so a
+    // structural drift is a precise message, not just a hash number mismatch.
+    const std::vector<equilibrium_seed::Obs> expected =
+        equilibrium_seed::expected_records();
+    ASSERT_EQ(obs.size(), expected.size())
+        << "read observed a different field/AOS-element count than the seed";
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_EQ(obs[i].field, expected[i].field) << "field #" << i;
+        EXPECT_EQ(obs[i].rank, expected[i].rank) << expected[i].field << " rank";
+        EXPECT_EQ(obs[i].extents, expected[i].extents)
+            << expected[i].field << " extents";
+    }
+
+    EXPECT_EQ(equilibrium_seed::canonical_hash(obs),
+              equilibrium_seed::expected_hash())
+        << "equilibrium seed (scalar + top-level timebase array + real "
+           "time_slice/profiles_1d/constraints AOS) must round-trip exactly, "
+           "structure and values";
 
     EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
+}
+
+// --- structural-hash sensitivity (issue #33 acceptance criteria 2 & 3) ------
+// Hermetic proofs that the canonical hash catches the two structural
+// corruptions a values-only hash would miss. They operate on the production
+// expected_records()/canonical_hash() -- no backend substrate -- so they are
+// classified into the `unit` tier.
+
+// Swapping two extents without changing a single value byte must change the
+// hash. Uses a 3x4 -> 4x3 record because the seed's own fields are 0-/1-D;
+// this pins the extent-sensitivity of the oracle directly.
+TEST(EquilibriumSeedStructuralHash, SwappingExtentsWithSameBytesChangesHash) {
+    using equilibrium_seed::Obs;
+    const std::vector<double> bytes(12, 1.5);  // 3*4 == 4*3, identical values
+    std::vector<Obs> a = {{"profiles_2d/psi", DOUBLE_DATA, 2, {3, 4}, bytes}};
+    std::vector<Obs> b = {{"profiles_2d/psi", DOUBLE_DATA, 2, {4, 3}, bytes}};
+    EXPECT_NE(equilibrium_seed::canonical_hash(a),
+              equilibrium_seed::canonical_hash(b))
+        << "a 3x4 -> 4x3 extent transpose with unchanged bytes must not hash "
+           "the same";
+}
+
+// Dropping an AOS element must change the hash.
+TEST(EquilibriumSeedStructuralHash, DroppingAosElementChangesHash) {
+    std::vector<equilibrium_seed::Obs> full = equilibrium_seed::expected_records();
+    ASSERT_GT(full.size(), 5u);
+    std::vector<equilibrium_seed::Obs> dropped = full;
+    dropped.pop_back();  // drop the last time_slice element's last leaf
+    EXPECT_NE(equilibrium_seed::canonical_hash(full),
+              equilibrium_seed::canonical_hash(dropped));
+}
+
+// Reordering two AOS elements (swapping their values, structure unchanged) must
+// change the hash -- the element index is part of each field's identity.
+TEST(EquilibriumSeedStructuralHash, ReorderingAosElementsChangesHash) {
+    using equilibrium_seed::Obs;
+    std::vector<Obs> a = equilibrium_seed::expected_records();
+    std::vector<Obs> b = a;
+    // Find the two time_slice[i]/global_quantities/ip records and swap their
+    // values, leaving every field/rank/extent identical.
+    std::vector<std::size_t> ip_idx;
+    for (std::size_t i = 0; i < b.size(); ++i) {
+        if (b[i].field.find("global_quantities/ip") != std::string::npos)
+            ip_idx.push_back(i);
+    }
+    ASSERT_GE(ip_idx.size(), 2u);
+    std::swap(b[ip_idx[0]].values, b[ip_idx[1]].values);
+    EXPECT_NE(equilibrium_seed::canonical_hash(a),
+              equilibrium_seed::canonical_hash(b))
+        << "swapping two AOS elements' values must change the hash even though "
+           "the multiset of bytes is unchanged";
 }
 
 INSTANTIATE_TEST_SUITE_P(
