@@ -30,7 +30,11 @@ profile and create your own feature branch off of the latest develop commit.
 Make sure to regularly sync your branch with the latest commits from `develop` 
 (find instructions 
 [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/syncing-a-fork));
-5. when your development is ready, create a pull request (find instructions 
+5. make sure the test suite passes before submitting: see 
+[tests/README.md](tests/README.md) for how to build and run it 
+(`cmake --preset tests && cmake --build --preset tests && ctest --preset tests` 
+is the same run as the blocking CI check);
+6. when your development is ready, create a pull request (find instructions 
 [here](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork)).
 
 
