@@ -64,6 +64,8 @@ if(EXISTS "${_al_contract_tests_file}")
              _al_name MATCHES "^Mdsplus/MdsplusRealPathMatrix\\." OR
              # issue #46: MDSplus half of the shared-catalog coverage meta-test
              _al_name MATCHES "^MdsplusRealPathCatalog\\." OR
+             # issue #34: MDSplus real-DD-path delete characterization
+             _al_name MATCHES "^MdsplusRealPathDelete\\." OR
              _al_name MATCHES "^MdsplusVersionDrift" OR
              _al_name MATCHES "^MdsplusStructAwareSliceInterpolation" OR
              _al_name MATCHES "^MdsplusTimerangeResampling" OR

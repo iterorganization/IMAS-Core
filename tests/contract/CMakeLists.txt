@@ -76,6 +76,7 @@ add_executable(contract_tests
   test_pulse_lifecycle.cpp
   test_mdsplus.cpp
   test_mdsplus_real_paths.cpp
+  test_mdsplus_delete.cpp
   test_mdsplus_version_drift.cpp
   test_mdsplus_unique_surface.cpp
   test_uda.cpp
