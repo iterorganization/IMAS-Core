@@ -27,6 +27,7 @@ CMakeUserPresets.json
 /vcpkg_installed/
 settings.json
 /build*/
+cmake-build-*/
 /_deps/
 /CMakeFiles
 CMakeCache.txt
