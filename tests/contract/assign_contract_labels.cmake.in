@@ -54,7 +54,10 @@ if(EXISTS "${_al_contract_tests_file}")
          _al_name MATCHES "^BackendFactory\\." OR
          # issue #46: the shared real-DD-path catalog's own invariants — pure
          # in-RAM table checks, no backend substrate, always compiled
-         _al_name MATCHES "^RealDdPathCatalog\\.")
+         _al_name MATCHES "^RealDdPathCatalog\\." OR
+         # issue #33: equilibrium-seed structural-hash sensitivity checks —
+         # pure in-RAM hashing of records, no backend substrate
+         _al_name MATCHES "^EquilibriumSeedStructuralHash\\.")
         set_tests_properties("${_al_name}" PROPERTIES LABELS "contract;unit")
       elseif(_al_name MATCHES "^MdsplusTracerBullet" OR
              # "/Mdsplus" as the whole instance suffix: pretty names end
