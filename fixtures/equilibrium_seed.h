@@ -38,7 +38,7 @@
 #ifndef AL_CONTRACT_EQUILIBRIUM_SEED_H
 #define AL_CONTRACT_EQUILIBRIUM_SEED_H
 
-#include "al_contract.h"
+#include "al_contract_abi.h"
 
 #include <al_lowlevel.h>
 #include <al_const.h>

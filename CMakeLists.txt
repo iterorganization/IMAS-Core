@@ -37,6 +37,13 @@ option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 option(AL_BUILD_TESTS "Build the C/C++ low-level ABI smoke tests (tests/)" OFF)
 
+# The fixtures/al_contract_fixtures INTERFACE library itself is always
+# available (see below) so it is genuinely usable outside AL_BUILD_TESTS; this
+# only gates the throwaway demonstration executable (issue #51 acceptance
+# criterion 3), off by default like every other extra target in this file.
+option(AL_BUILD_FIXTURE_SMOKE
+       "Build a throwaway executable proving tests/contract fixtures are linkable outside the test tree" OFF)
+
 # When ON, the al C++ library is not built here; instead it is located with
 # find_package(al-core CONFIG). Enables a two-stage build where libimas-core
 # (the C/C++ library) and imas-core (the Python wrapper) are packaged
@@ -212,6 +219,11 @@ else()
 endif()
 
 add_subdirectory(src)
+
+# Shared contract fixtures (issue #51): the equilibrium seed and the ABI
+# helpers it needs, usable outside tests/ (e.g. by a future benchmarks/
+# tree). Added unconditionally so it never depends on AL_BUILD_TESTS.
+add_subdirectory(fixtures)
 
 # Dummy Executable
 # ##############################################################################

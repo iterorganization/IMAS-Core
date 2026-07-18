@@ -140,7 +140,9 @@ genuine defect (expected-fail).
 The deterministic, in-repo single-version equilibrium-seed generator (a
 scalar, a timebase-carrying 2-D array, and a constraints AOS — no committed
 binary blobs; oracle = a content hash recomputed from the generator functions
-themselves, `tests/contract/equilibrium_seed.h`), round-tripped on the three
+themselves, `fixtures/equilibrium_seed.h` — moved outside tests/contract/ by
+issue #51 so a future benchmarks/ target can link it directly), round-tripped
+on the three
 backends where AOS content is actually readable back within a session.
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
