@@ -25,16 +25,32 @@ FetchContent_MakeAvailable(googlebenchmark)
 ########################################################################################################################
 # The benchmark executable.
 #
-# One benchmark drives the public C ABI (al_lowlevel.h) end-to-end: a
-# single-leaf write-once-then-read on a tiny inline fixture -- deliberately NOT
-# the equilibrium seed yet (that lands with the real workload issue). It runs
-# against the in-RAM Memory backend, so the harness needs no filesystem or
-# optional backend to smoke-prove the whole build+run+report path.
+# bench_write_read.cpp is the original tracer bullet: a single-leaf
+# write-once-then-read on a tiny inline fixture, against the in-RAM Memory
+# backend, needing no filesystem or optional backend.
+#
+# bench_equilibrium_read.cpp is the real P1 headline workload (issue #53):
+# whole-IDS equilibrium read on the HDF5 backend, reusing equilibrium_seed.h
+# (issue #51) via the al_contract_fixtures INTERFACE library below -- hence
+# needs the filesystem (std::filesystem temp dirs) that Memory-only
+# bench_write_read.cpp does not.
+#
+# bench_main.cpp holds the one BENCHMARK_MAIN() shared by every bench_*.cpp
+# TU in this executable.
 
-add_executable( al_benchmarks bench_write_read.cpp )
-target_link_libraries( al_benchmarks PRIVATE al benchmark::benchmark )
+add_executable( al_benchmarks
+  bench_write_read.cpp
+  bench_equilibrium_read.cpp
+  bench_main.cpp )
+target_link_libraries( al_benchmarks PRIVATE al_contract_fixtures benchmark::benchmark )
 add_dependencies( al_benchmarks al )
 target_compile_features( al_benchmarks PRIVATE cxx_std_17 )
+
+if(NOT WIN32 AND NOT APPLE)
+  # stdc++fs is only needed on Linux with older GCC (std::filesystem use in
+  # bench_equilibrium_read.cpp), mirroring fixtures/CMakeLists.txt's smoke target.
+  target_link_libraries( al_benchmarks PRIVATE stdc++fs )
+endif()
 
 ########################################################################################################################
 # CTest smoke entry.

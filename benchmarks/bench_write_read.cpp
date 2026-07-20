@@ -6,16 +6,19 @@
 // not to produce a meaningful performance number; the real hot-path scenarios
 // (whole-IDS read/write, AOS traversal, ...) land separately (NORTH_STAR.md §8.4).
 
+#include "bench_common.h"
+
 #include <al_lowlevel.h>
 #include <al_const.h>
 
 #include <benchmark/benchmark.h>
 
 #include <cstdlib>
-#include <stdexcept>
 #include <string>
 
 namespace {
+
+using al_bench::CheckOk;
 
 // The core attaches no DD semantics to either string (DD paths are opaque
 // strings through the whole C ABI), so an arbitrary IDS name and leaf path
@@ -23,14 +26,6 @@ namespace {
 constexpr const char* kIds   = "magnetics";
 constexpr const char* kField = "ids_properties/homogeneous_time";
 constexpr int         kValue = 42;
-
-void CheckOk(const al_status_t& status, const char* what) {
-  if (status.code != 0) {
-    throw std::runtime_error(std::string(what) + " failed (code=" +
-                              std::to_string(status.code) + "): " +
-                              status.message);
-  }
-}
 
 // Builds a fresh in-RAM Memory-backend URI. The Memory backend never touches
 // disk, so the harness has no filesystem dependency to smoke-validate the
@@ -94,5 +89,3 @@ void BM_WriteReadRoundTrip(benchmark::State& state) {
   }
 }
 BENCHMARK(BM_WriteReadRoundTrip);
-
-BENCHMARK_MAIN();
