@@ -30,10 +30,10 @@ FetchContent_MakeAvailable(googlebenchmark)
 # backend, needing no filesystem or optional backend.
 #
 # bench_equilibrium_read.cpp is the real P1 headline workload (issue #53):
-# whole-IDS equilibrium read on the HDF5 backend, reusing equilibrium_seed.h
-# (issue #51) via the al_contract_fixtures INTERFACE library below -- hence
-# needs the filesystem (std::filesystem temp dirs) that Memory-only
-# bench_write_read.cpp does not.
+# whole-IDS equilibrium read, reusing equilibrium_seed.h (issue #51) via the
+# al_contract_fixtures INTERFACE library below. It registers the same
+# operation against both HDF5 (needs the filesystem -- std::filesystem temp
+# dirs) and, as a zero-I/O control (issue #54), the in-RAM Memory backend.
 #
 # bench_main.cpp holds the one BENCHMARK_MAIN() shared by every bench_*.cpp
 # TU in this executable.
