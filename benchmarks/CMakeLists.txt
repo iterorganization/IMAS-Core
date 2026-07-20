@@ -47,8 +47,8 @@ target_compile_features( al_benchmarks PRIVATE cxx_std_17 )
 # added later.
 #
 # Follows the FIXTURES_SETUP/FIXTURES_REQUIRED shape tests/CMakeLists.txt uses
-# for its own smoke registration: one test produces the JSON file, a second
-# frameworkless executable validates it.
+# for its own smoke registration: one test produces the JSON file, then CMake's
+# built-in JSON parser validates it without adding another runtime dependency.
 
 set( _smoke_json ${CMAKE_CURRENT_BINARY_DIR}/benchmark_smoke.json )
 
@@ -58,9 +58,7 @@ add_test( NAME benchmark_smoke_run
                          --benchmark_out_format=json )
 set_tests_properties( benchmark_smoke_run PROPERTIES FIXTURES_SETUP BENCHMARK_SMOKE_JSON )
 
-add_executable( al_benchmark_json_check validate_benchmark_json.cpp )
-target_compile_features( al_benchmark_json_check PRIVATE cxx_std_17 )
-
 add_test( NAME benchmark_smoke_validate
-  COMMAND al_benchmark_json_check ${_smoke_json} )
+  COMMAND ${CMAKE_COMMAND} -DINPUT=${_smoke_json}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/validate_benchmark_json.cmake )
 set_tests_properties( benchmark_smoke_validate PROPERTIES FIXTURES_REQUIRED BENCHMARK_SMOKE_JSON )
