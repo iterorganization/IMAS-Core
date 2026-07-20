@@ -39,8 +39,9 @@ produced.
 
 ## Naming
 
-- `<machine-id>` is whatever `--machine-id` was passed to
-  `capture_baseline.py` (default: the sanitized hostname). Use a stable,
+- `<machine-id>` is the normalized value of `--machine-id` (default: the
+  sanitized hostname). It contains only lowercase letters, digits, and dashes.
+  Use a stable,
   descriptive id for anything meant to be a measurement of record, e.g.
   `sdcc-gpfs` for the ITER SDCC cluster, rather than a raw login-node
   hostname that might change.

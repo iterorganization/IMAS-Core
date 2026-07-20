@@ -74,6 +74,11 @@ def detect_cpu_model() -> str:
         brand = best_effort_output(["sysctl", "-n", "machdep.cpu.brand_string"])
         if brand:
             return brand
+        hardware = best_effort_output(["system_profiler", "SPHardwareDataType"])
+        if hardware:
+            chip = re.search(r"^\s*Chip:\s*(.+)$", hardware, re.MULTILINE)
+            if chip:
+                return chip.group(1).strip()
     elif system == "Linux":
         try:
             with open("/proc/cpuinfo") as f:
@@ -176,7 +181,7 @@ def build_metadata(args: argparse.Namespace, build_dir: Path | None) -> dict[str
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "machine_id": args.machine_id,
         "os": detect_os(),
-        "cpu_model": detect_cpu_model(),
+        "cpu_model": args.cpu_model or detect_cpu_model(),
         "compiler": detect_compiler(cache),
         "compiler_flags": detect_compiler_flags(cache),
         "build_type": cache.get("CMAKE_BUILD_TYPE", "unknown"),
@@ -234,7 +239,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--machine-id",
         default=sanitize_machine_id(socket.gethostname()),
-        help="identifier this baseline is filed under (default: sanitized hostname)",
+        type=sanitize_machine_id,
+        help="identifier this baseline is filed under (always sanitized; default: hostname)",
+    )
+    parser.add_argument(
+        "--cpu-model",
+        default=None,
+        help="CPU model to record when automatic detection is unavailable",
     )
     parser.add_argument(
         "--output-dir",

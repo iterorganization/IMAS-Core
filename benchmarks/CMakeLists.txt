@@ -22,6 +22,8 @@ set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_WERROR OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googlebenchmark)
 
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
 ########################################################################################################################
 # The benchmark executable.
 #
@@ -78,3 +80,6 @@ add_test( NAME benchmark_smoke_validate
   COMMAND ${CMAKE_COMMAND} -DINPUT=${_smoke_json}
           -P ${CMAKE_CURRENT_SOURCE_DIR}/validate_benchmark_json.cmake )
 set_tests_properties( benchmark_smoke_validate PROPERTIES FIXTURES_REQUIRED BENCHMARK_SMOKE_JSON )
+
+add_test( NAME baseline_capture_unit
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_capture_baseline.py )

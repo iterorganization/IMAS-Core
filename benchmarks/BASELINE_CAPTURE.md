@@ -34,6 +34,11 @@ filesystem, commit SHA/dirty flag, `slurm_partition: null`) and the path it
 wrote to. On a laptop `commit_dirty` will often be `true` — that's expected
 and is exactly why this file is a smoke artifact, not a baseline of record.
 
+On macOS, the script detects the Apple chip through `system_profiler` when the
+usual CPU-brand `sysctl` is unavailable. If automatic detection is blocked in
+your environment, pass the precise model explicitly, for example
+`--cpu-model "Apple M5 Pro"`.
+
 ## ITER SDCC cluster (measurement of record)
 
 Run on a clean checkout of `develop` at a known commit, before any P1–P6
@@ -104,4 +109,6 @@ moment optimization starts).
 into the Google Benchmark JSON's `context` block as `imas_baseline_metadata`.
 Compiler/flags/HDF5 version are read from the build directory's
 `CMakeCache.txt` (found by walking up from `--binary`, or pass `--build-dir`
-explicitly if your build layout doesn't nest the binary under it).
+explicitly if your build layout doesn't nest the binary under it). Machine IDs
+are normalized to lowercase letters, digits, and dashes, ensuring every
+artifact remains inside the documented baseline layout.
