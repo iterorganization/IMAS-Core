@@ -13,6 +13,7 @@
 // lands as a second BENCHMARK() registration reusing this same function shape.
 
 #include "bench_common.h"
+#include "al_contract_legacy_storage.h"
 #include "equilibrium_seed.h"
 
 #include <al_lowlevel.h>
@@ -21,64 +22,32 @@
 #include <benchmark/benchmark.h>
 
 #include <cstdlib>
-#include <filesystem>
 #include <string>
-
-#if defined(_WIN32)
-#include <process.h>
-#define AL_BENCH_GETPID _getpid
-#else
-#include <unistd.h>
-#define AL_BENCH_GETPID getpid
-#endif
 
 namespace {
 
 using al_bench::CheckOk;
 
-// The HDF5 backend is on-disk (unlike Memory in bench_write_read.cpp), so
-// FORCE_CREATE_PULSE needs the legacy <base>/<db>/<ver>/<pulse>/<run> tree
-// pre-created -- mirrors tests/contract/al_contract.h's TempBase, reimplemented
-// here without a GoogleTest dependency (this tree links al_contract_fixtures,
-// not al_contract.h). RAII like TempBase: the directory is created in the
-// constructor and always removed in the destructor, including when a
-// CheckOk() throws mid-setup, so a failing run never leaks the temp dir.
-class TempHdf5Dir {
-public:
-  TempHdf5Dir()
-      : path_(std::filesystem::temp_directory_path() /
-              ("al_benchmarks_hdf5_" + std::to_string(AL_BENCH_GETPID()))) {
-    std::error_code ec;
-    std::filesystem::remove_all(path_, ec);
-    std::filesystem::create_directories(path_ / "bench" / "3" / "1" / "0", ec);
-  }
-  ~TempHdf5Dir() {
-    std::error_code ec;
-    std::filesystem::remove_all(path_, ec);
-  }
-  TempHdf5Dir(const TempHdf5Dir&)            = delete;
-  TempHdf5Dir& operator=(const TempHdf5Dir&) = delete;
-
-  std::string uri() const {
-    char*       uri = nullptr;
-    CheckOk(al_build_uri_from_legacy_parameters(
-                HDF5_BACKEND, /*pulse=*/1, /*run=*/0, path_.string().c_str(),
-                /*tokamak=*/"bench", /*version=*/"3", /*options=*/"", &uri),
-            "al_build_uri_from_legacy_parameters");
-    std::string result(uri ? uri : "");
-    free(uri);
-    return result;
-  }
-
-private:
-  std::filesystem::path path_;
-};
+std::string Hdf5Uri(const al_contract::LegacyPulseDirectory& base,
+                    const al_contract::PulseId& pulse) {
+  char* uri = nullptr;
+  CheckOk(al_build_uri_from_legacy_parameters(
+              HDF5_BACKEND, pulse.pulse, pulse.run, base.str().c_str(),
+              pulse.database.c_str(), pulse.version.c_str(), /*options=*/"", &uri),
+          "al_build_uri_from_legacy_parameters");
+  std::string result(uri ? uri : "");
+  free(uri);
+  return result;
+}
 
 }  // namespace
 
 void BM_EquilibriumWholeIdsRead_HDF5(benchmark::State& state) {
-  TempHdf5Dir       dir;
-  const std::string uri = dir.uri();
+  const al_contract::PulseId pulse{/*database=*/"bench", /*version=*/"3",
+                                    /*pulse=*/1, /*run=*/0};
+  al_contract::LegacyPulseDirectory base;
+  base.make_legacy_tree(pulse);
+  const std::string uri = Hdf5Uri(base, pulse);
 
   // --- untimed setup: open once, write the reference equilibrium once ------
   int pulse_ctx = -1;
@@ -96,7 +65,7 @@ void BM_EquilibriumWholeIdsRead_HDF5(benchmark::State& state) {
 
   // --- untimed teardown ------------------------------------------------------
   CheckOk(al_close_pulse(pulse_ctx, CLOSE_PULSE), "al_close_pulse");
-  // dir's destructor removes the temp directory on every exit path.
+  // base's destructor removes the temp directory on every exit path.
 }
 // Repetitions(N) makes Google Benchmark report the distribution (median,
 // mean, stddev, iteration count) across N independent setup/read/teardown
