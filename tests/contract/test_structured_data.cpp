@@ -400,6 +400,51 @@ TEST_P(EquilibriumSeedMatrix, RepeatedWholeIdsWriteOnSameOpenPulseSucceeds) {
     EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
 }
 
+// Reproduce the shared benchmark process ordering from issue #60: a complete
+// whole-IDS read, followed by the node-by-node read of one time_slice element.
+// This keeps the smoke-only HDF5 failure covered without relying on benchmark
+// registration order or a standalone filtered process.
+TEST_P(EquilibriumSeedMatrix, WholeIdsReadThenTimeSliceElementReadSucceeds) {
+    const BackendCase b = GetParam();
+    if (b.on_disk) base_.make_legacy_tree(pulse_);
+    const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
+    ASSERT_FALSE(uri.empty());
+
+    int pctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx));
+    AL_ASSERT_OK(equilibrium_seed::write(pctx));
+
+    std::vector<equilibrium_seed::Obs> whole_ids;
+    AL_ASSERT_OK(equilibrium_seed::read_back(pctx, &whole_ids));
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    int size = 0;
+    int aos_ctx = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(op, equilibrium_seed::kAos,
+                                             equilibrium_seed::kAosTime,
+                                             &size, &aos_ctx));
+    ASSERT_EQ(size, equilibrium_seed::kNSlices);
+    AL_ASSERT_OK(al_iterate_over_arraystruct(aos_ctx, size - 1));
+
+    std::vector<int> shape;
+    std::vector<double> data;
+    auto read_leaf = [&](const char* path, int rank) {
+        AL_ASSERT_OK(al_contract::read_data<double>(aos_ctx, path, rank,
+                                                    &shape, &data));
+    };
+    read_leaf(equilibrium_seed::kSliceTime, 0);
+    read_leaf(equilibrium_seed::kPsi, 1);
+    read_leaf(equilibrium_seed::kIp, 0);
+    read_leaf(equilibrium_seed::kMeasured, 0);
+    read_leaf(equilibrium_seed::kWeight, 0);
+
+    AL_ASSERT_OK(al_end_action(aos_ctx));
+    AL_ASSERT_OK(al_end_action(op));
+    EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
+}
+
 // --- structural-hash sensitivity (issue #33 acceptance criteria 2 & 3) ------
 // Hermetic proofs that the canonical hash catches the two structural
 // corruptions a values-only hash would miss. They operate on the production
