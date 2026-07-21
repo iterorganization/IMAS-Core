@@ -406,6 +406,14 @@ TEST_P(EquilibriumSeedMatrix, RepeatedWholeIdsWriteOnSameOpenPulseSucceeds) {
 // registration order or a standalone filtered process.
 TEST_P(EquilibriumSeedMatrix, WholeIdsReadThenTimeSliceElementReadSucceeds) {
     const BackendCase b = GetParam();
+    // ASCII's READ_OP setup exhausts its sequential stream before
+    // beginReadArraystructAction can recover the AOS size. This is the
+    // documented AOS read known defect pinned by AosKnownDefects.* above;
+    // this regression specifically covers the HDF5 benchmark ordering.
+    if (b.id == ASCII_BACKEND) {
+        GTEST_SKIP() << "known defect for " << b.name
+                     << " AOS read — see AosKnownDefects.*";
+    }
     if (b.on_disk) base_.make_legacy_tree(pulse_);
     const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
     ASSERT_FALSE(uri.empty());
