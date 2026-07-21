@@ -29,10 +29,7 @@
 // registrations of it differing only in which backend id the URI is built
 // for.
 
-#include "bench_common.h"
-#include "al_contract_abi.h"
-#include "al_contract_legacy_storage.h"
-#include "equilibrium_seed.h"
+#include "bench_equilibrium_traversal.h"
 
 #include <al_lowlevel.h>
 #include <al_const.h>
@@ -74,16 +71,7 @@ void BM_TimeSliceElementRead(benchmark::State& state, BenchBackend backend) {
     CheckOk(al_iterate_over_arraystruct(aos_ctx, kTargetSlice),
             "al_iterate_over_arraystruct");
 
-    auto read_leaf = [&](const char* path, int rank, const char* what) {
-      CheckOk(al_contract::read_data<double>(aos_ctx, path, rank, &shape, &data),
-              what);
-      benchmark::DoNotOptimize(data);
-    };
-    read_leaf(equilibrium_seed::kSliceTime, 0, "read time");
-    read_leaf(equilibrium_seed::kPsi, 1, "read profiles_1d/psi");
-    read_leaf(equilibrium_seed::kIp, 0, "read global_quantities/ip");
-    read_leaf(equilibrium_seed::kMeasured, 0, "read constraints/ip/measured");
-    read_leaf(equilibrium_seed::kWeight, 0, "read constraints/ip/weight");
+    al_bench::ReadCurrentEquilibriumTimeSliceLeaves(aos_ctx, &shape, &data);
 
     CheckOk(al_end_action(aos_ctx), "al_end_action(aos_ctx)");
     CheckOk(al_end_action(op), "al_end_action(op)");

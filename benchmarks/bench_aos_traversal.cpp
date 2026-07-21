@@ -1,7 +1,7 @@
 // AOS-heavy full-traversal benchmark (issue #61, PRD #57 user story 7): the
 // "before" baseline for P1/P4's round-trip-count reduction (NORTH_STAR.md
-// §7) -- and the macro signal that would justify a future P5 per-call
-// primitive micro-benchmark (getenv per call, path-string replacement) if
+// §7) -- and the macro signal that would justify a future P5 Primitive
+// benchmark (getenv per call, path-string replacement) if
 // this comes back slow.
 //
 // Functionally this is the same traversal bench_equilibrium_read.cpp already
@@ -30,10 +30,7 @@
 // operation body, HDF5 and Memory are two BENCHMARK_CAPTURE registrations of
 // it differing only in which backend id the URI is built for.
 
-#include "bench_common.h"
-#include "al_contract_abi.h"
-#include "al_contract_legacy_storage.h"
-#include "equilibrium_seed.h"
+#include "bench_equilibrium_traversal.h"
 
 #include <al_lowlevel.h>
 #include <al_const.h>
@@ -73,17 +70,8 @@ void BM_AosHeavyTraversal(benchmark::State& state, BenchBackend backend) {
                                          &aos_ctx),
             "al_begin_arraystruct_action");
 
-    auto read_leaf = [&](const char* path, int rank, const char* what) {
-      CheckOk(al_contract::read_data<double>(aos_ctx, path, rank, &shape, &data),
-              what);
-      benchmark::DoNotOptimize(data);
-    };
     for (int i = 0; i < size; ++i) {
-      read_leaf(equilibrium_seed::kSliceTime, 0, "read time");
-      read_leaf(equilibrium_seed::kPsi, 1, "read profiles_1d/psi");
-      read_leaf(equilibrium_seed::kIp, 0, "read global_quantities/ip");
-      read_leaf(equilibrium_seed::kMeasured, 0, "read constraints/ip/measured");
-      read_leaf(equilibrium_seed::kWeight, 0, "read constraints/ip/weight");
+      al_bench::ReadCurrentEquilibriumTimeSliceLeaves(aos_ctx, &shape, &data);
       if (i + 1 < size) {
         CheckOk(al_iterate_over_arraystruct(aos_ctx, 1),
                 "al_iterate_over_arraystruct");

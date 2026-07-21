@@ -10,23 +10,9 @@
 // `for (auto _ : state)` loop, so open/close cost never contaminates the
 // write measurement.
 //
-// Repeated writes to the same open pulse context must never accumulate stale
-// data from a prior write (PRD #57 user story 5): ALData::writeData clears
-// its buffer before repopulating (src/memory_backend.cpp) and the
-// array-of-structures path replaces rather than appends elements, for any
-// whole-IDS (non-slice) write. This is checked once, untimed, after the timed
-// loop -- but the timed loop's own iteration count isn't a reliable way to
-// exercise "repeated": the CTest smoke entry caps every benchmark at exactly
-// one iteration (--benchmark_min_time=1x), which would make the check
-// vacuous (one write trivially matches one write's hash) on the one run this
-// repo executes automatically. So an explicit second untimed write happens
-// after the loop, guaranteeing at least two writes to the same context
-// regardless of how many timed iterations ran, before a read-back of the
-// resulting structural hash is compared against equilibrium_seed's
-// expected_hash() exactly, on both backends. The hash folds in AOS size
-// (equilibrium_seed.h), so an accumulation bug (e.g. elements appended
-// instead of replaced) would drift it and this check -- which the existing
-// CTest smoke entry already runs -- would throw.
+// Correctness of repeated writes on the same open pulse is pinned separately
+// by EquilibriumSeedMatrix.RepeatedWholeIdsWriteOnSameOpenPulseSucceeds; this
+// benchmark measures the operation without re-asserting the contract.
 
 #include "bench_common.h"
 #include "equilibrium_seed.h"
@@ -35,9 +21,6 @@
 #include <al_const.h>
 
 #include <benchmark/benchmark.h>
-
-#include <cstdint>
-#include <stdexcept>
 
 using al_bench::BenchBackend;
 using al_bench::CheckOk;
@@ -55,20 +38,6 @@ void BM_EquilibriumWholeIdsWrite(benchmark::State& state, BenchBackend backend) 
   // --- timed region: repeated whole-IDS write on the same open context -----
   for (auto _ : state) {
     CheckOk(equilibrium_seed::write(bp.pulse_ctx), "equilibrium_seed::write");
-  }
-
-  // --- untimed correctness check: no stale data survives repeated writes ---
-  // Force a second write regardless of the timed loop's iteration count (see
-  // top-of-file comment), then verify no staleness accumulated.
-  CheckOk(equilibrium_seed::write(bp.pulse_ctx), "equilibrium_seed::write");
-  uint64_t hash = 0;
-  CheckOk(equilibrium_seed::read_and_hash(bp.pulse_ctx, &hash),
-          "equilibrium_seed::read_and_hash");
-  if (hash != equilibrium_seed::expected_hash()) {
-    throw std::runtime_error(
-        "BM_EquilibriumWholeIdsWrite: repeated-write structural hash does "
-        "not match expected_hash() -- repeated writes may have accumulated "
-        "stale data");
   }
 
   // --- untimed teardown ------------------------------------------------------
