@@ -47,6 +47,11 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # optimizations (NORTH_STAR.md §7): one time_slice element's full leaf set,
 # read node-by-node by index, against both HDF5 and Memory.
 #
+# bench_aos_traversal.cpp (issue #61) is the "before" baseline for P1/P4's
+# round-trip-count reduction (NORTH_STAR.md §7): every time_slice element,
+# every field, visited via al_iterate_over_arraystruct, against both HDF5 and
+# Memory.
+#
 # bench_main.cpp holds the one BENCHMARK_MAIN() shared by every bench_*.cpp
 # TU in this executable.
 
@@ -55,6 +60,7 @@ add_executable( al_benchmarks
   bench_equilibrium_read.cpp
   bench_equilibrium_write.cpp
   bench_timeslice_element_read.cpp
+  bench_aos_traversal.cpp
   bench_main.cpp )
 target_link_libraries( al_benchmarks PRIVATE al_contract_fixtures benchmark::benchmark )
 add_dependencies( al_benchmarks al )
