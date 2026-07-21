@@ -37,12 +37,18 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # operation against both HDF5 (needs the filesystem -- std::filesystem temp
 # dirs) and, as a zero-I/O control (issue #54), the in-RAM Memory backend.
 #
+# bench_timeslice_element_read.cpp (issue #60) is the shared "before"
+# baseline for the future P2 (al_read_subtree) and P3 (slice-mode buffering)
+# optimizations (NORTH_STAR.md §7): one time_slice element's full leaf set,
+# read node-by-node by index, against both HDF5 and Memory.
+#
 # bench_main.cpp holds the one BENCHMARK_MAIN() shared by every bench_*.cpp
 # TU in this executable.
 
 add_executable( al_benchmarks
   bench_write_read.cpp
   bench_equilibrium_read.cpp
+  bench_timeslice_element_read.cpp
   bench_main.cpp )
 target_link_libraries( al_benchmarks PRIVATE al_contract_fixtures benchmark::benchmark )
 add_dependencies( al_benchmarks al )
