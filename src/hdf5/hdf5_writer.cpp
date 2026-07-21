@@ -414,12 +414,17 @@ void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::strin
     if (slice_mode != SLICE_OP) {
 
 		//std::cout << "WRITER NOT IN SLICE MODE!!! " << std::endl;
-        if (dataset_id < 0)     //in global mode (put), data set not yet created
+        if (dataset_id < 0)     //not in this action's opened_data_sets cache -- may still exist on disk from a prior action on the same open pulse
         {
             std::unique_ptr < HDF5DataSetHandler > dataSetHandler(new HDF5DataSetHandler(true, dec->getURI()));
             dataSetHandler->setNonSliceMode();
             bool create_chunk_cache = true;
-            dataSetHandler->create(tensorized_path.c_str(), &dataset_id, datatype, gid, dim, size, AOSRank, arrctx_shapes.data(), false, create_chunk_cache);
+            if (H5Lexists(gid, tensorized_path.c_str(), H5P_DEFAULT) == 0) {
+                dataSetHandler->create(tensorized_path.c_str(), &dataset_id, datatype, gid, dim, size, AOSRank, arrctx_shapes.data(), false, create_chunk_cache);
+            } else {
+                dataSetHandler->open(tensorized_path.c_str(), gid, &dataset_id, dim, size, datatype, false, create_chunk_cache, dec->getURI(), AOSRank, arrctx_shapes.data());
+                dataSetHandler->setCurrentShapesAndExtend(size, arrctx_shapes.data());
+            }
             data_set = std::move(dataSetHandler);
         } else {
             data_set = std::move(got->second);
@@ -608,7 +613,12 @@ std::string & timebasename, int timed_AOS_index, const std::vector < int > &curr
         } else {
             data_set->setNonSliceMode();
             bool create_chunk_cache = true;
-			data_set->create(tensorized_path.c_str(), &dataset_id, alconst::integer_data, loc_id, dim, size, AOSRank, aos_shapes.data(), shapes_dataset, create_chunk_cache);
+            if (H5Lexists(loc_id, tensorized_path.c_str(), H5P_DEFAULT) == 0) {
+                data_set->create(tensorized_path.c_str(), &dataset_id, alconst::integer_data, loc_id, dim, size, AOSRank, aos_shapes.data(), shapes_dataset, create_chunk_cache);
+            } else {
+                data_set->open(tensorized_path.c_str(), loc_id, &dataset_id, dim, size, alconst::integer_data, shapes_dataset, create_chunk_cache, dec->getURI(), AOSRank, aos_shapes.data());
+                data_set->setCurrentShapesAndExtend(size, aos_shapes.data());
+            }
         }
 
         if (data_set->useBuffering && slice_mode != SLICE_OP) {
