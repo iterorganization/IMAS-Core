@@ -26,53 +26,12 @@
 
 #include <benchmark/benchmark.h>
 
-#include <cstdlib>
-#include <optional>
-#include <string>
-
-namespace {
-
+using al_bench::BenchBackend;
 using al_bench::CheckOk;
-
-enum class BenchBackend { kHdf5, kMemory };
-
-// HDF5 resolves FORCE_CREATE_PULSE against a real on-disk legacy tree, so it
-// needs `base` alive for the URI to mean anything. Memory never touches disk
-// (bench_write_read.cpp's MemoryUri established the pattern): an arbitrary
-// absolute-looking `user` sidesteps the legacy URI builder's getpwnam()
-// fallback for an empty/unknown user, without paying for a real temp dir.
-std::string BuildUri(BenchBackend backend, const al_contract::PulseId& pulse,
-                     const al_contract::LegacyPulseDirectory* base) {
-  char* uri = nullptr;
-  if (backend == BenchBackend::kHdf5) {
-    CheckOk(al_build_uri_from_legacy_parameters(
-                HDF5_BACKEND, pulse.pulse, pulse.run, base->str().c_str(),
-                pulse.database.c_str(), pulse.version.c_str(),
-                /*options=*/"", &uri),
-            "al_build_uri_from_legacy_parameters");
-  } else {
-    CheckOk(al_build_uri_from_legacy_parameters(
-                MEMORY_BACKEND, pulse.pulse, pulse.run, "/al-benchmarks",
-                pulse.database.c_str(), pulse.version.c_str(),
-                /*options=*/"", &uri),
-            "al_build_uri_from_legacy_parameters");
-  }
-  std::string result(uri ? uri : "");
-  free(uri);
-  return result;
-}
-
-}  // namespace
 
 void BM_EquilibriumWholeIdsRead(benchmark::State& state, BenchBackend backend) {
   const al_contract::PulseId pulse{/*database=*/"bench", /*version=*/"3",
                                     /*pulse=*/1, /*run=*/0};
-  std::optional<al_contract::LegacyPulseDirectory> base;
-  if (backend == BenchBackend::kHdf5) {
-    base.emplace();
-    base->make_legacy_tree(pulse);
-  }
-  const std::string uri = BuildUri(backend, pulse, base ? &*base : nullptr);
 
   // --- untimed setup: open once, write the reference equilibrium once ------
   // Memory keeps the fixed pulse identity across repetitions unlike
@@ -80,22 +39,20 @@ void BM_EquilibriumWholeIdsRead(benchmark::State& state, BenchBackend backend) {
   // no-op (src/memory_backend.h), so correctness across the 20 Repetitions
   // rests on FORCE_CREATE_PULSE clearing the reused entry's idsMap on reopen,
   // not on pulse identities never colliding.
-  int pulse_ctx = -1;
-  CheckOk(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pulse_ctx),
-          "al_begin_dataentry_action");
-  CheckOk(equilibrium_seed::write(pulse_ctx), "equilibrium_seed::write");
+  al_bench::BenchPulse bp = al_bench::OpenBenchPulse(backend, pulse);
+  CheckOk(equilibrium_seed::write(bp.pulse_ctx), "equilibrium_seed::write");
 
   // --- timed region: begin_global_action(READ) -> every leaf -> end_action -
   std::vector<equilibrium_seed::Obs> records;
   for (auto _ : state) {
-    CheckOk(equilibrium_seed::read_back(pulse_ctx, &records),
+    CheckOk(equilibrium_seed::read_back(bp.pulse_ctx, &records),
             "equilibrium_seed::read_back");
     benchmark::DoNotOptimize(records);
   }
 
   // --- untimed teardown ------------------------------------------------------
-  CheckOk(al_close_pulse(pulse_ctx, CLOSE_PULSE), "al_close_pulse");
-  // base's destructor (HDF5 only) removes the temp directory on every exit path.
+  CheckOk(al_close_pulse(bp.pulse_ctx, CLOSE_PULSE), "al_close_pulse");
+  // bp.base's destructor (HDF5 only) removes the temp directory on every exit path.
 }
 // Repetitions(N) makes Google Benchmark report the distribution (median,
 // mean, stddev, iteration count) across N independent setup/read/teardown
