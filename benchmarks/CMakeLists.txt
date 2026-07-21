@@ -37,6 +37,11 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # operation against both HDF5 (needs the filesystem -- std::filesystem temp
 # dirs) and, as a zero-I/O control (issue #54), the in-RAM Memory backend.
 #
+# bench_equilibrium_write.cpp is the write-side counterpart (issue #59): the
+# same equilibrium_seed.h fixture, written repeatedly instead of read,
+# against both backends, sharing bench_equilibrium_read.cpp's per-backend
+# boilerplate via bench_common.h (issue #58).
+#
 # bench_timeslice_element_read.cpp (issue #60) is the shared "before"
 # baseline for the future P2 (al_read_subtree) and P3 (slice-mode buffering)
 # optimizations (NORTH_STAR.md §7): one time_slice element's full leaf set,
@@ -48,6 +53,7 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 add_executable( al_benchmarks
   bench_write_read.cpp
   bench_equilibrium_read.cpp
+  bench_equilibrium_write.cpp
   bench_timeslice_element_read.cpp
   bench_main.cpp )
 target_link_libraries( al_benchmarks PRIVATE al_contract_fixtures benchmark::benchmark )
