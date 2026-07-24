@@ -278,7 +278,7 @@ jobs:
       #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
       #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '')
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           # python installation used when to start cibuildwheel
           python-version: "3.12"
@@ -346,7 +346,7 @@ jobs:
           path: C:\vcpkg\installed
           key: ${{ matrix.os }}-${{ env.cache-name }}-a
 
-      - uses: pypa/cibuildwheel@v4.1.0
+      - uses: pypa/cibuildwheel@v4.1.1
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
@@ -400,7 +400,7 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v4.1.0
+      - uses: pypa/cibuildwheel@v4.1.1
         if: startsWith(matrix.os, 'macos-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
