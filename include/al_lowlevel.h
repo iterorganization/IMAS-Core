@@ -348,7 +348,7 @@ extern "C"
 						 double tmin,
                    double tmax,
                    const double* dtime,
-                   const double* dtime_shape,
+                   const int* dtime_shape,
 						 int interpmode,
 						 int *opctx);
 
