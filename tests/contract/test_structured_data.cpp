@@ -704,6 +704,9 @@ TEST_F(DeleteKnownDefects, AsciiDeleteIsCurrentlyANoOp) {
 //      names ('/' -> '&', AOS nodes suffixed "[]"), so "time" and
 //      "time_slice[]&x" are neighbours in one namespace and a prefix match
 //      alone would take the second with the first.
+//   4. Paths that traverse an AOS. The same flattening means "outer/inner" is
+//      stored as "outer[]&inner&…", so matching has to be per segment or such
+//      a path silently matches nothing.
 // One non-empty-path delete of a single leaf, observed on three axes: the
 // sibling leaf, the occurrence's own pulse file, and the external link the
 // master file holds for that occurrence.
@@ -865,6 +868,47 @@ TEST_F(Hdf5Delete, SamePrefixSiblingsSurviveASubtreeDelete) {
     EXPECT_EQ(x.at(0), 5.0) << "\"time_slice[]&x\" is not part of the \"time\" subtree";
     EXPECT_EQ(code_name.at(0), 8.0)
         << "\"code_name\" is not part of the \"code\" subtree";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// A path may address a node *inside* an AOS. The C ABI gives no way to say
+// which element — al_delete_data takes an OperationContext, not an
+// arraystruct one — so "outer/inner" can only mean "that subtree in every
+// element", which is exactly how the tensorized layout stores it
+// ("outer[]&inner&leaf", flattened over the AOS index). Raw prefix matching
+// missed these entirely and reported success, so the call was a silent no-op.
+TEST_F(Hdf5Delete, PathThroughAnAosDeletesTheSubtreeInEveryElement) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    int size = 2;
+    int aos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(op, "outer", "", &size, &aos));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "inner/leaf", {}, {1.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "keep", {}, {3.0}));
+    AL_EXPECT_OK(al_iterate_over_arraystruct(aos, 1));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "inner/leaf", {}, {2.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "keep", {}, {4.0}));
+    AL_ASSERT_OK(al_end_action(aos));
+    AL_EXPECT_OK(al_delete_data(op, "outer/inner"));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    int rsize = -1;
+    int raos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(rop, "outer", "", &rsize, &raos));
+    ASSERT_EQ(rsize, 2);
+    std::vector<int> shape;
+    std::vector<double> leaf, keep;
+    AL_EXPECT_OK(al_contract::read_data<double>(raos, "inner/leaf", 0, &shape, &leaf));
+    AL_EXPECT_OK(al_contract::read_data<double>(raos, "keep", 0, &shape, &keep));
+    AL_ASSERT_OK(al_end_action(raos));
+    AL_ASSERT_OK(al_end_action(rop));
+    EXPECT_EQ(leaf.at(0), al_contract::kEmptyDouble)
+        << "a path through an AOS must delete its subtree in every element";
+    EXPECT_EQ(keep.at(0), 3.0) << "a sibling inside the same AOS element must survive";
 
     al_close_pulse(pctx, CLOSE_PULSE);
 }

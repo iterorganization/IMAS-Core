@@ -20,10 +20,20 @@ an absent path is a successful no-op.
 `HDF5Writer::deleteSubtree`. An IDS group is a flat namespace of "tensorized"
 dataset names — the DD path with `/` → `&`, array-of-structures nodes suffixed
 `[]`, one `_SHAPE` companion per non-scalar leaf, one `…[]&AOS_SHAPE` per
-dynamic AOS — so the subtree rooted at a DD path is exactly the set of names
-that are the mangled path, its `_SHAPE` companion, or that continue with `&` (a
-structure child) or `[]` (an AOS element index). The continuation character is
-what keeps `time` from taking `time_slice[]&x` with it.
+dynamic AOS — so `time_slice/global_quantities/ip` is stored as
+`time_slice[]&global_quantities&ip`, flattened over the AOS index. Matching is
+therefore **per segment**, not by string prefix: each segment of the requested
+path matches a name segment with or without the `[]` suffix, and the name's
+remaining segments are its subtree. Segment-wise is what tells a real child
+from a same-prefix stranger (deleting `time` must not take `time_slice[]&x`,
+deleting `code` must not take `code_name`) while still letting a path address a
+node *inside* an AOS. That last case has only one available meaning: the ABI
+hands `deleteData` an `OperationContext`, never an arraystruct one, so there is
+no way to name an element and `time_slice/global_quantities` can only mean "that
+subtree in every element" — which is exactly what the tensorized layout stores.
+A raw-prefix rule matched no dataset at all for such a path and returned
+success, i.e. it reproduced in miniature the very failure mode this ADR
+rejects.
 
 **2. Occurrence-wide delete is intended: reject a non-empty `path`.** Rejected.
 It is the cheaper change, but it is not what the ABI says and not what the other

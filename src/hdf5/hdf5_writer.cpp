@@ -61,27 +61,56 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
 // An IDS group is a flat namespace of "tensorized" dataset names: the DD path
 // with '/' replaced by '&', every array-of-structures node suffixed "[]", one
 // "_SHAPE" companion per non-scalar leaf and one "…[]&AOS_SHAPE" per dynamic
-// AOS. So the subtree rooted at a DD path is exactly the set of dataset names
-// that are the mangled path itself, its "_SHAPE" companion, or that continue
-// with '&' (a structure child) or "[]" (an AOS element index).
+// AOS. So "time_slice/global_quantities/ip" is stored as
+// "time_slice[]&global_quantities&ip", flattened over the AOS index.
 //
-// The continuation character is what separates a subtree from a same-prefix
-// sibling: deleting "time" must not touch "time_slice[]&…".
+// Matching therefore has to be per segment, not by raw string prefix: each
+// segment of the requested path matches a dataset-name segment with or without
+// the "[]" AOS suffix, and the dataset's remaining segments are its subtree.
+// Segment-wise is what tells a real child from a same-prefix stranger —
+// deleting "time" must not touch "time_slice[]&x", and deleting "code" must not
+// touch "code_name" — while still letting a path address a node *inside* an
+// AOS, which the C ABI gives no way to do per element: al_delete_data takes an
+// OperationContext, so "time_slice/global_quantities" can only mean "that
+// subtree in every element", exactly as the tensorized layout stores it.
+static std::vector < std::string > split_on_ampersand(const std::string & path)
+{
+    std::vector < std::string > segments;
+    std::string::size_type start = 0;
+    while (true) {
+        const std::string::size_type sep = path.find('&', start);
+        if (sep == std::string::npos) {
+            segments.push_back(path.substr(start));
+            return segments;
+        }
+        segments.push_back(path.substr(start, sep - start));
+        start = sep + 1;
+    }
+}
+
 static bool is_in_subtree(const std::string & dataset_name, const std::string & mangled_path)
 {
-    if (dataset_name.size() < mangled_path.size() ||
-        dataset_name.compare(0, mangled_path.size(), mangled_path) != 0)
+    const std::vector < std::string > name_segments = split_on_ampersand(dataset_name);
+    const std::vector < std::string > wanted_segments = split_on_ampersand(mangled_path);
+    if (name_segments.size() < wanted_segments.size())
         return false;
-    const std::string continuation = dataset_name.substr(mangled_path.size());
-    if (continuation.empty())                        // the leaf's own dataset
-        return true;
-    if (continuation == "_SHAPE")                    // its shape companion
-        return true;
-    if (continuation[0] == '&')                      // a child of a structure
-        return true;
-    if (continuation.compare(0, 2, "[]") == 0)       // "[]&…", "[]&AOS_SHAPE"
-        return true;
-    return false;
+
+    for (size_t i = 0; i < wanted_segments.size(); i++) {
+        std::string segment = name_segments[i];
+        if (segment.size() >= 2 && segment.compare(segment.size() - 2, 2, "[]") == 0)
+            segment.erase(segment.size() - 2);      //an AOS node: "time_slice[]" -> "time_slice"
+        if (segment == wanted_segments[i])
+            continue;
+        //The addressed node's own "_SHAPE" companion is the one case where the
+        //last segment may carry a suffix. A deeper AOS's "AOS_SHAPE" and a
+        //child's "…_SHAPE" are already covered: they are extra segments, or
+        //segments past the requested path.
+        if (i + 1 == wanted_segments.size() && name_segments.size() == wanted_segments.size() &&
+            segment == wanted_segments[i] + "_SHAPE")
+            continue;
+        return false;
+    }
+    return true;
 }
 
 void HDF5Writer::invalidateGroupMembers()
