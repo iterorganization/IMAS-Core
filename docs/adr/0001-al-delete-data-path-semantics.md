@@ -66,7 +66,7 @@ Checked by reading each `deleteData` and pinned in `tests/contract/`
 | Backend | node | subtree | whole DATAOBJECT (`path == ""`) |
 |---|---|---|---|
 | HDF5 | ✅ | ✅ | ✅ — deletes `<ids>.h5` *and* the master-file link |
-| Memory | ✅ | ✅ (AOS node) | ❌ no code path for it — xfail |
+| Memory | ✅ | ✅ (AOS node; a plain non-AOS structure is uncharacterized) | ❌ no code path for it — xfail |
 | MDSplus | ✅ | ❌ `%TREE-W-NNF` — xfail | ❌ `%TREE-W-NNF` — xfail |
 | ASCII | ❌ empty body | ❌ | ❌ |
 | Flexbuffers | ❌ empty body | ❌ | ❌ |
@@ -95,7 +95,15 @@ reach it. A plain (non-AOS) structure path on Memory is not characterized.
 - **The master-file link now follows the file.** A whole-DATAOBJECT delete
   removes the external link as well, so the master file no longer advertises an
   occurrence whose backing file is gone — the second half of what issue #63
-  measured.
+  measured. Issue #63 raises the dangling link under option 2 only, but it is
+  listed there as part of what was measured on today's code, so it is fixed
+  either way.
+- **A whole-DATAOBJECT delete now also removes an IDS file that was closed but
+  still on disk.** The old code reopened such a file and then marked it closed
+  without deleting it — leaking the handle and leaving the data in place. The
+  issue never measured this (through a `WRITE_OP` the file is always open, so
+  the branch was unreachable in the reproduction), but the empty-path contract
+  cannot hold with it in place.
 - A whole-IDS delete lists the IDS group's link names once per delete rather
   than once per leaf (`HDF5Writer::groupMembers`, invalidated by anything that
   can add a dataset). Without that cache the HLI's leaf-by-leaf traversal would

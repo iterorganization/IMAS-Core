@@ -707,15 +707,6 @@ TEST_F(DeleteKnownDefects, AsciiDeleteIsCurrentlyANoOp) {
 //   4. Paths that traverse an AOS. The same flattening means "outer/inner" is
 //      stored as "outer[]&inner&…", so matching has to be per segment or such
 //      a path silently matches nothing.
-// One non-empty-path delete of a single leaf, observed on three axes: the
-// sibling leaf, the occurrence's own pulse file, and the external link the
-// master file holds for that occurrence.
-struct Hdf5LeafDeleteObservation {
-    double sibling_value;      // leaf_b read back after al_delete_data("leaf_a")
-    bool   ids_file_exists;    // <ids>.h5 still on disk
-    bool   occurrence_listed;  // master file still links the occurrence
-};
-
 // Located by name rather than by rebuilding the backend's own on-disk path
 // strategy (hdf5_utils.cpp pulseFilePathFactory), which the test has no
 // business restating.
@@ -728,49 +719,6 @@ inline bool file_exists_under(const std::string& root, const std::string& name) 
         if (it->path().filename() == name) return true;
     }
     return false;
-}
-
-Hdf5LeafDeleteObservation hdf5_observe_leaf_delete(al_contract::TempBase& base,
-                                                   const PulseId& pulse) {
-    const std::string uri = al_contract::build_uri(HDF5_BACKEND, base.str(), pulse);
-    int pctx = -1;
-    EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx).code, 0);
-    int op = -1;
-    EXPECT_EQ(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op).code, 0);
-    EXPECT_EQ(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}).code, 0);
-    EXPECT_EQ(al_contract::write_data<double>(op, "leaf_b", {}, {22.0}).code, 0);
-    EXPECT_EQ(al_delete_data(op, "leaf_a").code, 0);
-    EXPECT_EQ(al_end_action(op).code, 0);
-
-    // Reopening a READ on the occurrence may itself fail — if the delete
-    // removed the whole occurrence's group/link/file there is nothing left to
-    // open. That failure is just as much proof the sibling is gone as reading
-    // back the sentinel would be.
-    int rop = -1;
-    al_status_t open_read = al_begin_global_action(pctx, kIds, "", READ_OP, &rop);
-    Hdf5LeafDeleteObservation obs{al_contract::kEmptyDouble, false, false};
-    if (open_read.code == 0) {
-        std::vector<int> shape;
-        std::vector<double> bb;
-        EXPECT_EQ(al_contract::read_data<double>(rop, "leaf_b", 0, &shape, &bb).code, 0);
-        EXPECT_EQ(al_end_action(rop).code, 0);
-        if (!bb.empty()) obs.sibling_value = bb[0];
-    }
-
-    // al_get_occurrences enumerates the master file's links live
-    // (hdf5_reader.cpp H5Literate over master_file_id), so it reports the link
-    // whether or not the file it points at still exists — exactly the dangling
-    // state issue #63 measured.
-    int* occ = nullptr;
-    int  n   = -1;
-    if (al_get_occurrences(pctx, kIds, &occ, &n).code == 0 && n > 0)
-        obs.occurrence_listed = true;
-    free(occ);
-
-    obs.ids_file_exists = file_exists_under(base.str(), std::string(kIds) + ".h5");
-
-    al_close_pulse(pctx, CLOSE_PULSE);
-    return obs;
 }
 
 class Hdf5Delete : public ::testing::Test {
@@ -791,6 +739,11 @@ protected:
     }
 
     // True iff master.h5 still holds an external link for the occurrence.
+    // al_get_occurrences enumerates those links live (hdf5_reader.cpp
+    // H5Literate over master_file_id) and never stats what they point at, so
+    // it reports a link whose file is gone — which is what makes it the oracle
+    // for the dangling state issue #63 measured, independently of
+    // ids_file_exists().
     bool occurrence_listed(int pctx) const {
         int* occ = nullptr;
         int  n   = -1;
@@ -801,14 +754,32 @@ protected:
 };
 
 TEST_F(Hdf5Delete, LeafDeleteKeepsOccurrenceFileAndMasterLink) {
-    const Hdf5LeafDeleteObservation obs = hdf5_observe_leaf_delete(base_, pulse_);
-    EXPECT_EQ(obs.sibling_value, 22.0)
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_b", {}, {22.0}));
+    AL_EXPECT_OK(al_delete_data(op, "leaf_a"));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    std::vector<int> shape;
+    std::vector<double> a, b;
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_a", 0, &shape, &a));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_b", 0, &shape, &b));
+    AL_ASSERT_OK(al_end_action(rop));
+
+    EXPECT_EQ(a.at(0), al_contract::kEmptyDouble) << "the named leaf must be gone";
+    EXPECT_EQ(b.at(0), 22.0)
         << "a leaf-granularity delete must not remove sibling fields";
-    EXPECT_TRUE(obs.ids_file_exists)
+    EXPECT_TRUE(ids_file_exists())
         << "a leaf-granularity delete must not remove the occurrence's pulse file";
-    EXPECT_TRUE(obs.occurrence_listed)
+    EXPECT_TRUE(occurrence_listed(pctx))
         << "the occurrence, and so the master file's link to it, must survive a "
            "leaf-granularity delete";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
 }
 
 TEST_F(Hdf5Delete, RootDeleteRemovesOccurrenceFileAndMasterLink) {

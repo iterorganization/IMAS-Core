@@ -119,21 +119,48 @@ void HDF5Writer::invalidateGroupMembers()
     group_members.clear();
 }
 
-std::vector < std::string > &HDF5Writer::groupMembers(hid_t gid)
+// The cached listing is trusted only while it still accounts for every link in
+// the group. Nothing but a write can add one, and a write can only add, so an
+// unchanged link count means an unchanged set of names — which spares every
+// write path from having to remember to invalidate this.
+const std::vector < std::string > &HDF5Writer::groupMembers(hid_t gid)
 {
-    if (group_members_gid != gid) {
+    H5G_info_t group_info;
+    if (H5Gget_info(gid, &group_info) < 0)
+        throw ALBackendException("HDF5Backend: H5Gget_info has failed in HDF5Writer::groupMembers()", LOG);
+
+    if (group_members_gid != gid || group_members.size() != (size_t) group_info.nlinks) {
         group_members.clear();
         H5L_iterate_t collect = [](hid_t, const char *name, const H5L_info_t *, void *op_data) -> herr_t {
             static_cast < std::vector < std::string > *>(op_data)->push_back(name);
             return 0;
         };
         if (H5Literate(gid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, collect, &group_members) < 0) {
-            group_members.clear();
-            throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Writer::deleteData()", LOG);
+            invalidateGroupMembers();
+            throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Writer::groupMembers()", LOG);
         }
         group_members_gid = gid;
     }
     return group_members;
+}
+
+void HDF5Writer::unlinkFromGroup(hid_t gid, const std::vector < std::string > &names)
+{
+    for (const std::string & name : names) {
+        // H5Ldelete only unlinks: the freed space stays in the file until it is
+        // repacked, so a delete never shrinks <ids>.h5.
+        if (H5Ldelete(gid, name.c_str(), H5P_DEFAULT) < 0) {
+            invalidateGroupMembers();
+            //A dataset name is a caller-supplied DD path, so it is built into
+            //the message as a string rather than through a fixed-size buffer.
+            throw ALBackendException("HDF5Backend: unable to delete HDF5 dataset: " + name, LOG);
+        }
+    }
+    //Keep the cached listing in step, so a run of deletes still lists the group
+    //only once. This is the only code that removes a link from the group.
+    for (const std::string & name : names)
+        group_members.erase(std::remove(group_members.begin(), group_members.end(), name),
+                            group_members.end());
 }
 
 void HDF5Writer::deleteData(OperationContext * ctx, const std::string & path, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
@@ -170,27 +197,12 @@ void HDF5Writer::deleteSubtree(hid_t gid, const std::string & path)
         write_buffers();
     close_datasets();           //also clears the existing_data_sets H5Lexists cache
 
-    std::vector < std::string > &members = groupMembers(gid);
     std::vector < std::string > doomed;
-    std::vector < std::string > kept;
-    for (const std::string & name : members) {
+    for (const std::string & name : groupMembers(gid)) {
         if (is_in_subtree(name, mangled_path))
             doomed.push_back(name);
-        else
-            kept.push_back(name);
     }
-
-    for (const std::string & name : doomed) {
-        // H5Ldelete only unlinks: the freed space stays in the file until it is
-        // repacked, so a delete never shrinks <ids>.h5.
-        if (H5Ldelete(gid, name.c_str(), H5P_DEFAULT) < 0) {
-            invalidateGroupMembers();
-            char error_message[300];
-            snprintf(error_message, sizeof(error_message), "Unable to delete HDF5 dataset: %s\n", name.c_str());
-            throw ALBackendException(error_message, LOG);
-        }
-    }
-    members = std::move(kept);
+    unlinkFromGroup(gid, doomed);
 }
 
 void HDF5Writer::deleteOccurrence(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
@@ -289,7 +301,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
             throw ALBackendException(error_message, LOG);
         }
     }
-    close_group(ctx);           //also invalidates the cached group listing
+    close_group(ctx);
     hid_t loc_id = hdf5_utils.createOrOpenHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
     if (! (loc_id >= 0))
         throw ALBackendException("HDF5Backend: unexpected value for loc_id in HDF5Writer::create_IDS_group()", LOG);
@@ -398,7 +410,6 @@ int HDF5Writer::readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, co
 
 void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size)
 {
-    invalidateGroupMembers();   //may add the AOS_SHAPE dataset to the group
     HDF5Utils hdf5_utils;
     OperationContext *opctx = ctx->getOperationContext();
     hid_t gid = -1;
@@ -462,7 +473,6 @@ ArraystructContext* HDF5Writer::getDynamicAOS(Context * ctx) {
 
 void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data)
 {
-    invalidateGroupMembers();   //may add the value and _SHAPE datasets to the group
     std::string & dataset_name = att_name;
     std::replace(dataset_name.begin(), dataset_name.end(), '/', '&');   // character '/' is not supported in datasets names
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');

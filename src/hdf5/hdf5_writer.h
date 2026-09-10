@@ -22,12 +22,13 @@ class HDF5Writer {
     int homogeneous_time;
     std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
 
-    // Link names of one IDS group, cached for the duration of a run of
-    // deleteData() calls. Reset by invalidateGroupMembers() on anything that
-    // can add a dataset to a group or swap the group itself, so an over-eager
-    // reset is always the safe direction. Without it a whole-IDS delete (the
-    // HLI issues one al_delete_data per DD leaf) would re-list the group once
-    // per leaf.
+    // Link names of one IDS group, cached so that a run of deleteData() calls
+    // lists the group once instead of once per call — the HLI issues one
+    // al_delete_data per DD leaf, so re-listing per call would be quadratic in
+    // the size of the IDS. The cache validates itself against the group's live
+    // link count rather than relying on write paths to invalidate it: only a
+    // write can add a link, and the only code that removes one
+    // (unlinkFromGroup) keeps the cache in step itself.
     hid_t group_members_gid;
     std::vector < std::string > group_members;
     
@@ -41,7 +42,8 @@ class HDF5Writer {
     int getDynamic_AOS_slices_extension(Context *ctx);
     void deleteSubtree(hid_t gid, const std::string & path);
     void deleteOccurrence(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
-    std::vector < std::string > &groupMembers(hid_t gid);
+    const std::vector < std::string > &groupMembers(hid_t gid);
+    void unlinkFromGroup(hid_t gid, const std::vector < std::string > &names);
     void invalidateGroupMembers();
     int getDynamic_slices_extension(Context *ctx, int timed_AOS_index, int time_vector_length);
     ArraystructContext* getDynamicAOS(Context * ctx);
