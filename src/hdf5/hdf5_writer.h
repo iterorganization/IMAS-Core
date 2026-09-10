@@ -21,6 +21,15 @@ class HDF5Writer {
     
     int homogeneous_time;
     std::unordered_map < OperationContext *,  hid_t> IDS_group_id;
+
+    // Link names of one IDS group, cached for the duration of a run of
+    // deleteData() calls. Reset by invalidateGroupMembers() on anything that
+    // can add a dataset to a group or swap the group itself, so an over-eager
+    // reset is always the safe direction. Without it a whole-IDS delete (the
+    // HLI issues one al_delete_data per DD leaf) would re-list the group once
+    // per leaf.
+    hid_t group_members_gid;
+    std::vector < std::string > group_members;
     
     int slice_mode;
     
@@ -30,6 +39,10 @@ class HDF5Writer {
     int readTimedAOSShape(Context * ctx, hid_t loc_id, const std::vector < int > &current_arrctx_indices);
     int readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, const std::vector < int > &current_arrctx_indices, uri::Uri uri);
     int getDynamic_AOS_slices_extension(Context *ctx);
+    void deleteSubtree(hid_t gid, const std::string & path);
+    void deleteOccurrence(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
+    std::vector < std::string > &groupMembers(hid_t gid);
+    void invalidateGroupMembers();
     int getDynamic_slices_extension(Context *ctx, int timed_AOS_index, int time_vector_length);
     ArraystructContext* getDynamicAOS(Context * ctx);
  
@@ -44,7 +57,7 @@ class HDF5Writer {
     static size_t write_chunk_cache_size;
 
     virtual void closePulse(DataEntryContext * ctx, int mode, hid_t *file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, int files_path_strategy, std::string & files_directory, std::string & relative_file_path);
-    virtual void deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
+    virtual void deleteData(OperationContext * ctx, const std::string & path, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path);
     virtual void write_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data);
     virtual void beginWriteArraystructAction(ArraystructContext * ctx, int *size);
 

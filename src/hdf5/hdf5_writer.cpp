@@ -14,7 +14,7 @@ using namespace boost::filesystem;
 
 HDF5Writer::HDF5Writer(std::string backend_version_)
 :  backend_version(backend_version_), opened_data_sets(), existing_data_sets(), tensorized_paths_per_context(), arrctx_shapes_per_context(), 
-dynamic_AOS_slices_extension(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP)
+dynamic_AOS_slices_extension(), homogeneous_time(-1), IDS_group_id(), group_members_gid(-1), group_members(), slice_mode(GLOBAL_OP)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -58,7 +58,56 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
     }
 }
 
-void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+// An IDS group is a flat namespace of "tensorized" dataset names: the DD path
+// with '/' replaced by '&', every array-of-structures node suffixed "[]", one
+// "_SHAPE" companion per non-scalar leaf and one "…[]&AOS_SHAPE" per dynamic
+// AOS. So the subtree rooted at a DD path is exactly the set of dataset names
+// that are the mangled path itself, its "_SHAPE" companion, or that continue
+// with '&' (a structure child) or "[]" (an AOS element index).
+//
+// The continuation character is what separates a subtree from a same-prefix
+// sibling: deleting "time" must not touch "time_slice[]&…".
+static bool is_in_subtree(const std::string & dataset_name, const std::string & mangled_path)
+{
+    if (dataset_name.size() < mangled_path.size() ||
+        dataset_name.compare(0, mangled_path.size(), mangled_path) != 0)
+        return false;
+    const std::string continuation = dataset_name.substr(mangled_path.size());
+    if (continuation.empty())                        // the leaf's own dataset
+        return true;
+    if (continuation == "_SHAPE")                    // its shape companion
+        return true;
+    if (continuation[0] == '&')                      // a child of a structure
+        return true;
+    if (continuation.compare(0, 2, "[]") == 0)       // "[]&…", "[]&AOS_SHAPE"
+        return true;
+    return false;
+}
+
+void HDF5Writer::invalidateGroupMembers()
+{
+    group_members_gid = -1;
+    group_members.clear();
+}
+
+std::vector < std::string > &HDF5Writer::groupMembers(hid_t gid)
+{
+    if (group_members_gid != gid) {
+        group_members.clear();
+        H5L_iterate_t collect = [](hid_t, const char *name, const H5L_info_t *, void *op_data) -> herr_t {
+            static_cast < std::vector < std::string > *>(op_data)->push_back(name);
+            return 0;
+        };
+        if (H5Literate(gid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, collect, &group_members) < 0) {
+            group_members.clear();
+            throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Writer::deleteData()", LOG);
+        }
+        group_members_gid = gid;
+    }
+    return group_members;
+}
+
+void HDF5Writer::deleteData(OperationContext * ctx, const std::string & path, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
     if (file_id == -1)
         throw ALBackendException("HDF5Backend: master file not opened in HDF5Writer::deleteData()", LOG); //the master file is assumed to be opened
@@ -69,33 +118,73 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
 
     if (gid == -1)
         return;
+
+    // An empty path addresses the whole DATAOBJECT; anything else addresses one
+    // node and its subtree. See al_lowlevel.h (al_delete_data) and
+    // docs/adr/0001-al-delete-data-path-semantics.md.
+    if (path.empty())
+        deleteOccurrence(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
+    else
+        deleteSubtree(gid, path);
+}
+
+void HDF5Writer::deleteSubtree(hid_t gid, const std::string & path)
+{
+    std::string mangled_path = path;
+    std::replace(mangled_path.begin(), mangled_path.end(), '/', '&');   // character '/' is not supported in datasets names
+
+    // Pending buffered writes have to reach the file before anything is
+    // unlinked: HDF5DataSetHandler::close() frees its write buffers without
+    // flushing them, so closing first would silently drop writes made earlier
+    // in the same WRITE_OP session to datasets this delete does not touch.
+    if (!opened_data_sets.empty())
+        write_buffers();
+    close_datasets();           //also clears the existing_data_sets H5Lexists cache
+
+    std::vector < std::string > &members = groupMembers(gid);
+    std::vector < std::string > doomed;
+    std::vector < std::string > kept;
+    for (const std::string & name : members) {
+        if (is_in_subtree(name, mangled_path))
+            doomed.push_back(name);
+        else
+            kept.push_back(name);
+    }
+
+    for (const std::string & name : doomed) {
+        // H5Ldelete only unlinks: the freed space stays in the file until it is
+        // repacked, so a delete never shrinks <ids>.h5.
+        if (H5Ldelete(gid, name.c_str(), H5P_DEFAULT) < 0) {
+            invalidateGroupMembers();
+            char error_message[300];
+            snprintf(error_message, sizeof(error_message), "Unable to delete HDF5 dataset: %s\n", name.c_str());
+            throw ALBackendException(error_message, LOG);
+        }
+    }
+    members = std::move(kept);
+}
+
+void HDF5Writer::deleteOccurrence(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+{
     close_datasets();
-    close_group(ctx);
+    close_group(ctx);           //also invalidates the cached group listing
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     HDF5Utils hdf5_utils;
-    //Deleting IDS link from master file
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0) { //the IDS is referenced in the master file
-        auto got = opened_IDS_files.find(IDS_link_name);
-        hid_t IDS_file_id = -1;
         std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
+        auto got = opened_IDS_files.find(IDS_link_name);
         if (got != opened_IDS_files.end()) {
-            IDS_file_id = got->second;
-            if (IDS_file_id < 0) {
-                if (exists(IDSpulseFile.c_str())) {
-                    hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
-                }
-            }
-            else {
-                hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name);
-                hdf5_utils.deleteIDSFile(IDSpulseFile);
-            }
+            if (got->second >= 0)
+                hdf5_utils.closeIDSFile(got->second, IDS_link_name);
             opened_IDS_files[IDS_link_name] = -1;
         }
-        else {
-            if (exists(IDSpulseFile.c_str())) 
-                hdf5_utils.deleteIDSFile(IDSpulseFile);
-        }
+        if (exists(IDSpulseFile.c_str()))
+            hdf5_utils.deleteIDSFile(IDSpulseFile);
+        //Deleting IDS link from master file: the link has to go with the file it
+        //points at, or the master keeps advertising an occurrence
+        //(al_get_occurrences enumerates these links) whose backing file is gone.
+        hdf5_utils.removeLinkFromMasterPulseFile(file_id, IDS_link_name);
     }
 }
 
@@ -171,7 +260,7 @@ void HDF5Writer::create_IDS_group(OperationContext * ctx, hid_t file_id, std::un
             throw ALBackendException(error_message, LOG);
         }
     }
-    close_group(ctx);
+    close_group(ctx);           //also invalidates the cached group listing
     hid_t loc_id = hdf5_utils.createOrOpenHDF5Group(ctx->getDataobjectName().c_str(), IDS_file_id);
     if (! (loc_id >= 0))
         throw ALBackendException("HDF5Backend: unexpected value for loc_id in HDF5Writer::create_IDS_group()", LOG);
@@ -194,6 +283,7 @@ void HDF5Writer::close_datasets()
 
 void HDF5Writer::close_group(OperationContext *ctx)
 {
+    invalidateGroupMembers();
     hid_t gid = -1;
     auto got = IDS_group_id.find(ctx);
     if (got != IDS_group_id.end()) {
@@ -279,6 +369,7 @@ int HDF5Writer::readTimedAOSShape(hid_t loc_id, std::string &tensorized_path, co
 
 void HDF5Writer::beginWriteArraystructAction(ArraystructContext * ctx, int *size)
 {
+    invalidateGroupMembers();   //may add the AOS_SHAPE dataset to the group
     HDF5Utils hdf5_utils;
     OperationContext *opctx = ctx->getOperationContext();
     hid_t gid = -1;
@@ -342,6 +433,7 @@ ArraystructContext* HDF5Writer::getDynamicAOS(Context * ctx) {
 
 void HDF5Writer::write_ND_Data(Context * ctx, std::string & att_name, std::string & timebasename, int datatype, int dim, int *size, void *data)
 {
+    invalidateGroupMembers();   //may add the value and _SHAPE datasets to the group
     std::string & dataset_name = att_name;
     std::replace(dataset_name.begin(), dataset_name.end(), '/', '&');   // character '/' is not supported in datasets names
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');
