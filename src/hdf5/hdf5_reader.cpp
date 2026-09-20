@@ -478,14 +478,32 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     if (gid == -1) // IDS does not exist in the file
         return 0;
 
+    // Whether the field is addressed from the dataobject root must be decided
+    // before the separators are normalized, while the leading '/' marker is
+    // still distinguishable (issue #65).
+    const bool absolute_field = HDF5Utils::isAbsoluteFieldPath(att_name);
+
     std::string &dataset_name = att_name;
     std::replace(dataset_name.begin(), dataset_name.end(), '/', '&'); // character '/' is not supported in datasets names
     std::replace(timebasename.begin(), timebasename.end(), '/', '&');
 
     hid_t dataset_id = -1;
     std::string tensorized_path = dataset_name;
+    // How many of the open AOS chain's levels the field lives under. Only an
+    // absolute path can sit above the current context and so retain fewer than
+    // all of them; a relative one is always read at the full current cursor.
+    size_t applicable_aos_levels = std::numeric_limits<size_t>::max();
 
-    if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
+    if (absolute_field)
+    {
+        const std::vector<std::string> no_open_aos; // an operation context opens none
+        const std::vector<std::string> &tensorized_paths =
+            (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
+                ? tensorized_paths_per_context[static_cast<ArraystructContext *>(ctx)]
+                : no_open_aos;
+        tensorized_path = HDF5Utils::resolveAbsoluteFieldPath(dataset_name, tensorized_paths, &applicable_aos_levels);
+    }
+    else if (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
     {
         auto &tensorized_paths = tensorized_paths_per_context[static_cast<ArraystructContext *>(ctx)];
         tensorized_path = tensorized_paths.back() + "&" + dataset_name;
@@ -539,6 +557,18 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
     int timed_AOS_index = -1;
     std::vector<int> current_arrctx_indices;
     hdf5_utils.getAOSIndices(ctx, current_arrctx_indices, &timed_AOS_index); // getting current AOS indices
+
+    if (applicable_aos_levels < current_arrctx_indices.size())
+    {
+        // An absolute field path that stops short of the innermost open AOS
+        // keeps only the indices of the levels it still passes through -- the
+        // child's cursor must not be applied to an ancestor's dataset, which
+        // carries fewer tensorized dimensions (issue #65). The indices run
+        // outermost first, so the retained ones are the leading entries.
+        current_arrctx_indices.resize(applicable_aos_levels);
+        if (timed_AOS_index >= static_cast<int>(applicable_aos_levels))
+            timed_AOS_index = -1; // the timed AOS is not among them: the field is not tensorized on time
+    }
 
     bool is_dynamic = timebasename.compare("") != 0 ? true : false;
     bool isTimed = (timed_AOS_index != -1);
