@@ -79,6 +79,18 @@ class HDF5Utils {
     void getAOSIndices(Context * ctx, std::vector < int >&indices, int *timedAOS_index);
     int getAOSIndicesSize(Context * ctx);
     void setTensorizedPaths(ArraystructContext * ctx, std::vector < std::string > &tensorized_paths);
+
+    // Absolute field paths (issue #65). isAbsoluteFieldPath() must be asked
+    // before '/' separators are normalized to '&'; resolveAbsoluteFieldPath()
+    // takes the already-normalized name, the tensorized paths of the open AOS
+    // chain (innermost last, as setTensorizedPaths builds them) and reports,
+    // through applicable_aos_levels, how many of those levels the resolved
+    // dataset still lives under -- i.e. how many of the caller's current AOS
+    // indices apply to it. See the block comment in hdf5_utils.cpp.
+    static bool isAbsoluteFieldPath(const std::string & field);
+    static std::string resolveAbsoluteFieldPath(const std::string & absolute_dataset_name,
+                                                const std::vector < std::string > &tensorized_paths,
+                                                size_t * applicable_aos_levels);
     void showStatus(hid_t file_id);
     enum Files_paths_strategies { FULL_MDSPLUS_STRATEGY = 1, MODIFIED_MDSPLUS_STRATEGY = 2, FREE_PATH_STRATEGY = 3};
     void setDefaultOptions(size_t *read_cache, size_t *write_cache, bool *readBuffering, bool *writeBuffering);
