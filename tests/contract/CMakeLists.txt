@@ -70,6 +70,7 @@ add_executable(contract_tests
   test_plugins.cpp
   test_backend_factory.cpp
   test_hdf5_version_drift.cpp
+  test_hdf5_absolute_paths.cpp
   real_dd_path_catalog.cpp
   test_real_dd_path_catalog.cpp
   test_structured_data.cpp
