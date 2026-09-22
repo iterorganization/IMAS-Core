@@ -147,8 +147,14 @@ public:
     Deletes data.
     This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
     given the passed context.
+
+    An implementation must not widen `path`: a non-empty `path` deletes that
+    node and its subtree only, and an empty `path` addresses the whole
+    DATAOBJECT. Deleting a path that holds no data is a no-op, not an error.
+    See docs/adr/0001-al-delete-data-path-semantics.md.
+
     @param[in] ctx pointer on operation context 
-    @param[in] path path of the data structure element to delete (suppress the whole subtree)
+    @param[in] path path of the data structure element to delete (suppress the whole subtree); empty means the whole DATAOBJECT
     @throw BackendException
   **/
   virtual void deleteData(OperationContext *ctx,

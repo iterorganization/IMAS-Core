@@ -587,6 +587,120 @@ void HDF5Utils::setTensorizedPaths(ArraystructContext * ctx, std::vector < std::
     std::replace(tensorized_paths.back().begin(), tensorized_paths.back().end(), '/', '&');
 }
 
+// --- absolute field paths (issue #65) --------------------------------------
+//
+// al_read_data's contract (al_lowlevel.h) lets a caller address a field from
+// the dataobject root by prepending '/': it is not a filesystem path and does
+// not carry the IDS name, so "/time_slice/constraints/j_phi/reconstructed"
+// names the same datum as "reconstructed" read from the corresponding AOS
+// context.
+//
+// Resolving one answers two questions at once, which is why they are answered
+// here together rather than by trimming the string at the call site:
+//
+//   * which dataset name to look up. The stored name keeps the tensorized
+//     "[]" marker of every AOS the field sits under, so simply dropping the
+//     '/' ("time_slice&constraints&j_phi&reconstructed") never matches, and
+//     simply skipping the context prefix duplicates nothing but loses those
+//     markers.
+//   * which AOS indices still apply. A field that sits above the current
+//     context must not be read at the child's cursor.
+//
+// Both follow from one walk: compare the absolute path's segments against the
+// open context chain's segments and cut at the last AOS boundary that still
+// matches. Segments, never string prefixes -- "time_slice_extra/..." shares a
+// textual prefix with "time_slice[]" but no path prefix at all.
+//
+// Whatever follows the cut is appended verbatim. A path that leaves the open
+// chain -- a sibling branch, or one crossing an AOS the caller never opened --
+// therefore resolves to a name carrying no "[]" for that branch: it is looked
+// up, not found, and reported by the ordinary missing-data path. That is the
+// honest answer rather than a guess: the core holds no schema, so it cannot
+// know an unopened segment is an AOS, and would have no cursor for it if it
+// did.
+
+// Tensorized dataset names join their segments with '&' ('/' is not a legal
+// HDF5 link-name character), and mark each array of structures with a
+// trailing "[]" -- see setTensorizedPaths() above.
+static const char TENSORIZED_SEPARATOR = '&';
+static const char *AOS_MARKER = "[]";
+
+static bool isAOSSegment(const std::string & segment)
+{
+    const size_t marker_length = strlen(AOS_MARKER);
+    return segment.size() >= marker_length &&
+           segment.compare(segment.size() - marker_length, marker_length, AOS_MARKER) == 0;
+}
+
+static std::string stripAOSMarker(const std::string & segment)
+{
+    return isAOSSegment(segment) ? segment.substr(0, segment.size() - strlen(AOS_MARKER)) : segment;
+}
+
+static std::vector < std::string > splitTensorizedSegments(const std::string & name)
+{
+    std::vector < std::string > segments;
+    size_t start = 0;
+    while (true) {
+        const size_t end = name.find(TENSORIZED_SEPARATOR, start);
+        if (end == std::string::npos) {
+            segments.push_back(name.substr(start));
+            return segments;
+        }
+        segments.push_back(name.substr(start, end - start));
+        start = end + 1;
+    }
+}
+
+bool HDF5Utils::isAbsoluteFieldPath(const std::string & field)
+{
+    return !field.empty() && field[0] == '/';
+}
+
+std::string HDF5Utils::resolveAbsoluteFieldPath(const std::string & absolute_dataset_name,
+                                                const std::vector < std::string > &tensorized_paths,
+                                                size_t * applicable_aos_levels)
+{
+    *applicable_aos_levels = 0;
+
+    // The '/' separators (including the leading absolute marker) have already
+    // been normalized to '&' by the caller, so the path and the context chain
+    // are compared in one spelling.
+    std::string rooted_name = absolute_dataset_name;
+    if (!rooted_name.empty() && rooted_name[0] == TENSORIZED_SEPARATOR)
+        rooted_name.erase(0, 1);
+
+    if (tensorized_paths.empty())     // no AOS is open: the marker was all there was to strip
+        return rooted_name;
+
+    const std::vector < std::string > context_segments = splitTensorizedSegments(tensorized_paths.back());
+    const std::vector < std::string > target_segments = splitTensorizedSegments(rooted_name);
+
+    size_t matched_segments = 0;      // target segments consumed at the last matching AOS boundary
+    size_t levels = 0;                // AOS levels retained at that boundary
+    size_t levels_walked = 0;
+    for (size_t i = 0; i < context_segments.size() && i < target_segments.size(); i++) {
+        if (stripAOSMarker(context_segments[i]) != target_segments[i])
+            break;
+        if (isAOSSegment(context_segments[i])) {
+            levels_walked++;
+            matched_segments = i + 1;
+            levels = levels_walked;
+        }
+    }
+    *applicable_aos_levels = levels;
+
+    // tensorized_paths[levels - 1] is that boundary's own tensorized path:
+    // every segment up to and including its "[]" marker.
+    std::string resolved_name = (levels == 0) ? std::string() : tensorized_paths[levels - 1];
+    for (size_t i = matched_segments; i < target_segments.size(); i++) {
+        if (!resolved_name.empty())
+            resolved_name += TENSORIZED_SEPARATOR;
+        resolved_name += target_segments[i];
+    }
+    return resolved_name;
+}
+
 
 hid_t HDF5Utils::createOrOpenHDF5Group(const std::string & path, const hid_t & parent_loc_id)
 {
