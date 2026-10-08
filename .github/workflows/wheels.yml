@@ -54,6 +54,23 @@ jobs:
 
           - os: ubuntu-24.04
             triplet: x64-linux
+            python: 312
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux2014_x86_64
+            # We override the numpy version constraint for this old OS to numpy<2.5.1, as numpy 2.5.1
+            # introduced the GCC 10.3 requirement, whereas this manylinux image is built with GCC 10.2.1.
+            # See CIBW_BEFORE_ALL_LINUX below, where this constraints txt file is written.
+            cibw_build_frontend: "build; args: --dependency-constraints-txt /tmp/numpy-constraints.txt"
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
             python: 313
             cibw_platform: linux
             cibw_archs: x86_64
@@ -350,27 +367,76 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'build' }}
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux_image }}
+          # FIXME: on manylinux_2_28, the ninja package seems to be too old, producing this error:
+          # ninja: error: build.ninja:826: multiple outputs aren't (yet?) supported by depslog; 
+          # bring this up on the mailing list if it affects you; for now, trying not to use ninja.
+          CIBW_ENVIRONMENT_LINUX: CMAKE_GENERATOR="Unix Makefiles"
           CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           # Install system libraries
-          # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
+          # NOTE: manylinux2014 is CentOS 7 based and needs source builds for
+          # newer C++ dependencies that are not available from the base repos.
+          # See https://github.com/ukaea/UDA/blob/main/.github/workflows/build_wheels.yml
+          # NOTE: manylinux_2_28 is AlmaLinux 8 based and can use newer RPMs.
           # NOTE: MDSplus RPMs are only distributed for x86_64, skip on other
           # architectures (the MDSplus backend is OFF for wheel builds anyway)
-          CIBW_BEFORE_ALL_LINUX: >
-            dnf update -y >&2;
-            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
-            dnf -y install openssl-devel >&2;
-            dnf -y install ninja-build >&2;
-            dnf -y install boost1.78-devel >&2;
-            dnf -y install capnproto capnproto-devel >&2;
-            dnf -y install fmt fmt-devel >&2;
-            dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
-            dnf -y install libxslt >&2;
-            dnf -y install hdf5-devel >&2;
+          CIBW_BEFORE_ALL_LINUX: |
+            if [ "${{ matrix.manylinux_image }}" = "quay.io/pypa/manylinux2014_x86_64" ]; then
+              sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* >&2;
+              sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* >&2;
+              yum update -y >&2;
+              yum install -y wget openssl-devel libxml2-devel libtirpc-devel libxslt-devel zlib-devel >&2;
+              cd /tmp >&2;
+              wget https://github.com/fmtlib/fmt/archive/refs/tags/10.0.0.tar.gz >&2;
+              tar xzf 10.0.0.tar.gz >&2;
+              cd fmt-10.0.0 >&2;
+              cmake -B build -H. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build -j --config Release --target install >&2;
+              cd /tmp >&2;
+              wget https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz >&2;
+              tar xzf v1.11.0.tar.gz >&2;
+              cd spdlog-1.11.0 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build -j --config Release --target install >&2;
+              cd /tmp >&2;
+              wget https://github.com/capnproto/capnproto/archive/refs/tags/v0.10.4.tar.gz >&2;
+              tar xzf v0.10.4.tar.gz >&2;
+              cd capnproto-0.10.4 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build >&2;
+              cmake --install build >&2;
+              echo 'numpy<2.5.1' >/tmp/numpy-constraints.txt >&2;
+              cd /tmp >&2;
+              wget https://sourceforge.net/projects/boost/files/boost/1.80.0/boost_1_80_0.tar.gz >&2;
+              tar xzf boost_1_80_0.tar.gz >&2;
+              cd boost_1_80_0 >&2;
+              ./bootstrap.sh --prefix=/usr/local >&2;
+              ./b2 --without-python --prefix=/usr/local install >&2;
+              cd /tmp >&2;
+              wget https://github.com/HDFGroup/hdf5/archive/refs/tags/hdf5-1_14_3.tar.gz >&2;
+              tar xzf hdf5-1_14_3.tar.gz >&2;
+              cd hdf5-hdf5-1_14_3 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_BUILD_TOOLS=OFF >&2;
+              cmake --build build -j --config Release --target install >&2;
+              ldconfig >&2;
+              cd / >&2;
+            else
+              dnf update -y >&2;
+              dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
+              dnf -y install openssl-devel >&2;
+              dnf -y install ninja-build >&2;
+              dnf -y install boost1.78-devel >&2;
+              dnf -y install capnproto capnproto-devel >&2;
+              dnf -y install fmt fmt-devel >&2;
+              dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
+              dnf -y install libxslt >&2;
+              dnf -y install hdf5-devel >&2;
+            fi;
             curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz  >&2;
             tar zxf ${{matrix.UDA_REF}}.tar.gz  >&2;
             cd UDA-${{matrix.UDA_REF}}  >&2;
@@ -383,13 +449,6 @@ jobs:
             # cmake -G Ninja -B build . -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_LIBDIR:STRING=lib -DFMT_DOC:BOOL=OFF -DFMT_TEST:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=ON >&2 &&
             # cmake --build build --target install >&2 &&
             # cmake --install build >&2 && cd .. ;
-
-
-          # FIXME: on manylinux_2_28, the ninja package seems to be too old, producing this error:
-          # ninja: error: build.ninja:826: multiple outputs aren't (yet?) supported by depslog; bring this up on the mailing list if it affects you
-          # trying not to use ninja:
-          CIBW_ENVIRONMENT_LINUX: CMAKE_GENERATOR="Unix Makefiles"
-
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
