@@ -1,8 +1,9 @@
 ########################################################################################################################
 # Shared contract fixtures (issue #51).
 #
-# The realistic equilibrium seed (equilibrium_seed.h) and the generic typed
-# ABI round-trip helpers it needs (al_contract_abi.h), factored out of
+# The realistic equilibrium seed (equilibrium_seed.h), legacy on-disk storage
+# helper (al_contract_legacy_storage.h), and generic typed ABI round-trip
+# helpers (al_contract_abi.h), factored out of
 # tests/contract/ so a build target outside the test tree -- the future
 # benchmarks/ tree (PRD #50, issues #52/#53) -- can link the exact same
 # workload the contract suite pins. No fixture drift between what is tested

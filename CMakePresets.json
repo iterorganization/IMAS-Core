@@ -41,6 +41,18 @@
         "AL_BUILD_MDSPLUS_MODELS": "ON",
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "benchmarks",
+      "displayName": "Benchmark harness build (Release)",
+      "description": "Google Benchmark harness in benchmarks/ (issue #52); independent of AL_BUILD_TESTS and off in the ordinary build. A benchmark 'failing' means slower, not wrong, so this never gates the correctness suite.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-benchmarks",
+      "cacheVariables": {
+        "AL_BUILD_BENCHMARKS": "ON",
+        "AL_PYTHON_BINDINGS": "OFF",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
@@ -55,6 +67,10 @@
       "name": "mdsplus",
       "configurePreset": "mdsplus",
       "targets": [ "contract_tests" ]
+    },
+    {
+      "name": "benchmarks",
+      "configurePreset": "benchmarks"
     }
   ],
   "testPresets": [
@@ -111,6 +127,13 @@
       "environment": {
         "MDSPLUS_MODELS_PATH": "${sourceDir}/build-mdsplus/models/mdsplus"
       },
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "benchmarks",
+      "displayName": "Benchmark harness smoke: proves build+run+report, asserts no timing value",
+      "configurePreset": "benchmarks",
       "output": { "outputOnFailure": true },
       "execution": { "noTestsAction": "error" }
     }

@@ -13,34 +13,28 @@
 #define AL_CONTRACT_H
 
 #include "al_contract_abi.h"
+#include "al_contract_legacy_storage.h"
 
 #include <al_lowlevel.h>
 #include <al_const.h>
 
 #include <gtest/gtest.h>
 
-#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
 #include <ostream>
 #include <string>
 #include <vector>
 
-#if defined(_WIN32)
-#include <process.h>
-#define AL_CONTRACT_GETPID _getpid
-#else
+#if !defined(_WIN32)
 #if defined(AL_CONTRACT_HAVE_UDA)
 #include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
 #include <sys/socket.h>
 #endif
-#include <unistd.h>
-#define AL_CONTRACT_GETPID getpid
 #endif
 
 namespace al_contract {
@@ -208,62 +202,9 @@ struct BackendCase {
 inline void PrintTo(const BackendCase& b, std::ostream* os) { *os << b.name; }
 
 // ---------------------------------------------------------------------------
-// The legacy address of a pulse: (database, version, pulse, run). These four
-// always travel together — into the URI and into the on-disk tree path — so
-// they are one value, not four loose args.
-// ---------------------------------------------------------------------------
-struct PulseId {
-    std::string database;
-    std::string version;
-    int         pulse;
-    int         run;
-};
-
-// ---------------------------------------------------------------------------
-// Unique temp base directory, RAII-cleaned.
-// ---------------------------------------------------------------------------
-// The legacy pulse path is <base>/<database>/<version>/<pulse>/<run>; the core
-// derives it when the base dir is supplied as the "user" field of the legacy
-// URI (exactly how tests/CMakeLists.txt drives the existing smoke tests). Each
-// fixture instance gets its own base dir so parallel ctest runs never collide:
-// name = <temp>/al_contract_<pid>_<counter>.
-class TempBase {
-public:
-    TempBase() {
-        static std::atomic<unsigned> counter{0};
-        namespace fs = std::filesystem;
-        const unsigned n = counter.fetch_add(1);
-        path_ = fs::temp_directory_path() /
-                ("al_contract_" + std::to_string(AL_CONTRACT_GETPID()) +
-                 "_" + std::to_string(n));
-        std::error_code ec;
-        fs::remove_all(path_, ec);
-        fs::create_directories(path_, ec);
-    }
-
-    ~TempBase() {
-        std::error_code ec;
-        std::filesystem::remove_all(path_, ec);
-    }
-
-    TempBase(const TempBase&) = delete;
-    TempBase& operator=(const TempBase&) = delete;
-
-    std::string str() const { return path_.string(); }
-
-    // Pre-create the legacy pulse subtree an on-disk backend expects for
-    // FORCE_CREATE_PULSE.
-    void make_legacy_tree(const PulseId& id) const {
-        std::error_code ec;
-        std::filesystem::create_directories(
-            path_ / id.database / id.version / std::to_string(id.pulse) /
-                std::to_string(id.run),
-            ec);
-    }
-
-private:
-    std::filesystem::path path_;
-};
+// Compatibility name for the existing contract tests. The implementation is
+// shared with benchmarks through fixtures/al_contract_legacy_storage.h.
+using TempBase = LegacyPulseDirectory;
 
 // ---------------------------------------------------------------------------
 // URI construction through the legacy-parameter ABI.

@@ -37,6 +37,10 @@ option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 option(AL_BUILD_TESTS "Build the C/C++ low-level ABI smoke tests (tests/)" OFF)
 
+# Independent of AL_BUILD_TESTS: a benchmark "failing" means slower, not
+# wrong, so it never gates the correctness build (NORTH_STAR.md §8.4).
+option(AL_BUILD_BENCHMARKS "Build the Google Benchmark harness (benchmarks/)" OFF)
+
 # The fixtures/al_contract_fixtures INTERFACE library itself is always
 # available (see below) so it is genuinely usable outside AL_BUILD_TESTS; this
 # only gates the throwaway demonstration executable (issue #51 acceptance
@@ -244,6 +248,13 @@ add_dependencies( imas_print_version al )
 if( AL_BUILD_TESTS )
   enable_testing()
   add_subdirectory(tests)
+endif()
+
+# Benchmark harness (opt-in, off in the ordinary build)
+# ##############################################################################
+if( AL_BUILD_BENCHMARKS )
+  enable_testing()
+  add_subdirectory(benchmarks)
 endif()
 
 # Install
