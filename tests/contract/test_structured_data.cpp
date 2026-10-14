@@ -29,6 +29,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -429,14 +430,13 @@ INSTANTIATE_TEST_SUITE_P(
 // ===========================================================================
 // The three granularities land on wildly different, non-overlapping support
 // across the always-on tier (verified by reading each backend's deleteData):
-//   - HDF5: ignores `path` entirely — every call deletes the whole occurrence.
-//     So *root* is the only granularity that matches the documented contract;
-//     leaf/structure are genuine defects (a "leaf" delete takes everything
-//     else with it). One tripwire (leaf) covers both defective granularities:
-//     `HDF5Writer::deleteData` (src/hdf5/hdf5_writer.cpp) takes no path
-//     parameter at all, so there is no leaf-vs-structure branch whose
-//     behavior could differ — a structure-shaped call hits the exact same
-//     unconditional occurrence wipe.
+//   - HDF5: all three work. `path` used to be dropped on the floor, so every
+//     call widened to the whole occurrence (issue #63); it now selects the
+//     matching datasets out of the IDS group's flat namespace, and only an
+//     empty path removes the occurrence. The HDF5-specific consequences —
+//     which files and master-file links survive which granularity, and that a
+//     same-prefix sibling is not collateral — are pinned in Hdf5Delete.* below,
+//     since they are not observable through this backend-agnostic matrix.
 //   - Memory: the only backend that honors `path` — leaf and structure (an
 //     AOS field) both work for real; there is no code path that special-cases
 //     "delete the whole IDS", so root is the defect here.
@@ -461,8 +461,8 @@ struct DeleteBackendCase {
 inline void PrintTo(const DeleteBackendCase& b, std::ostream* os) { *os << b.name; }
 
 const DeleteBackendCase kDeleteBackends[] = {
-    {HDF5_BACKEND, "HDF5", /*on_disk=*/true, /*leaf_ok=*/false,
-     /*structure_ok=*/false, /*root_ok=*/true},
+    {HDF5_BACKEND, "HDF5", /*on_disk=*/true, /*leaf_ok=*/true,
+     /*structure_ok=*/true, /*root_ok=*/true},
     {MEMORY_BACKEND, "Memory", /*on_disk=*/false, /*leaf_ok=*/true,
      /*structure_ok=*/true, /*root_ok=*/false},
     {ASCII_BACKEND, "ASCII", /*on_disk=*/true, /*leaf_ok=*/false,
@@ -607,52 +607,7 @@ protected:
     }
 };
 
-const BackendCase kHdf5{HDF5_BACKEND, "HDF5", /*on_disk=*/true};
 const BackendCase kAscii{ASCII_BACKEND, "ASCII", /*on_disk=*/true};
-
-// --- HDF5: leaf delete ignores `path`, wipes the whole occurrence ----------
-double hdf5_leaf_delete_sibling_survives(al_contract::TempBase& base,
-                                         const PulseId& pulse) {
-    const std::string uri = al_contract::build_uri(HDF5_BACKEND, base.str(), pulse);
-    int pctx = -1;
-    EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx).code, 0);
-    int op = -1;
-    EXPECT_EQ(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op).code, 0);
-    EXPECT_EQ(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}).code, 0);
-    EXPECT_EQ(al_contract::write_data<double>(op, "leaf_b", {}, {22.0}).code, 0);
-    EXPECT_EQ(al_delete_data(op, "leaf_a").code, 0);
-    EXPECT_EQ(al_end_action(op).code, 0);
-
-    // Reopening a READ on the occurrence may itself fail — HDF5's delete
-    // removed the whole occurrence's group/link/file, so there may be
-    // nothing left to open at all. That failure is just as much proof the
-    // sibling is gone as reading back the sentinel would be.
-    int rop = -1;
-    al_status_t open_read = al_begin_global_action(pctx, kIds, "", READ_OP, &rop);
-    double result = al_contract::kEmptyDouble;
-    if (open_read.code == 0) {
-        std::vector<int> shape;
-        std::vector<double> bb;
-        EXPECT_EQ(al_contract::read_data<double>(rop, "leaf_b", 0, &shape, &bb).code, 0);
-        EXPECT_EQ(al_end_action(rop).code, 0);
-        if (!bb.empty()) result = bb[0];
-    }
-    al_close_pulse(pctx, CLOSE_PULSE);
-    return result;
-}
-
-TEST_F(DeleteKnownDefects, DISABLED_Hdf5LeafDeleteLeavesSiblingIntact) {
-    EXPECT_EQ(hdf5_leaf_delete_sibling_survives(base_, pulse_), 22.0)
-        << "a leaf-granularity delete must not remove sibling fields";
-}
-
-TEST_F(DeleteKnownDefects, Hdf5LeafDeleteCurrentlyWipesWholeOccurrence) {
-    EXPECT_EQ(hdf5_leaf_delete_sibling_survives(base_, pulse_),
-              al_contract::kEmptyDouble)
-        << "HDF5 deleteData now honors `path` for leaf granularity — enable "
-           "DeleteKnownDefects.DISABLED_Hdf5LeafDeleteLeavesSiblingIntact "
-           "(src/hdf5/hdf5_writer.cpp deleteData ignores its caller's field)";
-}
 
 // --- Memory: no code path implements DATAOBJECT-root delete ----------------
 bool memory_root_delete_clears_everything(al_contract::TempBase& base,
@@ -730,6 +685,258 @@ TEST_F(DeleteKnownDefects, AsciiDeleteIsCurrentlyANoOp) {
            "(ascii_backend.cpp deleteData has an empty body)";
 }
 
+
+// ===========================================================================
+// HDF5-specific al_delete_data consequences (issue #63).
+// ===========================================================================
+// DeleteMatrix above asks the backend-agnostic question ("is the named node
+// gone, is its sibling still there"). Three things it cannot see matter on
+// HDF5, because they are properties of its two-level file layout rather than
+// of the C ABI:
+//
+//   1. Which *files* survive. A non-empty path must leave <ids>.h5 alone; only
+//      an empty path (the whole DATAOBJECT) removes it. Before issue #63 every
+//      delete removed it.
+//   2. Whether master.h5 still links the occurrence. The link has to follow the
+//      file: leaving it behind advertises an occurrence — al_get_occurrences
+//      enumerates exactly these links — whose backing file is gone.
+//   3. Same-prefix siblings. The IDS group is a flat namespace of mangled path
+//      names ('/' -> '&', AOS nodes suffixed "[]"), so "time" and
+//      "time_slice[]&x" are neighbours in one namespace and a prefix match
+//      alone would take the second with the first.
+//   4. Paths that traverse an AOS. The same flattening means "outer/inner" is
+//      stored as "outer[]&inner&…", so matching has to be per segment or such
+//      a path silently matches nothing.
+// Located by name rather than by rebuilding the backend's own on-disk path
+// strategy (hdf5_utils.cpp pulseFilePathFactory), which the test has no
+// business restating.
+inline bool file_exists_under(const std::string& root, const std::string& name) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    for (fs::recursive_directory_iterator it(root, ec), end; it != end;
+         it.increment(ec)) {
+        if (ec) break;
+        if (it->path().filename() == name) return true;
+    }
+    return false;
+}
+
+class Hdf5Delete : public ::testing::Test {
+protected:
+    al_contract::TempBase base_;
+    PulseId pulse_{/*database=*/"test", /*version=*/"3", /*pulse=*/12, /*run=*/0};
+
+    int open() {
+        base_.make_legacy_tree(pulse_);
+        const std::string uri = al_contract::build_uri(HDF5_BACKEND, base_.str(), pulse_);
+        int pctx = -1;
+        EXPECT_EQ(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx).code, 0);
+        return pctx;
+    }
+
+    bool ids_file_exists() const {
+        return file_exists_under(base_.str(), std::string(kIds) + ".h5");
+    }
+
+    // True iff master.h5 still holds an external link for the occurrence.
+    // al_get_occurrences enumerates those links live (hdf5_reader.cpp
+    // H5Literate over master_file_id) and never stats what they point at, so
+    // it reports a link whose file is gone — which is what makes it the oracle
+    // for the dangling state issue #63 measured, independently of
+    // ids_file_exists().
+    bool occurrence_listed(int pctx) const {
+        int* occ = nullptr;
+        int  n   = -1;
+        const bool ok = al_get_occurrences(pctx, kIds, &occ, &n).code == 0 && n > 0;
+        free(occ);
+        return ok;
+    }
+};
+
+TEST_F(Hdf5Delete, LeafDeleteKeepsOccurrenceFileAndMasterLink) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_b", {}, {22.0}));
+    AL_EXPECT_OK(al_delete_data(op, "leaf_a"));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    std::vector<int> shape;
+    std::vector<double> a, b;
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_a", 0, &shape, &a));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_b", 0, &shape, &b));
+    AL_ASSERT_OK(al_end_action(rop));
+
+    EXPECT_EQ(a.at(0), al_contract::kEmptyDouble) << "the named leaf must be gone";
+    EXPECT_EQ(b.at(0), 22.0)
+        << "a leaf-granularity delete must not remove sibling fields";
+    EXPECT_TRUE(ids_file_exists())
+        << "a leaf-granularity delete must not remove the occurrence's pulse file";
+    EXPECT_TRUE(occurrence_listed(pctx))
+        << "the occurrence, and so the master file's link to it, must survive a "
+           "leaf-granularity delete";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+TEST_F(Hdf5Delete, RootDeleteRemovesOccurrenceFileAndMasterLink) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}));
+    AL_EXPECT_OK(al_delete_data(op, ""));
+    AL_ASSERT_OK(al_end_action(op));
+
+    EXPECT_FALSE(ids_file_exists())
+        << "an empty path addresses the whole DATAOBJECT: <ids>.h5 must go";
+    EXPECT_FALSE(occurrence_listed(pctx))
+        << "the master file must not keep an external link to a pulse file that "
+           "was just deleted (issue #63)";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// The flat-namespace hazard, in both continuation forms: "time" vs the AOS
+// "time_slice[]&…" ("[]"), and "code" vs the leaf "code_name" (neither '&' nor
+// "[]", so not a child at all).
+TEST_F(Hdf5Delete, SamePrefixSiblingsSurviveASubtreeDelete) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "time", {}, {7.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "code_name", {}, {8.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "code/version", {}, {9.0}));
+    int size = 1;
+    int aos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(op, "time_slice", "", &size, &aos));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "x", {}, {5.0}));
+    AL_ASSERT_OK(al_end_action(aos));
+    AL_EXPECT_OK(al_delete_data(op, "time"));
+    AL_EXPECT_OK(al_delete_data(op, "code"));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    std::vector<int> shape;
+    std::vector<double> t, code_name, code_version, x;
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "time", 0, &shape, &t));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "code_name", 0, &shape, &code_name));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "code/version", 0, &shape, &code_version));
+    int rsize = -1;
+    int raos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(rop, "time_slice", "", &rsize, &raos));
+    ASSERT_EQ(rsize, 1) << "the time_slice AOS must survive deleting the leaf \"time\"";
+    AL_EXPECT_OK(al_contract::read_data<double>(raos, "x", 0, &shape, &x));
+    AL_ASSERT_OK(al_end_action(raos));
+    AL_ASSERT_OK(al_end_action(rop));
+
+    EXPECT_EQ(t.at(0), al_contract::kEmptyDouble) << "the named leaf must be gone";
+    EXPECT_EQ(code_version.at(0), al_contract::kEmptyDouble)
+        << "a structure delete must take its children";
+    EXPECT_EQ(x.at(0), 5.0) << "\"time_slice[]&x\" is not part of the \"time\" subtree";
+    EXPECT_EQ(code_name.at(0), 8.0)
+        << "\"code_name\" is not part of the \"code\" subtree";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// A path may address a node *inside* an AOS. The C ABI gives no way to say
+// which element — al_delete_data takes an OperationContext, not an
+// arraystruct one — so "outer/inner" can only mean "that subtree in every
+// element", which is exactly how the tensorized layout stores it
+// ("outer[]&inner&leaf", flattened over the AOS index). Raw prefix matching
+// missed these entirely and reported success, so the call was a silent no-op.
+TEST_F(Hdf5Delete, PathThroughAnAosDeletesTheSubtreeInEveryElement) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    int size = 2;
+    int aos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(op, "outer", "", &size, &aos));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "inner/leaf", {}, {1.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "keep", {}, {3.0}));
+    AL_EXPECT_OK(al_iterate_over_arraystruct(aos, 1));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "inner/leaf", {}, {2.0}));
+    AL_EXPECT_OK(al_contract::write_data<double>(aos, "keep", {}, {4.0}));
+    AL_ASSERT_OK(al_end_action(aos));
+    AL_EXPECT_OK(al_delete_data(op, "outer/inner"));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    int rsize = -1;
+    int raos = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(rop, "outer", "", &rsize, &raos));
+    ASSERT_EQ(rsize, 2);
+    std::vector<int> shape;
+    std::vector<double> leaf, keep;
+    AL_EXPECT_OK(al_contract::read_data<double>(raos, "inner/leaf", 0, &shape, &leaf));
+    AL_EXPECT_OK(al_contract::read_data<double>(raos, "keep", 0, &shape, &keep));
+    AL_ASSERT_OK(al_end_action(raos));
+    AL_ASSERT_OK(al_end_action(rop));
+    EXPECT_EQ(leaf.at(0), al_contract::kEmptyDouble)
+        << "a path through an AOS must delete its subtree in every element";
+    EXPECT_EQ(keep.at(0), 3.0) << "a sibling inside the same AOS element must survive";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+TEST_F(Hdf5Delete, DeletingAnAbsentPathChangesNothing) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    AL_EXPECT_OK(al_contract::write_data<double>(op, "leaf_a", {}, {11.0}));
+    AL_EXPECT_OK(al_delete_data(op, "never_written"))
+        << "deleting what is not there is not an error";
+    AL_ASSERT_OK(al_end_action(op));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    std::vector<int> shape;
+    std::vector<double> a;
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_a", 0, &shape, &a));
+    AL_ASSERT_OK(al_end_action(rop));
+    EXPECT_EQ(a.at(0), 11.0) << "an absent-path delete must not touch anything else";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
+
+// The whole-IDS delete the HLI actually issues: imas-python's delete_children()
+// walks the DD and sends one al_delete_data per leaf, so the *second* call has
+// to still find a live group. It did not before issue #63: the first call
+// closed the group, and every later one returned early having done nothing.
+TEST_F(Hdf5Delete, ManySuccessiveLeafDeletesAllTakeEffect) {
+    const int pctx = open();
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &op));
+    for (const char* leaf : {"leaf_a", "leaf_b", "leaf_c"})
+        AL_EXPECT_OK(al_contract::write_data<double>(op, leaf, {}, {1.0}));
+    AL_ASSERT_OK(al_end_action(op));
+
+    int dop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", WRITE_OP, &dop));
+    for (const char* leaf : {"leaf_a", "leaf_b"})
+        AL_EXPECT_OK(al_delete_data(dop, leaf));
+    AL_ASSERT_OK(al_end_action(dop));
+
+    int rop = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, kIds, "", READ_OP, &rop));
+    std::vector<int> shape;
+    std::vector<double> a, b, c;
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_a", 0, &shape, &a));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_b", 0, &shape, &b));
+    AL_EXPECT_OK(al_contract::read_data<double>(rop, "leaf_c", 0, &shape, &c));
+    AL_ASSERT_OK(al_end_action(rop));
+    EXPECT_EQ(a.at(0), al_contract::kEmptyDouble);
+    EXPECT_EQ(b.at(0), al_contract::kEmptyDouble)
+        << "the second delete of a session must take effect too";
+    EXPECT_EQ(c.at(0), 1.0) << "a leaf nobody deleted must survive";
+
+    al_close_pulse(pctx, CLOSE_PULSE);
+}
 
 // ===========================================================================
 // al_get_occurrences.

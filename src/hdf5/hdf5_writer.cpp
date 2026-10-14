@@ -14,7 +14,7 @@ using namespace boost::filesystem;
 
 HDF5Writer::HDF5Writer(std::string backend_version_)
 :  backend_version(backend_version_), opened_data_sets(), existing_data_sets(), tensorized_paths_per_context(), arrctx_shapes_per_context(), 
-dynamic_AOS_slices_extension(), homogeneous_time(-1), IDS_group_id(), slice_mode(GLOBAL_OP)
+dynamic_AOS_slices_extension(), homogeneous_time(-1), IDS_group_id(), group_members_gid(-1), group_members(), slice_mode(GLOBAL_OP)
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
 }
@@ -58,7 +58,112 @@ void HDF5Writer::close_file_handler(std::string external_link_name, std::unorder
     }
 }
 
-void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+// An IDS group is a flat namespace of "tensorized" dataset names: the DD path
+// with '/' replaced by '&', every array-of-structures node suffixed "[]", one
+// "_SHAPE" companion per non-scalar leaf and one "…[]&AOS_SHAPE" per dynamic
+// AOS. So "time_slice/global_quantities/ip" is stored as
+// "time_slice[]&global_quantities&ip", flattened over the AOS index.
+//
+// Matching therefore has to be per segment, not by raw string prefix: each
+// segment of the requested path matches a dataset-name segment with or without
+// the "[]" AOS suffix, and the dataset's remaining segments are its subtree.
+// Segment-wise is what tells a real child from a same-prefix stranger —
+// deleting "time" must not touch "time_slice[]&x", and deleting "code" must not
+// touch "code_name" — while still letting a path address a node *inside* an
+// AOS, which the C ABI gives no way to do per element: al_delete_data takes an
+// OperationContext, so "time_slice/global_quantities" can only mean "that
+// subtree in every element", exactly as the tensorized layout stores it.
+static std::vector < std::string > split_on_ampersand(const std::string & path)
+{
+    std::vector < std::string > segments;
+    std::string::size_type start = 0;
+    while (true) {
+        const std::string::size_type sep = path.find('&', start);
+        if (sep == std::string::npos) {
+            segments.push_back(path.substr(start));
+            return segments;
+        }
+        segments.push_back(path.substr(start, sep - start));
+        start = sep + 1;
+    }
+}
+
+static bool is_in_subtree(const std::string & dataset_name, const std::string & mangled_path)
+{
+    const std::vector < std::string > name_segments = split_on_ampersand(dataset_name);
+    const std::vector < std::string > wanted_segments = split_on_ampersand(mangled_path);
+    if (name_segments.size() < wanted_segments.size())
+        return false;
+
+    for (size_t i = 0; i < wanted_segments.size(); i++) {
+        std::string segment = name_segments[i];
+        if (segment.size() >= 2 && segment.compare(segment.size() - 2, 2, "[]") == 0)
+            segment.erase(segment.size() - 2);      //an AOS node: "time_slice[]" -> "time_slice"
+        if (segment == wanted_segments[i])
+            continue;
+        //The addressed node's own "_SHAPE" companion is the one case where the
+        //last segment may carry a suffix. A deeper AOS's "AOS_SHAPE" and a
+        //child's "…_SHAPE" are already covered: they are extra segments, or
+        //segments past the requested path.
+        if (i + 1 == wanted_segments.size() && name_segments.size() == wanted_segments.size() &&
+            segment == wanted_segments[i] + "_SHAPE")
+            continue;
+        return false;
+    }
+    return true;
+}
+
+void HDF5Writer::invalidateGroupMembers()
+{
+    group_members_gid = -1;
+    group_members.clear();
+}
+
+// The cached listing is trusted only while it still accounts for every link in
+// the group. Nothing but a write can add one, and a write can only add, so an
+// unchanged link count means an unchanged set of names — which spares every
+// write path from having to remember to invalidate this.
+const std::vector < std::string > &HDF5Writer::groupMembers(hid_t gid)
+{
+    H5G_info_t group_info;
+    if (H5Gget_info(gid, &group_info) < 0)
+        throw ALBackendException("HDF5Backend: H5Gget_info has failed in HDF5Writer::groupMembers()", LOG);
+
+    if (group_members_gid != gid || group_members.size() != (size_t) group_info.nlinks) {
+        group_members.clear();
+        H5L_iterate_t collect = [](hid_t, const char *name, const H5L_info_t *, void *op_data) -> herr_t {
+            static_cast < std::vector < std::string > *>(op_data)->push_back(name);
+            return 0;
+        };
+        if (H5Literate(gid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, collect, &group_members) < 0) {
+            invalidateGroupMembers();
+            throw ALBackendException("HDF5Backend: H5Literate has failed in HDF5Writer::groupMembers()", LOG);
+        }
+        group_members_gid = gid;
+    }
+    return group_members;
+}
+
+void HDF5Writer::unlinkFromGroup(hid_t gid, const std::vector < std::string > &names)
+{
+    for (const std::string & name : names) {
+        // H5Ldelete only unlinks: the freed space stays in the file until it is
+        // repacked, so a delete never shrinks <ids>.h5.
+        if (H5Ldelete(gid, name.c_str(), H5P_DEFAULT) < 0) {
+            invalidateGroupMembers();
+            //A dataset name is a caller-supplied DD path, so it is built into
+            //the message as a string rather than through a fixed-size buffer.
+            throw ALBackendException("HDF5Backend: unable to delete HDF5 dataset: " + name, LOG);
+        }
+    }
+    //Keep the cached listing in step, so a run of deletes still lists the group
+    //only once. This is the only code that removes a link from the group.
+    for (const std::string & name : names)
+        group_members.erase(std::remove(group_members.begin(), group_members.end(), name),
+                            group_members.end());
+}
+
+void HDF5Writer::deleteData(OperationContext * ctx, const std::string & path, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
 {
     if (file_id == -1)
         throw ALBackendException("HDF5Backend: master file not opened in HDF5Writer::deleteData()", LOG); //the master file is assumed to be opened
@@ -69,33 +174,58 @@ void HDF5Writer::deleteData(OperationContext * ctx, hid_t file_id, std::unordere
 
     if (gid == -1)
         return;
+
+    // An empty path addresses the whole DATAOBJECT; anything else addresses one
+    // node and its subtree. See al_lowlevel.h (al_delete_data) and
+    // docs/adr/0001-al-delete-data-path-semantics.md.
+    if (path.empty())
+        deleteOccurrence(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
+    else
+        deleteSubtree(gid, path);
+}
+
+void HDF5Writer::deleteSubtree(hid_t gid, const std::string & path)
+{
+    std::string mangled_path = path;
+    std::replace(mangled_path.begin(), mangled_path.end(), '/', '&');   // character '/' is not supported in datasets names
+
+    // Pending buffered writes have to reach the file before anything is
+    // unlinked: HDF5DataSetHandler::close() frees its write buffers without
+    // flushing them, so closing first would silently drop writes made earlier
+    // in the same WRITE_OP session to datasets this delete does not touch.
+    if (!opened_data_sets.empty())
+        write_buffers();
+    close_datasets();           //also clears the existing_data_sets H5Lexists cache
+
+    std::vector < std::string > doomed;
+    for (const std::string & name : groupMembers(gid)) {
+        if (is_in_subtree(name, mangled_path))
+            doomed.push_back(name);
+    }
+    unlinkFromGroup(gid, doomed);
+}
+
+void HDF5Writer::deleteOccurrence(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+{
     close_datasets();
-    close_group(ctx);
+    close_group(ctx);           //also invalidates the cached group listing
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
     HDF5Utils hdf5_utils;
-    //Deleting IDS link from master file
     if (H5Lexists(file_id, IDS_link_name.c_str(), H5P_DEFAULT) > 0) { //the IDS is referenced in the master file
-        auto got = opened_IDS_files.find(IDS_link_name);
-        hid_t IDS_file_id = -1;
         std::string IDSpulseFile = hdf5_utils.getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
+        auto got = opened_IDS_files.find(IDS_link_name);
         if (got != opened_IDS_files.end()) {
-            IDS_file_id = got->second;
-            if (IDS_file_id < 0) {
-                if (exists(IDSpulseFile.c_str())) {
-                    hdf5_utils.openIDSFile(ctx, IDSpulseFile, &IDS_file_id, false);
-                }
-            }
-            else {
-                hdf5_utils.closeIDSFile(IDS_file_id, IDS_link_name);
-                hdf5_utils.deleteIDSFile(IDSpulseFile);
-            }
+            if (got->second >= 0)
+                hdf5_utils.closeIDSFile(got->second, IDS_link_name);
             opened_IDS_files[IDS_link_name] = -1;
         }
-        else {
-            if (exists(IDSpulseFile.c_str())) 
-                hdf5_utils.deleteIDSFile(IDSpulseFile);
-        }
+        if (exists(IDSpulseFile.c_str()))
+            hdf5_utils.deleteIDSFile(IDSpulseFile);
+        //Deleting IDS link from master file: the link has to go with the file it
+        //points at, or the master keeps advertising an occurrence
+        //(al_get_occurrences enumerates these links) whose backing file is gone.
+        hdf5_utils.removeLinkFromMasterPulseFile(file_id, IDS_link_name);
     }
 }
 
@@ -194,6 +324,7 @@ void HDF5Writer::close_datasets()
 
 void HDF5Writer::close_group(OperationContext *ctx)
 {
+    invalidateGroupMembers();
     hid_t gid = -1;
     auto got = IDS_group_id.find(ctx);
     if (got != IDS_group_id.end()) {

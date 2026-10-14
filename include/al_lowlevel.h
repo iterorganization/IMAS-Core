@@ -415,8 +415,29 @@ extern "C"
      Deletes data.
      This function deletes some data (can be a signal, a structure, the whole DATAOBJECT) in the database 
      given the passed context.
+
+     `path` selects *what* is deleted, and is never widened by the core:
+     - a non-empty `path` deletes that node and its subtree, and nothing else —
+       sibling and parent nodes, and the DATAOBJECT itself, survive;
+     - an empty `path` addresses the whole DATAOBJECT (the occurrence opened by
+       `ctx`), and is the only way to remove it.
+     Deleting a path that holds no data is not an error: the call succeeds and
+     changes nothing.
+
+     Backend support for the three granularities is uneven, and a backend that
+     cannot honour `path` does not report that it could not: ASCII and
+     flexbuffers ignore the call entirely, memory implements node and
+     array-of-structures deletes but not the DATAOBJECT one, MDSplus implements
+     node deletes only. HDF5 implements all three. UDA forwards `path` to
+     whichever backend it is fronting: in fetch mode to the local one, and in
+     remote mode to a server plugin that need not implement delete at all (the
+     reference plugin does not, and refuses cleanly). The per-backend matrix,
+     and why the argument is specified this way rather than as an
+     occurrence-wide delete, are recorded in
+     docs/adr/0001-al-delete-data-path-semantics.md.
+
      @param[in] ctx operation context id (from al_plugin_begin_global_action() or al_plugin_begin_slice_action())
-     @param[in] path path of the data structure element to delete (suppress the whole subtree)
+     @param[in] path path of the data structure element to delete (suppress the whole subtree); empty means the whole DATAOBJECT
      @result error status [_success if al_status_t.code = 0 or failure if < 0_]
   */
   IMAS_CORE_LIBRARY_API al_status_t al_delete_data(int ctx,
