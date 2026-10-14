@@ -1,10 +1,15 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "develop", "main" ]
+    tags: [ "*" ]
+  pull_request:
+    branches: [ "develop" ]
 
 jobs:
   build_wheels:
-    name: build_wheels (Python ${{ matrix.python }}, ${{ matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
+    name: build_wheels (Python ${{ matrix.python }}, ${{ matrix.manylinux_image || matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
     runs-on: ${{ matrix.os }}
     strategy:
       # Ensure that a wheel builder finishes even if another fails
@@ -204,7 +209,6 @@ jobs:
             platform_id: win_amd64
             cibw_platform: windows
             cibw_archs: AMD64
-            manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
@@ -217,7 +221,6 @@ jobs:
             platform_id: win_amd64
             cibw_platform: windows
             cibw_archs: AMD64
-            manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
@@ -230,7 +233,6 @@ jobs:
             platform_id: win_amd64
             cibw_platform: windows
             cibw_archs: AMD64
-            manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
@@ -243,7 +245,6 @@ jobs:
             platform_id: win_amd64
             cibw_platform: windows
             cibw_archs: AMD64
-            manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
@@ -256,7 +257,6 @@ jobs:
             platform_id: win_amd64
             cibw_platform: windows
             cibw_archs: AMD64
-            manylinux_image: windows
             AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
