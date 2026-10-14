@@ -18,6 +18,8 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <cerrno>
+#include <chrono>
 #include <complex>
 #include <cstddef>
 #include <cstdlib>
@@ -31,6 +33,12 @@
 #include <process.h>
 #define AL_CONTRACT_GETPID _getpid
 #else
+#if defined(AL_CONTRACT_HAVE_UDA)
+#include <fcntl.h>
+#include <netdb.h>
+#include <poll.h>
+#include <sys/socket.h>
+#endif
 #include <unistd.h>
 #define AL_CONTRACT_GETPID getpid
 #endif
@@ -78,6 +86,114 @@ inline constexpr const char* kUnregisteredPluginName =
                       "failed (TEST_STRATEGY.md D4).";                     \
     }                                                                      \
   } while (0)
+
+// ---------------------------------------------------------------------------
+// UDA runtime skip (TEST_STRATEGY.md D4, PRD #21 user story 16): the UDA tier
+// is a *client* to a remote UDA reference stack (docker/uda/). When that stack
+// is not standing behind the client the tests skip, never fail -- an ordinary
+// local build (no server) and always-on CI legs are unaffected. The gate checks
+// both UDA_HOST and a short TCP connection to the configured UDA port, avoiding
+// the client's long timeout when a configured server is down. Same macro-not-
+// function rationale as the MDSplus skip above: GTEST_SKIP() must unwind the
+// calling SetUp()/TEST body.
+// ---------------------------------------------------------------------------
+inline bool uda_reference_server_reachable(const char* host, const char* port) {
+#if defined(AL_CONTRACT_HAVE_UDA) && !defined(_WIN32)
+    addrinfo hints{};
+    hints.ai_family   = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags    = AI_NUMERICSERV;
+
+    addrinfo* addresses = nullptr;
+    if (getaddrinfo(host, port, &hints, &addresses) != 0) return false;
+
+    constexpr auto kConnectBudget = std::chrono::milliseconds(100);
+    const auto deadline = std::chrono::steady_clock::now() + kConnectBudget;
+    bool reachable = false;
+    for (addrinfo* address = addresses; address != nullptr;
+         address = address->ai_next) {
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline - std::chrono::steady_clock::now());
+        if (remaining.count() <= 0) break;
+
+        const int fd = socket(address->ai_family, address->ai_socktype,
+                              address->ai_protocol);
+        if (fd < 0) continue;
+
+        const int flags = fcntl(fd, F_GETFL, 0);
+        if (flags >= 0 && fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0) {
+            if (connect(fd, address->ai_addr, address->ai_addrlen) == 0) {
+                reachable = true;
+            } else if (errno == EINPROGRESS) {
+                pollfd candidate{fd, POLLOUT, 0};
+                if (poll(&candidate, 1, static_cast<int>(remaining.count())) > 0) {
+                    int       socket_error = 0;
+                    socklen_t size         = sizeof(socket_error);
+                    reachable =
+                        getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &size) ==
+                            0 &&
+                        socket_error == 0;
+                }
+            }
+        }
+        close(fd);
+        if (reachable) break;
+    }
+    freeaddrinfo(addresses);
+    return reachable;
+#else
+    // UDA contract tests are currently supported only on POSIX hosts.
+    return host && *host && port && *port;
+#endif
+}
+
+#define AL_CONTRACT_SKIP_IF_UDA_UNCONFIGURED()                              \
+  do {                                                                      \
+    const char* uda_host = std::getenv("UDA_HOST");                        \
+    const char* uda_port_env = std::getenv("UDA_PORT");                    \
+    const char* uda_port =                                                   \
+        uda_port_env && *uda_port_env ? uda_port_env : "56565";             \
+    if (!uda_host || !*uda_host) {                                         \
+      GTEST_SKIP() << "UDA_HOST is unset -- UDA characterization tests "    \
+                      "are skipped, not failed: no reference stack is "     \
+                      "reachable (TEST_STRATEGY.md D4, docker/uda/).";      \
+    }                                                                      \
+    if (!::al_contract::uda_reference_server_reachable(uda_host, uda_port)) { \
+      GTEST_SKIP() << "UDA reference server at " << uda_host << ':'          \
+                   << uda_port << " is unreachable -- UDA characterization " \
+                                  "tests are skipped, not failed "           \
+                                  "(TEST_STRATEGY.md D4, docker/uda/).";     \
+    }                                                                      \
+  } while (0)
+
+// Build the base of a UDA remote-mode URI ("imas://<host>:<port>/uda") from the
+// UDA_HOST / UDA_PORT env the reference stack exports. The parser only treats a
+// URI as UDA when it carries an authority (host non-empty), which requires the
+// "imas://host:port/..." form -- NOT "imas:uda://..." (that leaves the authority
+// unparsed; see include/uri_parser.h parse_authority). Port defaults to UDA's
+// canonical 56565 when UDA_PORT is unset.
+inline std::string uda_uri_base() {
+    const char* host = std::getenv("UDA_HOST");
+    const char* port = std::getenv("UDA_PORT");
+    return std::string("imas://") + (host ? host : "localhost") + ":" +
+           (port && *port ? port : "56565") + "/uda";
+}
+
+// Shared addressing for the UDA characterization machine. Keep operation
+// lifecycles in the tests themselves; only centralize the URI shapes that every
+// HDF5-seed/UDA-reopen fixture must agree on.
+inline std::string hdf5_uri_for(const std::string& pulse_dir) {
+    return "imas:hdf5?path=" + pulse_dir;
+}
+
+inline std::string uda_hdf5_uri_for(
+    const std::string& pulse_dir, const std::string& cache_mode = "none",
+    const std::string& extra_query = "") {
+    std::string uri = uda_uri_base() + "?backend=hdf5&cache_mode=" +
+                      cache_mode + "&path=" + pulse_dir;
+    if (!extra_query.empty()) uri += "&" + extra_query;
+    return uri;
+}
 
 // ---------------------------------------------------------------------------
 // BackendCase descriptor for value-parametrized tests (TEST_P).

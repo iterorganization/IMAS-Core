@@ -74,6 +74,10 @@ add_executable(contract_tests
   test_mdsplus_real_paths.cpp
   test_mdsplus_version_drift.cpp
   test_mdsplus_unique_surface.cpp
+  test_uda.cpp
+  test_uda_real_paths.cpp
+  test_uda_breadth.cpp
+  test_uda_unique_surface.cpp
 )
 
 target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
@@ -103,6 +107,23 @@ if(AL_BACKEND_MDSPLUS)
   find_package(MDSplus REQUIRED)
   target_include_directories(contract_tests PRIVATE ${MDSPLUS_INCLUDES})
   target_link_libraries(contract_tests PRIVATE ${MDSPLUS_LIBRARIES})
+endif()
+
+########################################################################################################################
+# UDA build gate (issue #23 / PRD #21, TEST_STRATEGY.md D4 "compile-guarded tier").
+#
+# Same shape as the MDSplus gate above: test_uda.cpp wraps its whole body in
+# #ifdef AL_CONTRACT_HAVE_UDA, so it compiles out to nothing when neither UDA
+# backend is built, and always-on CI legs (both UDA options OFF) are unaffected.
+# The gate tracks AL_BACKEND_UDA *and* AL_BACKEND_UDAFAT (the fat-client build),
+# matching how src/CMakeLists.txt enables the UDA source. When the
+# backend is on the test still runtime-skips (GTEST_SKIP()) if UDA_HOST is unset,
+# so "on but no reference stack reachable" never fails either. Unlike MDSplus the
+# gate needs no extra test-only link deps: the whole round trip goes through the
+# public C ABI, and the uda-cpp client is already linked PRIVATEly into `al` by
+# src/uda/CMakeLists.txt (the smoke test never touches UDA's own API).
+if(AL_BACKEND_UDA OR AL_BACKEND_UDAFAT)
+  target_compile_definitions(contract_tests PRIVATE AL_CONTRACT_HAVE_UDA)
 endif()
 
 ########################################################################################################################
@@ -219,11 +240,28 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
     TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
     PROPERTIES LABELS "contract\;unit")
   gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
+    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:Uda/UdaRealPathMatrixKnownDefects.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
     PROPERTIES LABELS "contract\;integration")
   gtest_discover_tests(contract_tests
     TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
     PROPERTIES LABELS "mdsplus")
+  # Issue #23: the UDA tier gets its own single-element "uda" label pass (same
+  # sidestep of the multi-label-drop defect the mdsplus pass uses), carved out
+  # of the integration pass above, so `ctest -L uda` selects exactly the UDA
+  # characterization suite without pulling in every other on-disk backend case.
+  # Issue #24 joins the read-only equilibrium-seed parity fixture
+  # (UdaEquilibriumSeedParity*) to the same pass. Issue #25 (parity breadth)
+  # joins the real-DD-path datatype x rank matrix (test_uda_real_paths.cpp,
+  # Uda/UdaRealPathMatrix.*) and the AOS/occurrences/list_filled_paths/pulse-
+  # modes/errors/slice/timerange breadth suite (test_uda_breadth.cpp,
+  # UdaBreadthTest.*, UdaSliceAndTimeRange.*). The exact COMPLEX r1/r3/r5
+  # known-defect pairs live in Uda/UdaRealPathMatrixKnownDefects.*.
+  # Issue #26 (unique-surface, first half) joins UdaUniqueSurfaceTest* to the
+  # same pass: cache modes, runtime DD loading, datapath, and capability
+  # negotiation (test_uda_unique_surface.cpp).
+  gtest_discover_tests(contract_tests
+    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:Uda/UdaRealPathMatrixKnownDefects.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
+    PROPERTIES LABELS "uda")
 else()
   gtest_discover_tests(contract_tests
     PROPERTIES LABELS "contract")

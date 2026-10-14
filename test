@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# Convenience dispatcher for the backend contract tiers.
+#
+# The common backends run host-native; the MDSplus and UDA tiers each need a
+# real backend that only exists inside a Docker image (docker/mdsplus/,
+# docker/uda/), whose `docker build` + `docker run` recipes are long and easy to
+# mistype. This wraps all of them behind one verb.
+#
+#   ./test common             build the always-on backends on the host, run ctest
+#   ./test mdsplus            bake the DD-4.1.1 model tree, build, run `ctest -L mdsplus`
+#   ./test uda                assemble the UDA reference stack, run `ctest -L uda`
+#   ./test all                common + mdsplus + uda, then a PASS/FAIL summary
+#                             (runs every tier even if one fails; exits non-zero
+#                             if any did)
+#   ./test uda <args...>      pass args through to uda-run.sh (e.g. `./test uda bash`,
+#                             `./test uda ctest -L uda -R Smoke --output-on-failure`)
+#
+# `common` is host-native (no Docker): the default backends — HDF5, memory,
+# ASCII, flexbuffers — build with the toolchain on your machine (needs HDF5 +
+# Boost::filesystem installed). AL_BACKEND_MDSPLUS/UDA default OFF, so their
+# contract tiers compile out and this ctest runs only the common-backend tests.
+#
+# The mdsplus/uda backing images are built automatically on first use and reused
+# after that (rebuild by hand with `docker build`, or `docker image rm` to
+# force it). Both legs bind-mount the repo at /workspace, so they always
+# exercise the IMAS-Core you are currently editing — no image rebuild after code
+# edits.
+#
+# Env overrides:
+#   PLATFORM   docker --platform value (default linux/arm64; set linux/amd64 on
+#              an x86 cluster). The images and their apt sources are aarch64 by
+#              default per docker/*/README.md.
+set -euo pipefail
+
+PLATFORM=${PLATFORM:-linux/arm64}
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Presentation. Colour only when stdout is a terminal, so redirected/CI logs
+# stay plain. HR is a fixed-width rule reused by every header and the summary.
+if [ -t 1 ]; then
+  C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'; C_GREEN=$'\033[32m'; C_RED=$'\033[31m'; C_RESET=$'\033[0m'
+else
+  C_BOLD=; C_DIM=; C_GREEN=; C_RED=; C_RESET=
+fi
+HR="────────────────────────────────────────────────────────────────────────────"
+
+usage() {
+  # Print the contiguous header-comment block (from line 2 to the first
+  # non-comment line), stripping the leading "# ".
+  awk 'NR>1 { if ($0 ~ /^#/) { sub(/^# ?/, ""); print } else exit }' "${BASH_SOURCE[0]}"
+  exit "${1:-0}"
+}
+
+# --- shared helpers ---------------------------------------------------------
+
+# Allocate a TTY only when stdin is one, so `./test uda bash` is interactive but
+# CI / piped invocations still work.
+tty_flags() { [ -t 0 ] && printf '%s' "-it" || true; }
+
+# Section header printed at the start of every tier: rule, bold title, subtitle.
+section() {
+  printf '\n%s\n %s%s%s — %s\n%s\n\n' "$HR" "$C_BOLD" "$1" "$C_RESET" "$2" "$HR"
+}
+
+# Build a backing image on first use only (reused thereafter).
+ensure_image() {
+  local tag=$1 context=$2
+  if ! docker image inspect "$tag" >/dev/null 2>&1; then
+    echo "==> building $tag (first use) [$PLATFORM]"
+    docker build --platform "$PLATFORM" -f "$context/Dockerfile" -t "$tag" "$context"
+  fi
+}
+
+# Run one tier (label + command), time it, and print a uniform status line so
+# COMMON/MDS-PLUS/UDA all report identically. Also appends a plain (uncoloured,
+# aligned) row to SUMMARY for the end-of-run table. Returns the tier's exit code.
+SUMMARY=""
+run_tier() {
+  local label=$1; shift
+  local start=$SECONDS rc=0
+  "$@" || rc=$?
+  local secs=$(( SECONDS - start ))
+  if [ "$rc" -eq 0 ]; then
+    printf '\n %sPASS%s  %s%s%s  (%ss)\n' "$C_GREEN" "$C_RESET" "$C_BOLD" "$label" "$C_RESET" "$secs"
+    SUMMARY="${SUMMARY}$(printf '   PASS  %-9s  %5ss' "$label" "$secs")
+"
+  else
+    printf '\n %sFAIL%s  %s%s%s  (%ss, exit %s)\n' "$C_RED" "$C_RESET" "$C_BOLD" "$label" "$C_RESET" "$secs" "$rc"
+    SUMMARY="${SUMMARY}$(printf '   FAIL  %-9s  %5ss' "$label" "$secs")
+"
+  fi
+  return "$rc"
+}
+
+# End-of-run table (only for `all`).
+print_summary() {
+  printf '\n%s\n %sSUMMARY%s\n%s\n%s%s\n' "$HR" "$C_BOLD" "$C_RESET" "$HR" "$SUMMARY" "$HR"
+}
+
+
+# --- COMMON: always-on backends (HDF5, memory, ASCII, flexbuffers), host-native
+
+run_common() {
+  section "COMMON" "always-on backends (HDF5, memory, ASCII, flexbuffers) — host-native"
+  # No -G so an existing build/ keeps its generator; a fresh one takes CMake's
+  # default. getconf is portable across macOS and Linux. The && chain returns
+  # non-zero on the first failing step (configure/build/ctest).
+  local jobs; jobs=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
+  cmake -S "$REPO_ROOT" -B "$REPO_ROOT/build" \
+      -DAL_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build "$REPO_ROOT/build" -j"$jobs" \
+    && ctest --test-dir "$REPO_ROOT/build" --output-on-failure
+}
+
+
+# --- MDS-PLUS: Docker (docker/mdsplus/), bake model tree + build + ctest -------
+
+run_mdsplus() {
+  section "MDS-PLUS" "Docker: bake DD-4.1.1 model tree, build, ctest -L mdsplus"
+  ensure_image imas-core-mdsplus:dev "$REPO_ROOT/docker/mdsplus"
+  docker run --rm --platform "$PLATFORM" \
+    -v "$REPO_ROOT":/workspace -w /workspace \
+    -e MDSPLUS_MODELS_PATH=/workspace/build-mdsplus/models/mdsplus \
+    imas-core-mdsplus:dev bash -c '
+      cmake -B build-mdsplus -G Ninja \
+        -DAL_BACKEND_MDSPLUS=ON -DAL_BUILD_MDSPLUS_MODELS=ON \
+        -DAL_BUILD_TESTS=ON -DDD_VERSION=4.1.1 -DCMAKE_BUILD_TYPE=Release &&
+      cmake --build build-mdsplus -j"$(nproc)" &&
+      cd build-mdsplus/tests/contract && ctest -L mdsplus --output-on-failure
+    '
+}
+
+
+# --- UDA: Docker (docker/uda/), assemble reference stack + ctest --------------
+
+run_uda() {
+  section "UDA" "Docker: assemble reference stack (uda-run.sh), ctest -L uda"
+  ensure_image imas-core-uda:dev "$REPO_ROOT/docker/uda"
+  docker run --rm $(tty_flags) --platform "$PLATFORM" \
+    -v "$REPO_ROOT":/workspace -w /workspace \
+    imas-core-uda:dev uda-run.sh "$@"
+}
+
+
+# --- dispatch ---------------------------------------------------------------
+
+cmd=${1:-}
+[ $# -gt 0 ] && shift || true
+case "$cmd" in
+  common)   run_tier COMMON   run_common ;;
+  mdsplus)  run_tier MDS-PLUS run_mdsplus ;;   # no arg passthrough (fixed recipe)
+  uda)      run_tier UDA      run_uda "$@" ;;
+  all)
+    # Run every tier regardless of individual failures, then summarise and exit
+    # non-zero if any tier failed (coherent report over fail-fast).
+    rc=0
+    run_tier COMMON   run_common   || rc=1
+    run_tier MDS-PLUS run_mdsplus  || rc=1
+    run_tier UDA      run_uda      || rc=1
+    print_summary
+    exit "$rc"
+    ;;
+  ""|-h|--help|help) usage 0 ;;
+  *) echo "unknown target: $cmd" >&2; usage 1 ;;
+esac

@@ -93,10 +93,10 @@ unchanged). Issue #8 (`6-ownership-sweep.md`) closed every remaining row:
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| `al_begin_dataentry_action` opens a data entry from a URI | :90-107 | ✓ (Memory) | ✓ (HDF5, ASCII) | `FORCE_CREATE_PULSE` asserted OK in every suite. `OPEN_PULSE` fails when absent / `FORCE_OPEN_PULSE` creates when absent / `OPEN_PULSE` succeeds once present / `CREATE_PULSE` refuses an existing pulse (HDF5, Memory): `Backends/DataEntryModes.*`. MDSplus: joined too — see Part 4 | covered |
+| `al_begin_dataentry_action` opens a data entry from a URI | :90-107 | ✓ (Memory) | ✓ (HDF5, ASCII) | `FORCE_CREATE_PULSE` asserted OK in every suite. `OPEN_PULSE` fails when absent / `FORCE_OPEN_PULSE` creates when absent / `OPEN_PULSE` succeeds once present / `CREATE_PULSE` refuses an existing pulse (HDF5, Memory): `Backends/DataEntryModes.*`. MDSplus: joined too — see Part 4. UDA: all four modes now have the same lifecycle verdict (`UdaBreadthTest.{OpenPulse*,ForceOpenPulse*,CreatePulse*,ForceCreatePulse*}`) — see Part 5 | covered |
 | ↳ ASCII's `CREATE_PULSE` has no existence guard — **silently overwrites/truncates an existing pulse** instead of refusing it | :90-107; src/ascii_backend.cpp:107-157 | ✓ | — | `ModeKnownDefects.DISABLED_AsciiCreatePulseFailsWhenAlreadyExists` + tripwire `ModeKnownDefects.AsciiCreatePulseCurrentlyOverwritesSilently` | **xfail** |
-| `al_close_pulse` closes (`CLOSE_PULSE`) / erases (`ERASE_PULSE`) | :109-116 | ✓ (Memory) | ✓ (HDF5, ASCII) | `CLOSE_PULSE` asserted `code==0` in every suite | covered (indirect) |
-| ↳ `ERASE_PULSE` is not implemented by any always-on backend — **behaves identically to `CLOSE_PULSE`** (none of HDF5/ASCII/Memory's `closePulse` reference their `mode` parameter); a later plain `OPEN_PULSE` on the "erased" pulse still succeeds | :109-116; src/hdf5/{hdf5_reader,hdf5_writer}.cpp closePulse, src/ascii_backend.cpp:165-169, src/memory_backend.h:505-509 | ✓ (Memory) | ✓ (HDF5, ASCII) | `ErasePulseKnownDefects.DISABLED_{Hdf5,Ascii,Memory}EraseMakesPulseUnopenable` + tripwires `ErasePulseKnownDefects.{Hdf5,Ascii,Memory}EraseCurrentlyLeavesPulseOpenable` | **xfail** |
+| `al_close_pulse` closes (`CLOSE_PULSE`) / erases (`ERASE_PULSE`) | :109-116 | ✓ (Memory) | ✓ (HDF5, ASCII) | `CLOSE_PULSE` asserted `code==0` in every suite. UDA: `CLOSE_PULSE` retains an openable remote pulse; read-bearing sessions separately leak a server-side handle through a URI mismatch — see Part 5 | covered (indirect) |
+| ↳ `ERASE_PULSE` is not implemented by any always-on backend — **behaves identically to `CLOSE_PULSE`** (none of HDF5/ASCII/Memory's `closePulse` reference their `mode` parameter); a later plain `OPEN_PULSE` on the "erased" pulse still succeeds | :109-116; src/hdf5/{hdf5_reader,hdf5_writer}.cpp closePulse, src/ascii_backend.cpp:165-169, src/memory_backend.h:505-509 | ✓ (Memory) | ✓ (HDF5, ASCII) | `ErasePulseKnownDefects.DISABLED_{Hdf5,Ascii,Memory}EraseMakesPulseUnopenable` + tripwires `ErasePulseKnownDefects.{Hdf5,Ascii,Memory}EraseCurrentlyLeavesPulseOpenable`. UDA carries the same defect across the remote boundary: `UdaBreadthTest.DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.ErasePulseCurrentlyLeavesRemotePulseOpenable` (Part 5) | **xfail** |
 | `al_context_info` describes a context (pulse/operation/arraystruct); **caller frees `*info`** (verified `malloc`-based) | :118-126 | ✓ | ✓ | `ContextInfo.{NullContextReturnsLiteralString, PulseContextDescribesItsUri, OperationContextDescribesDataobjectAndAccessmode, ArraystructContextDescribesPathAndIndex}` (frees via `free()`) | covered |
 | `al_get_backendID` returns the active `BACKEND` for a context | :128-135 | — | ✓ | `GetBackendId.ReturnsTheBackendUsedToOpen` (HDF5 only) | covered |
 | ↳ no context-type check — a non-pulse context is `static_cast` (not `dynamic_cast`) to `DataEntryContext*` with no validation, so it **silently "succeeds" with an undefined-behavior value** instead of erroring (confirmed empirically: it does not crash) | :128-135; src/al_lowlevel.cpp al_get_backendID | — | ✓ | `GetBackendIdKnownDefects.DISABLED_WrongContextTypeReturnsError` + tripwire `GetBackendIdKnownDefects.WrongContextTypeCurrentlySucceedsViaUnsafeCast` (HDF5 only) | **xfail** |
@@ -115,25 +115,25 @@ genuine defect (expected-fail).
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| `al_begin_global_action` starts a GLOBAL read/write op | :159-175 | ✓ (Memory) | ✓ (HDF5, ASCII) | Vehicle for every round trip: `RoundTrip.*`, `RoundTripMatrix.*`, `VersionSentinel.*`, `CapabilityMatrix.*` (WRITE_OP + READ_OP). `datapath` partial-get is UDA-only (out of always-on scope). MDSplus joins `CapabilityMatrix` only, not `RoundTripMatrix`/`VersionSentinel` (opaque synthetic paths) — see Part 4 | covered |
-| `al_begin_slice_action` starts a time-slice op (READ interp; WRITE append via `UNDEFINED_TIME`) | :177-194 | ✓ (Memory) | ✓ (HDF5) | HDF5·Memory positive / ASCII·Flexbuffers refused `BACKEND_ERR`: `CapabilityMatrix.SliceReadPositiveOrRefused`, `CapabilityMatrix.SliceWriteBeginPositiveOrRefused`. Interp modes + missing-interp refusal (`CONTEXT_ERR`): `Hdf5TimeDependent.SliceInterpolationModes`, `Hdf5TimeDependent.SliceReadWithoutInterpModeIsRejected`. MDSplus: see Part 4 (real interpolation round trip, plus struct-aware slice interpolation as a unique surface) | covered |
+| `al_begin_global_action` starts a GLOBAL read/write op | :159-175 | ✓ (Memory) | ✓ (HDF5, ASCII) | Vehicle for every round trip: `RoundTrip.*`, `RoundTripMatrix.*`, `VersionSentinel.*`, `CapabilityMatrix.*` (WRITE_OP + READ_OP). `datapath` partial-get is UDA-only (out of always-on scope). MDSplus joins `CapabilityMatrix` only, not `RoundTripMatrix`/`VersionSentinel` (opaque synthetic paths) — see Part 4. UDA: real-DD-path breadth matrix, cache-mode/`datapath` unique surface — see Part 5 | covered |
+| `al_begin_slice_action` starts a time-slice op (READ interp; WRITE append via `UNDEFINED_TIME`) | :177-194 | ✓ (Memory) | ✓ (HDF5) | HDF5·Memory positive / ASCII·Flexbuffers refused `BACKEND_ERR`: `CapabilityMatrix.SliceReadPositiveOrRefused`, `CapabilityMatrix.SliceWriteBeginPositiveOrRefused`. Interp modes + missing-interp refusal (`CONTEXT_ERR`): `Hdf5TimeDependent.SliceInterpolationModes`, `Hdf5TimeDependent.SliceReadWithoutInterpModeIsRejected`. MDSplus: see Part 4 (real interpolation round trip, plus struct-aware slice interpolation as a unique surface). UDA: `CLOSEST_INTERP` on a real DD dynamic leaf round-trips correctly in remote mode — see Part 5 | covered |
 | ↳ WRITE append via `UNDEFINED_TIME` must accumulate — **only the last slice persists in this build** | :177-194; al_lowlevel.h:300-316 | — | ✓ | `Hdf5SliceAppend.DISABLED_AppendedSlicesAllPersist` + tripwire `Hdf5SliceAppend.OnlyLastAppendedSlicePersists_CurrentBehavior` | **xfail** |
-| `al_begin_timerange_action` starts a time-range op (with/without resampling `dtime`) | :196-221 | ✓ (Memory) | ✓ (HDF5) | HDF5 positive (no-resample + LINEAR resample): `Hdf5TimeDependent.TimeRangeReadWithoutResampling`, `…WithResampling`; Memory·ASCII·Flexbuffers refused `LOWLEVEL_ERR`: `CapabilityMatrix.TimeRangeReadPositiveOrRefused`. MDSplus: also refused, unconditionally — see Part 4 | covered |
-| `al_begin_arraystruct_action` starts an AOS op (top-level + nested), write→iterate→read | :223-233 | ✓ (Memory) | ✓ (HDF5) | `Backends/AosMatrix.{TopLevelWriteIterateRead,NestedWriteIterateRead}/{HDF5,Memory}`; Flexbuffers refused (paired-negative, same read-refusal as the round-trip matrix): `…/Flexbuffers`. MDSplus: joined too, but a divergence (synthetic paths) — see Part 4 | covered |
+| `al_begin_timerange_action` starts a time-range op (with/without resampling `dtime`) | :196-221 | ✓ (Memory) | ✓ (HDF5) | HDF5 positive (no-resample + LINEAR resample): `Hdf5TimeDependent.TimeRangeReadWithoutResampling`, `…WithResampling`; Memory·ASCII·Flexbuffers refused `LOWLEVEL_ERR`: `CapabilityMatrix.TimeRangeReadPositiveOrRefused`. MDSplus: also refused, unconditionally — see Part 4. UDA: capability genuinely granted (server 1.8.0 > 1.4.0) but the read then fails — `OperationContext`'s TIMERANGE_OP ctor never sets base `interpmode` — xfail, see Part 5 | covered |
+| `al_begin_arraystruct_action` starts an AOS op (top-level + nested), write→iterate→read | :223-233 | ✓ (Memory) | ✓ (HDF5) | `Backends/AosMatrix.{TopLevelWriteIterateRead,NestedWriteIterateRead}/{HDF5,Memory}`; Flexbuffers refused (paired-negative, same read-refusal as the round-trip matrix): `…/Flexbuffers`. MDSplus: joined too, but a divergence (synthetic paths) — see Part 4. UDA: traversal mechanism (size + iteration) is covered, but a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written — xfail, see Part 5 | covered |
 | ↳ ASCII's AOS **read** always reports size 0, for any AOS, regardless of what was written — `beginAction`'s `READ_OP` setup consumes the whole file into a random-access lookup map before the AOS-size lookup's sequential cursor ever runs | :223-233; src/ascii_backend.cpp:213-235,656-682 | ✓ | — | `AosKnownDefects.DISABLED_AsciiAosReadReportsWrittenSize` + tripwire `AosKnownDefects.AsciiAosReadCurrentlyReportsZero`; matrix cells skip via `Backends/AosMatrix.*/ASCII` | **xfail** |
 | `al_end_action` ends any context | :235-242 | ✓ (Memory) | ✓ (HDF5, ASCII) | asserted OK in every suite | covered (indirect) |
-| `al_write_data` → `al_read_data` round trip preserves value + shape (INTEGER/DOUBLE/COMPLEX scalar→7-D on HDF5·Memory·ASCII; CHAR scalar/1-D/2-D on HDF5·ASCII, all ranks on Memory) | :244-263 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/RoundTripMatrix.ReadEqualsWrite/*`; generator `al_contract.h` `synth_value`/`synth_buffer`/`shape_for_rank`. MDSplus excluded from this fixture (opaque synthetic paths) — see Part 4's real-DD-path breadth matrix instead | covered |
+| `al_write_data` → `al_read_data` round trip preserves value + shape (INTEGER/DOUBLE/COMPLEX scalar→7-D on HDF5·Memory·ASCII; CHAR scalar/1-D/2-D on HDF5·ASCII, all ranks on Memory) | :244-263 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/RoundTripMatrix.ReadEqualsWrite/*`; generator `al_contract.h` `synth_value`/`synth_buffer`/`shape_for_rank`. MDSplus excluded from this fixture (opaque synthetic paths) — see Part 4's real-DD-path breadth matrix instead. UDA likewise excluded, for the same reason — see Part 5's real-DD-path breadth matrix | covered |
 | ↳ Flexbuffers must-refuse column (serializer, not a pulse store): write accepted, read refused, every datatype × shape | :244-263 / D4 | — | ✓ | `…/Flexbuffers_*_r{0..7}` (paired-negative) | covered |
 | ↳ CHAR > 2-D refused (documented "not implemented") on HDF5·ASCII | :244-263 / D4 | — | ✓ | `…/{HDF5,ASCII}_CHAR_r{3..7}` (paired-negative) | covered |
 | ↳ CHAR scalar (dim 0) must round-trip — **HDF5 crashes** | :244-263 | — | ✓ | `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` + tripwire `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` | **xfail** |
 | ↳ numeric at MAXDIM (rank 7) must round-trip — **ASCII corrupts (DOUBLE/COMPLEX) / aborts (INTEGER)** | :244-263 | — | ✓ | `RoundTripKnownDefects.DISABLED_Ascii{Integer,Double,Complex}MaxdimRoundTrips` + tripwires `RoundTripKnownDefectsDeath.AsciiIntegerMaxdimCurrentlyAborts`, `RoundTripKnownDefectsDeath.Ascii{Double,Complex}MaxdimCurrentlyCorrupts` (death-test children: corruption *or* crash keeps them green — the overrun's manifestation is machine-dependent) | **xfail** |
-| `al_delete_data` at signal / structure / DATAOBJECT-root granularity | :265-272 | ✓ (Memory) | ✓ (HDF5) | Support is disjoint per backend, none implement all three (see xfail rows below): `Backends/DeleteMatrix.{LeafDeleteRemovesJustTheLeaf,StructureDeleteRemovesWholeSubtree}/Memory` (leaf + structure genuinely work only on Memory), `…/RootDeleteRemovesWholeOccurrence/HDF5` (root genuinely works only on HDF5, which ignores `path` and always removes the whole occurrence). MDSplus: not joined to this fixture — terminal gap, see Part 4 (issue #18) | covered |
+| `al_delete_data` at signal / structure / DATAOBJECT-root granularity | :265-272 | ✓ (Memory) | ✓ (HDF5) | Support is disjoint per backend, none implement all three (see xfail rows below): `Backends/DeleteMatrix.{LeafDeleteRemovesJustTheLeaf,StructureDeleteRemovesWholeSubtree}/Memory` (leaf + structure genuinely work only on Memory), `…/RootDeleteRemovesWholeOccurrence/HDF5` (root genuinely works only on HDF5, which ignores `path` and always removes the whole occurrence). MDSplus: not joined to this fixture — terminal gap, see Part 4 (issue #18). UDA: remote delete is cleanly refused (the reference plugin has no `deleteData` handler); remote write over the same path falsely reports success instead of the same refusal — xfail, see Part 5 | covered |
 | ↳ HDF5 ignores `path` for leaf/structure delete — **any delete call removes the whole occurrence**, not just the named field | :265-272; src/hdf5/hdf5_writer.cpp deleteData (no path parameter at all) | — | ✓ | One tripwire covers both defective granularities, since there is no leaf-vs-structure branch to differ (`HDF5Writer::deleteData` never receives a path at all): `DeleteKnownDefects.DISABLED_Hdf5LeafDeleteLeavesSiblingIntact` + tripwire `DeleteKnownDefects.Hdf5LeafDeleteCurrentlyWipesWholeOccurrence`; matrix cells skip via `Backends/DeleteMatrix.{Leaf,Structure}*/HDF5` | **xfail** |
 | ↳ Memory has no code path for DATAOBJECT-root delete — **a root-granularity delete is silently a no-op** | :265-272; src/memory_backend.cpp deleteData (no root/occurrence case) | ✓ | — | `DeleteKnownDefects.DISABLED_MemoryRootDeleteClearsWholeIds` + tripwire `DeleteKnownDefects.MemoryRootDeleteCurrentlyDoesNothing`; matrix cell skips via `Backends/DeleteMatrix.RootDeleteRemovesWholeOccurrence/Memory` | **xfail** |
 | ↳ ASCII's `deleteData` is a literal no-op (empty body) at every granularity; Flexbuffers' is too but is not independently ABI-observable (it already refuses every in-session read regardless of delete, so a read-based oracle can't distinguish "delete did nothing" from "this backend never round-trips reads") | :265-272; src/ascii_backend.cpp:648-652, src/flexbuffers_backend.cpp:387-389 | ✓ | ✓ | One tripwire covers every granularity on ASCII, since an empty function body has no path-dependent branch to differ: `DeleteKnownDefects.DISABLED_AsciiDeleteRemovesLeaf` + tripwire `DeleteKnownDefects.AsciiDeleteIsCurrentlyANoOp`; matrix cells skip via `Backends/DeleteMatrix.*/ASCII` and `…/Flexbuffers` | **xfail** |
 | `al_iterate_over_arraystruct` advances the AOS cursor | :274-282 | ✓ (Memory) | ✓ (HDF5) | Exercised as an asserted dependency of every AOS write/read in `Backends/AosMatrix.*` (top-level and nested, multi-step) | covered (indirect) |
-| `al_get_occurrences` lists non-empty occurrences; caller-frees `*occurrences_list` (verified `malloc`-based on both implementing backends) | :284-292 | ✓ (Memory) | ✓ (HDF5, ASCII) | HDF5 and ASCII implement it for real, each against its own occurrence-naming convention (neither transforms `dataobjectname`, so the caller supplies the backend-native form — HDF5: `"<ids>_<N>"`; ASCII: `"<ids>/<N>"`): `Occurrences.{Hdf5,Ascii}ListsWrittenOccurrences`. Memory/Flexbuffers refuse unconditionally (not implemented): `Occurrences.{Memory,Flexbuffers}Refuses`. MDSplus: also real, same `<ids>/<N>` convention — see Part 4 (`Occurrences.MdsplusListsWrittenOccurrences`) | covered |
-| `al_list_filled_paths` lists filled leaf paths; **caller frees list + strings** | :294-314 | ✓ (Memory) | ✓ (HDF5) | HDF5 positive (leaves discoverable, list freed) / Memory·ASCII·Flexbuffers refused `BACKEND_ERR`: `CapabilityMatrix.ListFilledPathsPositiveOrRefused`. MDSplus: refused `BACKEND_ERR` too, same as Memory·ASCII·Flexbuffers — see Part 4 | covered |
+| `al_get_occurrences` lists non-empty occurrences; caller-frees `*occurrences_list` (verified `malloc`-based on both implementing backends) | :284-292 | ✓ (Memory) | ✓ (HDF5, ASCII) | HDF5 and ASCII implement it for real, each against its own occurrence-naming convention (neither transforms `dataobjectname`, so the caller supplies the backend-native form — HDF5: `"<ids>_<N>"`; ASCII: `"<ids>/<N>"`): `Occurrences.{Hdf5,Ascii}ListsWrittenOccurrences`. Memory/Flexbuffers refuse unconditionally (not implemented): `Occurrences.{Memory,Flexbuffers}Refuses`. MDSplus: also real, same `<ids>/<N>` convention — see Part 4 (`Occurrences.MdsplusListsWrittenOccurrences`). UDA: also real over remote mode, HDF5's `<ids>_<N>` convention — see Part 5 | covered |
+| `al_list_filled_paths` lists filled leaf paths; **caller frees list + strings** | :294-314 | ✓ (Memory) | ✓ (HDF5) | HDF5 positive (leaves discoverable, list freed) / Memory·ASCII·Flexbuffers refused `BACKEND_ERR`: `CapabilityMatrix.ListFilledPathsPositiveOrRefused`. MDSplus: refused `BACKEND_ERR` too, same as Memory·ASCII·Flexbuffers — see Part 4. UDA: real over remote mode, restricted to `backend=hdf5` — see Part 5 | covered |
 
 ### Equilibrium seed (issue #4 — decision D5)
 
@@ -145,7 +145,7 @@ backends where AOS content is actually readable back within a session.
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
 |---|---|:--:|:--:|---|---|
-| Realistic AOS/timebase/HDF5-tensorization shape round-trips exactly | D5 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/{HDF5,Memory,ASCII}`. MDSplus is instantiated too, but a divergence (the seed's generic shapes don't match the real equilibrium DD layout) — see Part 4 | covered |
+| Realistic AOS/timebase/HDF5-tensorization shape round-trips exactly | D5 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/{HDF5,Memory,ASCII}`. MDSplus is instantiated too, but a divergence (the seed's generic shapes don't match the real equilibrium DD layout) — see Part 4. UDA: same divergence, same root cause (the DD-schema-validating backend has no counterpart for the seed's synthetic shapes) — see Part 5 | covered |
 
 ## Cluster 3 — Plugin management  (`FUNCTIONALITY_INVENTORY.md:318-430`)
 
@@ -222,11 +222,11 @@ and points at the same test.
 | **B** `getVersion` (installed vs stored, drift check) | :520-540 | — | — | Reachable in principle: `al_begin_dataentry_action`/`al_plugin_begin_global_action`/`al_plugin_begin_slice_action` all compare `backend->getVersion(NULL)` (compiled) against `backend->getVersion(pctx)` (stored) on open/write and throw `LOWLEVEL_ERR` on a mismatch (src/al_lowlevel.cpp:868-883,956-967,1011-1022). Forcing the mismatch needs writing a pulse then overwriting its on-disk HDF5 backend-version attribute directly via the HDF5 C API — out of this issue's scope (no HDF5 include/link wiring in the test target). **Terminal gap**, not deferred to a future step: reachable via the C ABI, but pinning it needs infrastructure this suite does not have. **MDSplus: this gap is closed** — see Part 4's version-drift check (issue #16), which forces the mismatch via the compile-guarded tier's own raw MDSplus C++ API dependency. This row (HDF5) is unchanged — the two backends hit the identical shape of problem, but only MDSplus's already-separate, already-gated tier made the raw-API workaround low-blast-radius | gap |
 | **B** `openPulse` / `closePulse` | :542-552 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_dataentry_action` / `al_close_pulse` in all suites | covered (indirect) |
 | **C** `beginAction` / `endAction` | :558-574 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_global_action` / `al_end_action` | covered (indirect) |
-| **C** `writeData` / `readData` (0=not-found vs 1=success inner convention) | :576-589 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_write_data` / `al_read_data` — `RoundTripMatrix` (+ the CHAR-scalar / ASCII-maxdim xfails above). MDSplus: see Part 4's real-DD-path breadth matrix (issue #15) instead of `RoundTripMatrix` | covered |
-| **C** `deleteData` | :591-599 | ✓ (Memory) | ✓ (HDF5) | via `al_delete_data` — see Cluster 2 row above and its three xfail rows. MDSplus: terminal gap — see Part 4 (issue #18) | covered (indirect) |
-| **C** `beginArraystructAction` | :601-606 | ✓ (Memory) | ✓ (HDF5) | via `al_begin_arraystruct_action` — see Cluster 2 row above. MDSplus: joined (divergence) plus its own unique struct-aware slice/segment-write surface — see Part 4 | covered (indirect) |
-| **D** `get_occurrences` | :612-616 | — | ✓ | via `al_get_occurrences` — `Occurrences.*`. MDSplus: see Part 4 | covered (indirect) |
-| **D** `list_filled_paths` (per-backend: HDF5 real, others throw) | :618-640 | ✓ (Memory) | ✓ (HDF5) | via `al_list_filled_paths` — `CapabilityMatrix.ListFilledPathsPositiveOrRefused` pins both the HDF5 impl and the unconditional throw on Memory·ASCII·Flexbuffers. MDSplus: throws unconditionally too, same as Memory·ASCII·Flexbuffers — see Part 4 | covered |
+| **C** `writeData` / `readData` (0=not-found vs 1=success inner convention) | :576-589 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_write_data` / `al_read_data` — `RoundTripMatrix` (+ the CHAR-scalar / ASCII-maxdim xfails above). MDSplus: see Part 4's real-DD-path breadth matrix (issue #15) instead of `RoundTripMatrix`. UDA: same — see Part 5's real-DD-path breadth matrix instead of `RoundTripMatrix` | covered |
+| **C** `deleteData` | :591-599 | ✓ (Memory) | ✓ (HDF5) | via `al_delete_data` — see Cluster 2 row above and its three xfail rows. MDSplus: terminal gap — see Part 4 (issue #18). UDA: remote delete cleanly refused, remote write falsely reports success — xfail, see Part 5 | covered (indirect) |
+| **C** `beginArraystructAction` | :601-606 | ✓ (Memory) | ✓ (HDF5) | via `al_begin_arraystruct_action` — see Cluster 2 row above. MDSplus: joined (divergence) plus its own unique struct-aware slice/segment-write surface — see Part 4. UDA: traversal mechanism covered, a dynamic leaf nested inside a struct_array returns the wrong value — xfail, see Part 5 | covered (indirect) |
+| **D** `get_occurrences` | :612-616 | — | ✓ | via `al_get_occurrences` — `Occurrences.*`. MDSplus: see Part 4. UDA: see Part 5 | covered (indirect) |
+| **D** `list_filled_paths` (per-backend: HDF5 real, others throw) | :618-640 | ✓ (Memory) | ✓ (HDF5) | via `al_list_filled_paths` — `CapabilityMatrix.ListFilledPathsPositiveOrRefused` pins both the HDF5 impl and the unconditional throw on Memory·ASCII·Flexbuffers. MDSplus: throws unconditionally too, same as Memory·ASCII·Flexbuffers — see Part 4. UDA: real over remote mode, restricted to `backend=hdf5` — see Part 5 | covered |
 | **E** `supportsTimeDataInterpolation` / `supportsTimeRangeOperation` | :644-690 | ✓ (Memory) | ✓ (HDF5) | asserted through their sole ABI consequence (op accepted vs refused per backend): `CapabilityMatrix.{TimeRange,Slice,SliceWriteBegin}*`. The empirically-corrected fact that **Memory supports slice** (D2 over the issue's assumption) is encoded here. MDSplus: `supportsTimeDataInterpolation` unconditionally `true`, `supportsTimeRangeOperation` unconditionally `false` — see Part 4 | covered (indirect) |
 | **E** `initDataInterpolationComponent` (framework-driven) | :644-690 | — | — | Confirmed unconditionally invoked from `Backend::create()` for any backend that supports slice or timerange (src/al_backend.cpp:88-89), i.e. on every relevant `al_begin_dataentry_action` already exercised elsewhere in this suite — but it has no side effect distinguishable through the C ABI beyond enabling the slice/timerange machinery `Hdf5TimeDependent.*`/`CapabilityMatrix.*` already cover. **Terminal gap**: genuinely not separately ABI-observable, not merely untested. Applies identically to MDSplus (also slice-capable) — same terminal gap, not a separate one | gap |
 
@@ -394,7 +394,7 @@ explicit open items), not assumed:
   (`equilibrium/time_slice/global_quantities/ip`, confirmed separately during
   characterization) round-trips through the identical begin/write/iterate/end
   sequence without error, so this is specific to non-conformant paths, not a
-  general MDSplus AOS limitation.
+  general MDSplus AOS Limit.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -586,3 +586,471 @@ stays a `gap` for HDF5 (Part 2 row B).
 |---|---|---|
 | Matching case: a pulse created and reopened by the same compiled backend carries the version it just wrote, so the drift check's comparison is a no-op and `OPEN_PULSE` succeeds | `MdsplusVersionDrift.MatchingVersionOpensCleanly` | covered |
 | Mismatching case: `VERSION:BACK_MAJOR` is overwritten (via the raw MDSplus tree API) to a value the compiled backend can never match; reopening through the C ABI hits `al_lowlevel.cpp`'s `(ver.first != sver.first)` branch and fails with `LOWLEVEL_ERR` (message contains "Compatibility"), never a silent open | `MdsplusVersionDrift.MismatchedBackendVersionRefusesOpen` | covered |
+
+---
+
+# Part 5 — UDA backend (compile-guarded tier)  (PRD #21)
+
+Same shape as Part 4: a compile-guarded characterization tier for a backend the
+core has no compile-time coupling to, exercised entirely through the public C
+ABI (decision D1). Unlike MDSplus, UDA is a **remote client** to a reference
+stack it does not embed (a real `uda_server` running the `IMAS` server plugin,
+linked against a server-side IMAS-Core); the tier's tests build and drive that
+stack from `docker/uda/`, never asserting on server internals — the subject
+under test is always the IMAS-Core UDA client. And unlike MDSplus, UDA is
+read-only in remote mode (the reference `IMAS` server plugin has no
+`writeData`/`deleteData` handler — confirmed empirically, see
+`docker/uda/README.md`), so parity arrives via a seed-then-reopen fixture
+(seed through the plain HDF5 backend, reopen the identical path through UDA)
+rather than a write→read round trip.
+
+Build-gated by `AL_CONTRACT_HAVE_UDA` (`tests/contract/CMakeLists.txt`, defined
+when `AL_BACKEND_UDA` or `AL_BACKEND_UDAFAT` is `ON`), so every UDA case in
+`test_uda.cpp` compiles out entirely otherwise. Runtime-skipped
+(`GTEST_SKIP()`, never failed, per D4) when `UDA_HOST` is unset — an ordinary
+local build or an always-on CI leg without the reference stack standing behind
+it never sees these tests fail. CTest label `uda` (`ctest -L uda`) selects the
+whole tier.
+
+## Pinned reference stack (issue #23's spike, `docker/uda/`)
+
+| Component | Source | Pin |
+|-----------|--------|-----|
+| UDA server | [`ukaea/uda`](https://github.com/ukaea/uda) | tag **2.9.3** |
+| `IMAS` UDA server plugin | [`iterorganization/UDA-Plugins`](https://github.com/iterorganization/UDA-Plugins) | tag **1.8.0**, commit **`ede25b921081d8fc2d66c5b5ca152c664b50ee78`** |
+| Data Dictionary | `imas-data-dictionary` (PyPI wheel) | **4.1.1** |
+| Base image | `ubuntu:24.04` | arm64 |
+
+Gate decision (issue #23): **FULL-STACK TIER CONFIRMED** — the `IMAS` server
+plugin is built and registered linked against the workspace's own IMAS-Core
+(`docker/uda/run.sh` fails loudly on the mapping-only `NO_IMAS` degradation the
+PRD forbids), not a stub. The fallback tier (client-side-only, remote rows
+blocked-by-environment) was not invoked.
+
+## Characterization-discovered facts (issue #24)
+
+- **UDA validates every remote read path against the DD schema it loads at
+  startup** (`$IDSDEF_PATH`/`$IMAS_PREFIX/include/IDSDef.xml`,
+  `src/uda/uda_xml.cpp`), the same shape of constraint MDSplus enforces via its
+  baked model tree (`CLAUDE.md`, TRACEABILITY.md Part 4) — but arrived at
+  differently: MDSplus resolves against a compiled binary tree, UDA against the
+  DD XML text at runtime. A real DD-conformant path (`vacuum_toroidal_field/r0`)
+  round-trips through the seed-then-reopen fixture; a synthetic/generic one does
+  not — see the divergence row below.
+- **`ids_properties/homogeneous_time` is a hard precondition for any remote
+  read** (`UDABackend::readData`'s `cache_mode=none` path,
+  `src/uda/uda_backend.cpp:646-665`, calls `get_homogeneous_flag` before
+  resolving any other field and throws if it is absent) — both fixtures below
+  seed it explicitly ahead of the field(s) under test, a fixture-setup detail,
+  not part of either test's assertion.
+
+| Capability | Test(s) | Status |
+|---|---|---|
+| Tracer bullet (issue #23): one equilibrium scalar (`vacuum_toroidal_field/r0`), seeded through the plain HDF5 backend, reads back byte-identical through the UDA backend in remote mode, across the real reference stack | `UdaSmokeRoundTrip.ScalarSeededViaHdf5ReadsBackThroughUda` | covered |
+| Read-only parity fixture (issue #24): the full equilibrium-seed composite (scalar + timebase-carrying 2-D array + constraints AOS, `equilibrium_seed.h`, issue #4/D5), seeded through HDF5 and reopened through UDA, asserted via the seed's own unmodified FNV-1a hash oracle — **divergence, not a defect**: the generator's flat `profiles_1d/psi` leaf and generic `constraints` AOS have no counterpart in equilibrium's real DD-4.1.1 layout (`profiles_1d` is itself a struct_array, not a plain field). Confirmed empirically against the reference stack: `al_plugin_read_data` fails immediately with "cannot find node equilibrium/profiles_1d/psi in data dictionary (profiles_1d not found)". The same wall MDSplus hits on its own `EquilibriumSeedMatrix`/`Mdsplus` row (Part 4) — nothing to fix, the fixture's synthetic composite shape simply cannot transfer to a DD-schema-validating backend; the scalar sub-shape alone is real DD and is already covered by the tracer bullet above. The seed-then-reopen attempt genuinely runs every time (unlike EquilibriumSeedMatrix's per-backend skip, this suite has no other instance to keep it exercised): the test asserts the *specific* failure signature before `GTEST_SKIP()`'ing, so a future change that resolves the divergence fails the assertion loudly instead of this row silently going stale | `UdaEquilibriumSeedParity.HdfSeededReadsBackThroughUda` | divergence |
+
+**Progress (issue #25, parity breadth): zero blank rows remain in Part 5.**
+Every C-ABI-reachable read-side capability from `FUNCTIONALITY_INVENTORY.md`
+Part 1 now has a UDA verdict at a terminal status. `test_uda_real_paths.cpp`
+adds the real-DD-path datatype × rank breadth matrix (issue #15's curated set,
+reused as-is, adapted to the seed(HDF5)-then-reopen(UDA) shape); `test_uda_
+breadth.cpp` adds AOS traversal, occurrences, `list_filled_paths`, pulse
+open-mode/error-behavior parity, and slice/time-range reads. Two genuine new
+defects were discovered and pinned (xfail, D2 correct-contract + tripwire),
+not fixed — both explained in full below.
+
+## Real-DD-path datatype × rank breadth (issue #25, reusing issue #15's set)
+
+`test_uda_real_paths.cpp`, `Uda/UdaRealPathMatrix.*` — the UDA analogue of
+`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set
+reused as-is** (same 32 cells, same 10 IDSs), adapted to seed(HDF5)-then-
+reopen(UDA) instead of MDSplus's direct write→read. `terminal_gap_reason`
+carries over unchanged (a DD-4.1.1 fact, independent of backend); a UDA-only
+`divergence_reason` and `known_defect_reason` were added where the two
+backends diverge for different reasons on the same cell.
+
+**Characterization-discovered facts:**
+
+- **13 terminal-gap cells carry over unchanged** from the MDSplus matrix (CHAR
+  r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7) — the DD itself
+  contains no field of that (type, rank) at any nesting depth, independent of
+  backend.
+- **CHAR r0 is a terminal gap, blocked by fixture setup**: UDA's fixture never
+  reaches the remote-backend question because seeding this cell requires
+  writing a dim=0 CHAR value through the *plain HDF5 backend*. That reproduces
+  the pre-existing, independently pinned
+  `RoundTripKnownDefects.DISABLED_Hdf5CharScalarRoundTrips` /
+  `RoundTripKnownDefectsDeath.Hdf5CharScalarCurrentlyCrashes` defect
+  (TRACEABILITY.md Part 1) on this real DD leaf too. The UDA cell is not run,
+  to avoid crashing before UDA participates; that makes this row an explicit
+  terminal gap rather than a legitimate storage-model divergence.
+- **18 cells round-trip cleanly**, including all 5 AOS-nested cells that are
+  *not* dynamic leaves (INTEGER r3, DOUBLE r6 via `temporary`'s static
+  self-test fields) and every plain (non-AOS) cell of every datatype,
+  including COMPLEX r2/r4 — confirming UDA's remote get() correctly forwards
+  static, non-AOS, and statically-nested-in-AOS fields alike.
+- **NEW DEFECT discovered (xfail): a *dynamic* (time-varying) DD leaf nested
+  inside a struct_array silently returns empty/absent data through UDA remote
+  mode + `backend=hdf5`, instead of what was written.** Confirmed empirically
+  against the reference stack by comparing the request trace's `dynamic_flags`
+  field across passing and failing cells: `temporary/constant_integer3d/value`
+  and `temporary/constant_float6d/value` (both AOS-nested, `dynamic_flags=0`)
+  round-trip cleanly, while `waves/coherent_wave/full_wave/e_field/plus/values`
+  (COMPLEX r1, 3 AOS levels), `runaway_electrons/distribution/markers/
+  orbit_integrals_instant/values` (COMPLEX r3) and `…/orbit_integrals/values`
+  (COMPLEX r5) — all `dynamic_flags=1` — come back with `read_shape={}` /
+  zero elements. The same wall independently reproduces on a DOUBLE leaf
+  outside this matrix, `equilibrium/time_slice/global_quantities/ip`
+  (`test_uda_breadth.cpp`'s `UdaAosKnownDefects`), which additionally shows
+  the *scalar* failure mode: a rank-0 dynamic leaf inside an AOS comes back
+  with `code==0` but the HDF5 "absent" sentinel value (`-9.0e40`) instead of
+  what was written, rather than an empty array. Root cause is not yet
+  isolated to a specific line (out of this issue's "pin, don't fix" scope),
+  but the shape strongly suggests the server-side `IMAS` plugin's HDF5-backend
+  translation of a struct_array element index does not compose with a
+  dynamic (time-tensorized) leaf's own leading time-index dimension. Each of
+  the three COMPLEX cells is pinned against its exact real DD path, rank, and
+  AOS nesting by the parameterized pair `Uda/UdaRealPathMatrixKnownDefects.
+  DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,
+  COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.
+  DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,
+  COMPLEX_r5}` (`test_uda_real_paths.cpp`). The DOUBLE-scalar
+  `UdaAosKnownDefects` pair remains an independent pin and AOS-mechanism proof,
+  not a substitute for these exact matrix cases.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| Real-path breadth: 15 (type, rank) cells with a plain leaf field (no AOS) or a *static* AOS-nested field round-trip against real DD-4.1.1 paths spanning `equilibrium`, `b_field_non_axisymmetric`, `amns_data`, `magnetics`, `balance_of_plant`, `bolometer`, `gyrokinetics_local`, `temporary` — CHAR r1/r2, INTEGER r0–r3, DOUBLE r0–r6, COMPLEX r2/r4 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r1,CHAR_r2,INTEGER_r0..INTEGER_r3,DOUBLE_r0..DOUBLE_r6,COMPLEX_r2,COMPLEX_r4}` (15 cases) | covered |
+| ↳ CHAR r0 (a bare scalar char) — the UDA verdict cannot be exercised because fixture setup would reproduce the already-pinned HDF5 CHAR-scalar crash (`RoundTripKnownDefects`/Part 1) before UDA participates | `Uda/UdaRealPathMatrix.RealPathRoundTrip/CHAR_r0` (`GTEST_SKIP()`, not run) | terminal-gap |
+| ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
+| ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) | Breadth cells: `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect). Exact correct-contract pair: `Uda/UdaRealPathMatrixKnownDefects.DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | **xfail** |
+
+## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
+
+`test_uda_breadth.cpp` — every remaining C-ABI-reachable read-side capability
+and pulse-lifecycle mode from `FUNCTIONALITY_INVENTORY.md` Part 1 not already
+covered by the tracer bullet, the equilibrium-seed parity fixture, or the
+real-path matrix above. Read cases use the seed(HDF5)-then-reopen(UDA) shape;
+the lifecycle cases drive the remote UDA URI directly through the C ABI.
+
+**Characterization-discovered facts:**
+
+- **AOS traversal (top-level) hits the same dynamic-leaf-inside-AOS defect
+  described above**: `equilibrium/time_slice` (a real DD struct_array,
+  `timebasepath="time"`) correctly reports its written size (3) through
+  `al_begin_arraystruct_action`, and iteration genuinely advances (the request
+  trace shows three distinct `time_slice[0..2]/global_quantities/ip`
+  directives), but every element's `global_quantities/ip` value comes back as
+  the HDF5 absent-scalar sentinel (`-9.0e40`) instead of what was written.
+  Pinned as the canonical instance of the defect: `UdaAosKnownDefects.
+  DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.
+  DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested (multi-level) AOS
+  traversal is exercised separately and successfully by the real-path
+  matrix's *static* AOS-nested cells above (INTEGER r3, DOUBLE r6) — the
+  traversal mechanism itself (begin/iterate/end across nesting) works; only
+  a *dynamic* leaf's value fails to come back correctly.
+- **`al_get_occurrences` is real through UDA remote mode** (the reference
+  `IMAS` server plugin implements `getOccurrences`, confirmed via the PRD's
+  static finding): occurrence 0 and occurrence 2 (HDF5's own `<ids>_<N>`
+  naming convention, seeded via HDF5 exactly like
+  `Occurrences.Hdf5ListsWrittenOccurrences`) both list correctly through the
+  UDA client, ownership (`malloc`'d list, caller frees) unchanged.
+- **`al_list_filled_paths` is real through UDA remote mode**, restricted to
+  `backend=hdf5` (`UDABackend::list_filled_paths` throws for any other
+  backend value — this fixture already uses `backend=hdf5` throughout, so the
+  restriction is never hit): every seeded leaf (`ids_properties/
+  homogeneous_time`, `vacuum_toroidal_field/r0`) is discoverable, ownership
+  (caller frees the list and every string) unchanged.
+- **`OPEN_PULSE` genuinely round-trips to the server at open time** — this
+  corrects an initial assumption from static reading that UDA's `openPulse`
+  is purely local URI/env parsing. The debug trace shows `al_begin_
+  dataentry_action` itself issuing `IMAS::open(...)`; when the remote pulse
+  dir does not exist, the server-side HDF5 backend refuses immediately
+  ("HDF5 master file not found"), which the UDA client re-throws through the
+  C ABI as a non-zero `al_status_t`. This is genuine **parity** with the
+  on-disk backends' `DataEntryModes.OpenPulseFailsWhenAbsent` contract
+  (Part 1) — UDA remote mode does not weaken it.
+- **All four open modes are forwarded with their documented lifecycle
+  distinctions through UDA remote mode.** `FORCE_OPEN_PULSE` creates an absent
+  remote HDF5 pulse that a later `OPEN_PULSE` can reopen; `CREATE_PULSE`
+  refuses an existing pulse; and `FORCE_CREATE_PULSE` accepts an existing
+  pulse. Each lifecycle check closes through `CLOSE_PULSE` and reopens through
+  the same UDA URI, using only the public C ABI.
+- **NEW DEFECT discovered (xfail): `ERASE_PULSE` behaves exactly like
+  `CLOSE_PULSE` through the reference stack.** `al_close_pulse(...,
+  ERASE_PULSE)` reports success, but a later `OPEN_PULSE` on the same remote
+  URI also succeeds. This carries the server-side HDF5 backend's already-known
+  ignore-the-close-mode defect across the UDA boundary; it is pinned here as
+  an exact UDA verdict by `UdaBreadthTest.
+  DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.
+  ErasePulseCurrentlyLeavesRemotePulseOpenable`.
+- **Reading a real DD leaf that was never written (but whose IDS/occurrence
+  was seeded) succeeds and returns the HDF5 absent-scalar sentinel**
+  (`-9.0e40`), exactly matching the local HDF5 backend's own documented
+  contract (`al_lowlevel.cpp`'s `Lowlevel::setDefaultValue`, the same
+  sentinel `RoundTripMatrix`'s generator is careful never to *write*,
+  TRACEABILITY.md Part 1) — transparent parity, not a UDA-specific behavior,
+  since the remote `get()` forwards straight through to the server-side
+  HDF5 backend's own read semantics.
+- **Reading a real DD IDS that was never written at all (no occurrence ever
+  created) fails cleanly** — the server-side HDF5 backend has no file for
+  that IDS at all, distinct from "leaf absent within an existing IDS file"
+  above.
+- **Slice reads round-trip correctly through UDA remote mode**: a real DD
+  dynamic top-level leaf (`vacuum_toroidal_field/b0`, coordinate1 `time`) with
+  `CLOSEST_INTERP` at a UDA `al_begin_slice_action` correctly resolves to the
+  nearer sample — note this leaf is *not* nested inside a struct_array, so it
+  does not hit the AOS defect above; `supportsTimeDataInterpolation()`'s
+  server-version gate (`IMAS::version()` 1.8.0 > 1.4.0) already permits it.
+- **NEW DEFECT discovered (xfail), distinct from the AOS one above and not
+  UDA-specific in origin: `al_begin_timerange_action`'s `OperationContext`
+  constructor (`src/al_context.cpp`, the `(ctx, dataobject, access, range,
+  tmin, tmax, dtime, interp)` overload) never assigns the base `interpmode`
+  member — only `time_range.interpolation_method`** — unlike the GLOBAL_OP
+  and SLICE_OP constructors, which both set it. Every always-on backend's
+  `readData()` ignores `getInterpmode()` for a TIMERANGE_OP context (they
+  consult `time_range` instead), so the uninitialized member is silently
+  never observed on any other backend — until UDA's remote `readData()`
+  directive-builder (`src/uda/uda_backend.cpp`) calls `op_ctx->
+  getInterpmode()` *unconditionally*, regardless of rangemode, to fill the
+  outgoing directive's `interp=` field. Confirmed empirically: the garbage
+  value trips `uda_utilities.hpp`'s `InterpMode` convertor's default case,
+  throwing `std::runtime_error("unknown interp mode: <garbage int>")`,
+  surfaced through the C ABI as `al_plugin_read_data: unknown interp mode:
+  ...`. Pinned: `UdaSliceAndTimeRange.
+  DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire
+  `UdaSliceAndTimeRange.
+  TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode`.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| AOS traversal, top-level (size + iteration mechanism correct; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` (mechanism proof); see the xfail row below for the value defect | covered (indirect) |
+| ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
+| `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` storage naming and UDA's `<ids>/<N>` public naming pinned; every reported occurrence is reopened and read | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
+| `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
+| `al_begin_dataentry_action` mode matrix: `OPEN_PULSE` refuses an absent remote pulse; `FORCE_OPEN_PULSE` creates one; `CREATE_PULSE` refuses an existing one; `FORCE_CREATE_PULSE` accepts an existing one — genuine parity with the on-disk lifecycle contract | `UdaBreadthTest.{OpenPulseFailsWhenRemotePathAbsent,ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered |
+| `al_close_pulse(..., CLOSE_PULSE)` retains the remote pulse for a later `OPEN_PULSE` | asserted by the reopen checks in `UdaBreadthTest.{ForceOpenPulseCreatesRemotePulseWhenAbsent,CreatePulseRefusesExistingRemotePulse,ForceCreatePulseAcceptsExistingRemotePulse}` | covered (indirect) |
+| ↳ `al_close_pulse(..., ERASE_PULSE)` reports success but leaves the remote pulse openable, carrying the server-side HDF5 close-mode defect across the UDA boundary | `UdaBreadthTest.DISABLED_ErasePulseMakesRemotePulseUnopenable` + tripwire `UdaBreadthTest.ErasePulseCurrentlyLeavesRemotePulseOpenable` | **xfail** |
+| Reading an unwritten leaf on a seeded IDS returns the HDF5 absent-scalar sentinel — transparent parity with the local HDF5 backend's own contract, not UDA-specific | `UdaBreadthTest.ReadOfUnwrittenLeafOnSeededIdsReturnsHdf5AbsentSentinel` | covered |
+| Reading a never-written IDS fails cleanly | `UdaBreadthTest.ReadFailsForNeverWrittenIds` | covered |
+| Slice read (`CLOSEST_INTERP`) on a real DD dynamic top-level leaf round-trips correctly through UDA remote mode | `UdaSliceAndTimeRange.SliceReadThroughReopen` | covered |
+| ↳ time-range read (no resampling) fails with an "unknown interp mode" exception — `OperationContext`'s TIMERANGE_OP constructor never initializes the base `interpmode` member, only observable because UDA's remote directive-builder reads it unconditionally | `UdaSliceAndTimeRange.DISABLED_TimeRangeReadWithoutResamplingThroughReopenSucceeds` + tripwire `UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode` | **xfail** |
+
+## UDA-unique surface (issues #26 + #27): cache modes, runtime DD loading, datapath, capability negotiation, fetch mode, write/delete pins
+
+`test_uda_unique_surface.cpp` — one dedicated unique-surface file covering all
+ten areas, against the reference stack (UDA server 2.9.3 / `IMAS` plugin 1.8.0
+/ DD 4.1.1). A second, older DD version (**3.42.0**, `IDSDEF_PATH_OLDER`) was
+added to `docker/uda/Dockerfile` for the wrong-version-DD row below; it is a
+real, independently-sourced pin (`imas-data-dictionary==3.42.0` from PyPI),
+recorded here alongside the header's existing stack identifiers.
+
+**Characterization-discovered facts:**
+
+- **URI options accepted/rejected:** `cache_mode` rejects anything outside
+  `{none, ids, struct}` at open time, purely client-side, before any network
+  round trip (`UDABackend::process_options`). `verbose` toggles debug tracing
+  on stdout (captured directly via `CaptureStdout`, not inferred). `plugin`
+  naming a name the reference stack never registered fails at open — the
+  client's `init` directive reaches a real server with no such plugin.
+  `init_args` is accepted but has **no observable effect** against the
+  reference `IMAS` plugin: its `init()` handler (`imas_plugin.cpp`,
+  `handle_request`) takes no arguments at all, only tracking a per-connection
+  `_init` bool — confirmed by reading the plugin's own dispatch, then
+  empirically (a read with arbitrary `init_args` behaves identically to one
+  without). `dd_version` override is forwarded verbatim on every directive but
+  is never consulted by any backend on either side of the wire (client schema
+  resolution is driven by the file loaded at `$IDSDEF_PATH`; the server's HDF5
+  backend is DD-agnostic) — accepted, no observable effect. A host that
+  resolves but a port nothing listens on fails to connect, distinct from every
+  post-connection request failure characterized above.
+- **NEW DEFECT discovered (xfail): cache mode changes a physics value for a
+  top-level field.** `none` and `ids` agree on any field; `ids` populates the
+  whole (or datapath-scoped) IDS at `beginAction`, while `struct` populates
+  lazily, per struct_array, only inside `beginArraystructAction`. A static leaf
+  nested inside a struct_array therefore returns the identical value under all
+  three modes. A plain top-level field, however, is never populated under
+  `cache_mode=struct`, so it silently reads back as the absent-leaf sentinel
+  even though it was genuinely written. That violates issue #26's requirement
+  that cache modes never alter data. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` +
+  tripwire
+  `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField`.
+- **NEW DEFECT discovered (xfail), found while characterizing "cache cleared
+  on close": closing a UDA remote-mode session leaks a server-side pulse
+  handle.** Root cause traced by comparing the exact directives exchanged
+  (`verbose=1`): `UDABackend::openPulse`/`closePulse` both strip `cache_mode`
+  and `verbose` before building the `uri=` argument sent to the server, so
+  `IMAS::open(...)` and `IMAS::close(...)` agree on the same key — but two of
+  the *read*-triggering directive builders don't follow that convention:
+  `readData`'s `cache_mode=None` branch and `populate_cache` (used by `ids`
+  and `struct` alike, both in `src/uda/uda_backend.cpp`) each build their own
+  `IMAS::get(uri=...)` from the same query object but only ever remove
+  `"backend"` — never `cache_mode`/`verbose` — so their `uri=` differs from
+  the one `open`/`close` agreed on. (`beginArraystructAction`'s own `None`-mode
+  branch does strip both, matching `open`/`close` — this is specifically a
+  `readData`/`populate_cache` inconsistency, not a blanket "every `get()` path"
+  one.) The reference `IMAS` plugin's `get()` handler treats an unrecognized
+  `uri=` as a new pulse and implicit-opens it (`imas_plugin.cpp`), creating a
+  second, real server-side HDF5 file handle that the client's `close()`
+  directive can never reach (it only ever sends the stripped key) — leaked for
+  the lifetime of the server's per-connection process. HDF5's default file
+  locking then blocks a later *local* open of the identical on-disk file until
+  that server process exits. Reproduces identically whether the read went
+  through `readData`'s `None`-mode path or `populate_cache`'s `ids`/`struct`-
+  mode path (both hit the same unstripped-uri bug), so this is not an
+  `ids`-specific finding despite living in the cache-mode area: the
+  client-side RAM cache genuinely *is* cleared on close
+  (`UDABackend::closePulse`), but a server-side resource opened on the read
+  path outlives it regardless. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle`
+  + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle`.
+- **Runtime DD loading — present / absent / wrong-version, all through
+  `al_begin_dataentry_action`** (the constructor loads `IDSDef.xml`
+  unconditionally, before any network access): present is the reference
+  stack's default (DD 4.1.1, restated here as the area-3 baseline). Absent has
+  two distinct failure messages, matching issue #23's empirical findings:
+  neither `$IDSDEF_PATH` nor `$IMAS_PREFIX` set → "neither IMAS_PREFIX or
+  IDSDEF_PATH environmental variable is set"; `$IDSDEF_PATH` set but the file
+  missing → "IDSDef.xml not found at either $IDSDEF_PATH or
+  $IMAS_PREFIX/include/IDSDef.xml". **Wrong-version acceptance is a defect**:
+  pointing `$IDSDEF_PATH` at a real, structurally valid, but older DD (3.42.0)
+  than the reference stack's own 4.1.1 loads without
+  complaint — `load_xml()`/`get_dd_version()` never compare the loaded file's
+  version against anything (not the data's actual DD version, not the
+  server's). A real path stable across both schemas
+  (`vacuum_toroidal_field/r0`) round-trips exactly as if the "correct" DD had
+  been loaded — nothing signals that a version-drifted schema is in use. Same
+  practical risk class NORTH_STAR.md flags for COCOS-sign-flip-bearing paths:
+  this mechanism checks path existence only, never semantic version
+  agreement. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire
+  `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck`.
+- **`datapath` genuinely hides data, not just reorders fetch priority.**
+  With `cache_mode=ids` and a non-empty `datapath`, `populate_cache` only
+  requests paths under `<ids>/<datapath>`'s subtree
+  (`UDABackend::beginAction`, `uda_backend.cpp:1016-1032`). A real, written
+  field *outside* that subtree is not in the cache and is not one of the two
+  homogeneous-time/version preconditions, so `readData` falls through to
+  `return 0` — the ordinary absent-leaf contract — even though the plain
+  HDF5 backend underneath genuinely has it. This is the evidence backing the
+  `FUNCTIONALITY_INVENTORY.md`/`CLAUDE.md` claim (corrected by this issue)
+  that UDA is the one living exception to "no backend uses `datapath`".
+- **NEW DEFECT discovered (xfail): version-drift check inertness, confirmed
+  from source**:
+  `al_lowlevel.cpp`'s open-time comparison
+  (`getVersion(NULL)` vs. `getVersion(pctx)`) can never fire for UDA — both
+  sides are hardcoded `{0, 0}` placeholders (`UDABackend::getVersion`,
+  `uda_backend.h`'s `UDA_BACKEND_VERSION_MAJOR/MINOR` and the "temporary
+  placeholder" non-null-ctx branch), so `(0!=0)||(0<0)` is always false
+  regardless of what is genuinely stored remotely. An unavailable stored
+  version must not be treated as verified compatibility. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified`
+  + tripwire
+  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse`.
+- **`supportsTimeRangeOperation()` capability negotiation confirmed against
+  the reference server**: the reference plugin reports `1.8.0` (issue #23),
+  so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
+  pass `al_lowlevel.cpp`'s capability gate ("Selected backend does not
+  support time range operations.") rather than being refused outright,
+  distinct from the separate, already-pinned uninitialized-interpmode defect
+  on the subsequent read (`UdaSliceAndTimeRange`, above).
+- **Fetch mode: download, local-backend handoff, cache reuse, all confirmed
+  end-to-end (issue #27)** — the `BYTES` server plugin fetch mode needs ships
+  and is registered **by default** in `ukaea/uda`'s own build (corrects this
+  file's `docker/uda/README.md` spike note that it wasn't registered; that was
+  an unverified assumption, not an empirical finding). `UDABackend`'s
+  constructor lists the remote pulse's files and downloads `master.h5` via
+  `BYTES::read`, then delegates every subsequent `Backend` virtual straight to
+  a freshly constructed local backend over the download — confirmed by a
+  correct scalar read-back. A reopen against the same cache reuses it without
+  re-downloading, confirmed directly via `download_file`'s own verbose trace
+  lines (`"...cache directory already exists"`, `"...cached local file
+  already exists"`), not inferred.
+- **`local_cache` overrides only the cache *root*, not the whole path**: with
+  an explicit `local_cache`, `fetch_files` still joins it with the remote
+  path's `relative_path()` (`uda_backend.cpp:428-429`) — the same nesting the
+  default `$TMPDIR/uda-cache-of-$USER/<remote_path>` formula applies, just
+  under a different root.
+- **The stale-cache / write-divergence pin, end-to-end (issue #27)**: a write
+  through fetch mode "succeeds" (`UDABackend::writeData` delegates straight to
+  the local backend once `access_local_` is set, `uda_backend.cpp:1107-1109`
+  — there is no upload path back to the server at all), but lands only on the
+  local cache copy. Confirmed three ways in one test: (1) the write reports
+  success; (2) reopening the identical pulse via ordinary *remote* mode shows
+  the server-side data is genuinely unchanged; (3) reopening *fetch* mode
+  again still serves the divergent local value, because `download_file`'s
+  early-exists-return (area 7) never re-fetches the true server-side value —
+  the divergence is permanent until the cache dir is manually cleared. (Pinned
+  against a brand-new field, not the already-seeded scalar: overwriting
+  pre-existing data through a fresh `WRITE_OP` session hits a separate, HDF5-
+  backend-wide Limit — `HDF5Writer::write_ND_Data` unconditionally calls
+  `H5Dcreate2` for any dataset not already tracked in *this session's*
+  in-memory map, with no `H5Lexists` check against the file
+  (`hdf5_writer.cpp:417-423`) — orthogonal to UDA and out of this issue's
+  scope; exercising it here would have conflated two different defects.)
+- **NEW DEFECT discovered (xfail): remote write and delete diverge in how
+  they surface the same underlying dispatch failure (issue #27)** — a finding
+  only visible by driving the actual client library calls, not by probing the
+  server with `uda_cli` directly (as issue #23's spike did): the reference
+  `IMAS` server plugin has no `writeData`/`deleteData` handler at all; both
+  raw directives return `[handle_request]: Unknown function requested!`.
+  `UDABackend::deleteData` issues its directive via `uda::Client::get()`,
+  whose error path *does* propagate that failure — caught as a
+  `uda::UDAException`, re-thrown as an `ALException`, surfacing at
+  `al_delete_data` as a non-zero `al_status_t` carrying that exact text: the
+  intended, correctly-refused contract, confirmed and covered.
+  `UDABackend::writeData` issues its directive via `uda::Client::put()`
+  instead, which does **not** throw on an in-band server dispatch failure
+  (only on transport-level faults) — so `al_write_data` reports
+  `al_status_t.code == 0` (false success) while nothing is persisted. This is
+  a more dangerous pin than a clean refusal: the caller is told the write
+  succeeded with no signal that the server never received it, confirmed by
+  reopening via remote mode afterward and finding the value unchanged.
+  Pinned: `UdaUniqueSurfaceTest.DISABLED_RemoteWriteFailsWithDispatchError` +
+  tripwire
+  `UdaUniqueSurfaceTest.RemoteWriteCurrentlyReportsSuccessButNeverPersists`.
+
+| Cluster / Capability | Test(s) | Status |
+|---|---|---|
+| URI option surface: `cache_mode` invalid value throws; `verbose` toggles debug tracing (captured directly); `plugin` naming an unregistered plugin fails at open; `init_args` accepted with no observable effect against the reference plugin; `dd_version` override accepted with no observable effect; wrong port fails to connect | `UdaUniqueSurfaceTest.{InvalidCacheModeThrows,VerboseTrueEmitsDebugTracingOnStdout,VerboseAbsentEmitsNoDebugTracing,PluginOptionNamingUnregisteredPluginFailsAtOpen,InitArgsAcceptedAndIgnoredByReferencePlugin,DdVersionOverrideAcceptedWithNoObservableEffect,WrongPortFailsToConnectDistinctlyFromRequestFailures}` | covered |
+| Cache-mode invisibility: `none`/`ids`/`struct` agree on a field all three can reach (a static AOS-nested leaf) | `UdaUniqueSurfaceTest.CacheModeNoneIdsStructAgreeForAosCoveredField` | covered |
+| ↳ `struct` mode reports success but returns the absent sentinel for a genuinely written top-level field, so cache-mode selection changes the physics value | `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` + tripwire `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField` | **xfail** |
+| ↳ closing a UDA session leaks a server-side pulse handle (uri-stripping mismatch between `open`/`close` and every `get()`-directive builder), blocking a later local reopen of the same file | `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle` + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle` | **xfail** |
+| Runtime DD loading: present baseline and absent DD (both failure messages) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage}` | covered |
+| ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
+| `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
+| Version-drift check inertness: open treats an unavailable stored version as compatible because both sides are hardcoded placeholders | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse` | **xfail** |
+| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
+| `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
+| ↳ stale-cache / write-divergence pin: a fetch-mode write succeeds locally only, server-side pulse (reopened via remote mode) is unchanged, divergent local copy persists across close/reopen | `UdaUniqueSurfaceTest.FetchModeWriteDivergesFromServerAndStalePersistsAcrossReopen` | covered |
+| Remote delete pinned unsupported (correctly refused): no `deleteData` handler on the reference plugin, `al_delete_data` surfaces the server's exact dispatch-failure text | `UdaUniqueSurfaceTest.RemoteDeleteFailsWithUnknownFunctionRequested` | covered |
+| ↳ remote write reports **false success** instead of the same refusal: `uda::Client::put()`'s error path does not propagate the dispatch failure deleteData's `get()` surfaces, so `al_write_data` returns `code == 0` while nothing is persisted (confirmed by reopening and finding the value unchanged) | `UdaUniqueSurfaceTest.DISABLED_RemoteWriteFailsWithDispatchError` + tripwire `UdaUniqueSurfaceTest.RemoteWriteCurrentlyReportsSuccessButNeverPersists` | **xfail** |
+
+**Progress (issue #27): UDA's unique surface is now fully characterized —
+areas 1-6 (issue #26) plus fetch mode and the write/delete pins (areas 7-10)
+close out `test_uda_unique_surface.cpp`. One new genuine defect discovered and
+pinned (xfail, D2 correct-contract + tripwire): remote write silently reports
+success without persisting, unlike remote delete's clean refusal. The
+`docker/uda/` spike's assumption that the `BYTES` plugin fetch mode needs
+wasn't registered on this reference stack did not hold up empirically — it
+ships and registers by default in `ukaea/uda`'s own build — and is corrected
+in `docker/uda/README.md` alongside this issue's findings.
+
+**Progress summary (issue #28): zero blank rows remain in Part 5 — every one
+of its 31 rows is terminal (19 `covered`/`covered (indirect)`, 1
+`divergence`, 9 `xfail`, 2 `terminal-gap`), each xfail row's `DISABLED_`
+correct-contract test and current-behavior tripwire both verified present in
+`test_uda_real_paths.cpp`/`test_uda_breadth.cpp`/
+`test_uda_unique_surface.cpp`, and every divergence
+row's reasoning is backed by prose above its table, not just the one-line
+cell. The pinned stack identifiers above (UDA server 2.9.3, UDA-Plugins
+1.8.0 at commit `ede25b921081d8fc2d66c5b5ca152c664b50ee78`, DD 4.1.1,
+plus the older DD 3.42.0 pin) match `docker/uda/`
+verbatim. The corresponding shared always-on rows in Part 1/Part 2 above now
+each carry a one-line "UDA: … see Part 5" note, mirroring Part 4's own
+issue-#18 closure (Cluster 3 plugin management and Cluster 4
+introspection/diagnostics carry no such note for either backend — both
+clusters are backend-agnostic registry/lookup operations with no `Backend`
+virtual dispatch, exercised once in Part 1's own tier, not a gap).
