@@ -89,6 +89,24 @@ jobs:
           cmake --build build-mdsplus --target contract_tests -j\$(nproc)
           "
 
+      - name: Verify baked DD model tree is present (cache-hit and cache-miss paths)
+        run: |
+          set -euo pipefail
+          # ids_model.datafile is legitimately 0 bytes for a model tree (all
+          # structure lives in .tree/.characteristics; a model carries no
+          # data), so it is checked for existence only.
+          for f in ids_model.tree ids_model.characteristics; do
+            if [ ! -s "build-mdsplus/models/mdsplus/${f}" ]; then
+              echo "FATAL: missing/empty model file build-mdsplus/models/mdsplus/${f} — the MDSplus tier would fail with %TREE-E-FOPENR (issue #42)"
+              exit 1
+            fi
+          done
+          if [ ! -e "build-mdsplus/models/mdsplus/ids_model.datafile" ]; then
+            echo "FATAL: missing model file build-mdsplus/models/mdsplus/ids_model.datafile (issue #42)"
+            exit 1
+          fi
+          echo "Baked DD model tree complete under build-mdsplus/models/mdsplus."
+
       - name: Run MDSplus contract suite
         run: >
           docker run --rm --platform linux/arm64
@@ -100,4 +118,8 @@ jobs:
 
       - name: Note
         if: always()
-        run: echo "MDSplus leg is informational (issue #12/#18). Red-by-design until the characterization baseline is triaged; promotion to a blocking gate is Task 3."
+        # Block scalar, not a plain scalar: in a plain scalar ` #` starts a YAML
+        # comment even inside shell-looking quotes, truncating the command into
+        # an unterminated string (issue #43).
+        run: |
+          echo "MDSplus leg is informational (issue #12/#18). Red-by-design until the characterization baseline is triaged; promotion to a blocking gate is Task 3."

@@ -799,7 +799,8 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
 }
 
 // ===========================================================================
-// Area 5: version-drift check inertness.
+// Area 5: version-drift check inertness (reworked by issue #39: the tripwire
+// now uses a genuinely MISMATCHED stored fixture).
 //
 // al_begin_dataentry_action (src/al_lowlevel.cpp:868-883) compares
 // backend->getVersion(NULL) (the "compiled" version) against
@@ -811,46 +812,106 @@ TEST_F(UdaUniqueSurfaceTest, DatapathScopesCachePopulationFieldOutsideScopeReads
 // getVersion(NULL) returns the compiled {UDA_BACKEND_VERSION_MAJOR,
 // UDA_BACKEND_VERSION_MINOR} = {0, 0} (uda_backend.h:37-38); getVersion(pctx)
 // with a non-null ctx always returns {0, 0} too ("temporary placeholder",
-// never reads anything from the actual remote pulse). The comparison
-// ((ver.first!=sver.first)||(ver.second<sver.second)) is therefore always
-// (0!=0)||(0<0) = false -- the version-drift check can never fire for UDA,
-// regardless of what is genuinely stored remotely. Directly testable only as
-// a positive: open currently always succeeds on this axis (there is no way to
-// force a "drifted" placeholder to differ from itself). The correct contract
-// is to refuse an open whose stored backend version cannot be retrieved; a
-// placeholder equality must not be treated as verified compatibility.
+// never reads anything from the actual remote pulse). The comparison is
+// therefore always false -- the drift check can never fire for UDA,
+// regardless of what is genuinely stored remotely.
+//
+// A fresh matching pulse cannot discriminate that inertness: a future correct
+// implementation would ALSO accept it. The pins below therefore open a pulse
+// whose stored HDF5_BACKEND_VERSION was deliberately rewritten to an
+// impossible value ("999.0") by the isolated fixture producer
+// hdf5_fixture_tool (issue #36) -- fixture preparation only; every asserted
+// behavior stays on the public C ABI.
+//
+// Empirically characterized against the reference stack (issue #39): the
+// mismatched pulse does NOT open -- but the refusal comes from the SERVER
+// side, not the client's drift check. The server's IMAS plugin opens the
+// pulse with its own IMAS-Core, whose HDF5BackendFactory rejects any stored
+// version other than "1.0" (see test_hdf5_version_drift.cpp), and that error
+// is forwarded to the client as UNKNOWN_ERR with the backend's "No backend
+// writer with version: 999.0" text. The client-side check stays inert: it
+// never produces its own LOWLEVEL_ERR "Compatibility ..." refusal. The
+// active tripwire pins exactly that split; implementing real UDA
+// stored-version retrieval flips the refusal to the client's own message and
+// makes the DISABLED_ correct-contract test pass.
 // ===========================================================================
 
-// CORRECT-CONTRACT, expected-fail (DISABLED_): UDA must not open a remote
-// pulse when it cannot obtain a real stored backend version to compare.
-TEST_F(UdaUniqueSurfaceTest,
-       DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified) {
+#ifdef AL_CONTRACT_HDF5_FIXTURE_TOOL
+namespace {
+// Seeds a pulse, then rewrites its stored backend version out-of-band.
+std::string make_version_drifted_pulse(const std::string& pulse_dir) {
+    const std::string cmd = std::string("\"") + AL_CONTRACT_HDF5_FIXTURE_TOOL +
+                            "\" \"" + pulse_dir + "\" \"999.0\"";
+    EXPECT_EQ(std::system(cmd.c_str()), 0) << "fixture tool failed: " << cmd;
+    return pulse_dir;
+}
+}  // namespace
+
+// Baseline: a matching stored version opens through UDA.
+TEST_F(UdaUniqueSurfaceTest, MatchingStoredVersionOpensThroughUda) {
     const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
     const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int               pulse_ctx = -1;
     al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
-    EXPECT_NE(s.code, 0)
-        << "OPEN_PULSE must refuse unverifiable compatibility rather than "
-           "compare two hardcoded {0,0} placeholders";
+    AL_EXPECT_OK(s);
     if (s.code == 0) {
         AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
     }
 }
 
-// CURRENT-BEHAVIOR tripwire: placeholder equality makes the compatibility
-// check accept every remote pulse without examining its stored version.
+// CORRECT-CONTRACT, expected-fail (DISABLED_): the CLIENT's own drift check
+// must refuse the mismatched pulse -- LOWLEVEL_ERR with al_lowlevel.cpp's
+// "Compatibility ..." diagnostic -- instead of comparing two hardcoded {0,0}
+// placeholders and relying on a downstream server error to catch the drift.
 TEST_F(UdaUniqueSurfaceTest,
-       VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse) {
-    const std::string pulse_dir = seed_scalar(fresh_pulse_dir());
+       DISABLED_OpenRefusesMismatchedStoredBackendVersion) {
+    const std::string pulse_dir =
+        make_version_drifted_pulse(seed_scalar(fresh_pulse_dir()));
+    const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
+    int               pulse_ctx = -1;
+    al_status_t s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
+    EXPECT_EQ(s.code, alerror::lowlevel_err)
+        << "the client-side drift check must refuse the mismatch itself; "
+           "message: " << s.message;
+    EXPECT_NE(std::string(s.message).find("Compatibility"), std::string::npos)
+        << "message: " << s.message;
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
+}
+
+// CURRENT-BEHAVIOR tripwire: the mismatched pulse is refused, but by the
+// SERVER-side HDF5 open (forwarded as UNKNOWN_ERR naming the stored version),
+// never by the client's own inert drift check. If this starts failing, the
+// refusal moved (or vanished) -- most likely real client-side stored-version
+// retrieval was implemented: enable the DISABLED_ correct-contract test.
+TEST_F(UdaUniqueSurfaceTest,
+       VersionDriftCheckCurrentlyDefersToServerSideRefusal) {
+    const std::string pulse_dir =
+        make_version_drifted_pulse(seed_scalar(fresh_pulse_dir()));
     const std::string uri = al_contract::uda_hdf5_uri_for(pulse_dir);
     int                pulse_ctx = -1;
     al_status_t        s = al_begin_dataentry_action(uri.c_str(), OPEN_PULSE, &pulse_ctx);
-    AL_EXPECT_OK(s) << "OPEN_PULSE must never fail on the version-drift "
-                       "comparison for UDA -- both sides of the comparison "
-                       "are hardcoded {0,0} placeholders "
-                       "(UDABackend::getVersion), so it is structurally inert";
-    AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    EXPECT_EQ(s.code, alerror::unknown_err)
+        << "tripwire: today's refusal is the forwarded server-side backend "
+           "error, surfacing as UNKNOWN_ERR; message: " << s.message;
+    EXPECT_NE(std::string(s.message).find("No backend writer with version"),
+              std::string::npos)
+        << "the refusal must originate from the server-side HDF5 factory; "
+           "message: " << s.message;
+    EXPECT_NE(std::string(s.message).find("999.0"), std::string::npos)
+        << "message: " << s.message;
+    EXPECT_EQ(std::string(s.message).find("Compatibility"), std::string::npos)
+        << "tripwire: the client-side drift check must currently stay inert "
+           "(placeholder {0,0} comparison) -- if its own 'Compatibility' "
+           "refusal appears, enable "
+           "DISABLED_OpenRefusesMismatchedStoredBackendVersion; message: "
+        << s.message;
+    if (s.code == 0) {
+        AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
 }
+#endif  // AL_CONTRACT_HDF5_FIXTURE_TOOL
 
 // ===========================================================================
 // Area 6: server-version-gated supportsTimeRangeOperation().
@@ -862,10 +923,11 @@ TEST_F(UdaUniqueSurfaceTest,
 // in the codebase gated on a remote party's reported version rather than a
 // compile-time constant. Against this reference stack the plugin reports
 // 1.8.0 (docker/uda/README.md), so the capability is granted: an
-// al_begin_timerange_action call must pass al_lowlevel.cpp's capability gate
+// al_begin_timerange_action call must return its exact success status
+// (`s.code == 0`) after passing al_lowlevel.cpp's capability gate
 // (src/al_lowlevel.cpp:1053, "Selected backend does not support time range
-// operations.") rather than being refused outright. This is deliberately
-// scoped to the *capability* boundary only -- the subsequent read on this
+// operations."). This is deliberately scoped to the *capability* boundary
+// only -- the subsequent read on this
 // same call already has its own pinned defect
 // (UdaSliceAndTimeRange.TimeRangeReadWithoutResamplingCurrentlyFailsWithUnknownInterpMode,
 // test_uda_breadth.cpp), which is a separate, uninitialized-interpmode bug
@@ -903,16 +965,11 @@ TEST_F(UdaUniqueSurfaceTest, TimeRangeCapabilityGrantedByReferenceServerVersion1
     al_status_t s = al_begin_timerange_action(pulse_ctx, equilibrium_seed::kIds,
                                               READ_OP, 1.0, 2.0, &dtime,
                                               &dtime_shape, UNDEFINED_INTERP, &op);
-    EXPECT_EQ(std::string(s.message).find(
-                  "does not support time range operations"),
-              std::string::npos)
-        << "the reference server (plugin 1.8.0 > 1.4.0) must grant the "
-           "time-range capability -- al_begin_timerange_action must not be "
-           "refused with the 'does not support time range operations' "
-           "message; got: " << s.message;
-    if (s.code == 0) {
-        AL_EXPECT_OK(al_end_action(op));
-    }
+    EXPECT_EQ(s.code, 0)
+        << "the reference server (plugin 1.8.0 > 1.4.0) must pass the "
+           "time-range capability gate and successfully begin the action; "
+           "got code " << s.code << ", message: " << s.message;
+    if (s.code == 0) AL_EXPECT_OK(al_end_action(op));
     AL_EXPECT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
 }
 

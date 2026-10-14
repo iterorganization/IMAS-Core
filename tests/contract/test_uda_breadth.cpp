@@ -79,26 +79,96 @@ protected:
 };
 
 // ===========================================================================
-// AOS traversal (top-level): equilibrium/time_slice is a real DD struct_array
-// (timebasepath="time"), each element carrying global_quantities/ip -- the
-// same real DD AOS path MDSplus's own unique-surface/parity proof uses
-// (TRACEABILITY.md Part 4). Seeded with 3 elements through HDF5, reopened
-// through UDA: al_begin_arraystruct_action correctly reports size 3 and
-// iterates (confirmed via the debug trace: three distinct
-// "time_slice[0..2]/global_quantities/ip" directives are sent), but the
-// VALUE that comes back for every element is the HDF5 "absent" sentinel
-// (-9.0e40, al_contract::kEmptyDouble), not what was written -- a genuine
-// NEW DEFECT, not a legitimate storage difference, pinned per D2 below
-// (UdaAosKnownDefects). Root cause traced empirically: `global_quantities/ip`
-// is a DD *dynamic* (time-varying) leaf (confirmed via the request trace's
-// `dynamic_flags=1`), and every dynamic leaf nested inside a struct_array
-// fails identically through UDA remote mode + backend=hdf5 -- see
-// UdaRealPathMatrix's COMPLEX_r1/r3/r5 rows (test_uda_real_paths.cpp), which
-// hit the exact same wall on a different datatype/AOS-depth (their
-// `known_defect_reason`, not `divergence_reason`, cites this test). Static
-// (non-dynamic) leaves nested in a struct_array -- e.g. `temporary`'s
-// self-test IDS fields -- are unaffected (UdaRealPathMatrix's INTEGER_r3/
-// DOUBLE_r6 pass cleanly).
+// AOS traversal (top-level): temporary/constant_integer3d is a real DD-4.1.1
+// struct_array whose static `value` leaf already round-trips through UDA (the
+// INTEGER_r3 real-path matrix cell). Three order-sensitive elements make this
+// an active C-ABI proof that al_iterate_over_arraystruct advances the cursor:
+// a successful no-op, repeated element, or reordered element all fail.
+// ===========================================================================
+
+TEST_F(UdaBreadthTest, AosTraversalAdvancesAcrossDistinctStaticElements) {
+    const std::string pulse_dir = fresh_pulse_dir();
+    constexpr int     kN = 3;
+    const std::vector<int> kShape = {1, 1, 1};
+    const std::vector<std::vector<int>> kExpected = {{101}, {202}, {303}};
+
+    // --- seed via HDF5 -------------------------------------------------------
+    {
+        const std::string hdf5_uri = al_contract::hdf5_uri_for(pulse_dir);
+        int                pulse_ctx = -1;
+        AL_ASSERT_OK(al_begin_dataentry_action(hdf5_uri.c_str(),
+                                               FORCE_CREATE_PULSE, &pulse_ctx));
+
+        int op = -1;
+        AL_ASSERT_OK(
+            al_begin_global_action(pulse_ctx, "temporary", "", WRITE_OP, &op));
+        AL_EXPECT_OK(al_contract::write_data<int>(
+            op, "ids_properties/homogeneous_time", {}, {1}));
+
+        int size = kN;
+        int aos  = -1;
+        AL_ASSERT_OK(al_begin_arraystruct_action(
+            op, "constant_integer3d", "", &size, &aos));
+        // Seed physical indexes in 0, 2, 1 order so fixture preparation does
+        // not mirror the forward 0, 1, 2 traversal asserted below. This makes
+        // a reordered read observable even if iteration is changed globally.
+        AL_EXPECT_OK(al_contract::write_data<int>(aos, "value", kShape,
+                                                   kExpected[0]));
+        AL_ASSERT_OK(al_iterate_over_arraystruct(aos, 2));
+        AL_EXPECT_OK(al_contract::write_data<int>(aos, "value", kShape,
+                                                   kExpected[2]));
+        AL_ASSERT_OK(al_iterate_over_arraystruct(aos, -1));
+        AL_EXPECT_OK(al_contract::write_data<int>(aos, "value", kShape,
+                                                   kExpected[1]));
+        AL_EXPECT_OK(al_end_action(aos));
+        AL_EXPECT_OK(al_end_action(op));
+        AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
+
+    // --- reopen through UDA, remote mode ------------------------------------
+    {
+        const std::string uda_uri = al_contract::uda_hdf5_uri_for(pulse_dir);
+        int                pulse_ctx = -1;
+        AL_ASSERT_OK(
+            al_begin_dataentry_action(uda_uri.c_str(), OPEN_PULSE, &pulse_ctx));
+
+        int op = -1;
+        AL_ASSERT_OK(
+            al_begin_global_action(pulse_ctx, "temporary", "", READ_OP, &op));
+
+        int size = 0;
+        int aos  = -1;
+        AL_ASSERT_OK(al_begin_arraystruct_action(
+            op, "constant_integer3d", "", &size, &aos));
+        ASSERT_EQ(size, kN) << "AOS size must round-trip through UDA";
+        for (int i = 0; i < size; ++i) {
+            SCOPED_TRACE(i);
+            std::vector<int> shape;
+            std::vector<int> data;
+            AL_ASSERT_OK(
+                al_contract::read_data<int>(aos, "value", 3, &shape, &data));
+            EXPECT_EQ(shape, kShape);
+            EXPECT_EQ(data, kExpected[static_cast<size_t>(i)])
+                << "AOS cursor must preserve element order";
+            if (i + 1 < size) {
+                AL_ASSERT_OK(al_iterate_over_arraystruct(aos, 1));
+            }
+        }
+        AL_ASSERT_OK(al_end_action(aos));
+
+        // The public C ABI promises a failure status for an invalid context.
+        EXPECT_NE(al_iterate_over_arraystruct(aos, 1).code, 0);
+
+        AL_EXPECT_OK(al_end_action(op));
+        AL_ASSERT_OK(al_close_pulse(pulse_ctx, CLOSE_PULSE));
+    }
+}
+
+// ===========================================================================
+// Separate value-transport defect pin: equilibrium/time_slice is a real DD
+// struct_array with a dynamic global_quantities/ip leaf. Its size and request
+// paths advance, but UDA returns the HDF5 absent sentinel for every element.
+// Keep this D2 pair independent of the discriminating traversal test above.
 // ===========================================================================
 
 // Seed 3 elements of equilibrium/time_slice via HDF5 (global_quantities/ip =

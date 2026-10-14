@@ -68,10 +68,15 @@ add_executable(contract_tests
   test_capability_gated.cpp
   test_known_defects.cpp
   test_plugins.cpp
+  test_backend_factory.cpp
+  test_hdf5_version_drift.cpp
+  real_dd_path_catalog.cpp
+  test_real_dd_path_catalog.cpp
   test_structured_data.cpp
   test_pulse_lifecycle.cpp
   test_mdsplus.cpp
   test_mdsplus_real_paths.cpp
+  test_mdsplus_delete.cpp
   test_mdsplus_version_drift.cpp
   test_mdsplus_unique_surface.cpp
   test_uda.cpp
@@ -85,6 +90,27 @@ add_dependencies(contract_tests al)
 target_compile_features(contract_tests PRIVATE cxx_std_17)
 
 ########################################################################################################################
+# HDF5 drift-fixture producer (issue #36).
+#
+# The stored-backend-version drift check is asserted through the public C ABI
+# (test_hdf5_version_drift.cpp), but preparing a MISMATCHED pulse requires
+# rewriting master.h5's HDF5_BACKEND_VERSION attribute — out-of-band HDF5 C
+# API surgery that must NOT leak into contract_tests. It lives in a separate
+# tool the tests invoke as a subprocess; contract_tests only learns the tool's
+# path (and gates the test file's compilation on it).
+if(AL_BACKEND_HDF5)
+  find_package(HDF5 COMPONENTS C REQUIRED)
+  add_executable(al-hdf5-fixture-tool hdf5_fixture_tool.cpp)
+  target_include_directories(al-hdf5-fixture-tool PRIVATE ${HDF5_C_INCLUDE_DIRS})
+  target_link_libraries(al-hdf5-fixture-tool PRIVATE ${HDF5_C_LIBRARIES})
+  target_compile_definitions(al-hdf5-fixture-tool PRIVATE ${HDF5_C_DEFINITIONS})
+  target_compile_features(al-hdf5-fixture-tool PRIVATE cxx_std_17)
+  add_dependencies(contract_tests al-hdf5-fixture-tool)
+  target_compile_definitions(contract_tests PRIVATE
+    AL_CONTRACT_HDF5_FIXTURE_TOOL="$<TARGET_FILE:al-hdf5-fixture-tool>")
+endif()
+
+########################################################################################################################
 # MDSplus build gate (issue #13 / TEST_STRATEGY.md D4 "compile-guarded tier").
 #
 # test_mdsplus.cpp wraps its whole body in #ifdef AL_CONTRACT_HAVE_MDSPLUS, so
@@ -96,17 +122,23 @@ target_compile_features(contract_tests PRIVATE cxx_std_17)
 if(AL_BACKEND_MDSPLUS)
   target_compile_definitions(contract_tests PRIVATE AL_CONTRACT_HAVE_MDSPLUS)
 
-  # test_mdsplus_version_drift.cpp (issue #16) forces the version-mismatch
-  # case by writing directly into the pulse's VERSION:BACK_MAJOR tree node
-  # through the raw MDSplus C++ API (<mdsobjects.h>) -- something reachable
-  # only outside the public C ABI. `al`'s own src/mdsplus/CMakeLists.txt
-  # already links MDSplus, but PRIVATEly, so it doesn't propagate here;
-  # find_package(MDSplus) is repeated (idempotent) to wire the same
-  # include dir / libs into contract_tests, test-only and build-gated behind
-  # the same AL_BACKEND_MDSPLUS option as the backend itself.
+  # MDSplus drift-fixture producer (issue #35). test_mdsplus_version_drift.cpp
+  # (issue #16) forces the version-mismatch case by overwriting the pulse's
+  # VERSION:BACK_MAJOR tree node — reachable only through the raw MDSplus C++
+  # API (<mdsobjects.h>), i.e. outside the public C ABI that is the contract
+  # suite's one seam. That mutation is fixture PREPARATION, so it lives in a
+  # separate build-gated tool the test invokes as a subprocess; contract_tests
+  # itself has no MDSplus include or link dependency, and a rewrite satisfying
+  # the C ABI is judged by exactly the C ABI. find_package(MDSplus) is
+  # repeated (idempotent) for the tool only.
   find_package(MDSplus REQUIRED)
-  target_include_directories(contract_tests PRIVATE ${MDSPLUS_INCLUDES})
-  target_link_libraries(contract_tests PRIVATE ${MDSPLUS_LIBRARIES})
+  add_executable(al-mdsplus-fixture-tool mdsplus_fixture_tool.cpp)
+  target_include_directories(al-mdsplus-fixture-tool PRIVATE ${MDSPLUS_INCLUDES})
+  target_link_libraries(al-mdsplus-fixture-tool PRIVATE ${MDSPLUS_LIBRARIES})
+  target_compile_features(al-mdsplus-fixture-tool PRIVATE cxx_std_17)
+  add_dependencies(contract_tests al-mdsplus-fixture-tool)
+  target_compile_definitions(contract_tests PRIVATE
+    AL_CONTRACT_MDSPLUS_FIXTURE_TOOL="$<TARGET_FILE:al-mdsplus-fixture-tool>")
 endif()
 
 ########################################################################################################################
@@ -198,74 +230,42 @@ endif()
 #                 the Memory backend — no on-disk backend), and the URI
 #                 builder ownership check (UriOwnership.*, pure string).
 #   integration = everything else (HDF5 / ASCII / Flexbuffers on disk).
-# Two disjoint discovery passes over the one binary; the TEST_FILTERs partition
-# the cases so each registers exactly once. TEST_FILTER needs CMake >= 3.22; on
-# the declared 3.21 floor we fall back to the single "contract" label.
+# One discovery pass over the one binary; assign_contract_labels.cmake then
+# classifies every discovered test into exactly one tier (disjoint by
+# construction — see the note at the registration block below).
 
-# The escaped ";" keeps LABELS a two-element list through gtest_discover_tests'
-# re-emission (an unescaped ";" flattens to two malformed args). The integration
-# TEST_FILTER uses gtest's one-"-"-then-colon-separated negative syntax
-# ("*:-a:b:c", NOT "*:-a:-b:-c") so the two passes stay disjoint — otherwise the
-# second pass re-registers the unit cases and CTest sees duplicates.
-# MdsplusTracerBullet* is carved out of the integration pass into its own
-# third pass (issue #13: new CTest label "mdsplus") so `ctest -L mdsplus`
-# selects it without also pulling in every other on-disk backend case.
-# Issue #14 joins MDSplus onto four more fixtures (DataEntryModes,
-# CapabilityMatrix, AosMatrix, Occurrences) as a "Mdsplus"-named parameter/
-# case; "*/Mdsplus" and "Occurrences.Mdsplus*" carve those into the same
-# mdsplus pass so `ctest -L mdsplus` covers the whole parity set, not just
-# the tracer bullet. Issue #15 adds the real-DD-path datatype x rank breadth
-# matrix (test_mdsplus_real_paths.cpp); "Mdsplus/MdsplusRealPathMatrix.*"
-# carves its instances into the same mdsplus pass. Issue #16 adds the
-# version-drift check (test_mdsplus_version_drift.cpp); "MdsplusVersionDrift*"
-# carves its two cases into the same mdsplus pass. Issue #17 adds the
-# MDSplus-unique surface (test_mdsplus_unique_surface.cpp):
-# "MdsplusStructAwareSliceInterpolation*", "MdsplusTimerangeResampling*",
-# "MdsplusSegmentBackedWrites*", "MdsplusSliceWriteKnownDefects*",
-# "MdsplusSliceWriteKnownDefectsDeath*", and "MdsplusTimebaseCache*" carve its
-# cases into the same mdsplus pass.
-#
-# Empirically discovered running this against a real build (issue #13,
-# CMake 3.28 + Ninja): gtest_discover_tests' PROPERTIES forwarding does NOT
-# actually preserve a multi-element LABELS list through its escaped-";"
-# encoding -- it collapses to just the first token ("contract"), silently
-# dropping "unit"/"integration" as bogus trailing property names with no
-# value. That pre-existing defect (present in the two passes below
-# unmodified by this issue) means `ctest -L unit`/`-L integration` currently
-# select nothing; it is out of this issue's scope to fix. The new mdsplus
-# pass sidesteps it by using a single-element LABELS list, which has no
-# separator to lose.
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
-  gtest_discover_tests(contract_tests
-    TEST_FILTER "Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*"
-    PROPERTIES LABELS "contract\;unit")
-  gtest_discover_tests(contract_tests
-    TEST_FILTER "*:-Introspection.*:*Memory*:KnownDefects*:Plugin*:ReadbackPlugins.*:UriOwnership.*:MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*:UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:Uda/UdaRealPathMatrixKnownDefects.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
-    PROPERTIES LABELS "contract\;integration")
-  gtest_discover_tests(contract_tests
-    TEST_FILTER "MdsplusTracerBullet*:*/Mdsplus:Occurrences.Mdsplus*:Mdsplus/MdsplusRealPathMatrix.*:MdsplusVersionDrift*:MdsplusStructAwareSliceInterpolation*:MdsplusTimerangeResampling*:MdsplusSegmentBackedWrites*:MdsplusSliceWriteKnownDefects*:MdsplusSliceWriteKnownDefectsDeath*:MdsplusTimebaseCache*"
-    PROPERTIES LABELS "mdsplus")
-  # Issue #23: the UDA tier gets its own single-element "uda" label pass (same
-  # sidestep of the multi-label-drop defect the mdsplus pass uses), carved out
-  # of the integration pass above, so `ctest -L uda` selects exactly the UDA
-  # characterization suite without pulling in every other on-disk backend case.
-  # Issue #24 joins the read-only equilibrium-seed parity fixture
-  # (UdaEquilibriumSeedParity*) to the same pass. Issue #25 (parity breadth)
-  # joins the real-DD-path datatype x rank matrix (test_uda_real_paths.cpp,
-  # Uda/UdaRealPathMatrix.*) and the AOS/occurrences/list_filled_paths/pulse-
-  # modes/errors/slice/timerange breadth suite (test_uda_breadth.cpp,
-  # UdaBreadthTest.*, UdaSliceAndTimeRange.*). The exact COMPLEX r1/r3/r5
-  # known-defect pairs live in Uda/UdaRealPathMatrixKnownDefects.*.
-  # Issue #26 (unique-surface, first half) joins UdaUniqueSurfaceTest* to the
-  # same pass: cache modes, runtime DD loading, datapath, and capability
-  # negotiation (test_uda_unique_surface.cpp).
-  gtest_discover_tests(contract_tests
-    TEST_FILTER "UdaSmokeRoundTrip*:UdaEquilibriumSeedParity*:Uda/UdaRealPathMatrix.*:Uda/UdaRealPathMatrixKnownDefects.*:UdaBreadthTest*:UdaAosKnownDefects*:UdaSliceAndTimeRange*:UdaUniqueSurfaceTest*"
-    PROPERTIES LABELS "uda")
-else()
-  gtest_discover_tests(contract_tests
-    PROPERTIES LABELS "contract")
-endif()
+# Issue #31: labels are assigned POST-discovery, not through
+# gtest_discover_tests. Two version-dependent defects ruled the old multi-pass
+# TEST_FILTER partition out across the supported CMake range:
+#   - gtest_discover_tests' PROPERTIES forwarding does not preserve a
+#     multi-element LABELS list on every supported version (empirically
+#     CMake 3.28 collapses "contract\;unit" to just "contract", silently
+#     dropping the rest), so `ctest -L unit` selected nothing there; and
+#   - TEST_FILTER needs CMake >= 3.22, so the declared 3.21 floor fell back
+#     to a single all-"contract" pass with no unit/integration split at all.
+# Instead there is ONE discovery pass (no TEST_FILTER, single-element LABELS —
+# both fine on 3.21), and assign_contract_labels.cmake runs afterwards via the
+# directory TEST_INCLUDE_FILES property: ctest processes it after the
+# discovery include has registered every test, and it re-labels each test by
+# name with a plain set_tests_properties list — a mechanism with no
+# version-dependent forwarding in the middle. The tier definitions (which
+# suites are unit / integration / mdsplus / uda, per issues #13-#17 and
+# #23-#26) are documented and maintained in assign_contract_labels.cmake.in.
+# No LABELS here: ctest MERGES labels across set_tests_properties calls
+# (append semantics), so a discovery-time "contract" could not be removed by
+# the labeler and would leak onto the mdsplus/uda tiers, changing what
+# `ctest -L contract` (sanitizers.yml) selects. assign_contract_labels.cmake
+# assigns each test its complete, final label list instead.
+gtest_discover_tests(contract_tests)
+
+# Bake the generated registration file's path into the labeler. A single
+# discovery pass for contract_tests means GoogleTest writes
+# "contract_tests[1]_tests.cmake".
+set(_AL_CONTRACT_DISCOVERED_TESTS_FILE
+    "${CMAKE_CURRENT_BINARY_DIR}/contract_tests[1]_tests.cmake")
+configure_file(assign_contract_labels.cmake.in assign_contract_labels.cmake @ONLY)
+set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/assign_contract_labels.cmake")
 
 ########################################################################################################################
 # Install (mirrors the smoke-test targets).

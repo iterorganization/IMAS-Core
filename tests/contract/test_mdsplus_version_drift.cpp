@@ -1,35 +1,26 @@
-// MDSplus version-drift check (issue #16, TRACEABILITY.md Part 4).
+// MDSplus version-drift check (issue #16, reworked by issue #35;
+// TRACEABILITY.md Part 4).
 //
-// al_lowlevel.cpp's al_begin_dataentry_action (src/al_lowlevel.cpp:868-883)
-// compares the backend's compiled version (`getVersion(NULL)`) against the
-// version stored in the pulse being opened (`getVersion(pctx)`) on
-// OPEN_PULSE/FORCE_OPEN_PULSE and throws LOWLEVEL_ERR on a mismatch. This is
-// generic al_lowlevel.cpp logic shared by every backend, but MDSplus is the
-// one backend where `getVersion(pctx)` reads a value a pulse can genuinely
-// carry different from today's build: `VERSION:BACK_MAJOR`/`BACK_MINOR`,
-// written into the tree once at pulse creation
-// (`mdsplus_backend.cpp`'s `saveVersion`, called from `createPulse`) from the
-// compiled `MDSPLUS_BACKEND_MAJOR`/`MINOR` constants (currently 1/1) and read
-// back unchanged forever after. Forcing the mismatch case therefore needs
-// writing a different value into that node after the fact -- through the raw
-// MDSplus C++ API (`<mdsobjects.h>`), not the public C ABI, exactly the kind
-// of out-of-band access issue #12's Part 2 row B ("gap", see TRACEABILITY.md)
-// declined for HDF5 because that suite has no HDF5 include/link wiring. This
-// file adds that wiring for MDSplus only (tests/contract/CMakeLists.txt,
-// gated the same way as AL_CONTRACT_HAVE_MDSPLUS): the MDSplus tier already
-// links libMDSplus into `al` PRIVATE-ly for the backend itself, and doing the
-// same for `contract_tests` is a test-only, build-gated addition -- so this
-// finding *is* closeable for MDSplus even though it stayed a terminal gap for
-// HDF5 (whose always-on suite deliberately doesn't carry an HDF5 C API
-// dependency at all).
-#ifdef AL_CONTRACT_HAVE_MDSPLUS
+// al_lowlevel.cpp's al_begin_dataentry_action compares the backend's compiled
+// version (`getVersion(NULL)`) against the version stored in the pulse being
+// opened (`getVersion(pctx)`) on OPEN_PULSE/FORCE_OPEN_PULSE and throws
+// LOWLEVEL_ERR on a mismatch. MDSplus stores that version in the tree's
+// VERSION:BACK_MAJOR/BACK_MINOR nodes, written once at pulse creation from
+// the compiled constants (currently 1/1) and read back unchanged forever.
+//
+// Forcing the mismatch needs out-of-band tree surgery — but that mutation is
+// FIXTURE PREPARATION, not contract: it lives in the separate build-gated
+// producer mdsplus_fixture_tool.cpp (issue #35), which owns all direct
+// MDSplus C++ API access. This file includes only AL/test headers and calls
+// only `al_*` APIs, so a rewrite satisfying the C ABI is judged by exactly
+// the C ABI — no second behavioral seam through <mdsobjects.h> or the legacy
+// storage layout leaks into the asserted contract.
+#if defined(AL_CONTRACT_HAVE_MDSPLUS) && defined(AL_CONTRACT_MDSPLUS_FIXTURE_TOOL)
 
 #include "al_contract.h"
 
 #include <al_lowlevel.h>
 #include <al_const.h>
-
-#include <mdsobjects.h>
 
 #include <gtest/gtest.h>
 
@@ -63,37 +54,16 @@ protected:
                std::to_string(pulse_.run);
     }
 
-    // Reproduces MDSplusBackend::setDataEnv/resetIdsPath's "ids_path" env-var
-    // dance (mdsplus_backend.cpp:1458-1517) well enough to open the same tree
-    // the backend itself opened through the C ABI -- this test has no access
-    // to the backend's private state, only the public MDSplus tree API.
+    // Out-of-band fixture mutation via the isolated setup tool
+    // (mdsplus_fixture_tool.cpp) — the producer of the mismatched fixture,
+    // not part of the asserted contract.
     void PokeStoredBackendMajorVersion(int mismatched_major) {
-        const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");
-        ASSERT_TRUE(models_path && *models_path);
-        const std::string original_ids_path =
-            std::getenv("ids_path") ? std::getenv("ids_path") : "";
-
-        const std::string new_ids_path = pulse_dir() + ";" + models_path;
-        ASSERT_EQ(setenv("ids_path", new_ids_path.c_str(), 1), 0);
-
-        try {
-            MDSplus::Tree tree("ids", /*shot=*/1, "NORMAL");
-            MDSplus::TreeNode* node = tree.getNode("VERSION:BACK_MAJOR");
-            MDSplus::Int32* value = new MDSplus::Int32(mismatched_major);
-            node->putData(value);
-            MDSplus::deleteData(value);
-            delete node;
-        } catch (MDSplus::MdsException& exc) {
-            FAIL() << "Could not poke VERSION:BACK_MAJOR directly via the "
-                      "MDSplus tree API: "
-                   << exc.what();
-        }
-
-        if (!original_ids_path.empty()) {
-            setenv("ids_path", original_ids_path.c_str(), 1);
-        } else {
-            unsetenv("ids_path");
-        }
+        const std::string cmd = std::string("\"") +
+                                AL_CONTRACT_MDSPLUS_FIXTURE_TOOL + "\" \"" +
+                                pulse_dir() + "\" " +
+                                std::to_string(mismatched_major);
+        ASSERT_EQ(std::system(cmd.c_str()), 0)
+            << "fixture tool failed: " << cmd;
     }
 };
 
@@ -120,9 +90,9 @@ TEST_F(MdsplusVersionDrift, MatchingVersionOpensCleanly) {
     }
 }
 
-// Mismatching case: after creation, VERSION:BACK_MAJOR is overwritten to a
-// value the compiled backend (MDSPLUS_BACKEND_MAJOR == 1) can never match.
-// Reopening through the C ABI must hit al_lowlevel.cpp's
+// Mismatching case: after creation, VERSION:BACK_MAJOR is overwritten (by the
+// fixture tool) to a value the compiled backend (MDSPLUS_BACKEND_MAJOR == 1)
+// can never match. Reopening through the C ABI must hit al_lowlevel.cpp's
 // `(ver.first != sver.first)` branch and fail with LOWLEVEL_ERR, never a
 // silent open of stale/incompatible data.
 TEST_F(MdsplusVersionDrift, MismatchedBackendVersionRefusesOpen) {
@@ -145,7 +115,6 @@ TEST_F(MdsplusVersionDrift, MismatchedBackendVersionRefusesOpen) {
         << "expected the version-drift check to refuse opening a pulse whose "
            "stored VERSION:BACK_MAJOR ("
         << kMismatchedMajor << ") doesn't match the compiled backend's";
-    ASSERT_TRUE(status.message != nullptr);
     EXPECT_NE(std::string(status.message).find("Compatibility"),
               std::string::npos)
         << "status.message=" << status.message;
@@ -153,4 +122,4 @@ TEST_F(MdsplusVersionDrift, MismatchedBackendVersionRefusesOpen) {
 
 }  // namespace
 
-#endif  // AL_CONTRACT_HAVE_MDSPLUS
+#endif  // AL_CONTRACT_HAVE_MDSPLUS && AL_CONTRACT_MDSPLUS_FIXTURE_TOOL

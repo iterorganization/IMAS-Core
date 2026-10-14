@@ -145,7 +145,7 @@ backends where AOS content is actually readable back within a session.
 
 | Capability | Inventory ref | Unit | Integ. | Test(s) | Status |
 |---|---|:--:|:--:|---|---|
-| Realistic AOS/timebase/HDF5-tensorization shape round-trips exactly | D5 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/{HDF5,Memory,ASCII}`. MDSplus is instantiated too, but a divergence (the seed's generic shapes don't match the real equilibrium DD layout) — see Part 4. UDA: same divergence, same root cause (the DD-schema-validating backend has no counterpart for the seed's synthetic shapes) — see Part 5 | covered |
+| Realistic AOS/timebase/HDF5-tensorization shape round-trips exactly | D5 | ✓ (Memory) | ✓ (HDF5, ASCII) | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/{HDF5,Memory,ASCII}`. Since issue #33 the seed is DD-4.1.1-conformant (real `time_slice`/`profiles_1d`/`constraints` AOS), so **MDSplus and UDA now round-trip it too** (Parts 4/5), no longer skipped. The oracle is a *structural* hash (path/datatype/rank/every-extent/AOS-index/values); `EquilibriumSeedStructuralHash.*` pins that an extent transpose or dropped/reordered AOS element fails | covered |
 
 ## Cluster 3 — Plugin management  (`FUNCTIONALITY_INVENTORY.md:318-430`)
 
@@ -218,8 +218,8 @@ and points at the same test.
 
 | Cluster / Capability | Inventory ref | Unit | Integ. | Test(s) — and residual | Status |
 |---|---|:--:|:--:|---|---|
-| **A** `initBackend` factory selects the backend from the URI | :496-514 | ✓ (Memory) | ✓ (HDF5, ASCII) | every always-on backend instantiated via `build_uri` in `RoundTripMatrix`. Residual: the unrecognized-ID throw path (`al_backend.cpp:82-86`) is straightforward by inspection (a plain `else` throwing `ALBackendException`) but untested — low-value relative to the rest of this row, left as a residual rather than a separate row. MDSplus is instantiated too, via its own URI in every Part 4 fixture — see Part 4 | covered (indirect) |
-| **B** `getVersion` (installed vs stored, drift check) | :520-540 | — | — | Reachable in principle: `al_begin_dataentry_action`/`al_plugin_begin_global_action`/`al_plugin_begin_slice_action` all compare `backend->getVersion(NULL)` (compiled) against `backend->getVersion(pctx)` (stored) on open/write and throw `LOWLEVEL_ERR` on a mismatch (src/al_lowlevel.cpp:868-883,956-967,1011-1022). Forcing the mismatch needs writing a pulse then overwriting its on-disk HDF5 backend-version attribute directly via the HDF5 C API — out of this issue's scope (no HDF5 include/link wiring in the test target). **Terminal gap**, not deferred to a future step: reachable via the C ABI, but pinning it needs infrastructure this suite does not have. **MDSplus: this gap is closed** — see Part 4's version-drift check (issue #16), which forces the mismatch via the compile-guarded tier's own raw MDSplus C++ API dependency. This row (HDF5) is unchanged — the two backends hit the identical shape of problem, but only MDSplus's already-separate, already-gated tier made the raw-API workaround low-blast-radius | gap |
+| **A** `initBackend` factory selects the backend from the URI | :496-514 | ✓ (Memory) | ✓ (HDF5, ASCII) | every always-on backend instantiated via `build_uri` in `RoundTripMatrix`. The unrecognized-backend refusal has an active verdict (issue #47): `BackendFactory.*` (test_backend_factory.cpp) pins the exact C-ABI status for an unknown backend name in a URI (`UNKNOWN_ERR`, all four open modes, no context handed out, no filesystem artifact) and for an unknown positive legacy numeric ID via `al_build_uri_from_legacy_parameters` (`LOWLEVEL_ERR`, no URI synthesized). MDSplus is instantiated too, via its own URI in every Part 4 fixture — see Part 4 | covered |
+| **B** `getVersion` (installed vs stored, drift check) | :520-540 | — | ✓ (HDF5) | Tested (issue #36): `Hdf5VersionDrift.*` (test_hdf5_version_drift.cpp) — matching stored version opens; stored `999.0` (major) and `1.999` (minor boundary) are refused with the exact observed status. The mismatched fixture is produced out-of-band by the isolated `hdf5_fixture_tool` (rewrites master.h5's `HDF5_BACKEND_VERSION`); `contract_tests` itself stays HDF5-API-free and asserts only through the C ABI. Empirical nuance the pins record: for HDF5 the generic `LOWLEVEL_ERR` comparison (src/al_lowlevel.cpp) is **shadowed** — `HDF5BackendFactory` accepts exactly "1.0" and `openPulse` throws `BACKEND_ERR` ("No backend writer with version: …") for any other stored value, before the generic check runs; every non-compiled stored version is thereby refused (stricter than the generic rule). **MDSplus: also closed** — see Part 4's version-drift check (issue #16, reworked by #35 to keep the raw-MDSplus mutation in a fixture tool) | covered |
 | **B** `openPulse` / `closePulse` | :542-552 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_dataentry_action` / `al_close_pulse` in all suites | covered (indirect) |
 | **C** `beginAction` / `endAction` | :558-574 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_begin_global_action` / `al_end_action` | covered (indirect) |
 | **C** `writeData` / `readData` (0=not-found vs 1=success inner convention) | :576-589 | ✓ (Memory) | ✓ (HDF5, ASCII) | via `al_write_data` / `al_read_data` — `RoundTripMatrix` (+ the CHAR-scalar / ASCII-maxdim xfails above). MDSplus: see Part 4's real-DD-path breadth matrix (issue #15) instead of `RoundTripMatrix`. UDA: same — see Part 5's real-DD-path breadth matrix instead of `RoundTripMatrix` | covered |
@@ -315,20 +315,16 @@ one genuine `xfail` crash defect it surfaced), and the timebase cache
 for HDF5.** Part 2 row B left the version-drift check a `gap` because forcing
 the mismatch needs writing a different backend-version value into the opened
 pulse after creation — for HDF5 that means poking its on-disk backend-version
-attribute directly via the HDF5 C API, which that suite has no include/link
-wiring for (out of scope there). MDSplus hits the identical shape of problem —
-the mismatch needs overwriting the pulse's stored `VERSION:BACK_MAJOR` tree
-node after creation, also unreachable through the C ABI — but the MDSplus tier
-is already a separate, compile-guarded, Docker-characterized target
-(`tests/contract/CMakeLists.txt`'s `AL_BACKEND_MDSPLUS` gate), so adding the
-raw MDSplus C++ API (`<mdsobjects.h>`) as a test-only, build-gated dependency
-of `contract_tests` was a small, low-blast-radius addition — unlike wiring the
-HDF5 C API into the always-on suite. So the gap is closed for MDSplus
-specifically because of that pre-existing gate, not because the underlying
-problem (a version-drift mismatch cannot be forced through the C ABI alone) is
-actually different between the two backends. **Part 2 row B itself is left
-unchanged** (HDF5 remains a terminal gap); this is a Part 4 finding about *why*
-the two backends diverged, not a fix to Part 2.
+attribute directly via the HDF5 C API, which that suite originally had no
+include/link wiring for. MDSplus hits the identical shape of problem — the
+mismatch needs overwriting the pulse's stored `VERSION:BACK_MAJOR` tree node
+after creation, also unreachable through the C ABI. Both are now solved with
+the same producer/observer split: all raw-API fixture mutation lives in
+standalone, build-gated setup tools (`mdsplus_fixture_tool` for the tree
+node, issue #35; `hdf5_fixture_tool` for the HDF5 attribute, issue #36) that
+the tests invoke as subprocesses, so `contract_tests` itself carries no
+MDSplus or HDF5 API dependency and every asserted behavior stays on the
+public C ABI. **Part 2 row B is closed for HDF5 too** (see Part 2).
 
 Build-gated by `AL_CONTRACT_HAVE_MDSPLUS` (`tests/contract/CMakeLists.txt`,
 defined only when `AL_BACKEND_MDSPLUS=ON`), so every MDSplus case in
@@ -403,8 +399,8 @@ explicit open items), not assumed:
 | Parity: `CapabilityMatrix` — slice read/write positive (real interpolation round trip), timerange refused (`LOWLEVEL_ERR`), `list_filled_paths` refused (`BACKEND_ERR`) | `Backends/CapabilityMatrix.{TimeRangeReadPositiveOrRefused,SliceReadPositiveOrRefused,SliceWriteBeginPositiveOrRefused,ListFilledPathsPositiveOrRefused}/Mdsplus` (4 cases) | covered |
 | Parity: `Occurrences` — real implementation, `<ids>/<N>` naming convention (see characterization facts above) | `Occurrences.MdsplusListsWrittenOccurrences` | covered |
 | Parity: `AosMatrix` (top-level + nested write→iterate→read) — **divergence, not a defect**: MDSplus resolves every path against its real DD-baked model tree, so this fixture's synthetic field names (`"elements"`/`"val"`, `"outer"`/`"inner"`) have no corresponding node; `al_begin_arraystruct_action` and the per-element writes report success (buffered), but the flush at `al_end_action` throws `%TREE-W-NNF, Node Not Found`. Real DD-conformant AOS paths round-trip through the identical sequence (see characterization facts above) — the fixture's synthetic-path design simply cannot transfer to a model-tree-backed backend, the same reason `RoundTripMatrix` already excludes MDSplus (issue #12 Q5) | `Backends/AosMatrix.{TopLevelWriteIterateRead,NestedWriteIterateRead}/Mdsplus` (both `GTEST_SKIP()`, `AosExpect::Divergence`) | divergence |
-| Parity: `EquilibriumSeedMatrix` (composite scalar + timebase-carrying 2-D array + `constraints` AOS, hash oracle) — **divergence, not a defect**: the scalar sub-shape round-trips (already proven by the tracer bullet above), but the seed's flat-tensorized `profiles_1d/psi` write and its generic `constraints`/`{measured,weight}` AOS shape don't match the real equilibrium DD layout MDSplus enforces (real `profiles_1d` is a genuine dynamic AOS, not a flat dataset at that path; real `constraints` is a fixed container of specific constraint sub-objects, not a generic AOS) — both throw `%TREE-W-NNF, Node Not Found`. MDSplus **is** instantiated in `kSeedBackends[]` (mirroring `AosMatrix` above), and the case is skipped in-place via `GTEST_SKIP()` rather than run and fail | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/Mdsplus` (`GTEST_SKIP()`) | divergence |
-| Parity: `DeleteMatrix` (leaf / structure / DATAOBJECT-root granularity) — **terminal gap, closed here as an explicit row rather than left silently absent (issue #18)**: MDSplus is not instantiated in `kDeleteBackends[]` at all. Joining it would hit the same wall as `AosMatrix`/`RoundTripMatrix` above — the fixture's synthetic paths (`leaf_a`, `block`, top-level `""`) have no corresponding model-tree node, so even the divergence-and-skip pattern used for `AosMatrix`/`EquilibriumSeedMatrix` doesn't cleanly apply (unlike those, `MDSplusBackend::deleteData` — `mdsplus_backend.cpp:2136` — genuinely implements path-scoped leaf/structure delete, unlike HDF5's ignore-`path` defect, so a real characterization would be informative, not a structural no-op). A dedicated real-DD-path delete test mirroring `MdsplusRealPathMatrix` (issue #15) was not built in this closing pass — left as a deliberate, explained terminal gap for a future step, not a defect and not a silent omission | none — see reasoning | terminal-gap |
+| Parity: `EquilibriumSeedMatrix` (composite scalar + top-level timebase array + real `time_slice`/`profiles_1d`/`constraints` AOS, structural-hash oracle) — **covered (issue #33), replacing the former divergence-and-skip.** The seed is now DD-4.1.1-conformant: `vacuum_toroidal_field/r0` (FLT_0D), top-level `time` (FLT_1D), and a real `time_slice` struct_array whose elements carry `time`, `profiles_1d/psi` (FLT_1D), `global_quantities/ip`, and a real `constraints/ip/{measured,weight}` subtree — every path validated against the baked-from `IDSDef.xml`. MDSplus resolves them against its DD-baked model tree and round-trips the whole composite through the same real-AOS write/read idiom `test_mdsplus_unique_surface.cpp` already proves. The oracle is a *structural* hash (path identity + datatype + rank + every extent + AOS size/index + values), and the test asserts exact rank/extents field-by-field before hashing, so an extent transpose or a dropped/reordered AOS element fails (pinned hermetically by `EquilibriumSeedStructuralHash.*`) | `Backends/EquilibriumSeedMatrix.RoundTripHashMatches/Mdsplus` | covered |
+| Parity: `DeleteMatrix` (leaf / structure / DATAOBJECT-root granularity) — **characterized on real DD-4.1.1 paths (issue #34), replacing the former terminal gap.** `test_mdsplus_delete.cpp` seeds real `equilibrium/code/*` STR_0D leaves plus an unrelated `vacuum_toroidal_field/r0` sibling through the public C ABI, deletes at each granularity, reopens, and asserts exactly what survives — the same real-path approach `MdsplusRealPathMatrix` (issue #15) used to close the RoundTrip gap. Verdicts differ by granularity: **leaf = covered** (`al_delete_data("code/name")` clears just that leaf; every sibling keeps its value); **structure and root = xfail** — `al_delete_data("code")` and `al_delete_data("")` both throw `%TREE-W-NNF, Node Not Found` because `MDSplusBackend::deleteData`'s STRUCTURE branch (`mdsplus_backend.cpp:2147`) looks up the `:static`/`.timed_aos` array-of-structures storage children, which a plain (non-AOS) structure and the DATAOBJECT root have no node for; the delete is a no-op and every seeded path survives. Both xfails are pinned per D2 (`DISABLED_StructureDeleteRemovesWholeSubtree` / `DISABLED_RootDeleteRemovesWholeOccurrence` correct-contract tests, confirmed red today, + active `…CurrentlyThrowsNodeNotFound` tripwires) | `MdsplusRealPathDelete.{LeafDeleteRemovesJustTheLeaf,StructureDeleteCurrentlyThrowsNodeNotFound,RootDeleteCurrentlyThrowsNodeNotFound}` (+ 2 `DISABLED_` correct-contract) | covered (leaf) / xfail (structure, root) |
 
 ### Real-DD-path datatype × rank breadth (issue #15)
 
@@ -412,7 +408,13 @@ Where the rows above join MDSplus to the *existing* fixtures' synthetic
 shapes, this matrix instead curates one **real** DD-4.1.1 path per
 `{CHAR, INTEGER, DOUBLE, COMPLEX} x rank {0..7}` cell — the axis
 `RoundTripMatrix` already sweeps on the always-on tier, but against opaque
-paths MDSplus cannot resolve (issue #12 Q2/Q5). Path curation method: the
+paths MDSplus cannot resolve (issue #12 Q2/Q5). The curated set is the shared
+`al_contract::real_dd::catalog()` (`real_dd_path_catalog.{h,cpp}`, issue #46):
+the IDS, struct_array chain, leaf, and terminal-gap DD facts are identical for
+MDSplus and UDA and live in exactly one place, so the two matrices cannot
+silently diverge; only each backend's own storage-model verdicts stay local
+(`RealDdPathCatalog.*` plus the per-backend `*RealPathCatalog.CoversEveryCatalogKeyOnce`
+meta-tests fail if a matrix drops a cell). Path curation method: the
 `imas-dd` MCP tool CLAUDE.md names was not present in this session's MCP
 configuration, so the same question it would answer was resolved by walking
 the actual baked-from artifact directly —
@@ -575,12 +577,15 @@ MDSplus, the stored value is `VERSION:BACK_MAJOR`/`BACK_MINOR`
 (`src/mdsplus/mdsplus_backend.cpp`'s `saveVersion`, called once at pulse
 creation from the compiled `MDSPLUS_BACKEND_MAJOR`/`MINOR` constants, currently
 1/1). Forcing the mismatch case needs a value in the pulse different from
-what today's build would write — done here by opening the pulse's "ids" tree
-directly through the raw MDSplus C++ API (`<mdsobjects.h>`, not the C ABI) and
-overwriting `VERSION:BACK_MAJOR` after creation, mirroring the
-`ids_path`/`setDataEnv` environment-variable dance the backend itself uses
-internally. See the finding above on why this was achievable for MDSplus but
-stays a `gap` for HDF5 (Part 2 row B).
+what today's build would write — done by the standalone, build-gated
+`mdsplus_fixture_tool` (issue #35), which opens the pulse's "ids" tree
+through the raw MDSplus C++ API (`<mdsobjects.h>`) and overwrites
+`VERSION:BACK_MAJOR` after creation, mirroring the `ids_path`/`setDataEnv`
+environment-variable dance the backend itself uses internally. The test
+invokes the tool as a subprocess and asserts exclusively through `al_*`
+APIs: `contract_tests` has no direct MDSplus include or link dependency, so
+a rewrite satisfying the C ABI is judged by exactly the C ABI. The identical
+split now also closes the HDF5 side (Part 2 row B, issue #36).
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -647,7 +652,7 @@ blocked-by-environment) was not invoked.
 | Capability | Test(s) | Status |
 |---|---|---|
 | Tracer bullet (issue #23): one equilibrium scalar (`vacuum_toroidal_field/r0`), seeded through the plain HDF5 backend, reads back byte-identical through the UDA backend in remote mode, across the real reference stack | `UdaSmokeRoundTrip.ScalarSeededViaHdf5ReadsBackThroughUda` | covered |
-| Read-only parity fixture (issue #24): the full equilibrium-seed composite (scalar + timebase-carrying 2-D array + constraints AOS, `equilibrium_seed.h`, issue #4/D5), seeded through HDF5 and reopened through UDA, asserted via the seed's own unmodified FNV-1a hash oracle — **divergence, not a defect**: the generator's flat `profiles_1d/psi` leaf and generic `constraints` AOS have no counterpart in equilibrium's real DD-4.1.1 layout (`profiles_1d` is itself a struct_array, not a plain field). Confirmed empirically against the reference stack: `al_plugin_read_data` fails immediately with "cannot find node equilibrium/profiles_1d/psi in data dictionary (profiles_1d not found)". The same wall MDSplus hits on its own `EquilibriumSeedMatrix`/`Mdsplus` row (Part 4) — nothing to fix, the fixture's synthetic composite shape simply cannot transfer to a DD-schema-validating backend; the scalar sub-shape alone is real DD and is already covered by the tracer bullet above. The seed-then-reopen attempt genuinely runs every time (unlike EquilibriumSeedMatrix's per-backend skip, this suite has no other instance to keep it exercised): the test asserts the *specific* failure signature before `GTEST_SKIP()`'ing, so a future change that resolves the divergence fails the assertion loudly instead of this row silently going stale | `UdaEquilibriumSeedParity.HdfSeededReadsBackThroughUda` | divergence |
+| Read-only parity fixture (issue #24): the full equilibrium-seed composite (static scalar + top-level timebase array + real `time_slice`/`profiles_1d`/`constraints` AOS, `equilibrium_seed.h`, issues #4/#33/D5), seeded through HDF5 and reopened through UDA, asserted via the seed's structural hash oracle — **covered (issue #33), replacing the former divergence.** The seed is now DD-4.1.1-conformant, so it round-trips fully through UDA remote mode: the static scalar, the `time` timebase array, and every dynamic leaf nested in the `time_slice` struct_array (`time`, `profiles_1d/psi`, `global_quantities/ip`, `constraints/ip/{measured,weight}`). This does **not** contradict `UdaAosKnownDefects` (which pins a dynamic-leaf-inside-AOS reading absent): that fixture seeds the AOS with an *empty* timebase and no per-element `time`, whereas this seed writes the real timebasepath (`time`) and a per-element `time`, and a well-formed DD-conformant time_slice AOS is empirically the case UDA resolves correctly. Verified stable across repeated runs of the docker/uda/ reference stack; the structural hash (rank/extents/AOS-index-aware) makes it a trustworthy parity oracle | `UdaEquilibriumSeedParity.FullSeedRoundTripsThroughUda` | covered |
 
 **Progress (issue #25, parity breadth): zero blank rows remain in Part 5.**
 Every C-ABI-reachable read-side capability from `FUNCTIONALITY_INVENTORY.md`
@@ -662,12 +667,15 @@ not fixed — both explained in full below.
 ## Real-DD-path datatype × rank breadth (issue #25, reusing issue #15's set)
 
 `test_uda_real_paths.cpp`, `Uda/UdaRealPathMatrix.*` — the UDA analogue of
-`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set
-reused as-is** (same 32 cells, same 10 IDSs), adapted to seed(HDF5)-then-
-reopen(UDA) instead of MDSplus's direct write→read. `terminal_gap_reason`
-carries over unchanged (a DD-4.1.1 fact, independent of backend); a UDA-only
-`divergence_reason` and `known_defect_reason` were added where the two
-backends diverge for different reasons on the same cell.
+`test_mdsplus_real_paths.cpp`: **the identical curated path/rank/aos_chain set,
+now the shared `al_contract::real_dd::catalog()`** (`real_dd_path_catalog.{h,cpp}`,
+issue #46 — one source of truth for both matrices, same 32 cells, same 10
+IDSs), adapted to seed(HDF5)-then-reopen(UDA) instead of MDSplus's direct
+write→read. `terminal_gap_reason` lives in the shared catalog (a DD-4.1.1 fact,
+independent of backend); UDA-only `divergence_reason`/`known_defect_reason`
+verdicts stay local to `test_uda_real_paths.cpp` where the two backends diverge
+for different reasons on the same cell. `UdaRealPathCatalog.CoversEveryCatalogKeyOnce`
+fails if the UDA matrix ever drops or duplicates a catalog cell.
 
 **Characterization-discovered facts:**
 
@@ -715,8 +723,8 @@ backends diverge for different reasons on the same cell.
   COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.
   DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,
   COMPLEX_r5}` (`test_uda_real_paths.cpp`). The DOUBLE-scalar
-  `UdaAosKnownDefects` pair remains an independent pin and AOS-mechanism proof,
-  not a substitute for these exact matrix cases.
+  `UdaAosKnownDefects` pair remains an independent value-transport pin, not a
+  substitute for these exact matrix cases or the active traversal proof below.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
@@ -725,7 +733,7 @@ backends diverge for different reasons on the same cell.
 | ↳ 13 (type, rank) cells the DD contains nowhere at any nesting depth (same facts as MDSplus's Part 4 breadth matrix): CHAR r3–r7, INTEGER r4–r7, DOUBLE r7, COMPLEX r0, COMPLEX r6–r7 | `Uda/UdaRealPathMatrix.RealPathRoundTrip/{CHAR_r3..CHAR_r7,INTEGER_r4..INTEGER_r7,DOUBLE_r7,COMPLEX_r0,COMPLEX_r6,COMPLEX_r7}` (13 cases, each `GTEST_SKIP()`) | terminal-gap |
 | ↳ 3 (type, rank) cells hit the new dynamic-leaf-inside-AOS defect: COMPLEX r1 (`waves`, 3 AOS levels), COMPLEX r3/r5 (`runaway_electrons`, 1 AOS level) | Breadth cells: `Uda/UdaRealPathMatrix.RealPathRoundTrip/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` (`GTEST_SKIP()`, known-defect). Exact correct-contract pair: `Uda/UdaRealPathMatrixKnownDefects.DISABLED_DynamicComplexLeafInsideAosRoundTrips/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` + tripwires `Uda/UdaRealPathMatrixKnownDefects.DynamicComplexLeafInsideAosCurrentlyReadsEmpty/{COMPLEX_r1,COMPLEX_r3,COMPLEX_r5}` | **xfail** |
 
-## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issue #25)
+## AOS traversal, occurrences, list_filled_paths, pulse modes/errors, slice/time-range (issues #25 + #37)
 
 `test_uda_breadth.cpp` — every remaining C-ABI-reachable read-side capability
 and pulse-lifecycle mode from `FUNCTIONALITY_INVENTORY.md` Part 1 not already
@@ -735,20 +743,25 @@ the lifecycle cases drive the remote UDA URI directly through the C ABI.
 
 **Characterization-discovered facts:**
 
-- **AOS traversal (top-level) hits the same dynamic-leaf-inside-AOS defect
-  described above**: `equilibrium/time_slice` (a real DD struct_array,
-  `timebasepath="time"`) correctly reports its written size (3) through
-  `al_begin_arraystruct_action`, and iteration genuinely advances (the request
-  trace shows three distinct `time_slice[0..2]/global_quantities/ip`
-  directives), but every element's `global_quantities/ip` value comes back as
-  the HDF5 absent-scalar sentinel (`-9.0e40`) instead of what was written.
-  Pinned as the canonical instance of the defect: `UdaAosKnownDefects.
-  DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.
-  DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested (multi-level) AOS
-  traversal is exercised separately and successfully by the real-path
-  matrix's *static* AOS-nested cells above (INTEGER r3, DOUBLE r6) — the
-  traversal mechanism itself (begin/iterate/end across nesting) works; only
-  a *dynamic* leaf's value fails to come back correctly.
+- **AOS traversal (top-level) has a discriminating active C-ABI proof**:
+  `temporary/constant_integer3d` is a real DD-4.1.1 struct_array with a static
+  `value` leaf known to round-trip through UDA. Three elements with distinct,
+  order-sensitive values are seeded through HDF5 in physical index order
+  0→2→1 (so setup does not mirror the asserted traversal), then read in order
+  0→1→2 around successive `al_iterate_over_arraystruct(..., 1)` calls after
+  reopening through UDA.
+  `UdaBreadthTest.AosTraversalAdvancesAcrossDistinctStaticElements` asserts the
+  exact sequence, so a successful no-op, repeated element, or reordered
+  element fails. It also ends the AOS action and verifies through the same
+  public function that the invalid context returns an error status.
+- **The dynamic-leaf-inside-AOS value defect remains separately pinned**:
+  `equilibrium/time_slice` correctly reports its written size (3), but every
+  element's `global_quantities/ip` value comes back as the HDF5 absent-scalar
+  sentinel (`-9.0e40`) instead of what was written. The canonical D2 pair is
+  `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire
+  `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel`. Nested
+  (multi-level) traversal is also exercised by the real-path matrix's static
+  AOS cells (INTEGER r3, DOUBLE r6).
 - **`al_get_occurrences` is real through UDA remote mode** (the reference
   `IMAS` server plugin implements `getOccurrences`, confirmed via the PRD's
   static finding): occurrence 0 and occurrence 2 (HDF5's own `<ids>_<N>`
@@ -824,7 +837,7 @@ the lifecycle cases drive the remote UDA URI directly through the C ABI.
 
 | Cluster / Capability | Test(s) | Status |
 |---|---|---|
-| AOS traversal, top-level (size + iteration mechanism correct; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` (mechanism proof); see the xfail row below for the value defect | covered (indirect) |
+| AOS traversal, top-level (reported size + exact three-element forward sequence; invalid ended context returns an error; nested traversal proven separately by the real-path matrix's static AOS cells) | `UdaBreadthTest.AosTraversalAdvancesAcrossDistinctStaticElements` | covered |
 | ↳ a *dynamic* leaf nested inside a struct_array returns the HDF5 absent-scalar sentinel instead of what was written | `UdaAosKnownDefects.DISABLED_DynamicLeafInsideAosRoundTrips` + tripwire `UdaAosKnownDefects.DynamicLeafInsideAosCurrentlyReturnsSentinel` | **xfail** |
 | `al_get_occurrences` real through UDA remote mode, HDF5's `<ids>_<N>` storage naming and UDA's `<ids>/<N>` public naming pinned; every reported occurrence is reopened and read | `UdaBreadthTest.OccurrencesListsWrittenOccurrencesThroughReopen` | covered |
 | `al_list_filled_paths` real through UDA remote mode (`backend=hdf5` only), ownership pinned | `UdaBreadthTest.ListFilledPathsThroughReopen` | covered |
@@ -899,12 +912,23 @@ recorded here alongside the header's existing stack identifiers.
   that server process exits. Reproduces identically whether the read went
   through `readData`'s `None`-mode path or `populate_cache`'s `ids`/`struct`-
   mode path (both hit the same unstripped-uri bug), so this is not an
-  `ids`-specific finding despite living in the cache-mode area: the
-  client-side RAM cache genuinely *is* cleared on close
-  (`UDABackend::closePulse`), but a server-side resource opened on the read
-  path outlives it regardless. Pinned:
+  `ids`-specific finding despite living in the cache-mode area. Pinned:
   `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle`
   + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle`.
+- **Client-cache invalidation across close/reopen is a terminal gap (issue
+  #38).** No stable public-C-ABI oracle exists against the pinned stack: the
+  required seed-A/read/close/mutate-to-B/reopen sequence cannot reach its
+  mutation step because the separately pinned server-handle leak keeps the
+  per-IDS HDF5 file locked. A fresh fixture process with
+  `HDF5_USE_FILE_LOCKING=FALSE` still fails to reopen that external IDS file
+  for writing (observed for `cache_mode=none`); the process therefore cannot
+  produce B for a new UDA context to observe. The C ABI provides no control to
+  restart the reference server/connection between those steps, and remote UDA
+  writes are independently unsupported. Do not treat
+  `UDABackend::closePulse`'s `cache_.clear()` as a behavioral verdict. The
+  paired server-handle-leak xfail immediately above remains distinct; when it
+  is fixed or the stack gains a restart seam, this row must become the
+  A→B→reopen test for `none`, `ids`, and `struct`.
 - **Runtime DD loading — present / absent / wrong-version, all through
   `al_begin_dataentry_action`** (the constructor loads `IDSDef.xml`
   unconditionally, before any network access): present is the reference
@@ -944,17 +968,29 @@ recorded here alongside the header's existing stack identifiers.
   `uda_backend.h`'s `UDA_BACKEND_VERSION_MAJOR/MINOR` and the "temporary
   placeholder" non-null-ctx branch), so `(0!=0)||(0<0)` is always false
   regardless of what is genuinely stored remotely. An unavailable stored
-  version must not be treated as verified compatibility. Pinned:
-  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified`
-  + tripwire
-  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse`.
+  version must not be treated as verified compatibility. Pinned with a
+  genuinely MISMATCHED stored fixture (issue #39): the pulse's
+  `HDF5_BACKEND_VERSION` is rewritten to `999.0` out-of-band by
+  `hdf5_fixture_tool` (issue #36's isolated producer; fixture preparation
+  only — every asserted behavior stays on the public C ABI). Observed against
+  the reference stack: the mismatched pulse is REFUSED, but by the
+  SERVER-side HDF5 open (the server plugin's own IMAS-Core hits
+  `HDF5BackendFactory`'s "No backend writer with version: 999.0"), forwarded
+  to the client as exactly `UNKNOWN_ERR` (-1); the client-side check itself
+  stays inert — its own `LOWLEVEL_ERR` "Compatibility …" refusal never
+  appears, which is what the active tripwire pins. Pinned:
+  `UdaUniqueSurfaceTest.DISABLED_OpenRefusesMismatchedStoredBackendVersion`
+  (client-side refusal, correct contract) + tripwire
+  `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyDefersToServerSideRefusal`,
+  with baseline `UdaUniqueSurfaceTest.MatchingStoredVersionOpensThroughUda`.
 - **`supportsTimeRangeOperation()` capability negotiation confirmed against
   the reference server**: the reference plugin reports `1.8.0` (issue #23),
-  so `1.8.0 > 1.4.0` grants the capability — `al_begin_timerange_action` must
-  pass `al_lowlevel.cpp`'s capability gate ("Selected backend does not
-  support time range operations.") rather than being refused outright,
-  distinct from the separate, already-pinned uninitialized-interpmode defect
-  on the subsequent read (`UdaSliceAndTimeRange`, above).
+  so `1.8.0 > 1.4.0` grants the capability —
+  `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180`
+  asserts the exact begin-action status, `s.code == 0`, rather than merely
+  excluding the capability-refusal text. The separately pinned
+  uninitialized-interpmode defect occurs only on the subsequent read
+  (`UdaSliceAndTimeRange`, above).
 - **Fetch mode: download, local-backend handoff, cache reuse, all confirmed
   end-to-end (issue #27)** — the `BYTES` server plugin fetch mode needs ships
   and is registered **by default** in `ukaea/uda`'s own build (corrects this
@@ -1017,11 +1053,13 @@ recorded here alongside the header's existing stack identifiers.
 | Cache-mode invisibility: `none`/`ids`/`struct` agree on a field all three can reach (a static AOS-nested leaf) | `UdaUniqueSurfaceTest.CacheModeNoneIdsStructAgreeForAosCoveredField` | covered |
 | ↳ `struct` mode reports success but returns the absent sentinel for a genuinely written top-level field, so cache-mode selection changes the physics value | `UdaUniqueSurfaceTest.DISABLED_CacheModeStructPreservesTopLevelField` + tripwire `UdaUniqueSurfaceTest.CacheModeStructCurrentlyReturnsAbsentSentinelForTopLevelField` | **xfail** |
 | ↳ closing a UDA session leaks a server-side pulse handle (uri-stripping mismatch between `open`/`close` and every `get()`-directive builder), blocking a later local reopen of the same file | `UdaUniqueSurfaceTest.DISABLED_ClosingUdaSessionReleasesEveryServerSideHandle` + tripwire `UdaUniqueSurfaceTest.ClosingUdaSessionCurrentlyLeaksServerSideHandle` | **xfail** |
+| ↳ client cache invalidation across close/reopen: the required A→B fixture mutation is blocked by that distinct leaked server handle; neither the C ABI nor the pinned stack offers a server/connection restart seam | issue #38's attempted C-ABI fixture mutation (fresh process, `HDF5_USE_FILE_LOCKING=FALSE`) deterministically fails before B can be written; do not infer a verdict from source inspection | **terminal gap** |
 | Runtime DD loading: present baseline and absent DD (both failure messages) | `UdaUniqueSurfaceTest.{DdPresentLoadsAndOpenSucceeds,DdAbsentNeitherEnvVarSetFailsWithClearMessage,DdAbsentFileMissingAtIdsDefPathFailsWithClearMessage}` | covered |
 | ↳ wrong-version DD loads silently with no semantic cross-version check | `UdaUniqueSurfaceTest.DISABLED_DdWrongVersionIsRejected` + tripwire `UdaUniqueSurfaceTest.DdWrongVersionCurrentlyLoadsSilentlyWithNoCrossVersionCheck` | **xfail** |
 | `datapath` partial-get via `cache_mode=ids`: in-scope field round-trips, out-of-scope field silently reads as absent | `UdaUniqueSurfaceTest.DatapathScopesCachePopulationFieldOutsideScopeReadsAsAbsent` | covered |
-| Version-drift check inertness: open treats an unavailable stored version as compatible because both sides are hardcoded placeholders | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesWhenStoredBackendVersionCannotBeVerified` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyNeverFiresRegardlessOfStoredPulse` | **xfail** |
-| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| Version-drift check inertness: the client's own drift check never fires (both sides hardcoded placeholders); a pulse whose stored backend version (`999.0`, rewritten out-of-band by `hdf5_fixture_tool`) can never match is refused only by the forwarded SERVER-side HDF5 error (`UNKNOWN_ERR`, "No backend writer with version: 999.0") | `UdaUniqueSurfaceTest.DISABLED_OpenRefusesMismatchedStoredBackendVersion` + tripwire `UdaUniqueSurfaceTest.VersionDriftCheckCurrentlyDefersToServerSideRefusal` (baseline: `MatchingStoredVersionOpensThroughUda`) | **xfail** |
+| Server-version-gated `supportsTimeRangeOperation()`: reference plugin 1.8.0 > 1.4.0 grants the capability; the exact `al_begin_timerange_action` verdict is `s.code == 0` | `UdaUniqueSurfaceTest.TimeRangeCapabilityGrantedByReferenceServerVersion180` | covered |
+| ↳ Boundary (`<=1.4.0` refused, `>1.4.0` accepted): the pinned reference stack exposes only its fixed 1.8.0 server-owned `IMAS::version()` result, and the public C ABI has no reported-version override or injectable server fixture. The positive side is covered above; retain this explicit gap until a second pinned server/plugin image or a public test seam exists. | reference-stack limitation (issue #40) | **terminal gap** |
 | Fetch mode: download, local-backend handoff, correct read-back, cache reuse on reopen (confirmed via `download_file`'s own verbose trace) | `UdaUniqueSurfaceTest.FetchModeDownloadsHandsOffToLocalBackendAndReusesCacheOnReopen` | covered |
 | `local_cache` overrides the cache root only — the remote path is still nested underneath it, same as the default formula | `UdaUniqueSurfaceTest.FetchModeLocalCacheOptionOverridesDefaultCacheDir` | covered |
 | ↳ stale-cache / write-divergence pin: a fetch-mode write succeeds locally only, server-side pulse (reopened via remote mode) is unchanged, divergent local copy persists across close/reopen | `UdaUniqueSurfaceTest.FetchModeWriteDivergesFromServerAndStalePersistsAcrossReopen` | covered |
