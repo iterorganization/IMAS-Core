@@ -8,4 +8,4 @@ Version: @PROJECT_VERSION@
 Description: IMAS Access Layer core libraries for C.
 URL: https://imas.iter.org
 Cflags: -I${includedir}
-Libs: -L${libdir} -lal@AL_PC_VERSION_SYMBOL_FLAG@ -Wl,-rpath,${libdir}
+Libs: -L${libdir} -lal@AL_PC_VERSION_SYMBOL_FLAG@@AL_PC_RPATH_FLAG@
