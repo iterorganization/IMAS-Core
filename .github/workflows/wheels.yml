@@ -420,7 +420,7 @@ jobs:
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           # python installation used when to start cibuildwheel
           python-version: "3.12"
