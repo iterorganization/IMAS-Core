@@ -85,7 +85,7 @@ add_executable(contract_tests
   test_uda_unique_surface.cpp
 )
 
-target_link_libraries(contract_tests PRIVATE al GTest::gtest GTest::gtest_main)
+target_link_libraries(contract_tests PRIVATE al al_contract_fixtures GTest::gtest GTest::gtest_main)
 add_dependencies(contract_tests al)
 target_compile_features(contract_tests PRIVATE cxx_std_17)
 

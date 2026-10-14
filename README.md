@@ -42,6 +42,17 @@ cmake --build build --target install
 
 See [Developer Guide](docs/source/developers/index.rst) for build instructions.
 
+### Running the tests
+
+The C/C++ and Python test suites, their CTest tiers, and the CMake presets
+that drive them (locally and in CI) are documented in
+[tests/README.md](tests/README.md). The short version:
+
+```bash
+cmake --preset tests && cmake --build --preset tests
+ctest --preset unit    # fast hermetic loop; `ctest --preset tests` for everything
+```
+
 
 ## Using IMAS-Core with High-Level Languages
 

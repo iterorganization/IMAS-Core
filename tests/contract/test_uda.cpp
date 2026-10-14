@@ -115,7 +115,7 @@ TEST_F(UdaSmokeRoundTrip, ScalarSeededViaHdf5ReadsBackThroughUda) {
 //
 // Broadens the tracer bullet above from one scalar to the full equilibrium-seed
 // composite shape (static scalar + top-level timebase array + a real
-// time_slice/profiles_1d/constraints AOS, tests/contract/equilibrium_seed.h —
+// time_slice/profiles_1d/constraints AOS, fixtures/equilibrium_seed.h —
 // issues #4/#33/D5), reusing the seed's own generator and structural hash
 // oracle unchanged: seed via HDF5 (fixture setup, same role the baked model
 // tree plays for MDSplus), reopen the identical path through the UDA backend in
