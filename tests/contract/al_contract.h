@@ -61,6 +61,25 @@ inline constexpr const char* kUnregisteredPluginName =
     "no_such_plugin_ever_registered";
 
 // ---------------------------------------------------------------------------
+// MDSplus runtime skip (TEST_STRATEGY.md D4): absent/unconfigured is skipped,
+// never failed. A macro, not a function -- GTEST_SKIP() expands to a `return`
+// that must unwind the *calling* SetUp()/TEST body directly; wrapping it in an
+// ordinary function would only return from that function, leaving the caller
+// to run on unskipped. Shared by every MDSplus-parametrized fixture
+// (test_mdsplus.cpp, test_pulse_lifecycle.cpp, test_capability_gated.cpp,
+// test_structured_data.cpp) so the check has exactly one wording.
+// ---------------------------------------------------------------------------
+#define AL_CONTRACT_SKIP_IF_MDSPLUS_UNCONFIGURED()                          \
+  do {                                                                      \
+    const char* models_path = std::getenv("MDSPLUS_MODELS_PATH");          \
+    if (!models_path || !*models_path) {                                  \
+      GTEST_SKIP() << "MDSPLUS_MODELS_PATH is unset -- MDSplus "           \
+                      "characterization tests are skipped, not "           \
+                      "failed (TEST_STRATEGY.md D4).";                     \
+    }                                                                      \
+  } while (0)
+
+// ---------------------------------------------------------------------------
 // BackendCase descriptor for value-parametrized tests (TEST_P).
 // ---------------------------------------------------------------------------
 struct BackendCase {

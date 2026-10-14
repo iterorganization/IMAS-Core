@@ -1,0 +1,103 @@
+name: MDSplus contract suite (non-blocking)
+
+# Task 2 issue #18 (parent #12): a dedicated, informational CI leg for the
+# MDSplus tier (tests/contract/test_mdsplus*.cpp, TRACEABILITY.md Part 4),
+# mirroring the D7 sanitizer leg (sanitizers.yml). continue-on-error: true —
+# informational, not a merge gate, until the characterization baseline
+# (issues #13-17) is triaged. Promotion to a blocking gate is deferred to
+# Task 3.
+#
+# Runs on a GitHub-hosted arm64 runner: MDSplus publishes no arm64 packages
+# for Ubuntu 22, only 24.04+ (docker/mdsplus/README.md's deviation note), and
+# the characterization image itself is aarch64.
+#
+# Two-layer cache, so an ordinary push doesn't pay the full toolchain-install
+# + DD-download cost every time:
+#   1. the toolchain image (docker/mdsplus/Dockerfile) — keyed on its hash.
+#      A miss means re-running the MDSplus/Java/DD-toolchain package install.
+#   2. the baked DD model tree (build-mdsplus/) — keyed on the DD version
+#      plus the model-build inputs (ALBuildDataDictionary.cmake,
+#      models/mdsplus/CMakeLists.txt). A hit restores the whole configured
+#      build directory (including the generated ids.xml and the model-tree
+#      files under build-mdsplus/models/mdsplus), so the configure step is
+#      skipped entirely on a hit — CMake's own dependency tracking then only
+#      rebuilds C++ sources that actually changed.
+
+on:
+  push:
+  pull_request:
+
+env:
+  DD_VERSION: "4.1.1"
+  IMAGE_TAG: imas-core-mdsplus:ci
+
+jobs:
+  mdsplus-contract:
+    name: MDSplus contract suite (aarch64, non-blocking)
+    runs-on: ubuntu-24.04-arm
+    continue-on-error: true  # informational leg, not a gate — for now
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # git describe needs full history for the version macro
+
+      - name: Cache toolchain image (layer 1 — keyed on Dockerfile)
+        id: cache-image
+        uses: actions/cache@v4
+        with:
+          path: /tmp/mdsplus-image.tar
+          key: mdsplus-image-${{ hashFiles('docker/mdsplus/Dockerfile') }}
+
+      - name: Build toolchain image
+        if: steps.cache-image.outputs.cache-hit != 'true'
+        run: |
+          docker build -f docker/mdsplus/Dockerfile -t "${IMAGE_TAG}" docker/mdsplus
+          docker save "${IMAGE_TAG}" -o /tmp/mdsplus-image.tar
+
+      - name: Load cached toolchain image
+        if: steps.cache-image.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/mdsplus-image.tar
+
+      - name: Cache baked DD model tree (layer 2 — keyed on DD version + model-build inputs)
+        id: cache-model
+        uses: actions/cache@v4
+        with:
+          path: build-mdsplus
+          key: mdsplus-model-${{ env.DD_VERSION }}-${{ hashFiles('common/cmake/ALBuildDataDictionary.cmake', 'models/mdsplus/CMakeLists.txt') }}
+
+      - name: Configure (bakes the DD model tree on a cache miss)
+        if: steps.cache-model.outputs.cache-hit != 'true'
+        run: >
+          docker run --rm --platform linux/arm64
+          -v "$PWD":/workspace -w /workspace
+          "${IMAGE_TAG}" bash -c "
+          cmake -B build-mdsplus -G Ninja
+          -DAL_BACKEND_MDSPLUS=ON
+          -DAL_BUILD_MDSPLUS_MODELS=ON
+          -DAL_BUILD_TESTS=ON
+          -DDD_VERSION=${DD_VERSION}
+          -DCMAKE_BUILD_TYPE=Release
+          "
+
+      - name: Build contract suite
+        run: >
+          docker run --rm --platform linux/arm64
+          -v "$PWD":/workspace -w /workspace
+          "${IMAGE_TAG}" bash -c "
+          cmake --build build-mdsplus --target contract_tests -j\$(nproc)
+          "
+
+      - name: Run MDSplus contract suite
+        run: >
+          docker run --rm --platform linux/arm64
+          -v "$PWD":/workspace -w /workspace
+          -e MDSPLUS_MODELS_PATH=/workspace/build-mdsplus/models/mdsplus
+          "${IMAGE_TAG}" bash -c "
+          cd build-mdsplus/tests/contract && ctest -L mdsplus --output-on-failure
+          "
+
+      - name: Note
+        if: always()
+        run: echo "MDSplus leg is informational (issue #12/#18). Red-by-design until the characterization baseline is triaged; promotion to a blocking gate is Task 3."
