@@ -32,6 +32,11 @@ class HDF5Writer {
     int getDynamic_AOS_slices_extension(Context *ctx);
     int getDynamic_slices_extension(Context *ctx, int timed_AOS_index, int time_vector_length);
     ArraystructContext* getDynamicAOS(Context * ctx);
+    std::unique_ptr<HDF5DataSetHandler> openOrCreateNonSliceDataSet(
+        const std::string& tensorized_path, hid_t* dataset_id, int datatype,
+        hid_t location, int dim, int* size, int aos_rank,
+        int* aos_shapes, bool shapes_dataset,
+        DataEntryContext* dataentry_context);
  
   public:
 

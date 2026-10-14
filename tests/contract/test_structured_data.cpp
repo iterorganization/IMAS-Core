@@ -367,6 +367,92 @@ TEST_P(EquilibriumSeedMatrix, RoundTripHashMatches) {
     EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
 }
 
+// A second whole-IDS write on the *same still-open* pulse must succeed and
+// overwrite in place, not fail as if the underlying storage were being
+// created for the first time (issue #60 follow-up: HDF5Writer::write_ND_Data
+// and ::createOrUpdateShapesDataSet decided create-vs-reuse purely from their
+// own per-action opened_data_sets cache -- which is cleared at the end of
+// every al_begin_global_action/al_end_action pair -- instead of asking the
+// file itself via H5Lexists, so any second global WRITE_OP on an already-
+// populated open pulse re-attempted H5Dcreate2 on a dataset that already
+// existed and threw "Unable to create HDF5 dataset"). Two independent
+// al_begin_global_action(WRITE_OP) calls on one pctx reproduce the exact
+// shape of the failure regardless of what benchmark or caller triggers it.
+TEST_P(EquilibriumSeedMatrix, RepeatedWholeIdsWriteOnSameOpenPulseSucceeds) {
+    const BackendCase b = GetParam();
+    if (b.on_disk) base_.make_legacy_tree(pulse_);
+    const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
+    ASSERT_FALSE(uri.empty());
+
+    int pctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx));
+    AL_ASSERT_OK(equilibrium_seed::write(pctx));
+    AL_ASSERT_OK(equilibrium_seed::write(pctx))
+        << "a second whole-IDS write on the same still-open pulse must "
+           "overwrite in place, not fail as if the dataset didn't exist yet";
+
+    std::vector<equilibrium_seed::Obs> obs;
+    AL_ASSERT_OK(equilibrium_seed::read_back(pctx, &obs));
+    EXPECT_EQ(equilibrium_seed::canonical_hash(obs),
+              equilibrium_seed::expected_hash())
+        << "repeated writes must never accumulate stale data";
+
+    EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
+}
+
+// Reproduce the shared benchmark process ordering from issue #60: a complete
+// whole-IDS read, followed by the node-by-node read of one time_slice element.
+// This keeps the smoke-only HDF5 failure covered without relying on benchmark
+// registration order or a standalone filtered process.
+TEST_P(EquilibriumSeedMatrix, WholeIdsReadThenTimeSliceElementReadSucceeds) {
+    const BackendCase b = GetParam();
+    // ASCII's READ_OP setup exhausts its sequential stream before
+    // beginReadArraystructAction can recover the AOS size. This is the
+    // documented AOS read known defect pinned by AosKnownDefects.* above;
+    // this regression specifically covers the HDF5 benchmark ordering.
+    if (b.id == ASCII_BACKEND) {
+        GTEST_SKIP() << "known defect for " << b.name
+                     << " AOS read — see AosKnownDefects.*";
+    }
+    if (b.on_disk) base_.make_legacy_tree(pulse_);
+    const std::string uri = al_contract::build_uri(b.id, base_.str(), pulse_);
+    ASSERT_FALSE(uri.empty());
+
+    int pctx = -1;
+    AL_ASSERT_OK(al_begin_dataentry_action(uri.c_str(), FORCE_CREATE_PULSE, &pctx));
+    AL_ASSERT_OK(equilibrium_seed::write(pctx));
+
+    std::vector<equilibrium_seed::Obs> whole_ids;
+    AL_ASSERT_OK(equilibrium_seed::read_back(pctx, &whole_ids));
+
+    int op = -1;
+    AL_ASSERT_OK(al_begin_global_action(pctx, equilibrium_seed::kIds, "",
+                                        READ_OP, &op));
+    int size = 0;
+    int aos_ctx = -1;
+    AL_ASSERT_OK(al_begin_arraystruct_action(op, equilibrium_seed::kAos,
+                                             equilibrium_seed::kAosTime,
+                                             &size, &aos_ctx));
+    ASSERT_EQ(size, equilibrium_seed::kNSlices);
+    AL_ASSERT_OK(al_iterate_over_arraystruct(aos_ctx, size - 1));
+
+    std::vector<int> shape;
+    std::vector<double> data;
+    auto read_leaf = [&](const char* path, int rank) {
+        AL_ASSERT_OK(al_contract::read_data<double>(aos_ctx, path, rank,
+                                                    &shape, &data));
+    };
+    read_leaf(equilibrium_seed::kSliceTime, 0);
+    read_leaf(equilibrium_seed::kPsi, 1);
+    read_leaf(equilibrium_seed::kIp, 0);
+    read_leaf(equilibrium_seed::kMeasured, 0);
+    read_leaf(equilibrium_seed::kWeight, 0);
+
+    AL_ASSERT_OK(al_end_action(aos_ctx));
+    AL_ASSERT_OK(al_end_action(op));
+    EXPECT_EQ(al_close_pulse(pctx, CLOSE_PULSE).code, 0);
+}
+
 // --- structural-hash sensitivity (issue #33 acceptance criteria 2 & 3) ------
 // Hermetic proofs that the canonical hash catches the two structural
 // corruptions a values-only hash would miss. They operate on the production
