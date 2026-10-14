@@ -116,6 +116,11 @@ local_scheme = "no-local-version"
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
+filterwarnings = [
+    # pytest-10 deprecations are errors so removed-in-10 usage (e.g. iterator
+    # argvalues, issue #48) fails here before an unbounded pytest upgrade does
+    "error::pytest.PytestRemovedIn10Warning",
+]
 
 [tool.coverage.run]
 branch = true
