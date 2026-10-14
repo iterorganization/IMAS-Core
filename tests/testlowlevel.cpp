@@ -259,11 +259,11 @@ int main(int argc, char *argv[])
 	{		
 		printf("Pulse number:\t%d\n", iPulse);
 		printf("Run number:\t%d\n", iRun);
-		printf("Backend:\t%s\n", alconst::backend_id_str[iBackend - BACKEND_ID_0].c_str());
+		printf("Backend:\t%d\n", iBackend);
 		printf("User name:\t%s\n", szUser);
 		printf("Machine:\t%s\n", szTokamak);
-		printf("Open action:\t%s\n", alconst::access_pulse_str[iOpenAction - ACCESS_PULSE_0].c_str());
-		printf("Close action:\t%s\n", alconst::access_pulse_str[iCloseAction - ACCESS_PULSE_0].c_str());
+		printf("Open action:\t%d\n", iOpenAction);
+		printf("Close action:\t%d\n", iCloseAction);
 		printf("Parameters:\t%s\n", szParams);
 		
 		// Low Level
@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
 				printf("Writing data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, "", WRITE_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
 					printf("Error opening imas %s for writing: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
@@ -352,7 +352,7 @@ int main(int argc, char *argv[])
 				printf("Reading data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, READ_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, "", READ_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
 					printf("Error opening imas %s for reading: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
