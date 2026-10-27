@@ -27,6 +27,14 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
 endif()
 
 
+# libal and its dependencies are installed in the prefix, so the wheel need not
+# bundle them, except on Windows which has no rpath to find them there.
+if(WIN32)
+  set(BUNDLE_RUNTIME_DEPS ON)
+else()
+  set(BUNDLE_RUNTIME_DEPS OFF)
+endif()
+
 set(PIP_OPTIONS "--verbose" "--no-deps") 
 if(${AL_PYTHON_BINDINGS} MATCHES "^no-build-isolation$")
   list(APPEND PIP_OPTIONS "--no-build-isolation")
@@ -43,6 +51,7 @@ if(AL_USE_INSTALLED_CORE)
       ${CMAKE_COMMAND} -E env
       CMAKE_ARGS=${CMAKE_ARGS}
       SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+      AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
       ${Python_EXECUTABLE}
         -m pip wheel
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -56,6 +65,7 @@ else()
         ${CMAKE_COMMAND} -E env
         CMAKE_ARGS=${CMAKE_ARGS}
         SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+        AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
         ${Python_EXECUTABLE}
           -m pip wheel
           ${CMAKE_CURRENT_SOURCE_DIR}
