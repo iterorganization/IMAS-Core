@@ -35,6 +35,8 @@ endif()
 # ##############################################################################
 option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
+option(AL_BUILD_TESTS "Build the C/C++ low-level ABI smoke tests (tests/)" OFF)
+
 # When ON, the al C++ library is not built here; instead it is located with
 # find_package(al-core CONFIG). Enables a two-stage build where libimas-core
 # (the C/C++ library) and imas-core (the Python wrapper) are packaged
@@ -224,6 +226,13 @@ if(NOT WIN32 AND NOT APPLE)
   target_link_libraries( imas_print_version PRIVATE stdc++fs )
 endif()
 add_dependencies( imas_print_version al )
+
+# Low-level ABI smoke tests (opt-in)
+# ##############################################################################
+if( AL_BUILD_TESTS )
+  enable_testing()
+  add_subdirectory(tests)
+endif()
 
 # Install
 # ##############################################################################
