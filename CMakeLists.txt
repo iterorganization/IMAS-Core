@@ -279,6 +279,21 @@ target_include_directories(
 )
 
 # Generate and install .pc file
+# Stamp the AL version into consuming binaries via a linker-defined symbol.
+# --defsym is specific to GNU-compatible linkers: Apple's ld64 and MSVC's
+# link.exe reject it, so only emit the flag where it is supported.
+if(APPLE OR WIN32)
+  set(AL_PC_VERSION_SYMBOL_FLAG "")
+else()
+  set(AL_PC_VERSION_SYMBOL_FLAG " -Wl,--defsym,AL_VER_${PROJECT_VERSION}=0")
+endif()
+# Windows has no runtime search path: DLLs are found through PATH, and MSVC's
+# link.exe rejects -rpath
+if(WIN32)
+  set(AL_PC_RPATH_FLAG "")
+else()
+  set(AL_PC_RPATH_FLAG " -Wl,-rpath,\${libdir}")
+endif()
 configure_file(pkgconfig/al-core.pc.in al-core.pc @ONLY)
 include(GNUInstallDirs)
 install(
