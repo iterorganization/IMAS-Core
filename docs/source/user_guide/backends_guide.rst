@@ -180,10 +180,21 @@ The :ref:`HDF5 backend` also recognizes these backend-specific query keys.
 ``hdf5_read_buffering``
     During a get operation, supported 0D and 1D field data read from HDF5 is
     buffered in memory before being returned to the caller. Slice and time range
-    reads, as well as fields with higher dimensionality, are read directly.
-    
+    reads of time-dependent data (including the shapes of time-dependent arrays
+    of structures), as well as fields with higher dimensionality, are read
+    directly, so their memory use does not depend on the number of stored time
+    slices.
+
     This feature is enabled by default. Set ``hdf5_read_buffering=no`` to
     disable read buffering.
+
+``hdf5_read_buffer_max``
+    Largest dataset (in MiB) that read buffering may load in memory at once.
+    Larger datasets are read per request instead, which bounds the memory used
+    by a get operation on very large files, possibly at the cost of speed.
+
+    Default: ``0`` (no limit). Can also be set via the environment variable
+    ``HDF5_BACKEND_READ_BUFFER_MAX=<MiB>``.
 
 ``hdf5_write_cache``
     Set the size (in MiB) of the HDF5 per-dataset chunk cache used during write
