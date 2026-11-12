@@ -1433,7 +1433,7 @@ int HDF5Reader::readAOSPersistentShapes(Context *ctx, hid_t gid, const std::stri
     return 1;
 }
 
-void HDF5Reader::open_IDS_group(OperationContext *ctx, hid_t file_id, std::unordered_map<std::string, hid_t> &opened_IDS_files, std::string &files_directory, std::string &relative_file_path)
+void HDF5Reader::open_IDS_group(OperationContext *ctx, hid_t file_id, std::unordered_map<std::string, hid_t> &opened_IDS_files, std::string &files_directory, std::string &relative_file_path, int access_mode)
 {
     HDF5Utils hdf5_utils;
 
@@ -1443,7 +1443,7 @@ void HDF5Reader::open_IDS_group(OperationContext *ctx, hid_t file_id, std::unord
         gid = got->second;
     if (gid == -1)
     {
-        hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid);
+        hdf5_utils.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid, access_mode);
     }
     if (gid >= 0)
         IDS_group_id[ctx] = gid;
@@ -1595,13 +1595,13 @@ void HDF5Reader::get_occurrences(const char *ids_name, int **occurrences_list, i
         p[i] = occurrences[i];
 }
 
-void HDF5Reader::list_filled_paths(const char* dataobjectname, char*** path_list, int* size, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path)
+void HDF5Reader::list_filled_paths(const char* dataobjectname, char*** path_list, int* size, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
     HDF5Utils hdf5_utils;
     // Create temporary OperationContext to allow reusing existing logic from hdf5_utils:
     OperationContext ctx(NULL, dataobjectname, "", READ_OP);
     hid_t gid = -1;
-    hdf5_utils.open_IDS_group(&ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid);
+    hdf5_utils.open_IDS_group(&ctx, file_id, opened_IDS_files, files_directory, relative_file_path, &gid, access_mode);
     if (gid <= 0) {
         // Group does not exist => nothing is filled
         *size = 0;

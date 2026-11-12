@@ -4451,6 +4451,54 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
   Backend* MDSplusBackend::initBackend(int id)
   {  return new MDSplusBackend; }
 
+  void MDSplusBackend::createPulseTree(const std::string &szTree, int shotNum, const std::string &mdsplusBaseStr, const char *szOption)
+    {
+	/**
+	 Creates a new MDSplus pulse file from the model tree and opens it:
+	 1. creates the base data-entry directory (mdsplusBaseStr)
+	 2. checks that MDSPLUS_MODELS_PATH is set (needed to locate the model tree)
+	 3. opens the model tree read-only and creates the pulse for the given shot
+	 4. opens the newly created pulse with the requested access mode
+	 5. saves the backend version into the pulse VERSION nodes
+
+	 @param szTree          name of the MDSplus tree
+	 @param shotNum         shot number of the pulse to create
+	 @param mdsplusBaseStr  base directory where the pulse files are stored (URI "path" query)
+	 @param szOption        access mode used to open the created pulse ("NORMAL" or "READONLY")
+	*/
+	 try {
+	    create_directories(mdsplusBaseStr.c_str());
+	 } catch (const std::exception& exc) {
+	    throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
+	 }
+	 {
+	    const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
+	    if (!modelsPath || !*modelsPath) {
+	      resetIdsPath(szTree);
+	      throw ALBackendException(
+	        std::string("MDSPLUS_MODELS_PATH is not set. Set it to the MDSplus models directory "
+	        "(e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus) "
+	        "before creating a pulse file."),
+	        LOG);
+	    }
+	 }
+	 try {
+	    MDSplus::Tree *modelTree = new MDSplus::Tree(szTree.c_str(), -1, DEF_READONLYMODE);
+	    modelTree->createPulse(shotNum);
+	    delete modelTree;
+	    tree = new MDSplus::Tree(szTree.c_str(), shotNum, szOption);
+	    saveVersion(tree);
+	 } catch(MDSplus::MdsException &exc) {
+	    resetIdsPath(szTree);
+	    std::string hint;
+	    const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
+	    if (!modelsPath || !*modelsPath) {
+	      hint = " -- MDSPLUS_MODELS_PATH is not set; set it to the MDSplus models directory (e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus)";
+	    }
+	    throw ALBackendException(exc.what()+mdsplusBaseStr+hint,LOG);
+	 }
+    }
+
   void MDSplusBackend::openPulse(DataEntryContext *ctx,
 			 int mode)
     {
@@ -4505,42 +4553,38 @@ std::string MDSplusBackend::getTimedNode(ArraystructContext *ctx, std::string fu
 		}
 	      }
 	  case alconst::create_pulse:
+	  case alconst::open_x:
 	    if (exists(mdsplusBaseStr+"/ids_001.tree")) {
 	      throw  ALBackendException(mdsplusBaseStr+"/ids_001.tree exists already, use a different mode to overwrite",LOG);
 	    }
 	  case alconst::force_create_pulse:
-	    try {
-	      create_directories(mdsplusBaseStr.c_str());
-	    } catch (const std::exception& exc) {
-	      throw ALBackendException("Unable to create data-entry directory: "+mdsplusBaseStr,LOG);
-	    }
-	    {
-	      const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
-	      if (!modelsPath || !*modelsPath) {
-	        resetIdsPath(szTree);
-	        throw ALBackendException(
-	          std::string("MDSPLUS_MODELS_PATH is not set. Set it to the MDSplus models directory "
-	          "(e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus) "
-	          "before creating a pulse file."),
-	          LOG);
-	      }
-	    }
-	    try {
-	      MDSplus::Tree *modelTree = new MDSplus::Tree(szTree, -1, DEF_READONLYMODE);
-	      modelTree->createPulse(shotNum);
-	      delete modelTree;
-	      tree = new MDSplus::Tree(szTree, shotNum, szOption);
-	      saveVersion(tree);
-	    } catch(MDSplus::MdsException &exc) {
-	      resetIdsPath(szTree);
-	      std::string hint;
-	      const char *modelsPath = getenv("MDSPLUS_MODELS_PATH");
-	      if (!modelsPath || !*modelsPath) {
-	        hint = " -- MDSPLUS_MODELS_PATH is not set; set it to the MDSplus models directory (e.g. export MDSPLUS_MODELS_PATH=/path/to/models/mdsplus)";
-	      }
-	      throw ALBackendException(exc.what()+mdsplusBaseStr+hint,LOG);
-	    }
+	  case alconst::open_w:
+	    createPulseTree(szTree, shotNum, mdsplusBaseStr, szOption);
 	    break;
+	    case alconst::open_r:
+	      try {
+		tree = new MDSplus::Tree(szTree, shotNum, DEF_READONLYMODE);
+		break;
+	      } catch(MDSplus::MdsException &exc) {
+		resetIdsPath(szTree);
+		throw ALBackendException("Unable to open MDSplus tree in READ_ONLY mode: "+mdsplusBaseStr,LOG);
+	      }
+	    case alconst::open_rp:
+	      try {
+		tree = new MDSplus::Tree(szTree, shotNum, DEF_NORMALMODE);
+		break;
+	      } catch(MDSplus::MdsException &exc) {
+		resetIdsPath(szTree);
+		throw ALBackendException("MDSplus tree not found (OPEN_RP): "+mdsplusBaseStr,LOG);
+	      }
+	    case alconst::open_a:
+	      try {
+		tree = new MDSplus::Tree(szTree, shotNum, DEF_NORMALMODE);
+		break;
+	      } catch(MDSplus::MdsException &exc) {
+		createPulseTree(szTree, shotNum, mdsplusBaseStr, szOption);
+	      }
+	      break;
 	  default:
 	    resetIdsPath(szTree);
 	    throw  ALBackendException("Mode not yet supported",LOG);
@@ -5412,7 +5456,7 @@ void MDSplusBackend::list_filled_paths(Context* ctx, const char* dataobjectname,
 	  	setDataEnv(ctx); 
     	  	int shotNum = MDSPLUS_SHOTNUM; //getMdsShot(ctx->getShot(), ctx->getRun(), true, szTree);
 
-		t = new MDSplus::Tree(szTree, shotNum);
+		t = new MDSplus::Tree(szTree, shotNum, DEF_READONLYMODE);
 		resetIdsPath(szTree);
 	    }catch(MDSplus::MdsException &exc)
 	    {
