@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include <pthread.h>
+#include <mutex>
 
 #include "al_backend.h"
 #include "al_context.h"
@@ -25,9 +25,9 @@
 #ifdef __cplusplus
 
 //Global lock management (used only when opening databases)
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static void lock() {pthread_mutex_lock(&mutex);}
-static void unlock() {pthread_mutex_unlock(&mutex);}
+static std::mutex mutex;
+static void lock() {mutex.lock();}
+static void unlock() {mutex.unlock();}
 
 // custom deleter for [] allocated objects
 template< typename T >
@@ -335,29 +335,21 @@ class InternalCtx
 public:
     std::unordered_map<std::string, ALStruct *> idsMap;
     std::unordered_map<unsigned long int, IdsInfo *> idsInfoMap;
-    pthread_mutex_t mutex;
+    // Mutex must be recursive as readData can be called recursively
+    std::recursive_mutex mutex;
     int refCount;
     std::string fullName;
     InternalCtx()
     {
 	refCount = 1;
-//Mutex must be recursive as readData can be called recursively
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&mutex, &attr);
-    }
-    ~InternalCtx()
-    {
-	pthread_mutex_destroy(&mutex);
     }
     void lock()
     {
-	pthread_mutex_lock(&mutex);
+	mutex.lock();
     }
     void unlock()
     {
-	pthread_mutex_lock(&mutex);
+	mutex.unlock();
     }
    
 };
