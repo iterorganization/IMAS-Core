@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
 				printf("Writing data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, WRITE_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, "", WRITE_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
 					printf("Error opening imas %s for writing: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
 				printf("Reading data...\n");
 				
 				iGetOpCtx = -1;
-				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, READ_OP, &iGetOpCtx);
+				alStatus = al_begin_global_action(iPulseCtx, szIdsFullName, "", READ_OP, &iGetOpCtx);
 				if (alStatus.code != 0) 
 				{
 					printf("Error opening imas %s for reading: al_begin_global_action = %s\n", szIdsFullName, alStatus.message);
