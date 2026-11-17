@@ -465,6 +465,8 @@ jobs:
       - uses: pypa/cibuildwheel@v4.3.5
         if: startsWith(matrix.os, 'macos-')
         env:
+          # Minimum macOS supported by the wheels; also used for the UDA build.
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: macos
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
@@ -494,14 +496,14 @@ jobs:
                 -DSSLAUTHENTICATION=ON \
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
-                -DMACOSX_DEPLOYMENT_TARGET=26.0 \
+                -DMACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
                 -DCMAKE_CXX_FLAGS=-Wno-error=deprecated-declarations \
                 -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
-            MACOSX_DEPLOYMENT_TARGET=26.0
+            MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
             CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
             PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
