@@ -523,16 +523,6 @@ jobs:
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
-      - uses: actions/setup-python@v7
-        with:
-          # python installation used when to start cibuildwheel
-          python-version: "3.12"
-          cache: 'pip'
-
-      - name: Install cibuildwheel for windows
-        run: |
-          python -m pip install cibuildwheel==3.1.0
-
       - name: Restore cibuildwheel cache
         id: cache
         uses: actions/cache@v6
@@ -561,10 +551,10 @@ jobs:
           mkdir -p /c/vcpkg/archives
           echo "::warning::Prepared Windows dependencies not found in the cache; building them from scratch"
 
+      # Same cibuildwheel action and version as build_wheels, so that
+      # Dependabot keeps all platforms in step. It brings its own Python.
       - name: Build wheels for windows
-        run: |
-          python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
-          python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: cp${{ matrix.python }}-win_amd64
           CIBW_PLATFORM: windows
@@ -576,6 +566,9 @@ jobs:
             cmake.define.AL_BACKEND_MDSPLUS=OFF
             cmake.define.AL_BACKEND_UDA=${{ env.AL_BACKEND_UDA }}
           # cmake.args="--debug-find;--debug-output"
+        with:
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
 
       - uses: actions/upload-artifact@v7
         with:
