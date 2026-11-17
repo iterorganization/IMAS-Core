@@ -412,12 +412,11 @@ jobs:
     name: Prepare Windows vcpkg dependencies
     runs-on: windows-2022
     env:
-      # The before-build script's default (matrix.UDA_REF was never exported to
-      # the Windows build environment, so Windows has always built this
-      # version); pinned explicitly here because it is part of the cache key.
-      UDA_REF: "2.8.1"
       VCPKG_ROOT: C:/vcpkg
       VCPKG_TARGET_TRIPLET: x64-windows
+      # vcpkg's binary cache (one zip per built package, named by its ABI
+      # hash). Must match build_wheels_windows.env.
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg\archives
     outputs:
       cache-key: ${{ steps.key.outputs.key }}
     defaults:
@@ -428,67 +427,60 @@ jobs:
 
       - name: Compute content-addressed cache key
         id: key
-        # Key covers the manifest (vcpkg.json), the dependency-install script,
-        # the triplet, the UDA ref, and the runner's vcpkg baseline commit —
-        # any of these changing invalidates the prepared tree. A prefix match
-        # only reuses downloads; the exact key is what wheel jobs consume.
+        # Key covers the manifest (vcpkg.json), the triplet and the runner's
+        # vcpkg commit. The wheel jobs restore the exact key.
         run: |
           vcpkg_commit=$(git -C /c/vcpkg rev-parse HEAD 2>/dev/null || echo unknown)
-          echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-uda${UDA_REF}-${{ hashFiles('vcpkg.json', 'ci/wheels/cibw_before_build_win.sh') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
+          echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-${{ hashFiles('vcpkg.json') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
 
-      - name: Restore vcpkg installed tree and downloads
+      - name: Restore vcpkg binary cache and downloads
         id: cache
         uses: actions/cache/restore@v6
         with:
           path: |
-            C:\vcpkg\installed
+            C:\vcpkg\archives
             C:\vcpkg\downloads
           key: ${{ steps.key.outputs.key }}
-          # A prefix hit is only used to reuse the downloads; the installed
-          # tree is discarded in the next step.
+          # A prefix hit is safe to reuse: vcpkg only uses an archive whose ABI
+          # hash matches the package it is building, and verifies each download
+          # by SHA512. Anything outdated is rebuilt or re-fetched.
           restore-keys: |
-            win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-uda${{ env.UDA_REF }}-
+            win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-
 
-      - name: Discard the installed tree from a partial cache hit
-        # A prefix hit comes from a different key (script, manifest or vcpkg
-        # baseline changed). Its installed packages and uda-cpp.pc would make
-        # vcpkg and the UDA build skip, and the stale tree would then be saved
-        # under the new exact key. Downloads are kept: vcpkg verifies each one
-        # by SHA512 and the script checks the UDA archive before using it.
-        if: steps.cache.outputs.cache-hit != 'true' && steps.cache.outputs.cache-matched-key != ''
-        run: rm -rf /c/vcpkg/installed
-
-      - name: Install the pinned dependency closure (cold cache only)
+      - name: Build the vcpkg.json dependencies (cold cache only)
         if: steps.cache.outputs.cache-hit != 'true'
-        # The same script every wheel job runs as CIBW before-build; running it
-        # here keeps a single source of truth for the closure. It is idempotent
-        # within this job: vcpkg skips packages installed by a previous attempt
-        # and the UDA build is skipped once uda-cpp.pc is installed, so the
-        # retry loop below resumes where the last attempt left off. The backoff
-        # exists because vcpkg's own retries are seconds apart: a rate-limiting
+        # Installs the manifest the same way the vcpkg CMake toolchain does in
+        # each wheel build, so the archives it writes are the ones the wheel
+        # builds look up. The install root is throwaway: only the binary cache
+        # and downloads are kept. vcpkg skips packages it already built, so the
+        # retry loop resumes where the last attempt left off. The backoff exists
+        # because vcpkg's own retries are seconds apart: a rate-limiting
         # upstream (HTTP 429 from gitlab.dkrz.de for libaec, issue #44) needs
         # minutes for its window to reset.
         run: |
+          mkdir -p /c/vcpkg/archives
           for attempt in 1 2 3 4 5; do
-            if bash ./ci/wheels/cibw_before_build_win.sh; then
+            if /c/vcpkg/vcpkg.exe install --triplet "${VCPKG_TARGET_TRIPLET}" \
+                --x-manifest-root="${GITHUB_WORKSPACE}" \
+                --x-install-root="${RUNNER_TEMP}/vcpkg_installed"; then
               exit 0
             fi
             echo "Dependency install attempt ${attempt} failed (upstream rate limit?); backing off $((attempt * 90))s"
             sleep $((attempt * 90))
           done
-          echo "FATAL: dependency closure install failed after 5 attempts"
+          echo "FATAL: dependency install failed after 5 attempts"
           exit 1
 
-      - name: Save vcpkg installed tree and downloads
+      - name: Save vcpkg binary cache and downloads
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: |
-            C:\vcpkg\installed
+            C:\vcpkg\archives
             C:\vcpkg\downloads
           key: ${{ steps.key.outputs.key }}
 
-      - name: Check that the prepared tree is in the cache
+      - name: Check that the prepared dependencies are in the cache
         # actions/cache/save only warns when the save fails (e.g. another run
         # is creating the same key, or the repo cache quota is exceeded). Look
         # the key up so that case is visible here; the wheel jobs then fall
@@ -497,14 +489,14 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: |
-            C:\vcpkg\installed
+            C:\vcpkg\archives
             C:\vcpkg\downloads
           key: ${{ steps.key.outputs.key }}
           lookup-only: true
 
-      - name: Warn if the prepared tree is not cached
+      - name: Warn if the prepared dependencies are not cached
         if: steps.verify.outputs.cache-hit != 'true'
-        run: echo "::warning::Prepared Windows dependency tree is not in the cache (key ${{ steps.key.outputs.key }}); Windows wheel jobs will install dependencies themselves"
+        run: echo "::warning::Prepared Windows dependencies are not in the cache (key ${{ steps.key.outputs.key }}); Windows wheel jobs will build them themselves"
 
   build_wheels_windows:
     name: build_wheels (Python ${{ matrix.python }}, win_amd64)
@@ -520,11 +512,12 @@ jobs:
       # The UDA backend is not built on Windows yet; the before-build script
       # reads this too and then skips the UDA dependencies and build.
       AL_BACKEND_UDA: "OFF"
+      # Must match windows_deps.env. Recent changes in GitHub Actions Cache's
+      # API have rendered vcpkg's x-gha binary caching provider useless (see
+      # https://github.com/microsoft/vcpkg-tool/pull/1662), so the archives
+      # built by windows_deps are shared through actions/cache instead.
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg\archives
 
-    # Recent changes in GitHub Actions Cache's API have rendered the x-gha
-    # binary caching provider useless.
-    # See https://github.com/microsoft/vcpkg-tool/pull/1662 — vcpkg reuse is
-    # instead provided by the windows_deps job's prepared-tree cache above.
     steps:
       - uses: actions/checkout@v7
         with:
@@ -554,25 +547,25 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: |
-            C:\vcpkg\installed
+            C:\vcpkg\archives
             C:\vcpkg\downloads
           key: ${{ needs.windows_deps.outputs.cache-key }}
-          # Exact key only: a prefix match could restore a stale installed tree.
 
-      - name: Warn on a cold Windows dependency tree
+      - name: Warn on cold Windows dependencies
         # windows_deps saved this key in the same run unless its save failed
         # (it warns about that). Building cold is slower and fetches from
         # upstream, but it is better than failing the wheel and publish jobs.
         if: steps.deps.outputs.cache-hit != 'true'
         shell: bash
-        run: echo "::warning::Prepared Windows dependency tree not found in the cache; building dependencies from scratch"
+        run: |
+          mkdir -p /c/vcpkg/archives
+          echo "::warning::Prepared Windows dependencies not found in the cache; building them from scratch"
 
       - name: Build wheels for windows
         run: |
           python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
           python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
         env:
-          UDA_REF: "2.8.1"  # keep in sync with windows_deps.env.UDA_REF
           CIBW_BUILD: cp${{ matrix.python }}-win_amd64
           CIBW_PLATFORM: windows
           CIBW_ARCHS: AMD64
