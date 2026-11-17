@@ -80,19 +80,30 @@ else
 # the windows_deps CI job caches C:\vcpkg\downloads, so each wheel job restores
 # the archive instead of re-fetching it from GitHub (issue #44). A fresh
 # download is copied back there so the cache saved by that job includes it.
+# Every archive is checked with `tar tzf` before use, so an HTML error page or
+# a truncated file (from a previous attempt or a cache) is discarded and
+# re-fetched instead of failing every retry the same way.
+UDA_TARBALL="${UDA_REF}.tar.gz"
 UDA_TARBALL_CACHE="${VCPKG_ROOT}/downloads/UDA-${UDA_REF}.tar.gz"
-if ! test -f ${UDA_REF}.tar.gz ;then
-    if test -f "${UDA_TARBALL_CACHE}" ;then
-        cp "${UDA_TARBALL_CACHE}" ${UDA_REF}.tar.gz
+valid_tarball() { test -s "$1" && tar tzf "$1" >/dev/null 2>&1; }
+if ! valid_tarball "${UDA_TARBALL}" ;then
+    rm -f "${UDA_TARBALL}"
+    if valid_tarball "${UDA_TARBALL_CACHE}" ;then
+        cp "${UDA_TARBALL_CACHE}" "${UDA_TARBALL}"
     else
-        curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${UDA_REF}.tar.gz
+        rm -f "${UDA_TARBALL_CACHE}" "${UDA_TARBALL}.part"
+        curl -fL --retry 3 -o "${UDA_TARBALL}.part" \
+            "https://github.com/ukaea/UDA/archive/refs/tags/${UDA_REF}.tar.gz"
+        valid_tarball "${UDA_TARBALL}.part"
+        mv "${UDA_TARBALL}.part" "${UDA_TARBALL}"
         mkdir -p "${VCPKG_ROOT}/downloads"
-        cp ${UDA_REF}.tar.gz "${UDA_TARBALL_CACHE}"
+        cp "${UDA_TARBALL}" "${UDA_TARBALL_CACHE}"
     fi
 fi
-if ! test -d UDA-${UDA_REF} ;then
-tar zxf ${UDA_REF}.tar.gz
-fi
+# Always extract into a fresh tree: a previous attempt may have left a
+# partially extracted or partially built UDA-${UDA_REF}/ behind.
+rm -rf "UDA-${UDA_REF}"
+tar zxf "${UDA_TARBALL}"
 if test -d UDA-${UDA_REF} ;then
 (
     cd UDA-${UDA_REF}
