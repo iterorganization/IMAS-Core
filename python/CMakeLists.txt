@@ -110,14 +110,24 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   )
 endif()
 
-install(
-  TARGETS al
-  DESTINATION imas_core.libs
-  RUNTIME_DEPENDENCIES	
-    DIRECTORIES ${LIBRARY_DIRS}
-    PRE_EXCLUDE_REGEXES   
-      "api-ms-" # VC Redistibutable DLLs
-      "ext-ms-" # Windows extension DLLs
-    POST_EXCLUDE_REGEXES ${POST_EXCLUDE_PATTERNS}
-)
+# Bundle libal's dependencies for a self-contained wheel. Prefix installs
+# (CMake-driven, e.g. EasyBuild/Spack) already provide them, and resolving them
+# fails when the same library is found in two places (e.g. two XZ installs).
+option(AL_BUNDLE_RUNTIME_DEPS
+       "Copy the runtime dependencies of libal into imas_core.libs" ON)
+
+if(AL_BUNDLE_RUNTIME_DEPS)
+  install(
+    TARGETS al
+    DESTINATION imas_core.libs
+    RUNTIME_DEPENDENCIES
+      DIRECTORIES ${LIBRARY_DIRS}
+      PRE_EXCLUDE_REGEXES
+        "api-ms-" # VC Redistibutable DLLs
+        "ext-ms-" # Windows extension DLLs
+      POST_EXCLUDE_REGEXES ${POST_EXCLUDE_PATTERNS}
+  )
+else()
+  install(TARGETS al DESTINATION imas_core.libs)
+endif()
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)

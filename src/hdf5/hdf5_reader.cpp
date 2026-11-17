@@ -422,7 +422,8 @@ void HDF5Reader::getTimeVector(OperationContext *opCtx, std::unique_ptr<HDF5Data
         double *time_vector = nullptr;
         hsSelectionReader.allocateInhomogeneousTimeDataSet((void **)&time_vector, timed_AOS_index);
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index != -1);
-        herr_t status = H5Dread(data_set->dataset_id, H5Dget_type(data_set->dataset_id),
+        // Use hsSelectionReader.dtype_id instead of creating H5Dget_type() which needs to close the type handle manually.
+        herr_t status = H5Dread(data_set->dataset_id, hsSelectionReader.dtype_id,
                                 hsSelectionReader.memspace,
                                 hsSelectionReader.dataspace, H5P_DEFAULT,
                                 time_vector);
@@ -908,9 +909,9 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         if (datatype != alconst::char_data)
-            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
         else
-            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&next_slice_data);
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&next_slice_data);
 
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
 
@@ -1275,10 +1276,13 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
     const std::string &tensorized_path = field_tensorized_path + "_SHAPE";
     std::unique_ptr<HDF5DataSetHandler> data_set;
 
-    if (isOpenedShapesDataSet)
+    // instead of cheking the flag isOpenedShapesDataSetFirst check in the cache if  
+    // opened_shapes_data_sets is available and use it and then remove non empty entry
+    auto got = opened_shapes_data_sets.find(tensorized_path);
+    if (got != opened_shapes_data_sets.end())
     {
-        data_set = std::move(opened_shapes_data_sets[tensorized_path]);
-        opened_shapes_data_sets.erase(tensorized_path);
+        data_set = std::move(got->second);
+        opened_shapes_data_sets.erase(got);
     }
     else
     {
@@ -1327,10 +1331,13 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
     std::vector<int> aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end());
     hid_t dataset_id = -1;
     std::unique_ptr<HDF5DataSetHandler> data_set;
-    if (isOpenedShapesDataSet)
+    // instead of cheking the flag isOpenedShapesDataSetFirst check in the cache if  
+    // opened_shapes_data_sets is available and use it and then remove non empty entry
+    auto got = opened_shapes_data_sets.find(tensorized_path);
+    if (got != opened_shapes_data_sets.end())
     {
-        data_set = std::move(opened_shapes_data_sets[tensorized_path]);
-        opened_shapes_data_sets.erase(tensorized_path);
+        data_set = std::move(got->second);
+        opened_shapes_data_sets.erase(got);
         dataset_id = data_set->dataset_id;
     }
     else
@@ -1369,7 +1376,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
     HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
     hsSelectionReader.setHyperSlabs(GLOBAL_OP, false, isTimed, -1, timed_AOS_index, aos_indices);
     hsSelectionReader.allocateBuffer(shapes, GLOBAL_OP, false, isTimed, -1);
-    herr_t status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
 
     if (status < 0)
     {
