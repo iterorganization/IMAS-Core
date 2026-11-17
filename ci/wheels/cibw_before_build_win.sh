@@ -71,8 +71,10 @@ vcpkg install --classic ${UDA_DEPS[@]}
 
 # Skip the UDA fetch+build entirely when a restored dependency cache already
 # provides the installed client (uda-cpp.pc is the last artifact the install
-# produces); the windows_deps CI job's cache key includes UDA_REF and this
-# script's hash, so a version bump still rebuilds from a cold cache (issue #44).
+# produces). The windows_deps CI job only restores an installed tree on an
+# exact cache-key hit (key covers UDA_REF and this script's hash); on a
+# partial hit it discards the installed tree, so any change here rebuilds
+# UDA (issue #44).
 if test -f "${USEFUL_CMAKE_INSTALL_PREFIX}/lib/pkgconfig/uda-cpp.pc" ;then
     echo "UDA already installed under ${USEFUL_CMAKE_INSTALL_PREFIX} (restored cache) - skipping UDA build"
 else

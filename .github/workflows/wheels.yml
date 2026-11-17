@@ -430,8 +430,8 @@ jobs:
         id: key
         # Key covers the manifest (vcpkg.json), the dependency-install script,
         # the triplet, the UDA ref, and the runner's vcpkg baseline commit —
-        # any of these changing invalidates the prepared tree. restore-keys
-        # allow warm partial reuse; the exact key is what wheel jobs consume.
+        # any of these changing invalidates the prepared tree. A prefix match
+        # only reuses downloads; the exact key is what wheel jobs consume.
         run: |
           vcpkg_commit=$(git -C /c/vcpkg rev-parse HEAD 2>/dev/null || echo unknown)
           echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-uda${UDA_REF}-${{ hashFiles('vcpkg.json', 'ci/wheels/cibw_before_build_win.sh') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
@@ -447,16 +447,25 @@ jobs:
           restore-keys: |
             win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-uda${{ env.UDA_REF }}-
 
+      - name: Discard the installed tree from a partial cache hit
+        # A prefix hit comes from a different key (script, manifest or vcpkg
+        # baseline changed). Its installed packages and uda-cpp.pc would make
+        # vcpkg and the UDA build skip, and the stale tree would then be saved
+        # under the new exact key. Downloads are kept: vcpkg verifies each one
+        # by SHA512 and the script checks the UDA archive before using it.
+        if: steps.cache.outputs.cache-hit != 'true' && steps.cache.outputs.cache-matched-key != ''
+        run: rm -rf /c/vcpkg/installed
+
       - name: Install the pinned dependency closure (cold cache only)
         if: steps.cache.outputs.cache-hit != 'true'
         # The same script every wheel job runs as CIBW before-build; running it
         # here keeps a single source of truth for the closure. It is idempotent
-        # against a partially restored tree: vcpkg skips installed packages and
-        # the UDA build is skipped when uda-cpp.pc is already installed — which
-        # also makes the retry loop below resume where the last attempt left
-        # off. The backoff exists because vcpkg's own retries are seconds
-        # apart: a rate-limiting upstream (HTTP 429 from gitlab.dkrz.de for
-        # libaec, issue #44) needs minutes for its window to reset.
+        # within this job: vcpkg skips packages installed by a previous attempt
+        # and the UDA build is skipped once uda-cpp.pc is installed, so the
+        # retry loop below resumes where the last attempt left off. The backoff
+        # exists because vcpkg's own retries are seconds apart: a rate-limiting
+        # upstream (HTTP 429 from gitlab.dkrz.de for libaec, issue #44) needs
+        # minutes for its window to reset.
         run: |
           for attempt in 1 2 3 4 5; do
             if bash ./ci/wheels/cibw_before_build_win.sh; then
