@@ -33,6 +33,17 @@ printenv | sort
 
 # UDA installation (until installation is available packaged...)
 # ####################################################################
+# Only needed when the wheel is built with the UDA backend. The project's own
+# dependencies (vcpkg.json) are installed by the vcpkg CMake toolchain.
+AL_BACKEND_UDA="${AL_BACKEND_UDA:-ON}"
+case "${AL_BACKEND_UDA^^}" in
+    OFF|FALSE|NO|0)
+        echo "AL_BACKEND_UDA=${AL_BACKEND_UDA}: skipping UDA dependencies and build"
+        python -m pip install delvewheel wheel
+        exit 0
+        ;;
+esac
+
 UDA_REF="${UDA_REF:-2.8.1}"
 UDA_DEPS=(
     pkgconf
@@ -69,19 +80,15 @@ vcpkg install --classic ${UDA_DEPS[@]}
 # N.B. all the deps in vcpkgs.json will be installed (if missing) via vcpkg's cmake toolchain file
 
 
-# Skip the UDA fetch+build entirely when a restored dependency cache already
-# provides the installed client (uda-cpp.pc is the last artifact the install
-# produces). The windows_deps CI job only restores an installed tree on an
-# exact cache-key hit (key covers UDA_REF and this script's hash); on a
-# partial hit it discards the installed tree, so any change here rebuilds
-# UDA (issue #44).
+# Skip the UDA fetch+build when the client is already installed (uda-cpp.pc
+# is the last artifact the install produces), e.g. when this script is re-run
+# in the same job.
 if test -f "${USEFUL_CMAKE_INSTALL_PREFIX}/lib/pkgconfig/uda-cpp.pc" ;then
     echo "UDA already installed under ${USEFUL_CMAKE_INSTALL_PREFIX} (restored cache) - skipping UDA build"
 else
-# Reuse the UDA source archive from vcpkg's downloads directory when present:
-# the windows_deps CI job caches C:\vcpkg\downloads, so each wheel job restores
-# the archive instead of re-fetching it from GitHub (issue #44). A fresh
-# download is copied back there so the cache saved by that job includes it.
+# Reuse the UDA source archive from vcpkg's downloads directory when present
+# (C:\vcpkg\downloads may be restored from a CI cache). A fresh download is
+# copied back there so a cache saved afterwards includes it.
 # Every archive is checked with `tar tzf` before use, so an HTML error page or
 # a truncated file (from a previous attempt or a cache) is discarded and
 # re-fetched instead of failing every retry the same way.

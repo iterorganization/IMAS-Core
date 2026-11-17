@@ -516,6 +516,11 @@ jobs:
       matrix:
         python: [310, 311, 312, 313, 314]
 
+    env:
+      # The UDA backend is not built on Windows yet; the before-build script
+      # reads this too and then skips the UDA dependencies and build.
+      AL_BACKEND_UDA: "OFF"
+
     # Recent changes in GitHub Actions Cache's API have rendered the x-gha
     # binary caching provider useless.
     # See https://github.com/microsoft/vcpkg-tool/pull/1662 — vcpkg reuse is
@@ -576,7 +581,7 @@ jobs:
           CIBW_CONFIG_SETTINGS: >
             cmake.define.AL_BACKEND_HDF5=ON
             cmake.define.AL_BACKEND_MDSPLUS=OFF
-            cmake.define.AL_BACKEND_UDA=OFF
+            cmake.define.AL_BACKEND_UDA=${{ env.AL_BACKEND_UDA }}
           # cmake.args="--debug-find;--debug-output"
 
       - uses: actions/upload-artifact@v7
