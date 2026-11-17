@@ -119,18 +119,6 @@ if(WIN32)
   
   message(STATUS "al-core: CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
   
-  # Add cmake module path for FindPThreads4W.cmake fallback
-  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/common/cmake")
-  
-  # Try CONFIG mode first, fall back to MODULE mode
-  find_package(PThreads4W CONFIG QUIET)
-  if(NOT PThreads4W_FOUND)
-    message(STATUS "PThreads4W CONFIG not found, trying MODULE mode")
-    find_package(PThreads4W MODULE REQUIRED)
-  else()
-    message(STATUS "Found PThreads4W via CONFIG mode")
-  endif()
-  
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
 
@@ -167,6 +155,9 @@ find_package(
   COMPONENTS filesystem
   REQUIRED)
 
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+
 
 # Target
 # ##############################################################################
@@ -197,7 +188,7 @@ set(PUBLIC_HEADER_FILES
 # Define library target
 add_library(al SHARED)
 # Note: sources are added by the CMakeFiles in the src/ folder
-target_link_libraries(al PRIVATE Boost::filesystem)
+target_link_libraries(al PRIVATE Boost::filesystem Threads::Threads)
 set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Enable ASCII backend
@@ -206,7 +197,7 @@ target_compile_definitions(al PRIVATE -DASCII)
 if(NOT WIN32)
   target_link_libraries(al PRIVATE dl)
 else()
-  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads4W::PThreads4W ws2_32)
+  target_link_libraries(al PRIVATE dlfcn-win32::dl ws2_32)
 endif()
 
 add_subdirectory(src)

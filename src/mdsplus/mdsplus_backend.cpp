@@ -2,7 +2,7 @@
 
 #include <cstring>
 #include <string.h>
-#include <pthread.h>
+#include <mutex>
 #include <boost/filesystem.hpp>
 
 #include "mdsplus_backend.h"
@@ -20,7 +20,7 @@ using namespace boost::filesystem;
 //#define MDSPLUS_SEGMENT_SIZE 134144
 
 #define ERROR_MESSAGE_LEN 10000
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static std::mutex mutex;
 
 #define SEPARATORS "/.:[]"  /* separators for cpoPath */
 // User for passing path to MDSplus which are limited to 12 char
@@ -2593,30 +2593,30 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 ////////////////////////////////////////////////////////////////////////////////////
     MDSplus::Apd *MDSplusBackend::getApdFromContext(ArraystructContext *arrStructCtx)
     {
-	pthread_mutex_lock(&mutex);
+	mutex.lock();
 	MDSplus::Apd *arrStructData = NULL;
 	auto search = arrayStructCtxDataMap.find(arrStructCtx);
 	if (search!=arrayStructCtxDataMap.end())
 	  arrStructData = search->second;
 
-	pthread_mutex_unlock(&mutex);
+	mutex.unlock();
 	return arrStructData;
 
 	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
 	// {
 	//     if(arrayStructContextV[i] == arrStructCtx)
 	//     {
-	// 	pthread_mutex_unlock(&mutex);
+	// 	mutex.unlock();
 	// 	return arrayStructDataV[i];
 	//     }
 	// }
-	// pthread_mutex_unlock(&mutex);
+	// mutex.unlock();
 	// return NULL;
     }
     
     void MDSplusBackend::addContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
-	pthread_mutex_lock(&mutex);
+	mutex.lock();
 	auto search = arrayStructCtxDataMap.find(arrStructCtx);
 	if (search!=arrayStructCtxDataMap.end())
 	  {
@@ -2642,13 +2642,13 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	//   arrayStructContextV.push_back(arrStructCtx);
 	//   arrayStructDataV.push_back(arrStructData);
 	// }
-	pthread_mutex_unlock(&mutex);
+	mutex.unlock();
     }
     
     
     void MDSplusBackend::removeContextAndApd(ArraystructContext *arrStructCtx, MDSplus::Apd *arrStructData)
     {
-	pthread_mutex_lock(&mutex);
+	mutex.lock();
 	arrayStructCtxDataMap.erase(arrStructCtx);
 
 	// for(size_t i = 0; i < arrayStructContextV.size(); i++)
@@ -2659,7 +2659,7 @@ void MDSplusBackend::resetIdsPath(std::string strTree) {
 	// 	arrayStructDataV.erase(arrayStructDataV.begin()+i);
 	//     }
 	// }
-	pthread_mutex_unlock(&mutex);
+	mutex.unlock();
     }
 //////////Array of structures stuff	
     void MDSplusBackend::writeStaticApd(MDSplus::Apd *apd, std::string dataobjectPath, std::string path)
