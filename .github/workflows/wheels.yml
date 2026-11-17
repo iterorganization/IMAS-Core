@@ -436,14 +436,16 @@ jobs:
           vcpkg_commit=$(git -C /c/vcpkg rev-parse HEAD 2>/dev/null || echo unknown)
           echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-uda${UDA_REF}-${{ hashFiles('vcpkg.json', 'ci/wheels/cibw_before_build_win.sh') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
 
-      - name: Cache vcpkg installed tree and downloads
+      - name: Restore vcpkg installed tree and downloads
         id: cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: |
             C:\vcpkg\installed
             C:\vcpkg\downloads
           key: ${{ steps.key.outputs.key }}
+          # A prefix hit is only used to reuse the downloads; the installed
+          # tree is discarded in the next step.
           restore-keys: |
             win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-uda${{ env.UDA_REF }}-
 
@@ -476,6 +478,33 @@ jobs:
           done
           echo "FATAL: dependency closure install failed after 5 attempts"
           exit 1
+
+      - name: Save vcpkg installed tree and downloads
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Check that the prepared tree is in the cache
+        # actions/cache/save only warns when the save fails (e.g. another run
+        # is creating the same key, or the repo cache quota is exceeded). Look
+        # the key up so that case is visible here; the wheel jobs then fall
+        # back to a cold build instead of failing.
+        id: verify
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            C:\vcpkg\installed
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+          lookup-only: true
+
+      - name: Warn if the prepared tree is not cached
+        if: steps.verify.outputs.cache-hit != 'true'
+        run: echo "::warning::Prepared Windows dependency tree is not in the cache (key ${{ steps.key.outputs.key }}); Windows wheel jobs will install dependencies themselves"
 
   build_wheels_windows:
     name: build_wheels (Python ${{ matrix.python }}, win_amd64)
@@ -516,16 +545,22 @@ jobs:
           key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-win_amd64"
 
       - name: Restore prepared windows deps (read-only)
+        id: deps
         uses: actions/cache/restore@v6
         with:
           path: |
             C:\vcpkg\installed
             C:\vcpkg\downloads
           key: ${{ needs.windows_deps.outputs.cache-key }}
-          # The key was saved (or verified) by windows_deps in this same run; a
-          # miss means the prepared tree is unavailable and this job would fall
-          # back to a cold upstream fetch — the stampede issue #44 removes.
-          fail-on-cache-miss: true
+          # Exact key only: a prefix match could restore a stale installed tree.
+
+      - name: Warn on a cold Windows dependency tree
+        # windows_deps saved this key in the same run unless its save failed
+        # (it warns about that). Building cold is slower and fetches from
+        # upstream, but it is better than failing the wheel and publish jobs.
+        if: steps.deps.outputs.cache-hit != 'true'
+        shell: bash
+        run: echo "::warning::Prepared Windows dependency tree not found in the cache; building dependencies from scratch"
 
       - name: Build wheels for windows
         run: |
