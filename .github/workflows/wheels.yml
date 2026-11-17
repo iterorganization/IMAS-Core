@@ -168,7 +168,7 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
-          - os: macos-26
+          - os: macos-15
             triplet: arm64-osx
             python: 310
             platform_id: macosx_arm64
@@ -179,7 +179,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
 
-          - os: macos-26
+          - os: macos-15
             triplet: arm64-osx
             python: 311
             platform_id: macosx_arm64
@@ -190,7 +190,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
         
-          - os: macos-26
+          - os: macos-15
             triplet: arm64-osx
             python: 312
             platform_id: macosx_arm64
@@ -201,7 +201,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: macos-26
+          - os: macos-15
             triplet: arm64-osx
             python: 313
             platform_id: macosx_arm64
@@ -212,7 +212,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: macos-26
+          - os: macos-15
             triplet: arm64-osx
             python: 314
             platform_id: macosx_arm64
