@@ -494,14 +494,14 @@ jobs:
                 -DSSLAUTHENTICATION=ON \
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
-                -DMACOSX_DEPLOYMENT_TARGET=14.0 \
+                -DMACOSX_DEPLOYMENT_TARGET=26.0 \
                 -DCMAKE_CXX_FLAGS=-Wno-error=deprecated-declarations \
                 -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
-            MACOSX_DEPLOYMENT_TARGET=14.0
+            MACOSX_DEPLOYMENT_TARGET=26.0
             CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
             PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
