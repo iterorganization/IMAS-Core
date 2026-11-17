@@ -66,6 +66,11 @@ Backend specific environment variables
     performance and best size of cache is heavily depending on the data.
 
 
+``HDF5_BACKEND_READ_BUFFER_MAX`` [#uri_precedence]_
+    Largest dataset in MB that read buffering may load in memory at once;
+    larger datasets are read per request. Default is 0 (no limit).
+
+
 ``HDF5_BACKEND_WRITE_CACHE`` [#uri_precedence]_
     Specify the size of the write cache in MB (default is 100). It may improve
     writing performance at the cost of increased memory consumption. Obtained
