@@ -52,7 +52,7 @@ jobs:
           else
             VERSION=dev
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build documentation
         env:
