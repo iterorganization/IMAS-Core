@@ -225,7 +225,7 @@ jobs:
     
           # Windows wheels are built by the dedicated build_wheels_windows job
           # below: they share a vcpkg dependency tree prepared once by the
-          # windows_deps job (issue #44), and keeping them in this matrix would
+          # windows_deps job, and keeping them in this matrix would
           # force `needs: windows_deps` onto the Linux/macOS legs too.
 
     steps:
@@ -399,7 +399,7 @@ jobs:
           path: wheelhouse/*.whl
           retention-days: 1
 
-  # Issue #44: prepare the pinned x64-windows vcpkg dependency closure ONCE,
+  # Prepare the pinned x64-windows vcpkg dependency closure ONCE,
   # then let every Windows wheel job restore it read-only. Previously all five
   # cold matrix jobs independently ran vcpkg against the same upstream source
   # hosts and the same mutable cache key: a rate-limited host (HTTP 429 from
@@ -455,7 +455,7 @@ jobs:
         # and downloads are kept. vcpkg skips packages it already built, so the
         # retry loop resumes where the last attempt left off. The backoff exists
         # because vcpkg's own retries are seconds apart: a rate-limiting
-        # upstream (HTTP 429 from gitlab.dkrz.de for libaec, issue #44) needs
+        # upstream (HTTP 429 from gitlab.dkrz.de for libaec) needs
         # minutes for its window to reset.
         run: |
           mkdir -p /c/vcpkg/archives
