@@ -37,13 +37,16 @@ option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
 
 option(AL_BUILD_TESTS "Build the C/C++ low-level ABI smoke tests (tests/)" OFF)
 
-option(AL_PLUGINS "Build the access layer plugins from IMAS-Core-Plugins" OFF)
-set(AL_PLUGINS_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-Core-Plugins.git"
-    CACHE STRING "Git repository of IMAS-Core-Plugins")
-set(AL_PLUGINS_VERSION "develop"
-    CACHE STRING "IMAS-Core-Plugins version (tag, branch or commit) to use for this build")
-set(AL_PLUGINS_SOURCE_DIR ""
-    CACHE PATH "Local IMAS-Core-Plugins checkout to use instead of downloading it")
+# IMAS-Core-Plugin configurations
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  option(AL_PLUGINS "Build the access layer plugins from IMAS-Core-Plugins" OFF)
+  set(AL_PLUGINS_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-Core-Plugins.git"
+      CACHE STRING "Git repository of IMAS-Core-Plugins")
+  set(AL_PLUGINS_VERSION "main"
+      CACHE STRING "IMAS-Core-Plugins version (tag, branch or commit) to use for this build")
+  set(AL_PLUGINS_SOURCE_DIR ""
+      CACHE PATH "Local IMAS-Core-Plugins checkout to use instead of downloading it")
+endif()
 
 # When ON, the al C++ library is not built here; instead it is located with
 # find_package(al-core CONFIG). Enables a two-stage build where libimas-core
@@ -236,7 +239,7 @@ endif()
 # Access layer plugins (opt-in)
 # ##############################################################################
 # The plugins link against the `al` target defined above.
-if( AL_PLUGINS )
+if( AL_PLUGINS AND PROJECT_IS_TOP_LEVEL )
   include(FetchContent)
   if( AL_PLUGINS_SOURCE_DIR )
     message(STATUS "al-plugins: using local source ${AL_PLUGINS_SOURCE_DIR}")

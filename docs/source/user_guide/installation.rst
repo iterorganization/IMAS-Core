@@ -250,7 +250,7 @@ Configuration options
 
         -   ``AL_PLUGINS_GIT_REPOSITORY``, default
             ``https://github.com/iterorganization/IMAS-Core-Plugins.git``.
-        -   ``AL_PLUGINS_VERSION``, default ``develop``. Any branch name, tag or
+        -   ``AL_PLUGINS_VERSION``, default ``main``. Any branch name, tag or
             commit hash.
         -   ``AL_PLUGINS_SOURCE_DIR``, default empty. Path to a local checkout of
             IMAS-Core-Plugins; when set, nothing is downloaded.

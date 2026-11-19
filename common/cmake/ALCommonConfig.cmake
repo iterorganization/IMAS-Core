@@ -37,7 +37,7 @@ if( AL_DOWNLOAD_DEPENDENCIES )
       CACHE STRING "Git repository of al-plugins"
     )
     set(
-      AL_PLUGINS_VERSION "develop"
+      AL_PLUGINS_VERSION "main"
       CACHE STRING "al-plugins version (tag or branch name) to use for this build"
     )
   endif()
