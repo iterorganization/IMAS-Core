@@ -1,115 +1,95 @@
 # AGENTS.md - IMAS-Core
 
-Low-level IMAS Access Layer (AL core): a stable C ABI over a C++17 core with
-pluggable storage backends and Cython/Python bindings. It reads/writes IMAS IDS
-data addressed by Data Dictionary (DD) paths. **The active strategic effort is
-the DD-version-agnostic migration — read `NORTH_STAR.md` before making
-architectural changes.** A structural overview with diagrams lives in
-`IMAS_CORE_STRUCTURE_MINDMAP.md`.
+Guidance for AI coding assistants working on this repository, and a useful
+summary for human contributors too. Most changes here are still written by
+developers directly; assistants support that work and follow the same rules.
 
-## Agent skills
+IMAS-Core is the low-level IMAS Access Layer (AL core): a stable C ABI over a
+C++17 core, with pluggable storage backends and Cython/Python bindings. It
+reads and writes IMAS IDS data addressed by Data Dictionary (DD) paths, but it
+is DD-version-agnostic: DD semantics belong to the high-level interfaces
+(HLIs) and the DD tooling, not to this repository.
 
-### Issue tracker
+Start with `README.md`, `CONTRIBUTING.md` and the developer documentation in
+`docs/source/developers/`.
 
-GitHub Issues on the `origin` fork `yohannmarguier/IMAS-Core` (via the `gh` CLI); external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+## Repository layout
 
-### Triage labels
+- `include/`: public C ABI (`al_lowlevel.h`, `al_defs.h.in`, ...).
+- `src/`: C++ core (`al_lowlevel.cpp`, `al_context.cpp`, `al_backend.cpp`,
+  plugin manager) and the backends: `hdf5/`, `mdsplus/`, `uda/`,
+  `memory_backend.*`, `ascii_backend.*`, `flexbuffers_backend.*`.
+- `python/`: Cython bindings (`imas_core/`) and pytest suite (`tests/`).
+- `tests/`: C/C++ low-level ABI smoke tests.
+- `models/mdsplus/`, `common/cmake/`: MDSplus model generation and shared
+  CMake logic.
+- `docs/`: Sphinx documentation.
+- Vendored code: `src/flatbuffers/` and most of `src/uda/` (pugixml). Don't
+  edit or reformat it, and don't count it when sizing the code base.
 
-Canonical vocabulary, no overrides: `needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`, plus `bug` / `enhancement`. See `docs/agents/triage-labels.md`.
+## Architecture constraints
 
-### Domain docs
-
-Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-
-## Key architecture facts (audited 2026-07, develop @ 24bd5bc)
-
-- **DD paths are opaque strings through the whole C ABI** (`al_read_data` /
-  `al_write_data`, `include/al_lowlevel.h:487-489`). The caller (HLI) drives
-  tree traversal node-by-node and owns all DD semantics. The core has no
+- **DD paths are opaque strings through the whole C ABI** (`al_read_data`,
+  `al_write_data` in `include/al_lowlevel.h`). The caller drives the tree
+  traversal node by node and owns all DD semantics. The core has no
   per-DD-version logic.
-- **The compile-time DD version is deprecated on purpose**:
-  `include/al_defs.h.in:57` sets `DD_VERSION "!!DEPRECATED!!"` and
-  `python/tests/test_imasdef.py` asserts it stays that way. Do not reintroduce
-  compile-time DD coupling anywhere.
-- **Backend coupling status:** HDF5, memory, ASCII, and flexbuffers are fully
-  DD-agnostic. Only two backends are DD-coupled:
-  - **MDSplus** — consumes a binary model tree baked from one `IDSDef.xml` at
-    build time (`models/mdsplus/`, `common/cmake/ALBuildDataDictionary.cmake`),
-    selected at runtime via `MDSPLUS_MODELS_PATH`; DD version stored in tree
-    node `VERSION:DATA_DICT` (`src/mdsplus/mdsplus_backend.cpp:5377-5389`).
-  - **UDA** — loads `IDSDef.xml` at runtime from `$IDSDEF_PATH` and walks it
-    for types/ranks/timebases (`src/uda/uda_xml.cpp:73-280`).
-- The DD version of stored data lives only in the ordinary string field
-  `ids_properties/version_put/data_dictionary`, written by the HLI; no backend
-  except UDA interprets any DD version.
-- **HDF5 layout:** master file + per-IDS files; one "tensorized" dataset per
-  leaf DD path (`/` → `&` in names), AOS flattened with a leading index
-  dimension plus `_SHAPE` companion datasets. HDF5 stores a backend-format
-  version (1.0), not the DD version.
-- **Performance shape:** the per-node `Backend` contract is the bottleneck; no
-  general subtree/bulk read exists (`al_begin_global_action`'s `datapath` arg
-  is ignored by HDF5, MDSplus, Memory, ASCII, and Flexbuffers). **UDA is the
-  one living exception**: in remote mode with `cache_mode=ids`, `UDABackend`
-  reads `datapath` to scope which paths `populate_cache()` requests from the
-  server (`src/uda/uda_backend.cpp:1016-1031`, characterized in
-  `tests/contract/test_uda_unique_surface.cpp`, issue #26). Slice mode
-  disables HDF5 buffering
-  (`src/hdf5/hdf5_dataset_handler.cpp:733`). Every read/write calls
-  `getenv("IMAS_AL_ENABLE_PLUGINS")` (`src/al_lowlevel.cpp:108`). Python reads
-  are zero-copy; Python writes copy twice (`_al_lowlevel.pyx:615-631`).
-- **No benchmarks exist in-repo**; C++ tests are frameworkless executables in
-  `tests/`, Python tests are pytest in `python/tests` (configured in
-  `pyproject.toml`).
+- **The compile-time DD version is deprecated on purpose**: `DD_VERSION` is
+  `"!!DEPRECATED!!"` in `include/al_defs.h.in`, and
+  `python/tests/test_imasdef.py` asserts it. Don't reintroduce compile-time DD
+  coupling.
+- **Backend DD coupling:** HDF5, memory, ASCII and flexbuffers are fully
+  DD-agnostic. Only two backends depend on a DD version:
+  - MDSplus uses a model tree built from one `IDSDef.xml` at build time
+    (`models/mdsplus/`), selected at runtime with `MDSPLUS_MODELS_PATH`.
+  - UDA loads `IDSDef.xml` at runtime from `$IDSDEF_PATH` (`src/uda/uda_xml.cpp`).
+- The DD version of stored data is only the string field
+  `ids_properties/version_put/data_dictionary`, written by the HLI.
+- **The C ABI is a public contract** used by several HLIs. Keep it stable:
+  changes must be backward-compatible and additive.
+- **On-disk formats are contracts too.** HDF5 uses a master file plus one file
+  per IDS, with one "tensorized" dataset per leaf path (`/` becomes `&` in
+  names). Arrays of structures are flattened with a leading index dimension
+  and `_SHAPE` companion datasets. HDF5 stores a backend format version, not a
+  DD version. A layout change can make existing data unreadable.
+- **Performance shape:** the per-node `Backend` interface is the main cost,
+  and there is no general subtree/bulk read. Every read and write checks
+  `IMAS_AL_ENABLE_PLUGINS`. Python reads are zero-copy; Python writes copy the
+  data.
 
-## DD version landscape (from the imas-dd tool suite)
+## Build and test
 
-- 35 DD versions in circulation, 3.22.0 → 4.1.1. Within-major changes are
-  almost purely additive (4.0.0→4.1.1: zero breaking); the 3→4 major boundary
-  is the cliff (894 breaking changes, 81 IDSs, COCOS 11→17).
-- Equilibrium example: 585 paths (DD3) → 641 (DD4); the 3→4 transition has 143
-  rename chains (`j_tor→j_phi`, `bpol_probe→b_field_pol_probe`,
-  `psi_axis→psi_magnetic_axis`, …) **and 32 COCOS sign flips** — so
-  cross-version mapping requires value transforms, not just path renames.
-  Getting a sign flip wrong silently corrupts physics; strict mapping is the
-  default in the north star design.
+- CMake ≥ 3.21: `cmake -B build && cmake --build build -j2`. Dependencies come
+  from vcpkg or the system (HDF5, Boost). Main options: `AL_BACKEND_HDF5` (ON),
+  `AL_BACKEND_MDSPLUS`, `AL_BACKEND_UDA`, `AL_PYTHON_BINDINGS`,
+  `AL_BUILD_TESTS` (all OFF by default). `AL_BUILD_MDSPLUS_MODELS=ON` is the
+  only build path that downloads the DD.
+- Python wheel: `pip install .` (scikit-build-core).
+- Tests: `ctest` in the build directory for C/C++ (configure with
+  `-DAL_BUILD_TESTS=ON`); `pytest` for Python (`testpaths` = `python/tests`).
+- Builds are often run on shared machines: keep parallel jobs low (`-j2`)
+  unless the developer asks for more.
 
-## Operating patterns for agents
+## Contribution rules (humans and assistants)
 
-- **Use the `imas-dd` MCP tools** for anything DD-related; never guess paths
-  or version behaviour. Most useful: `get_dd_versions`,
-  `get_ids_summary(ids, dd_version=3|4)`,
-  `get_dd_migration_guide(from, to, ids_filter=..., summary_only=True)` (full
-  output can be ~300 k chars — start with `summary_only` and grep the saved
-  overflow file), `get_dd_version_context(change_type_filter='path_renamed',
-  follow_rename_chains=True)` for rename lineages, `check_dd_paths` to
-  validate paths.
-- `src/uda/` line counts are misleading: it is mostly vendored pugixml.
-  Vendored code also in `src/flatbuffers/`. Effective own-code base is ~28 k
-  LOC.
-- Build: CMake ≥3.21 (`cmake -B build && cmake --build build`); deps via vcpkg
-  or system (HDF5, Boost::filesystem; MDSplus/UDA backends optional, OFF by
-  default). Python wheel via scikit-build-core (`pip install .`); MDSplus
-  models build (`AL_BUILD_MDSPLUS_MODELS=ON`) is the only build path that
-  downloads the DD.
-- Tests: `ctest` in the build dir for C++; `pytest` (rooted at `python/tests`)
-  for Python.
-- Default branch and PR target is `develop`.
+- Follow `CONTRIBUTING.md`: discuss the change in an issue on
+  `iterorganization/IMAS-Core`, branch off `develop`, and open the pull request
+  against `develop`.
+- Keep pull requests small and single-purpose, so a human can review them. Don't
+  mix a bug fix with refactoring, reformatting or new test infrastructure.
+  Explain *why* in commit and PR messages, not only what.
+- Every bug fix or behaviour change comes with a test that fails before the
+  change and passes after it. Run `ctest` and `pytest` locally before pushing,
+  and keep `tests/` building.
+- Don't commit build outputs, local benchmark results, IDE settings, personal
+  files or tool caches.
+- The developer who submits a change is responsible for it and must understand
+  it, whatever produced the code. Mark AI-assisted commits with an
+  `Assisted-by: <tool>/<model>` trailer, not with `Co-Authored-By`.
+- Never guess DD paths or DD version behaviour. Check the DD documentation, or
+  use the `imas-dd` MCP server if it is available.
 
-## North star migration — where to contribute
+## Maintaining this file
 
-Phased plan, effort, and decided design points are in `NORTH_STAR.md` §9/§11.
-Standing decisions to respect: keep the C ABI stable and additive; store data
-as-written and convert on read; version knowledge ships as data artifacts
-(schema pack + map artifacts), never compiled in; equilibrium is the pilot
-IDS; TDD — every phase starts with its tests (characterization tests and the
-benchmark harness are Phase 0 and gate everything else).
-
-## graphify
-
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- Name files, functions and symbols, not `file:line` locations, which go stale.
+- Only reference files that exist in this repository, and keep the content
+  generic: no personal workflows, forks or tool setups.
