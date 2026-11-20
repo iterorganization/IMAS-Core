@@ -235,8 +235,25 @@ Configuration options
 
     -   ``AL_TESTS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         building the test programs in the ``tests`` folder.
-    -   ``AL_PLUGINS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
-        building the plugins from the ``al-plugins`` repository.
+    -   ``AL_PLUGINS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
+        building the access layer plugins from the
+        `IMAS-Core-Plugins <https://github.com/iterorganization/IMAS-Core-Plugins>`__
+        repository. The plugins are downloaded at configure time and built together
+        with the IMAS-Core library, for example:
+
+        .. code-block:: bash
+
+            cmake -B build -D AL_PLUGINS=ON
+            cmake --build build
+
+        The following options control where the plugins are taken from:
+
+        -   ``AL_PLUGINS_GIT_REPOSITORY``, default
+            ``https://github.com/iterorganization/IMAS-Core-Plugins.git``.
+        -   ``AL_PLUGINS_VERSION``, default ``main``. Any branch name, tag or
+            commit hash.
+        -   ``AL_PLUGINS_SOURCE_DIR``, default empty. Path to a local checkout of
+            IMAS-Core-Plugins; when set, nothing is downloaded.
     -   ``AL_DOCS_ONLY``, allowed values ``ON`` or ``OFF`` *(default)*. When enabled,
         ONLY the documentation will be built (needs ``AL_HLI_DOCS=ON``). Regardless of
         other configuration options, nothing else will be built.

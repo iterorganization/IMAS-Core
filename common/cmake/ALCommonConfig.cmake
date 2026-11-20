@@ -33,7 +33,7 @@ if( AL_DOWNLOAD_DEPENDENCIES )
     # AL plugins
     ##############################################################################
     set(
-      AL_PLUGINS_GIT_REPOSITORY "ssh://git@git.iter.org/imas/al-plugins.git"
+      AL_PLUGINS_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-Core-Plugins.git"
       CACHE STRING "Git repository of al-plugins"
     )
     set(
