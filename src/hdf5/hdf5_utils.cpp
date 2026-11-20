@@ -807,3 +807,17 @@ void HDF5Utils::readOptions(uri::Uri uri, bool *compression_enabled, bool *readB
       *write_cache = (size_t) (atof(value.c_str()) * 1024 * 1024);
     }
 }
+
+void HDF5Utils::readMaxReadBufferOption(uri::Uri uri, size_t *max_read_buffer) {
+    // Size limit (MiB) of a dataset that read buffering may load in full, 0 = no limit.
+    // The URI option takes precedence over the environment variable.
+    char* env_value = getenv("HDF5_BACKEND_READ_BUFFER_MAX");
+    if (env_value != NULL && atof(env_value) >= 0)
+        *max_read_buffer = (size_t) (atof(env_value) * 1024 * 1024);
+    uri::OptionalValue option = uri.query.get("hdf5_read_buffer_max");
+    if (option) {
+      double value = atof(option.value().c_str());
+      if (value >= 0)
+        *max_read_buffer = (size_t) (value * 1024 * 1024);
+    }
+}

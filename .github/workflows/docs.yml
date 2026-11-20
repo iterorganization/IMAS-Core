@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0  # Fetch full history for git describe to work
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -52,7 +52,7 @@ jobs:
           else
             VERSION=dev
           fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build documentation
         env:

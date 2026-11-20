@@ -9,6 +9,14 @@ list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFIX")
 string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
 cmake_path(SET Python_EXECUTABLE ${Python_EXECUTABLE})
 
+# libal and its dependencies are installed in the prefix, so the wheel need not
+# bundle them, except on Windows which has no rpath to find them there.
+if(WIN32)
+  set(BUNDLE_RUNTIME_DEPS ON)
+else()
+  set(BUNDLE_RUNTIME_DEPS OFF)
+endif()
+
 
 if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
   install(CODE "execute_process(
@@ -18,6 +26,7 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
 	SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag} 
 	SKBUILD_EDITABLE_REBUILD=true
 	SKBUILD_EDITABLE_VERBOSE=false
+	AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
         ${Python_EXECUTABLE} 
           -m pip install 
           --no-build-isolation 
@@ -25,7 +34,6 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
 	  )")
   return()
 endif()
-
 
 set(PIP_OPTIONS "--verbose" "--no-deps") 
 if(${AL_PYTHON_BINDINGS} MATCHES "^no-build-isolation$")
@@ -43,6 +51,7 @@ if(AL_USE_INSTALLED_CORE)
       ${CMAKE_COMMAND} -E env
       CMAKE_ARGS=${CMAKE_ARGS}
       SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+      AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
       ${Python_EXECUTABLE}
         -m pip wheel
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -56,6 +65,7 @@ else()
         ${CMAKE_COMMAND} -E env
         CMAKE_ARGS=${CMAKE_ARGS}
         SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+        AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
         ${Python_EXECUTABLE}
           -m pip wheel
           ${CMAKE_CURRENT_SOURCE_DIR}

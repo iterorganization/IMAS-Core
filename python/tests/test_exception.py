@@ -7,7 +7,8 @@ import imas_core
 
 @pytest.mark.parametrize(
     "message, status",
-    itertools.product(["an exception", "another exception"], [None, -3, 44]),
+    # list, not iterator: iterator argvalues are deprecated since pytest 9.1
+    list(itertools.product(["an exception", "another exception"], [None, -3, 44])),
 )
 def test_ALException(message, status):
     match = message

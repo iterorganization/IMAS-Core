@@ -175,12 +175,10 @@ int HDF5HsSelectionReader::allocateBuffer(void **data, int slice_mode, bool is_d
              throw ALBackendException(error_message, LOG);
         }
     } else {
-        data = (void **) malloc(sizeof(char *) * this->size[0]);
-        if (data == nullptr) {
-             char error_message[200];
-             sprintf(error_message, "Unable to allocate memory.\n");
-             throw ALBackendException(error_message, LOG);
-        }
+        // Variable-length strings: H5Dread allocates them and stores the pointer in *data,
+        // so nothing is allocated here (the previous malloc was assigned to the local
+        // parameter and leaked).
+        // https://support.hdfgroup.org/documentation/hdf5/latest/group___h5_d.html#ga8287d5a7be7b8e55ffeff68f7d26811c
     }
     return buffer;
 }

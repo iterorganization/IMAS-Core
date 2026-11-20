@@ -5,10 +5,6 @@
       "platform": "windows"
     },
     "hdf5",
-    {
-      "name": "pthreads",
-      "platform": "windows"
-    },
     "boost-algorithm",
     "boost-filesystem",
     "boost-variant",
