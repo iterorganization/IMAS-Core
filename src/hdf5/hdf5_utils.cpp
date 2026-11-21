@@ -52,17 +52,21 @@ int
     if (!debug)
         H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
-    if (! (mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE))
+    if (! (mode == OPEN_PULSE || mode == FORCE_OPEN_PULSE || mode == OPEN_R || mode == OPEN_RP))
         throw ALBackendException("HDF5Backend: unexepcted mode in HDF5Utils::openPulse()", LOG);
 
     if (*file_id != -1)
         hdf5_utils.closeMasterFile(file_id);
 
     switch (mode) {
+        case OPEN_R:
+            hdf5_utils.openMasterFile(file_id, pulseFilePath, false, true);
+            break;
         case OPEN_PULSE:
             hdf5_utils.openMasterFile(file_id, pulseFilePath);
             break;
         case FORCE_OPEN_PULSE:
+        case OPEN_RP:
             if (!exists(pulseFilePath.c_str())) {
                 return -1;
             }
@@ -70,6 +74,8 @@ int
                 hdf5_utils.openMasterFile(file_id, pulseFilePath);
             }
             break;
+        default:
+            throw ALBackendException("Mode not yet supported", LOG);
     }
 
     const char *backend_version_attribute_name = "HDF5_BACKEND_VERSION";
@@ -146,16 +152,22 @@ void
     switch (mode) {
         case FORCE_OPEN_PULSE:
         case CREATE_PULSE:
+        case OPEN_X:
             if (!exists(pulseFilePath.c_str())) {
                 hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
-            }
-            else {
+            } else {
                 char error_message[200];
                 sprintf(error_message, "HDF5 master file: %s already exists. Use FORCE_CREATE_PULSE instead.\n", pulseFilePath.c_str());
                 throw ALBackendException(error_message, LOG);
             }
             break;
+        case OPEN_A:
+            if (!exists(pulseFilePath.c_str())) {
+                hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
+            }
+            break;
         case FORCE_CREATE_PULSE:
+        case OPEN_W:
             hdf5_utils.deleteMasterFile(pulseFilePath, file_id, opened_IDS_files, files_directory, relative_file_path);
             hdf5_utils.createMasterFile(ctx, pulseFilePath, file_id, backend_version);
             break;
@@ -258,9 +270,19 @@ void HDF5Utils::createIDSFile(OperationContext * ctx, std::string &IDSpulseFile,
 
 }
 
-void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only, std::string backend_version) {
+void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, hid_t *IDS_file_id, bool try_read_only, std::string backend_version, bool read_only) {
     if (!exists(IDSpulseFile.c_str()))
 	    return;
+    if (read_only) {
+        // whole pulse is opened read-only (OPEN_R): open the IDS file read-only directly
+        *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        if (*IDS_file_id < 0) {
+            char error_message[200];
+            sprintf(error_message, "Unable to open external file in Read-Only mode for IDS: %s.\n", ctx->getDataobjectName().c_str());
+            throw ALBackendException(error_message, LOG);
+        }
+        return;
+    }
     *IDS_file_id = H5Fopen(IDSpulseFile.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
     if (*IDS_file_id < 0) {
         if(try_read_only) {
@@ -300,7 +322,7 @@ void HDF5Utils::openIDSFile(OperationContext * ctx, std::string &IDSpulseFile, h
     }
 }
 
-void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool for_deletion) { //open master file
+void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool for_deletion, bool read_only) { //open master file
     if (*file_id != -1)
       return;
     if (!exists(filePath)) {
@@ -309,11 +331,22 @@ void HDF5Utils::openMasterFile(hid_t *file_id, const std::string &filePath, bool
         throw ALBackendException(message, LOG);
     }
 
-    *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT); 
+    if (read_only) {
+        *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        if (*file_id < 0) {
+            std::string message("Unable to open HDF5 master file read-only: ");
+            message += filePath;
+            throw ALBackendException(message, LOG);
+        }
+        return;
+    }
+
+    *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
 
     if (*file_id < 0) { //have a try now in read only access
         *file_id = H5Fopen(filePath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-        if (*file_id < 0) {
+        if (*file_id < 0)
+        {
             if (for_deletion) {
                 remove(filePath.c_str());
                 printf("WARNING: The HDF5 master file '%s' was corrupted and re-created, but linked \
@@ -453,7 +486,8 @@ std::string HDF5Utils::getPulseFilePath(DataEntryContext * ctx, int mode, int st
     relative_file_path = MASTER_FILE_NAME;
 
     try {
-        if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+        if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE
+            || mode == OPEN_W || mode == OPEN_X || mode == OPEN_A || mode == OPEN_RP) {
          if (!exists(files_directory.c_str()))
             create_directories(files_directory.c_str());
         }
@@ -647,7 +681,7 @@ hid_t HDF5Utils::openHDF5Group(const std::string & path, const hid_t & parent_lo
 }
 
 void HDF5Utils::open_IDS_group(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, 
-hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id)
+hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative_file_path, hid_t *IDS_group_id, int access_mode)
 {
     std::string IDS_link_name = ctx->getDataobjectName();
     std::replace(IDS_link_name.begin(), IDS_link_name.end(), '/', '_');
@@ -658,7 +692,7 @@ hid_t > &opened_IDS_files, std::string & files_directory, std::string & relative
 
     if (IDS_file_id == -1) {
         std::string IDS_pulse_file = getIDSPulseFilePath(files_directory, relative_file_path, IDS_link_name);
-        openIDSFile(ctx, IDS_pulse_file, &IDS_file_id, true);
+        openIDSFile(ctx, IDS_pulse_file, &IDS_file_id, true, "", access_mode == OPEN_R);
         opened_IDS_files[IDS_link_name] = IDS_file_id;
     }
 

@@ -871,6 +871,9 @@ al_status_t al_begin_dataentry_action(const std::string uri, int mode, int *dect
     switch (mode) {
     case alconst::open_pulse:
     case alconst::force_open_pulse:
+    case alconst::open_r:
+    case alconst::open_rp:
+    case alconst::open_a:
       std::pair<int,int> ver = lle.backend->getVersion(NULL);
       std::pair<int,int> sver = lle.backend->getVersion(pctx);
       if ((ver.first!=sver.first)||(ver.second<sver.second))

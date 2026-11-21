@@ -114,28 +114,53 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   if (filename) {
     this->fullpath  = this->dbname + "/" + filename.value();
   }
-  if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
-      std::string message("Unable to open data-entry, file does not exist: ");
-      message += this->fullpath;
+  const char* dbfolder = this->dbname.c_str();
+
+  // Handle OPEN_X and OPEN_R/OPEN_RP checks BEFORE creating directory
+  if (mode == OPEN_X) {
+    boost::filesystem::path path(this->dbname);
+    if (boost::filesystem::exists(path)) {
+      std::string message("ASCII pulse directory already exists (OPEN_X): ");
+      message += this->dbname;
       throw ALBackendException(message, LOG);
+    }
+  }
+
+  if (mode == OPEN_R || mode == OPEN_RP) {
+    if (!boost::filesystem::exists(dbfolder)) {
+      std::string message("ASCII pulse directory not found (");
+      message += (mode == OPEN_R) ? "OPEN_R" : "OPEN_RP";
+      message += "): ";
+      message += dbfolder;
+      throw ALBackendException(message, LOG);
+    }
+  }
+
+  if (!this->fullpath.empty() && mode == OPEN_PULSE && !boost::filesystem::exists(this->fullpath)) {
+    std::string message("Unable to open data-entry, file does not exist: ");
+    message += this->fullpath;
+    throw ALBackendException(message, LOG);
   } else {
-    const char* dbfolder = this->dbname.c_str();
-    if (mode == OPEN_PULSE && !boost::filesystem::is_directory(dbfolder)) {
+    if (mode == OPEN_PULSE && !boost::filesystem::is_directory(this->dbname)) {
       std::string message("Unable to open data-entry, directory does not exist: ");
       message += dbfolder;
       throw ALBackendException(message, LOG);
     }
     try {
-      if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE) {
+      if (mode == CREATE_PULSE || mode == FORCE_CREATE_PULSE || mode == FORCE_OPEN_PULSE
+       || mode == OPEN_W || mode == OPEN_X || mode == OPEN_A) {
         if (!boost::filesystem::exists(dbfolder))
           boost::filesystem::create_directories(dbfolder);
       }
+      // OPEN_RP does not create directory - it requires existing file (read-write access)
     } catch (std::exception & e) {
       std::string message("Unable to create data-entry directory: ");
       message += dbfolder;
       throw ALBackendException(message, LOG);
     }
   }
+
+  this->access_mode = mode;
 
   /* options not needed anymore?
   n = options.find("-prefix ");
@@ -151,14 +176,9 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
     ss >> this->suffix;
   }
   */
-
-  
-  
 }
 
-
-
-  void AsciiBackend::closePulse(DataEntryContext *ctx,
+void AsciiBackend::closePulse(DataEntryContext *ctx,
 			      int mode)
 {
   this->pulsefile.close();
@@ -166,6 +186,7 @@ void AsciiBackend::openPulse(DataEntryContext *ctx,
   //this->suffix = "";
   this->fullpath = "";
   this->dbname = "";
+  this->access_mode = 0;
 }
 
 
@@ -210,6 +231,10 @@ void AsciiBackend::beginAction(OperationContext *ctx)
   if (this->pulsefile.is_open()) {
     std::cerr << "IDS pulsefile already opened!\n";
     throw ALBackendException("IDS pulsefile "+this->fname+" is already open",LOG);
+  }
+
+  if (this->access_mode == OPEN_R && ctx->getAccessmode() == WRITE_OP) {
+    throw ALBackendException("ASCII Backend: write operation rejected - file opened in READ_ONLY mode (OPEN_R)", LOG);
   }
 
   switch(ctx->getAccessmode()) {

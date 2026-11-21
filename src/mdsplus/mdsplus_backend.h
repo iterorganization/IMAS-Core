@@ -74,6 +74,7 @@ class IMAS_CORE_LIBRARY_API MDSplusBackend:public Backend
     void disassembleData(MDSplus::Data *data, void **retDataPtr, int *datatype, int *retNumDims, int *retDims);
     int getMdsShot(int shot, int run, bool translate, std::string strTree);
     void resetIdsPath(std::string strTree);
+    void createPulseTree(const std::string &szTree, int shotNum, const std::string &mdsplusBaseStr, const char *szOption);
     void setDataEnv(DataEntryContext * ctx); 
     int getSliceNumItems(int numDims, int *dims);
     int getSliceSize(MDSplus::TreeNode *node, void *data, int datatype, int numDims, int *dims, bool isMultiple = true);

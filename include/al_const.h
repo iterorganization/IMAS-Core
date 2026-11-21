@@ -70,6 +70,11 @@ namespace alconst {
   const int force_create_pulse = FORCE_CREATE_PULSE;
   const int close_pulse = CLOSE_PULSE;
   const int erase_pulse = ERASE_PULSE;
+  const int open_r = OPEN_R;
+  const int open_w = OPEN_W;
+  const int open_x = OPEN_X;
+  const int open_a = OPEN_A;
+  const int open_rp = OPEN_RP;
     
   const int char_data = CHAR_DATA;
   const int integer_data = INTEGER_DATA;

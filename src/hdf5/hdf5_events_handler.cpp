@@ -16,6 +16,9 @@ void
 HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unordered_map < std::string, hid_t > &opened_IDS_files, HDF5Writer & writer, HDF5Reader & reader, std::string & files_directory, std::string & relative_file_path, int access_mode)
 {
 	if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == GLOBAL_OP) {
+		if (access_mode == OPEN_R) {
+			throw ALBackendException("HDF5Backend: write operation rejected - file opened in READ_ONLY mode", LOG);
+		}
 		writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		writer.setSliceMode(GLOBAL_OP);
 	} else if (ctx->getAccessmode() == WRITE_OP && ctx->getRangemode() == SLICE_OP) {
@@ -42,12 +45,15 @@ HDF5EventsHandler::beginAction(OperationContext * ctx, hid_t file_id, std::unord
 			call_put_required = true;
 		}
 		if (call_put_required) {
+			if (access_mode == OPEN_R) {
+				throw ALBackendException("HDF5Backend: write operation rejected - file opened in READ_ONLY mode", LOG);
+			}
 			writer.setSliceMode(GLOBAL_OP);
 			writer.create_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);	
 		}
 		
 	} else if (ctx->getAccessmode() == READ_OP) {
-		reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path);
+		reader.open_IDS_group(ctx, file_id, opened_IDS_files, files_directory, relative_file_path, access_mode);
 		reader.setSliceMode(ctx);
 	}
 }

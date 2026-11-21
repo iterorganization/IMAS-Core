@@ -8,6 +8,7 @@
 #define OP_RANGE_0                  20
 #define OP_ACCESS_0                 30
 #define ACCESS_PULSE_0              40
+#define OPEN_PULSE_0                70
 #define DATA_TYPE_0                 50
 #define SERIALIZER_PROTOCOL_0       60
 #define ERR_0                       -1
@@ -33,6 +34,13 @@
 #define FORCE_CREATE_PULSE          ACCESS_PULSE_0+3
 #define CLOSE_PULSE                 ACCESS_PULSE_0+4
 #define ERASE_PULSE                 ACCESS_PULSE_0+5
+
+// new filesystem-compatible open modes
+#define OPEN_R                      OPEN_PULSE_0    // read-only
+#define OPEN_W                      OPEN_PULSE_0+1  // write + remove all existing data
+#define OPEN_X                      OPEN_PULSE_0+2  // write + fail if file already exists
+#define OPEN_A                      OPEN_PULSE_0+3  // write + keep existing data + create entry if not exists
+#define OPEN_RP                     OPEN_PULSE_0+4  // write + keep existing data + fail if file doesn't exists
     
 #define CHAR_DATA                   DATA_TYPE_0
 #define INTEGER_DATA                DATA_TYPE_0+1

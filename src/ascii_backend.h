@@ -35,6 +35,7 @@ private:
   std::string dbname;
   std::string fname; 
   bool writemode;
+  int access_mode = 0;
   std::string idsname;
   std::stringstream curcontent;
   std::map<std::string, std::streampos> curcontent_map;
