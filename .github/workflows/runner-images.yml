@@ -1,0 +1,56 @@
+name: Runner images
+
+on:
+  # Weekly, matching the cadence in .github/dependabot.yml
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: runner-images
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check macOS runner images
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 ci/runner_image_check.py \
+            --apply \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --report-out "$RUNNER_TEMP/runner-image-report.md" \
+            --github-output "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        if: steps.check.outputs.bump_required == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.check.outputs.branch }}
+          OLDEST: ${{ steps.check.outputs.oldest_macos }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add .github/workflows pyproject.toml
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "ci: build macOS wheels on ${OLDEST}"
+          git push --force origin "$BRANCH"
+          # Pull requests opened with GITHUB_TOKEN do not trigger other workflows.
+          if [ -z "$(gh pr list --head "$BRANCH" --json number --jq '.[].number')" ]; then
+            gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BRANCH" \
+              --title "ci: build macOS wheels on ${OLDEST}" \
+              --body-file "$RUNNER_TEMP/runner-image-report.md"
+          fi
