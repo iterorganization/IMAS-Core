@@ -14,6 +14,34 @@
 #define HOMOGENEOUS_TIME_FIELD_NAME "ids_properties&homogeneous_time"
 #define HOMOGENEOUS_TIME_BASIS_FIELD_NAME "time"
 
+namespace
+{
+    OperationContext *operationContextOf(Context *ctx)
+    {
+        return (ctx->getType() == CTX_ARRAYSTRUCT_TYPE)
+                   ? static_cast<ArraystructContext *>(ctx)->getOperationContext()
+                   : static_cast<OperationContext *>(ctx);
+    }
+
+    // Decides whether read buffering may load a dataset in full for this read.
+    //
+    // Read buffering reads a whole dataset once and serves the next requests from memory.
+    // That is only worth it when the whole dataset is read, i.e. in a get() (GLOBAL_OP).
+    // get_sample() (TIMERANGE_OP) also runs with slice_mode == GLOBAL_OP, so before this
+    // check it buffered the *_SHAPE datasets of dynamic AOSs for all stored time slices,
+    // although only the requested slices are used. With many slices (e.g. GGD data) this
+    // took tens of GB and minutes, even for a single requested time.
+    //
+    // Rule: always allowed in a get(); in get_slice()/get_sample() only for datasets without
+    // a time dimension (static data, read entirely anyway). Time-dependent data is then read
+    // per request with a hyperslab, so memory no longer grows with the number of stored slices.
+    // See HDF5DataSetHandler::readData() for the buffering conditions and HDF5 references.
+    bool fullReadBufferingAllowed(Context *ctx, int timed_AOS_index, bool is_dynamic)
+    {
+        return operationContextOf(ctx)->getRangemode() == GLOBAL_OP || (timed_AOS_index == -1 && !is_dynamic);
+    }
+}
+
 HDF5Reader::HDF5Reader(std::string backend_version_)
     : backend_version(backend_version_), opened_data_sets(), opened_shapes_data_sets(), aos_opened_shapes_data_sets(), existing_data_sets(),
       tensorized_paths_per_context(), tensorized_paths_per_op_context(), arrctx_shapes_per_context(), homogeneous_time(-1),
@@ -422,7 +450,8 @@ void HDF5Reader::getTimeVector(OperationContext *opCtx, std::unique_ptr<HDF5Data
         double *time_vector = nullptr;
         hsSelectionReader.allocateInhomogeneousTimeDataSet((void **)&time_vector, timed_AOS_index);
         hsSelectionReader.setHyperSlabsGlobalOp(current_arrctx_indices, timed_AOS_index, timed_AOS_index != -1);
-        herr_t status = H5Dread(data_set->dataset_id, H5Dget_type(data_set->dataset_id),
+        // Use hsSelectionReader.dtype_id instead of creating H5Dget_type() which needs to close the type handle manually.
+        herr_t status = H5Dread(data_set->dataset_id, hsSelectionReader.dtype_id,
                                 hsSelectionReader.memspace,
                                 hsSelectionReader.dataspace, H5P_DEFAULT,
                                 time_vector);
@@ -778,7 +807,8 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
             // printf("NOT setting time range size to :%d\n", time_range_size);
         }
 
-        data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
+        data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data,
+                           fullReadBufferingAllowed(ctx, timed_AOS_index, is_dynamic));
         data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
     }
     else
@@ -867,7 +897,8 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         }
 
         data_set->selection_reader = std::move(hsSelectionReader);
-        data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data);
+        data_set->readData(current_arrctx_indices, datatype, *dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data,
+                           fullReadBufferingAllowed(ctx, timed_AOS_index, is_dynamic));
         data_set->selection_reader->getSize(size, slice_mode, is_dynamic);
     }
 
@@ -908,9 +939,9 @@ int HDF5Reader::read_ND_Data(Context *ctx, std::string &att_name, std::string &t
         hsSelectionReader.setHyperSlabs(slice_mode, is_dynamic, isTimed, slice_sup, timed_AOS_index, current_arrctx_indices);
         int buffer = hsSelectionReader.allocateBuffer(&next_slice_data, slice_mode, is_dynamic, isTimed, slice_sup);
         if (datatype != alconst::char_data)
-            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, next_slice_data);
         else
-            status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&next_slice_data);
+            status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, (char **)&next_slice_data);
 
         hsSelectionReader.getSize(size, slice_mode, is_dynamic);
 
@@ -1275,10 +1306,13 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
     const std::string &tensorized_path = field_tensorized_path + "_SHAPE";
     std::unique_ptr<HDF5DataSetHandler> data_set;
 
-    if (isOpenedShapesDataSet)
+    // instead of cheking the flag isOpenedShapesDataSetFirst check in the cache if  
+    // opened_shapes_data_sets is available and use it and then remove non empty entry
+    auto got = opened_shapes_data_sets.find(tensorized_path);
+    if (got != opened_shapes_data_sets.end())
     {
-        data_set = std::move(opened_shapes_data_sets[tensorized_path]);
-        opened_shapes_data_sets.erase(tensorized_path);
+        data_set = std::move(got->second);
+        opened_shapes_data_sets.erase(got);
     }
     else
     {
@@ -1310,7 +1344,8 @@ int HDF5Reader::readPersistentShapes_Get(Context *ctx, hid_t gid, const std::str
     }
 
     int dim = 1;
-    data_set->readData(current_arrctx_indices, alconst::integer_data, dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, shapes);
+    data_set->readData(current_arrctx_indices, alconst::integer_data, dim, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, shapes,
+                       fullReadBufferingAllowed(ctx, timed_AOS_index, is_dynamic));
     opened_shapes_data_sets[tensorized_path] = std::move(data_set);
     return 1;
 }
@@ -1327,10 +1362,13 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
     std::vector<int> aos_indices(current_arrctx_indices.begin(), current_arrctx_indices.end());
     hid_t dataset_id = -1;
     std::unique_ptr<HDF5DataSetHandler> data_set;
-    if (isOpenedShapesDataSet)
+    // instead of cheking the flag isOpenedShapesDataSetFirst check in the cache if  
+    // opened_shapes_data_sets is available and use it and then remove non empty entry
+    auto got = opened_shapes_data_sets.find(tensorized_path);
+    if (got != opened_shapes_data_sets.end())
     {
-        data_set = std::move(opened_shapes_data_sets[tensorized_path]);
-        opened_shapes_data_sets.erase(tensorized_path);
+        data_set = std::move(got->second);
+        opened_shapes_data_sets.erase(got);
         dataset_id = data_set->dataset_id;
     }
     else
@@ -1369,7 +1407,7 @@ int HDF5Reader::readPersistentShapes_GetSlice(Context *ctx,
     HDF5HsSelectionReader &hsSelectionReader = *(data_set->selection_reader);
     hsSelectionReader.setHyperSlabs(GLOBAL_OP, false, isTimed, -1, timed_AOS_index, aos_indices);
     hsSelectionReader.allocateBuffer(shapes, GLOBAL_OP, false, isTimed, -1);
-    herr_t status = H5Dread(dataset_id, H5Dget_type(dataset_id), hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
+    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, hsSelectionReader.memspace, hsSelectionReader.dataspace, H5P_DEFAULT, *shapes);
 
     if (status < 0)
     {
@@ -1428,7 +1466,8 @@ int HDF5Reader::readAOSPersistentShapes(Context *ctx, hid_t gid, const std::stri
     int dim = 1;
     if (!data_set->isRequestInExtent(aos_indices))
         return 0;
-    data_set->readData(aos_indices, alconst::integer_data, dim, slice_mode, false, timed_AOS_index != -1, timed_AOS_index, slice_index, shapes);
+    data_set->readData(aos_indices, alconst::integer_data, dim, slice_mode, false, timed_AOS_index != -1, timed_AOS_index, slice_index, shapes,
+                       fullReadBufferingAllowed(ctx, timed_AOS_index, false));
     aos_opened_shapes_data_sets[tensorized_path] = std::move(data_set);
     return 1;
 }

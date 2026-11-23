@@ -14,6 +14,11 @@
 
 #define READ_CHUNK_CACHE_SIZE 5*1024*1024
 #define WRITE_CHUNK_CACHE_SIZE 100*1024*1024
+// Largest dataset (MiB) that read buffering may load in full (URI option
+// hdf5_read_buffer_max, env HDF5_BACKEND_READ_BUFFER_MAX). Larger datasets are read per
+// element, which bounds the memory of a get() on very large files at some cost in speed.
+// 0 = no limit (default), so get() keeps its previous behaviour unless a limit is set.
+#define DEFAULT_MAX_READ_BUFFER_MIB 0
 
 typedef struct {
    double re;   /*real part */
@@ -64,6 +69,8 @@ class HDF5DataSetHandler {
     void readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
     void createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data);
     void readUsingHyperslabs(const std::vector < int >&current_arrctx_indices, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool read_strings);
+    bool fullBufferFits(HDF5HsSelectionReader & hsSelectionReader, size_t element_size) const;
+    void releaseBuffers();
 
   public:
 
@@ -80,6 +87,7 @@ class HDF5DataSetHandler {
     int buffer_length;
     bool compression_enabled;
     bool useBuffering;
+    size_t max_read_buffer_size; // bytes, 0 means no limit
     size_t chunk_cache_size;
     size_t write_chunk_cache_size;
     std::vector <std::vector<int> > requests_arrctx_indices;
@@ -90,8 +98,11 @@ class HDF5DataSetHandler {
     std::vector<double *> double_data_set_buffer;
 
     std::vector<char *> full_data_sets_buffers;
-    int * full_int_data_set_buffer;
-    double * full_double_data_set_buffer;
+    // Whole-dataset read buffers (and write buffers filled by fillFullBuffers()). These are
+    // std::vector (previously raw malloc pointers) so that they are always released, also when
+    // an exception is thrown, and an empty vector means "not buffered" instead of NULL.
+    std::vector<int> full_int_data_set_buffer;
+    std::vector<double> full_double_data_set_buffer;
 
     std::unique_ptr < HDF5HsSelectionReader > selection_reader;
 
@@ -149,7 +160,12 @@ class HDF5DataSetHandler {
     void appendToBuffer(const std::vector < int >&current_arrctx_indices, bool dataSetAlreadyOpened, int datatype, int dim, int slice_mode, int dynamic_AOS_slices_extension, char**p, void *data);
 
     //Reading operation
-    void readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data);
+    // allow_full_buffering: decided per read by the caller (see fullReadBufferingAllowed() in
+    // hdf5_reader.cpp). False when only part of the dataset is read in this operation (e.g. the
+    // requested slices of a dynamic AOS in get_sample()), so it must not be loaded in full.
+    // Passing it per call keeps useBuffering (the user option) unchanged, so the same cached
+    // handler behaves correctly for every kind of read.
+    void readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool allow_full_buffering);
 
 };
 

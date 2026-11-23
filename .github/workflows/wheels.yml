@@ -1,10 +1,15 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "develop", "main" ]
+    tags: [ "*" ]
+  pull_request:
+    branches: [ "develop" ]
 
 jobs:
   build_wheels:
-    name: build_wheels (Python ${{ matrix.python }}, ${{ matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
+    name: build_wheels (Python ${{ matrix.python }}, ${{ matrix.manylinux_image || matrix.platform_id }}, ${{ matrix.AL_BACKEND_HDF5 }}, ${{ matrix.AL_BACKEND_MDSPLUS }}, ${{ matrix.AL_BACKEND_UDA }})
     runs-on: ${{ matrix.os }}
     strategy:
       # Ensure that a wheel builder finishes even if another fails
@@ -54,6 +59,26 @@ jobs:
 
           - os: ubuntu-24.04
             triplet: x64-linux
+            python: 312
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux2014_x86_64
+            # We override the numpy version constraint for this old OS to numpy<2.5.1, as numpy 2.5.1
+            # introduced the GCC 10.3 requirement, whereas this manylinux image is built with GCC 10.2.1.
+            # See CIBW_BEFORE_ALL_LINUX below, where this constraints txt file is written.
+            cibw_build_frontend: "build; args: --dependency-constraints-txt /tmp/numpy-constraints.txt"
+            cibw_environment_linux: >-
+              CMAKE_GENERATOR="Unix Makefiles"
+              PKG_CONFIG_PATH="/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
             python: 313
             cibw_platform: linux
             cibw_archs: x86_64
@@ -143,7 +168,7 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
-          - os: macos-14
+          - os: macos-15
             triplet: arm64-osx
             python: 310
             platform_id: macosx_arm64
@@ -154,7 +179,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
 
-          - os: macos-14
+          - os: macos-15
             triplet: arm64-osx
             python: 311
             platform_id: macosx_arm64
@@ -165,7 +190,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
         
-          - os: macos-14
+          - os: macos-15
             triplet: arm64-osx
             python: 312
             platform_id: macosx_arm64
@@ -176,7 +201,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: macos-14
+          - os: macos-15
             triplet: arm64-osx
             python: 313
             platform_id: macosx_arm64
@@ -187,7 +212,7 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: macos-14
+          - os: macos-15
             triplet: arm64-osx
             python: 314
             platform_id: macosx_arm64
@@ -198,179 +223,106 @@ jobs:
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
     
-          - os: windows-2022
-            triplet: x64-windows
-            python: 310
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 311
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 312
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 313
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
-
-          - os: windows-2022
-            triplet: x64-windows
-            python: 314
-            platform_id: win_amd64
-            cibw_platform: windows
-            cibw_archs: AMD64
-            manylinux_image: windows
-            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
-            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
-            AL_BACKEND_UDA: AL_BACKEND_UDA=OFF
-            UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
+          # Windows wheels are built by the dedicated build_wheels_windows job
+          # below: they share a vcpkg dependency tree prepared once by the
+          # windows_deps job, and keeping them in this matrix would
+          # force `needs: windows_deps` onto the Linux/macOS legs too.
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
 
-      # Recent changes in GitHub Actions Cache's API have rendered the x-gha binary caching provider useless.
-      # See https://github.com/microsoft/vcpkg-tool/pull/1662
-      # - uses: actions/github-script@v7
-      #   if: startsWith(matrix.os, 'windows')
-      #   # requirement for vcpkg binary caching https://learn.microsoft.com/en-us/vcpkg/consume/binary-caching-github-actions-cache
-      #   with:
-      #     script: |
-      #       core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-      #       core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '')
-
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           # python installation used when to start cibuildwheel
           python-version: "3.12"
           cache: 'pip'
-
-      - name: Install cibuildwheel for windows
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          python -m pip install cibuildwheel==3.1.0
 
       - name: Restore cibuildwheel cache
         id: cache
         uses: actions/cache@v6
         with:
           path: |
-            ~\AppData\Local\pypa\cibuildwheel\Cache
             ~/Library/Caches/cibuildwheel
             ~/.cache/cibuildwheel
           # cf. CIBW_CACHE_PATH
           key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-${{ matrix.platform_id }}"
 
-      - name: Cache restore windows deps
-        if: startsWith(matrix.os, 'windows')
-        id: cache-win-deps
-        uses: actions/cache/restore@v6
-        env:
-          cache-name: win-deps
-        with:
-          path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-b  # this key is never hit (-a is).
-          restore-keys: |
-            ${{ matrix.os }}-${{ env.cache-name }}-a
-            ${{ matrix.os }}-${{ env.cache-name }}-
-
-      - name: Build wheels for windows
-        if: startsWith(matrix.os, 'windows')
-        run: |
-          python -c "import sys, pprint, cibuildwheel; pprint.pp(sys.path); pprint.pp(cibuildwheel)"
-          python -m cibuildwheel --output-dir wheelhouse --config-file pyproject.toml
-        env:
-          CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
-          CIBW_PLATFORM: ${{ matrix.cibw_platform }}
-          CIBW_ARCHS: ${{ matrix.cibw_archs }}
-          CIBW_BUILD_VERBOSITY: 1
-          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
-          CIBW_CONFIG_SETTINGS: >
-            cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
-            cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
-            cmake.define.${{ matrix.AL_BACKEND_UDA }}
-          # cmake.args="--debug-find;--debug-output"
-
-      - name: Cache store windows deps
-        # always(): also if previous step failed
-        # and also if steps.cache-win-deps.outputs.cache-hit == 'true'
-        # It is difficult to predict when the cache will be there (gha erases in time) and/or up to date (changes in the build),
-        # making it difficult to manually bump the version of the cache. So, instead, we will override the cache always, even if
-        # it was completely up to date and it sped up the Build wheels for windows job (above). The performance hit of storing
-        # the cache redundantly doesn't compare to the time it takes to rebuild vcpkg packages.
-        if: ${{ always()  && startsWith(matrix.os, 'windows') }}
-        id: cache-win-deps-save
-        uses: actions/cache/save@v6
-        env:
-          cache-name: win-deps
-        with:
-          path: C:\vcpkg\installed
-          key: ${{ matrix.os }}-${{ env.cache-name }}-a
-
-      - uses: pypa/cibuildwheel@v4.1.0
+      - uses: pypa/cibuildwheel@v4.3.5
         if: startsWith(matrix.os, 'ubuntu-')
         env:
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+          CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'build' }}
           CIBW_PLATFORM: ${{ matrix.cibw_platform }}
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_MANYLINUX_X86_64_IMAGE: ${{ matrix.manylinux_image }}
           CIBW_MANYLINUX_AARCH64_IMAGE: ${{ matrix.manylinux_image }}
+          # FIXME: on manylinux_2_28, the ninja package seems to be too old, producing this error:
+          # ninja: error: build.ninja:826: multiple outputs aren't (yet?) supported by depslog; 
+          # bring this up on the mailing list if it affects you; for now, trying not to use ninja.
+          CIBW_ENVIRONMENT_LINUX: ${{ matrix.cibw_environment_linux || 'CMAKE_GENERATOR="Unix Makefiles"' }}
           CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
 
           # Install system libraries
-          # NOTE: manylinux_2_28 is AlmaLinux 8 based, e.g. use yum/dnf
+          # NOTE: manylinux2014 is CentOS 7 based and needs source builds for
+          # newer C++ dependencies that are not available from the base repos.
+          # See https://github.com/ukaea/UDA/blob/main/.github/workflows/build_wheels.yml
+          # NOTE: manylinux_2_28 is AlmaLinux 8 based and can use newer RPMs.
           # NOTE: MDSplus RPMs are only distributed for x86_64, skip on other
           # architectures (the MDSplus backend is OFF for wheel builds anyway)
-          CIBW_BEFORE_ALL_LINUX: >
-            dnf update -y >&2;
-            dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
-            dnf -y install openssl-devel >&2;
-            dnf -y install ninja-build >&2;
-            dnf -y install boost1.78-devel >&2;
-            dnf -y install capnproto capnproto-devel >&2;
-            dnf -y install fmt fmt-devel >&2;
-            dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
-            dnf -y install libxslt >&2;
-            dnf -y install hdf5-devel >&2;
+          CIBW_BEFORE_ALL_LINUX: |
+            if [ "${{ matrix.manylinux_image }}" = "quay.io/pypa/manylinux2014_x86_64" ]; then
+              sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* >&2;
+              sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* >&2;
+              yum update -y >&2;
+              yum install -y wget openssl-devel libxml2-devel libtirpc-devel libxslt-devel zlib-devel >&2;
+              cd /tmp >&2;
+              wget https://github.com/fmtlib/fmt/archive/refs/tags/10.0.0.tar.gz >&2;
+              tar xzf 10.0.0.tar.gz >&2;
+              cd fmt-10.0.0 >&2;
+              cmake -B build -H. -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build -j --config Release --target install >&2;
+              cd /tmp >&2;
+              wget https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz >&2;
+              tar xzf v1.11.0.tar.gz >&2;
+              cd spdlog-1.11.0 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build -j --config Release --target install >&2;
+              cd /tmp >&2;
+              wget https://github.com/capnproto/capnproto/archive/refs/tags/v0.10.4.tar.gz >&2;
+              tar xzf v0.10.4.tar.gz >&2;
+              cd capnproto-0.10.4 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON >&2;
+              cmake --build build >&2;
+              cmake --install build >&2;
+              echo 'numpy<2.5.1' | tee /tmp/numpy-constraints.txt >&2;
+              cd /tmp >&2;
+              wget https://sourceforge.net/projects/boost/files/boost/1.80.0/boost_1_80_0.tar.gz >&2;
+              tar xzf boost_1_80_0.tar.gz >&2;
+              cd boost_1_80_0 >&2;
+              ./bootstrap.sh --prefix=/usr/local >&2;
+              ./b2 --without-python --prefix=/usr/local install >&2;
+              cd /tmp >&2;
+              wget https://github.com/HDFGroup/hdf5/archive/refs/tags/hdf5-1_14_3.tar.gz >&2;
+              tar xzf hdf5-1_14_3.tar.gz >&2;
+              cd hdf5-hdf5-1_14_3 >&2;
+              cmake -B build -H. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DHDF5_BUILD_CPP_LIB=OFF -DHDF5_BUILD_TOOLS=OFF >&2;
+              cmake --build build -j --config Release --target install >&2;
+              ldconfig >&2;
+              cd / >&2;
+            else
+              dnf update -y >&2;
+              dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
+              dnf -y install openssl-devel >&2;
+              dnf -y install ninja-build >&2;
+              dnf -y install boost1.78-devel >&2;
+              dnf -y install capnproto capnproto-devel >&2;
+              dnf -y install fmt fmt-devel >&2;
+              dnf -y install spdlog spdlog-devel libxml2-devel libtirpc-devel >&2;
+              dnf -y install libxslt >&2;
+              dnf -y install hdf5-devel >&2;
+            fi;
             curl -LO https://github.com/ukaea/UDA/archive/refs/tags/${{matrix.UDA_REF}}.tar.gz  >&2;
             tar zxf ${{matrix.UDA_REF}}.tar.gz  >&2;
             cd UDA-${{matrix.UDA_REF}}  >&2;
@@ -383,13 +335,6 @@ jobs:
             # cmake -G Ninja -B build . -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_LIBDIR:STRING=lib -DFMT_DOC:BOOL=OFF -DFMT_TEST:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=ON >&2 &&
             # cmake --build build --target install >&2 &&
             # cmake --install build >&2 && cd .. ;
-
-
-          # FIXME: on manylinux_2_28, the ninja package seems to be too old, producing this error:
-          # ninja: error: build.ninja:826: multiple outputs aren't (yet?) supported by depslog; bring this up on the mailing list if it affects you
-          # trying not to use ninja:
-          CIBW_ENVIRONMENT_LINUX: CMAKE_GENERATOR="Unix Makefiles"
-
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
@@ -400,9 +345,11 @@ jobs:
           output-dir: wheelhouse
           config-file: "{package}/pyproject.toml"
 
-      - uses: pypa/cibuildwheel@v4.1.0
+      - uses: pypa/cibuildwheel@v4.3.5
         if: startsWith(matrix.os, 'macos-')
         env:
+          # Minimum macOS supported by the wheels; also used for the UDA build.
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
           CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
           CIBW_PLATFORM: macos
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
@@ -414,6 +361,9 @@ jobs:
             cmake.define.${{ matrix.AL_BACKEND_UDA }}
 
           # Dependency installation into /tmp/imas-core-install
+          # UDA builds with -Werror and uses X509_cmp_time, deprecated in
+          # Homebrew's OpenSSL 4.0: don't turn deprecation warnings into errors
+          # (can be dropped once UDA_REF includes the upstream fix)
           CIBW_BEFORE_ALL_MACOS: >
             brew update >&2;
             brew install cmake pkg-config boost hdf5 libomp ninja fmt spdlog libxml2 openssl libmemcached >&2;
@@ -429,13 +379,14 @@ jobs:
                 -DSSLAUTHENTICATION=ON \
                 -DCLIENT_ONLY=ON \
                 -DENABLE_CAPNP=ON \
-                -DMACOSX_DEPLOYMENT_TARGET=14.0 \
+                -DMACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET \
+                -DCMAKE_CXX_FLAGS=-Wno-error=deprecated-declarations \
                 -DCMAKE_INSTALL_PREFIX=/tmp/imas-core-install >&2 &&
             cmake --build build --target install -j >&2;
 
           # Where to find the dependencies
           CIBW_ENVIRONMENT_MACOS: >
-            MACOSX_DEPLOYMENT_TARGET=14.0
+            MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
             CMAKE_PREFIX_PATH="/tmp/imas-core-install:/opt/homebrew:/usr/local"
             PKG_CONFIG_PATH="/tmp/imas-core-install/lib/pkgconfig:/opt/homebrew/lib/pkgconfig:/usr/local/lib/pkgconfig"
 
@@ -450,10 +401,187 @@ jobs:
           path: wheelhouse/*.whl
           retention-days: 1
 
+  # Prepare the pinned x64-windows vcpkg dependency closure ONCE,
+  # then let every Windows wheel job restore it read-only. Previously all five
+  # cold matrix jobs independently ran vcpkg against the same upstream source
+  # hosts and the same mutable cache key: a rate-limited host (HTTP 429 from
+  # gitlab.dkrz.de for libaec) failed the whole blocking workflow, and the five
+  # always-save steps raced on one key. Now a cold workflow downloads each
+  # source archive at most once (both C:\vcpkg\installed and the
+  # content-addressed C:\vcpkg\downloads are cached), and only this job ever
+  # saves the cache.
+  windows_deps:
+    name: Prepare Windows vcpkg dependencies
+    runs-on: windows-2022
+    env:
+      VCPKG_ROOT: C:/vcpkg
+      VCPKG_TARGET_TRIPLET: x64-windows
+      # vcpkg's binary cache (one zip per built package, named by its ABI
+      # hash). Must match build_wheels_windows.env.
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg\archives
+    outputs:
+      cache-key: ${{ steps.key.outputs.key }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute content-addressed cache key
+        id: key
+        # Key covers the manifest (vcpkg.json), the triplet and the runner's
+        # vcpkg commit. The wheel jobs restore the exact key.
+        run: |
+          vcpkg_commit=$(git -C /c/vcpkg rev-parse HEAD 2>/dev/null || echo unknown)
+          echo "key=win-deps-${VCPKG_TARGET_TRIPLET}-${{ hashFiles('vcpkg.json') }}-vcpkg-${vcpkg_commit}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vcpkg binary cache and downloads
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            C:\vcpkg\archives
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+          # A prefix hit is safe to reuse: vcpkg only uses an archive whose ABI
+          # hash matches the package it is building, and verifies each download
+          # by SHA512. Anything outdated is rebuilt or re-fetched.
+          restore-keys: |
+            win-deps-${{ env.VCPKG_TARGET_TRIPLET }}-
+
+      - name: Build the vcpkg.json dependencies (cold cache only)
+        if: steps.cache.outputs.cache-hit != 'true'
+        # Installs the manifest the same way the vcpkg CMake toolchain does in
+        # each wheel build, so the archives it writes are the ones the wheel
+        # builds look up. The install root is throwaway: only the binary cache
+        # and downloads are kept. vcpkg skips packages it already built, so the
+        # retry loop resumes where the last attempt left off. The backoff exists
+        # because vcpkg's own retries are seconds apart: a rate-limiting
+        # upstream (HTTP 429 from gitlab.dkrz.de for libaec) needs
+        # minutes for its window to reset.
+        run: |
+          mkdir -p /c/vcpkg/archives
+          for attempt in 1 2 3 4 5; do
+            if /c/vcpkg/vcpkg.exe install --triplet "${VCPKG_TARGET_TRIPLET}" \
+                --x-manifest-root="${GITHUB_WORKSPACE}" \
+                --x-install-root="${RUNNER_TEMP}/vcpkg_installed"; then
+              exit 0
+            fi
+            echo "Dependency install attempt ${attempt} failed (upstream rate limit?); backing off $((attempt * 90))s"
+            sleep $((attempt * 90))
+          done
+          echo "FATAL: dependency install failed after 5 attempts"
+          exit 1
+
+      - name: Save vcpkg binary cache and downloads
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            C:\vcpkg\archives
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Check that the prepared dependencies are in the cache
+        # actions/cache/save only warns when the save fails (e.g. another run
+        # is creating the same key, or the repo cache quota is exceeded). Look
+        # the key up so that case is visible here; the wheel jobs then fall
+        # back to a cold build instead of failing.
+        id: verify
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            C:\vcpkg\archives
+            C:\vcpkg\downloads
+          key: ${{ steps.key.outputs.key }}
+          lookup-only: true
+
+      - name: Warn if the prepared dependencies are not cached
+        if: steps.verify.outputs.cache-hit != 'true'
+        run: echo "::warning::Prepared Windows dependencies are not in the cache (key ${{ steps.key.outputs.key }}); Windows wheel jobs will build them themselves"
+
+  build_wheels_windows:
+    name: build_wheels (Python ${{ matrix.python }}, win_amd64)
+    runs-on: windows-2022
+    needs: [windows_deps]
+    strategy:
+      # Ensure that a wheel builder finishes even if another fails
+      fail-fast: false
+      matrix:
+        python: [310, 311, 312, 313, 314]
+
+    env:
+      # The UDA backend is not built on Windows yet; the before-build script
+      # reads this too and then skips the UDA dependencies and build.
+      AL_BACKEND_UDA: "OFF"
+      # Must match windows_deps.env. Recent changes in GitHub Actions Cache's
+      # API have rendered vcpkg's x-gha binary caching provider useless (see
+      # https://github.com/microsoft/vcpkg-tool/pull/1662), so the archives
+      # built by windows_deps are shared through actions/cache instead.
+      VCPKG_DEFAULT_BINARY_CACHE: C:\vcpkg\archives
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # unshallow for setuptools-scm.get_version to discover tags
+
+      - name: Restore cibuildwheel cache
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~\AppData\Local\pypa\cibuildwheel\Cache
+          # cf. CIBW_CACHE_PATH
+          key: "cibuildwheel-${{ runner.os }}-${{ runner.arch }}-cp${{ matrix.python }}-win_amd64"
+
+      - name: Restore prepared windows deps (read-only)
+        id: deps
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            C:\vcpkg\archives
+            C:\vcpkg\downloads
+          key: ${{ needs.windows_deps.outputs.cache-key }}
+
+      - name: Warn on cold Windows dependencies
+        # windows_deps saved this key in the same run unless its save failed
+        # (it warns about that). Building cold is slower and fetches from
+        # upstream, but it is better than failing the wheel and publish jobs.
+        if: steps.deps.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          mkdir -p /c/vcpkg/archives
+          echo "::warning::Prepared Windows dependencies not found in the cache; building them from scratch"
+
+      # Same cibuildwheel action and version as build_wheels, so that
+      # Dependabot keeps all platforms in step. It brings its own Python.
+      - name: Build wheels for windows
+        uses: pypa/cibuildwheel@v4.3.5
+        env:
+          CIBW_BUILD: cp${{ matrix.python }}-win_amd64
+          CIBW_PLATFORM: windows
+          CIBW_ARCHS: AMD64
+          CIBW_BUILD_VERBOSITY: 1
+          CIBW_SKIP: "cp31?t-*"  # Skip free-threading builds (not supported yet)
+          CIBW_CONFIG_SETTINGS: >
+            cmake.define.AL_BACKEND_HDF5=ON
+            cmake.define.AL_BACKEND_MDSPLUS=OFF
+            cmake.define.AL_BACKEND_UDA=${{ env.AL_BACKEND_UDA }}
+          # cmake.args="--debug-find;--debug-output"
+        with:
+          output-dir: wheelhouse
+          config-file: "{package}/pyproject.toml"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cibw-wheels-cp${{ matrix.python }}-win_amd64
+          path: wheelhouse/*.whl
+          retention-days: 1
+
   publish_wheels_testpypi:
     # only publish to TestPyPI on develop pushes and not from forks
     if: github.ref=='refs/heads/develop' && github.repository_owner == 'iterorganization'
-    needs: [build_wheels]
+    needs: [build_wheels, build_wheels_windows]
     runs-on: ubuntu-24.04
     permissions:
       # IMPORTANT: this permission is mandatory for Trusted Publishing
@@ -480,7 +608,7 @@ jobs:
   publish_wheels_pypi:
     # only publish to PyPI on tag pushes and not from forks
     if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'iterorganization'
-    needs: [build_wheels]
+    needs: [build_wheels, build_wheels_windows]
     runs-on: ubuntu-24.04
     permissions:
       # IMPORTANT: this permission is mandatory for Trusted Publishing
