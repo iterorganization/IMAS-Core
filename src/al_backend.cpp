@@ -13,6 +13,9 @@
 #ifdef UDA
 #include "uda_backend.h"
 #endif
+#ifdef GRPC
+#include "grpc_backend.h"
+#endif
 #include "flexbuffers_backend.h"
 
 #include "data_interpolation.h"
@@ -78,7 +81,16 @@ Backend* Backend::initBackend(DataEntryContext *ctx)
   else if (id==alconst::flexbuffers_backend) {
       FlexbuffersBackend *tbe = new FlexbuffersBackend();
       be = tbe;
-    } 
+    }
+  else if (id==alconst::grpc_backend)
+    {
+#ifdef GRPC
+      GRPCBackend* tbe = new GRPCBackend(ctx->getURI());
+      be = tbe;
+#else
+      throw ALBackendException("gRPC backend is not available within current install",LOG);
+#endif
+    }
   else
     {
       std::cerr << "Non-identified backend ID (" << id << ")\n";
@@ -87,6 +99,6 @@ Backend* Backend::initBackend(DataEntryContext *ctx)
 
   if (be->supportsTimeDataInterpolation() || be->supportsTimeRangeOperation()) 
      be->initDataInterpolationComponent();
-     
+
   return be;
 }

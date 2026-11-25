@@ -1,0 +1,249 @@
+// Proto definition for the IMAS gRPC backend.
+//
+// The server implements ImasBackend; the C++ GRPCBackend class is the client.
+//
+// Session lifecycle:
+//   1. OpenPulse  → returns session_id (opaque handle for this data entry)
+//   2. BeginAction / BeginArraystructAction → returns context_id per operation
+//   3. WriteData / ReadData / DeleteData    → identified by session_id + context_id
+//   4. EndAction                            → closes an operation context
+//   5. ClosePulse                           → tears down the session
+//
+// URI scheme:  imas:grpc://user@host:port/pulse/run?tokamak=...&version=...
+//              Optional:  ?tls=true  to enable TLS on the channel.
+
+syntax = "proto3";
+
+package imas_remote;
+
+option cc_generic_services = false;
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service ImasRemote {
+  rpc OpenPulse              (OpenPulseRequest)              returns (OpenPulseResponse);
+  rpc ClosePulse             (ClosePulseRequest)             returns (StatusResponse);
+  rpc GetVersion             (GetVersionRequest)             returns (GetVersionResponse);
+
+  rpc BeginAction            (BeginActionRequest)            returns (BeginActionResponse);
+  rpc EndAction              (EndActionRequest)              returns (StatusResponse);
+
+  rpc WriteData              (WriteDataRequest)              returns (StatusResponse);
+  rpc ReadData               (ReadDataRequest)               returns (ReadDataResponse);
+  rpc DeleteData             (DeleteDataRequest)             returns (StatusResponse);
+
+  rpc BeginArraystructAction (BeginArraystructActionRequest) returns (BeginArraystructActionResponse);
+
+  rpc GetOccurrences         (GetOccurrencesRequest)         returns (GetOccurrencesResponse);
+  rpc ListFilledPaths        (ListFilledPathsRequest)        returns (ListFilledPathsResponse);
+}
+
+// ---------------------------------------------------------------------------
+// Shared
+// ---------------------------------------------------------------------------
+
+// Generic success/error wrapper for calls that have no meaningful return value.
+message StatusResponse {
+  bool   ok            = 1;
+  string error_message = 2;
+}
+
+// ---------------------------------------------------------------------------
+// OpenPulse / ClosePulse
+// ---------------------------------------------------------------------------
+
+message OpenPulseRequest {
+  // Full IMAS URI string; the server unpacks user, pulse, run, tokamak, version.
+  string uri  = 1;
+  // One of: OPEN_PULSE=40, FORCE_OPEN_PULSE=41, CREATE_PULSE=42, FORCE_CREATE_PULSE=43
+  int32  mode = 2;
+}
+
+message OpenPulseResponse {
+  bool   ok         = 1;
+  // Opaque token; pass this as session_id in every subsequent request.
+  string session_id = 2;
+  string error_message = 3;
+}
+
+message ClosePulseRequest {
+  string session_id = 1;
+  // One of: CLOSE_PULSE=44, ERASE_PULSE=45
+  int32  mode       = 2;
+}
+
+// ---------------------------------------------------------------------------
+// GetVersion
+// ---------------------------------------------------------------------------
+
+message GetVersionRequest {
+  // Empty session_id → return the backend's own compiled-in version.
+  // Non-empty        → return the version stored in that data entry.
+  string session_id = 1;
+}
+
+message GetVersionResponse {
+  bool  ok    = 1;
+  int32 major = 2;
+  int32 minor = 3;
+  string error_message = 4;
+}
+
+// ---------------------------------------------------------------------------
+// BeginAction / EndAction
+// ---------------------------------------------------------------------------
+
+message BeginActionRequest {
+  string session_id      = 1;
+  string dataobject_name = 2;
+  // Path for a partial-get; empty for whole-IDS operations.
+  string datapath        = 3;
+  // READ_OP=30, WRITE_OP=31, REPLACE_OP=32
+  int32  access_mode     = 4;
+  // GLOBAL_OP=20, SLICE_OP=21, TIMERANGE_OP=22
+  int32  range_mode      = 5;
+
+  // SLICE_OP fields
+  double time            = 6;
+  // UNDEFINED_INTERP=0, CLOSEST_INTERP=1, PREVIOUS_INTERP=2, LINEAR_INTERP=3
+  int32  interp_mode     = 7;
+
+  // TIMERANGE_OP fields
+  double          tmin   = 8;
+  double          tmax   = 9;
+  repeated double dtime  = 10;
+}
+
+message BeginActionResponse {
+  bool   ok           = 1;
+  // Pass as context_id to WriteData, ReadData, DeleteData, EndAction.
+  string operation_id = 2;
+  string error_message = 3;
+}
+
+message EndActionRequest {
+  string session_id  = 1;
+  // Either an operation_id (from BeginAction) or an arraystruct_id
+  // (from BeginArraystructAction).
+  string context_id  = 2;
+}
+
+// ---------------------------------------------------------------------------
+// WriteData / ReadData
+// ---------------------------------------------------------------------------
+
+// Data encoding
+// -------------
+// `data` holds a little-endian raw binary payload whose interpretation is
+// determined by data_type:
+//   CHAR_DATA    (50): UTF-8 / ASCII bytes; for dim==0 null-terminated.
+//                      Arrays of strings (dim>0) are NOT yet supported.
+//   INTEGER_DATA (51): packed int32 values (4 bytes each).
+//   DOUBLE_DATA  (52): packed IEEE-754 double values (8 bytes each).
+//   COMPLEX_DATA (53): interleaved (real, imag) double pairs (16 bytes each).
+//
+// Total element count = product(sizes[0..dim-1]), or 1 when dim==0.
+
+message WriteDataRequest {
+  string session_id    = 1;
+  // operation_id or arraystruct_id
+  string context_id    = 2;
+  string field_name    = 3;
+  string timebase_name = 4;
+  bytes  data          = 5;
+  // CHAR_DATA=50, INTEGER_DATA=51, DOUBLE_DATA=52, COMPLEX_DATA=53
+  int32  data_type     = 6;
+  // 0=scalar, 1=1D, … up to MAXDIM (7)
+  int32  dim           = 7;
+  // Length == dim; empty when dim==0.
+  repeated int32 sizes = 8;
+}
+
+message ReadDataRequest {
+  string session_id    = 1;
+  string context_id    = 2;
+  string field_name    = 3;
+  string timebase_name = 4;
+  // Type/dim hints required by al_read_data — the caller always knows these
+  // from the Data Dictionary schema.
+  int32  data_type     = 5;
+  int32  dim           = 6;
+  int32  array_index   = 7;
+}
+
+message ReadDataResponse {
+  bool   ok    = 1;
+  // false when the field does not exist; readData() returns 0 in that case.
+  bool   found = 2;
+  bytes  data  = 3;
+  int32  data_type     = 4;
+  int32  dim           = 5;
+  repeated int32 sizes = 6;
+  string error_message = 7;
+}
+
+// ---------------------------------------------------------------------------
+// DeleteData
+// ---------------------------------------------------------------------------
+
+message DeleteDataRequest {
+  string session_id    = 1;
+  string operation_id  = 2;
+  string path          = 3;
+}
+
+// ---------------------------------------------------------------------------
+// BeginArraystructAction
+// ---------------------------------------------------------------------------
+
+message BeginArraystructActionRequest {
+  string session_id  = 1;
+  // operation_id when this is a top-level AOS; arraystruct_id when nested.
+  string parent_id   = 2;
+  bool   is_nested   = 3;
+  // Path of the AOS field within the DATAOBJECT (or its parent AOS).
+  string path        = 4;
+  string timebase    = 5;
+  // Current element index within the AOS.
+  int32  index       = 6;
+  // For writes: requested AOS size.  For reads: 0 (server fills in actual).
+  int32  requested_size = 7;
+}
+
+message BeginArraystructActionResponse {
+  bool   ok             = 1;
+  // Pass as context_id to WriteData, ReadData, nested BeginArraystructAction,
+  // and EndAction.
+  string arraystruct_id = 2;
+  // Actual size; may differ from requested_size on reads.
+  int32  size           = 3;
+  string error_message  = 4;
+}
+
+// ---------------------------------------------------------------------------
+// GetOccurrences / ListFilledPaths
+// ---------------------------------------------------------------------------
+
+message GetOccurrencesRequest {
+  string session_id = 1;
+  string ids_name   = 2;
+}
+
+message GetOccurrencesResponse {
+  bool           ok          = 1;
+  repeated int32 occurrences = 2;
+  string         error_message = 3;
+}
+
+message ListFilledPathsRequest {
+  string session_id       = 1;
+  string dataobject_name  = 2;
+}
+
+message ListFilledPathsResponse {
+  bool            ok    = 1;
+  repeated string paths = 2;
+  string          error_message = 3;
+}

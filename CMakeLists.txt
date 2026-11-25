@@ -23,6 +23,8 @@ option(AL_BACKEND_MDSPLUS "Build the MDSplus backend" OFF)
 option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
+option(AL_BACKEND_GRPC "Build the gRPC backend" OFF)
+
 # AL_BUILD_MDSPLUS_MODELS defaults to ON when AL_BACKEND_MDSPLUS is ON, otherwise OFF.
 # This can be overridde by user by setting AL_BUILD_MDSPLUS_MODELS explicitly to ON or OFF.
 if(AL_BACKEND_MDSPLUS)

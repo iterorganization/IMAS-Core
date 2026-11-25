@@ -29,3 +29,7 @@ endif()
 if( AL_BACKEND_UDA OR AL_BACKEND_UDAFAT )
     add_subdirectory( uda )
 endif()
+
+if( AL_BACKEND_GRPC )
+    add_subdirectory( grpc )
+endif()

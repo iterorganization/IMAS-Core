@@ -974,7 +974,7 @@ void UDABackend::beginArraystructAction(ArraystructContext* ctx, int* size)
     
         std::string directive = ss.str();
     
-        std::cout << "UDABackend request: " << directive << "\n";
+        // std::cout << "UDABackend request: " << directive << "\n";
         const uda::Result& result = uda_client_.get(directive, "");
         uda::Data* uda_data = result.data();
     
