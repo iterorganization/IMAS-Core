@@ -38,63 +38,119 @@ else()
 endif()
 
 if( NOT AL_DOWNLOAD_DEPENDENCIES AND NOT AL_DEVELOPMENT_LAYOUT )
-  # The DD easybuild module should be loaded, use that module:
-  # Create Python venv first and install imas_data_dictionary
+  # Check if imas_data_dictionary is already available in the current Python environment
+  execute_process(
+    COMMAND ${PYTHON_EXECUTABLE} -c "import imas_data_dictionary"
+    RESULT_VARIABLE _IDD_IMPORT_RESULT
+    OUTPUT_QUIET
+    ERROR_QUIET
+  )
+
   if(NOT EXISTS "${_VENV_PYTHON}")
-    execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      RESULT_VARIABLE _VENV_EXITCODE
-      OUTPUT_VARIABLE _VENV_OUTPUT
-      ERROR_VARIABLE _VENV_ERROR
-    )
-    
+    if(_IDD_IMPORT_RESULT)
+      # if not available in the current environment create a dd_build_env and pip-install it
+      execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} -m venv dd_build_env
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        RESULT_VARIABLE _VENV_EXITCODE
+        OUTPUT_VARIABLE _VENV_OUTPUT
+        ERROR_VARIABLE _VENV_ERROR
+      )
+    else()
+      # IMAS-Data-Dictioanry is already available, just create environment for saxonche by pulling site packages
+      execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} -m venv --system-site-packages dd_build_env
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        RESULT_VARIABLE _VENV_EXITCODE
+        OUTPUT_VARIABLE _VENV_OUTPUT
+        ERROR_VARIABLE _VENV_ERROR
+      )
+    endif()
+
     if(_VENV_EXITCODE)
       message(STATUS "venv stdout: ${_VENV_OUTPUT}")
       message(STATUS "venv stderr: ${_VENV_ERROR}")
       message(FATAL_ERROR "Failed to create venv (exit code: ${_VENV_EXITCODE}). Ensure Python has venv module installed: python -m venv --help")
     endif()
-    
-    if(DEFINED DD_VERSION)
+
+    if(_IDD_IMPORT_RESULT)
+      # pip-install imas_data_dictionary only when not already present.
+      if(DEFINED DD_VERSION AND DD_VERSION MATCHES "^[0-9]")
+        message(STATUS "Installing imas_data_dictionary==${DD_VERSION} from PyPI")
+        execute_process(
+          COMMAND ${_VENV_PIP} install imas_data_dictionary==${DD_VERSION}
+          RESULT_VARIABLE _PIP_EXITCODE
+          OUTPUT_VARIABLE _PIP_OUTPUT
+          ERROR_VARIABLE _PIP_ERROR
+        )
+      else()
+        if(DEFINED DD_VERSION AND NOT DD_VERSION STREQUAL "")
+          message(WARNING
+            "DD_VERSION='${DD_VERSION}' looks like a git ref which can be used when AL_DOWNLOAD_DEPENDECY=OFF. "
+            "Installing the latest imas_data_dictionary from PyPI. "
+            "Pass a numeric version (e.g. -DDD_VERSION=4.1.0) to use a specific release.")
+        else()
+          message(WARNING
+            "DD_VERSION is not set. Installing the latest imas_data_dictionary from PyPI. "
+            "Pass -DDD_VERSION=<x.y.z> to use a specific release.")
+        endif()
+        execute_process(
+          COMMAND ${_VENV_PIP} install imas_data_dictionary
+          RESULT_VARIABLE _PIP_EXITCODE
+          OUTPUT_VARIABLE _PIP_OUTPUT
+          ERROR_VARIABLE _PIP_ERROR
+        )
+      endif()
+
+      if(_PIP_EXITCODE)
+        message(STATUS "imas_data_dictionary pip output: ${_PIP_OUTPUT}")
+        message(STATUS "imas_data_dictionary pip error: ${_PIP_ERROR}")
+        message(FATAL_ERROR "Failed to install imas_data_dictionary dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+      endif()
+
+      # Report which version was actually installed
       execute_process(
-        COMMAND ${_VENV_PIP} install imas_data_dictionary==${DD_VERSION}
-        RESULT_VARIABLE _PIP_EXITCODE
-        OUTPUT_VARIABLE _PIP_OUTPUT
-        ERROR_VARIABLE _PIP_ERROR
+        COMMAND ${_VENV_PYTHON} -c
+          "import importlib.metadata; print(importlib.metadata.version('imas_data_dictionary'))"
+        OUTPUT_VARIABLE _IDD_INSTALLED_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
       )
-    else()
-      execute_process(
-        COMMAND ${_VENV_PIP} install imas_data_dictionary
-        RESULT_VARIABLE _PIP_EXITCODE
-        OUTPUT_VARIABLE _PIP_OUTPUT
-        ERROR_VARIABLE _PIP_ERROR
-      )
+      if(_IDD_INSTALLED_VERSION)
+        message(STATUS "Using imas_data_dictionary version ${_IDD_INSTALLED_VERSION}")
+      endif()
     endif()
-    
-    if(_PIP_EXITCODE)
-      message(STATUS "imas_data_dictionary pip output: ${_PIP_OUTPUT}")
-      message(STATUS "imas_data_dictionary pip error: ${_PIP_ERROR}")
-      message(FATAL_ERROR "Failed to install imas_data_dictionary dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
-    endif()
-    
+
     execute_process(
-      COMMAND ${_VENV_PIP} install saxonche
-      RESULT_VARIABLE _PIP_EXITCODE
-      OUTPUT_VARIABLE _PIP_OUTPUT
-      ERROR_VARIABLE _PIP_ERROR
+      COMMAND ${_VENV_PYTHON} -c "import saxonche"
+      RESULT_VARIABLE _SAXONCHE_CHECK
+      OUTPUT_QUIET
+      ERROR_QUIET
     )
-    
-    if(_PIP_EXITCODE)
-      message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
-      message(STATUS "saxonche pip error: ${_PIP_ERROR}")
-      message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+    if(_SAXONCHE_CHECK)
+      execute_process(
+        COMMAND ${_VENV_PYTHON} -m pip install saxonche
+        RESULT_VARIABLE _PIP_EXITCODE
+        OUTPUT_VARIABLE _PIP_OUTPUT
+        ERROR_VARIABLE _PIP_ERROR
+      )
+      
+      if(_PIP_EXITCODE)
+        message(STATUS "saxonche pip output: ${_PIP_OUTPUT}")
+        message(STATUS "saxonche pip error: ${_PIP_ERROR}")
+        message(FATAL_ERROR "Failed to install saxonche dependency (exit code: ${_PIP_EXITCODE}). Check network connectivity and Python wheel compatibility.")
+      endif()
     endif()
   endif()
 # Set up idsinfo command path
-if(WIN32)
-  set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/idsinfo.exe")
+if(_IDD_IMPORT_RESULT)
+  if(WIN32)
+    set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/Scripts/idsinfo.exe")
+  else()
+    set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/idsinfo")
+  endif()
 else()
-  set(_IDSINFO_COMMAND "${CMAKE_CURRENT_BINARY_DIR}/dd_build_env/bin/idsinfo")
+  find_program(_IDSINFO_COMMAND NAMES idsinfo REQUIRED)
 endif()
 
   # Use idsinfo idspath command from venv to get the path to IDSDef.xml or data_dictionary.xml

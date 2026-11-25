@@ -24,13 +24,38 @@ option(AL_BACKEND_HDF5 "Build the HDF5 backend" ON)
 option(AL_BACKEND_UDA "Build the UDA backend" OFF)
 option(AL_BACKEND_UDAFAT "Build the UDA backend (use FAT UDA)" OFF)
 option(AL_BACKEND_GRPC "Build the gRPC backend" OFF)
-include(CMakeDependentOption)
-cmake_dependent_option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON
-AL_BACKEND_MDSPLUS OFF)
+
+# AL_BUILD_MDSPLUS_MODELS defaults to ON when AL_BACKEND_MDSPLUS is ON, otherwise OFF.
+# This can be overridde by user by setting AL_BUILD_MDSPLUS_MODELS explicitly to ON or OFF.
+if(AL_BACKEND_MDSPLUS)
+  option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" ON)
+else()
+  option(AL_BUILD_MDSPLUS_MODELS "Build MDSplus models" OFF)
+endif()
 
 # Configuration options for python bindings
 # ##############################################################################
 option(AL_PYTHON_BINDINGS "Build Python bindings" OFF)
+
+option(AL_BUILD_TESTS "Build the C/C++ low-level ABI smoke tests (tests/)" OFF)
+
+# IMAS-Core-Plugin configurations
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  option(AL_PLUGINS "Build the access layer plugins from IMAS-Core-Plugins" OFF)
+  set(AL_PLUGINS_GIT_REPOSITORY "https://github.com/iterorganization/IMAS-Core-Plugins.git"
+      CACHE STRING "Git repository of IMAS-Core-Plugins")
+  set(AL_PLUGINS_VERSION "main"
+      CACHE STRING "IMAS-Core-Plugins version (tag, branch or commit) to use for this build")
+  set(AL_PLUGINS_SOURCE_DIR ""
+      CACHE PATH "Local IMAS-Core-Plugins checkout to use instead of downloading it")
+endif()
+
+# When ON, the al C++ library is not built here; instead it is located with
+# find_package(al-core CONFIG). Enables a two-stage build where libimas-core
+# (the C/C++ library) and imas-core (the Python wrapper) are packaged
+# separately, e.g. as two conda packages.
+option(AL_USE_INSTALLED_CORE
+       "Link Python bindings against a pre-installed al-core (find_package)" OFF)
 
 
 # Configuration options for shared libraries
@@ -109,20 +134,34 @@ if(WIN32)
   
   message(STATUS "al-core: CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
   
-  # Add cmake module path for FindPThreads4W.cmake fallback
-  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/common/cmake")
-  
-  # Try CONFIG mode first, fall back to MODULE mode
-  find_package(PThreads4W CONFIG QUIET)
-  if(NOT PThreads4W_FOUND)
-    message(STATUS "PThreads4W CONFIG not found, trying MODULE mode")
-    find_package(PThreads4W MODULE REQUIRED)
-  else()
-    message(STATUS "Found PThreads4W via CONFIG mode")
-  endif()
-  
   find_package(dlfcn-win32 CONFIG REQUIRED)
 endif()
+
+# Two-stage build entry: locate a pre-installed al-core instead of building it.
+# Exposes target `al-core::al` and an unqualified alias `al` so the python/
+# subdirectory and any consumers can link to `al` transparently.
+if(AL_USE_INSTALLED_CORE)
+  find_package(al-core CONFIG)
+  if(NOT al-core_FOUND)
+    message(FATAL_ERROR
+      "AL_USE_INSTALLED_CORE=ON requires an installed al-core that ships "
+      "al-coreConfig.cmake (introduced in IMAS-Core 5.7.1 or later). "
+      "find_package(al-core CONFIG) could not locate it.\n"
+      "Point CMAKE_PREFIX_PATH (or al-core_DIR) at an install prefix that "
+      "contains lib/cmake/al-core/al-coreConfig.cmake — typically the "
+      "stage-1 install tree of this branch. Releases built before this "
+      "change (e.g. IMAS-Core/5.6.0) only ship al-core.pc and will NOT "
+      "satisfy AL_USE_INSTALLED_CORE; either install stage 1 from source "
+      "or wait for a release that includes the CMake package config.")
+  endif()
+  if(NOT TARGET al)
+    add_library(al ALIAS al-core::al)
+  endif()
+endif()
+
+# build AL_CORE library only if backend is enabled and we are not reusing an
+# already-installed al-core
+if((AL_BACKEND_HDF5 OR AL_BACKEND_MDSPLUS OR AL_BACKEND_UDA OR AL_BACKEND_UDAFAT OR AL_PYTHON_BINDINGS) AND NOT AL_USE_INSTALLED_CORE)
 
 # Core dependencies
 set(Boost_USE_MULTITHREADED FALSE)
@@ -130,6 +169,9 @@ find_package(
   Boost
   COMPONENTS filesystem
   REQUIRED)
+
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
 
 
 # Target
@@ -161,7 +203,7 @@ set(PUBLIC_HEADER_FILES
 # Define library target
 add_library(al SHARED)
 # Note: sources are added by the CMakeFiles in the src/ folder
-target_link_libraries(al PRIVATE Boost::filesystem)
+target_link_libraries(al PRIVATE Boost::filesystem Threads::Threads)
 set_target_properties(al PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
 # Enable ASCII backend
@@ -170,7 +212,7 @@ target_compile_definitions(al PRIVATE -DASCII)
 if(NOT WIN32)
   target_link_libraries(al PRIVATE dl)
 else()
-  target_link_libraries(al PRIVATE dlfcn-win32::dl PThreads4W::PThreads4W ws2_32)
+  target_link_libraries(al PRIVATE dlfcn-win32::dl ws2_32)
 endif()
 
 add_subdirectory(src)
@@ -189,16 +231,69 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 add_dependencies( imas_print_version al )
 
+# Low-level ABI smoke tests (opt-in)
+# ##############################################################################
+if( AL_BUILD_TESTS )
+  enable_testing()
+  add_subdirectory(tests)
+endif()
+
+# Access layer plugins (opt-in)
+# ##############################################################################
+# The plugins link against the `al` target defined above.
+if( AL_PLUGINS AND PROJECT_IS_TOP_LEVEL )
+  include(FetchContent)
+  if( AL_PLUGINS_SOURCE_DIR )
+    message(STATUS "al-plugins: using local source ${AL_PLUGINS_SOURCE_DIR}")
+    FetchContent_Declare(al-plugins SOURCE_DIR ${AL_PLUGINS_SOURCE_DIR})
+  else()
+    message(STATUS "al-plugins: fetching ${AL_PLUGINS_GIT_REPOSITORY} (${AL_PLUGINS_VERSION})")
+    FetchContent_Declare(al-plugins
+      GIT_REPOSITORY ${AL_PLUGINS_GIT_REPOSITORY}
+      GIT_TAG        ${AL_PLUGINS_VERSION})
+  endif()
+  FetchContent_MakeAvailable(al-plugins)
+endif()
+
 # Install
 # ##############################################################################
 
 # Install al library
+include(GNUInstallDirs)
 install(
   TARGETS al
+  EXPORT al-coreTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   COMPONENT core
+)
+
+# Export CMake package config so downstream projects (notably the Python
+# wrapper built with AL_USE_INSTALLED_CORE=ON) can `find_package(al-core CONFIG)`.
+include(CMakePackageConfigHelpers)
+set(_al_core_cmake_dir ${CMAKE_INSTALL_LIBDIR}/cmake/al-core)
+install(
+  EXPORT al-coreTargets
+  FILE al-coreTargets.cmake
+  NAMESPACE al-core::
+  DESTINATION ${_al_core_cmake_dir}
+)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/al-coreConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfig.cmake
+  INSTALL_DESTINATION ${_al_core_cmake_dir}
+)
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+install(
+  FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/al-coreConfigVersion.cmake
+  DESTINATION ${_al_core_cmake_dir}
 )
 
 # TODO: put public heades in a separate directory?
@@ -214,6 +309,21 @@ target_include_directories(
 )
 
 # Generate and install .pc file
+# Stamp the AL version into consuming binaries via a linker-defined symbol.
+# --defsym is specific to GNU-compatible linkers: Apple's ld64 and MSVC's
+# link.exe reject it, so only emit the flag where it is supported.
+if(APPLE OR WIN32)
+  set(AL_PC_VERSION_SYMBOL_FLAG "")
+else()
+  set(AL_PC_VERSION_SYMBOL_FLAG " -Wl,--defsym,AL_VER_${PROJECT_VERSION}=0")
+endif()
+# Windows has no runtime search path: DLLs are found through PATH, and MSVC's
+# link.exe rejects -rpath
+if(WIN32)
+  set(AL_PC_RPATH_FLAG "")
+else()
+  set(AL_PC_RPATH_FLAG " -Wl,-rpath,\${libdir}")
+endif()
 configure_file(pkgconfig/al-core.pc.in al-core.pc @ONLY)
 include(GNUInstallDirs)
 install(
@@ -228,13 +338,15 @@ install(
 )
 
 # Install common files
-# Note: The environment variable $AL_COMMON_PATH must be set to this installation directory at runtime
 install(DIRECTORY common TYPE DATA)
 
 # Install Dummy
 install(TARGETS imas_print_version DESTINATION bin)
 
-# Scikit-build-core entry point for python bindings
+endif() # AL core library: (AL_BACKEND_* OR AL_PYTHON_BINDINGS) AND NOT AL_USE_INSTALLED_CORE
+
+# Scikit-build-core entry point for python bindings — works whether `al` was
+# just built here or imported via find_package(al-core).
 # ##############################################################################
 if(AL_PYTHON_BINDINGS)
   include(skbuild.cmake)

@@ -9,8 +9,9 @@
 
 HDF5DataSetHandler::HDF5DataSetHandler(bool writing_mode_, uri::Uri uri):dataset_rank(-1), AOSRank(0), immutable(true), 
 shape_dataset(false), slice_mode(false), slices_extension(0), timed_AOS_index(-1), isTimed(false), timeWriteOffset(0), datatype(-1), dataset_id(-1), 
-dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useBuffering(true), chunk_cache_size(READ_CHUNK_CACHE_SIZE), 
-write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(NULL), full_double_data_set_buffer(NULL)
+dtype_id(-1), request_dim(-1), dataspace_id(-1), compression_enabled(true), useBuffering(true),
+max_read_buffer_size((size_t) DEFAULT_MAX_READ_BUFFER_MIB * 1024 * 1024), chunk_cache_size(READ_CHUNK_CACHE_SIZE),
+write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), requests_shapes(), full_int_data_set_buffer(), full_double_data_set_buffer()
 {
     //H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
     HDF5Utils hdf5_utils;
@@ -19,6 +20,7 @@ write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), reque
 	hdf5_utils.setDefaultOptions(&chunk_cache_size, &write_chunk_cache_size, &readBuffering, &writeBuffering);
 	hdf5_utils.readOptions(uri, &compression_enabled, &readBuffering, &chunk_cache_size,  &writeBuffering,  &write_chunk_cache_size, 
     &HDF5Utils::debug);
+	hdf5_utils.readMaxReadBufferOption(uri, &max_read_buffer_size);
 
 	if (writing_mode_) {
 		useBuffering = writeBuffering;
@@ -30,6 +32,7 @@ write_chunk_cache_size(WRITE_CHUNK_CACHE_SIZE), requests_arrctx_indices(), reque
 
 HDF5DataSetHandler::~HDF5DataSetHandler()
 {
+    releaseBuffers(); // no-op after close(); avoids leaking buffers if a read threw before close()
     if (!immutable)
         H5Tclose(dtype_id);
     if (dataspace_id != -1) {
@@ -687,37 +690,26 @@ void HDF5DataSetHandler::setExtent()
     dataspace_id = H5Dget_space(dataset_id);
 }
 
+void HDF5DataSetHandler::releaseBuffers()
+{
+    // Free whatever was allocated, independently of useBuffering. close() used to free the
+    // buffers only when useBuffering was set, so a buffer could leak if the flag changed
+    // after it was created. Called by close() and by the destructor (no-op the second time).
+    std::vector<int>().swap(full_int_data_set_buffer);
+    std::vector<double>().swap(full_double_data_set_buffer);
+    int_data_set_buffer.clear();    // elements are freed in fillFullBuffers()
+    double_data_set_buffer.clear();
+    for (char *s : full_data_sets_buffers)
+        free(s);
+    full_data_sets_buffers.clear();
+    for (char *s : data_sets_buffers)
+        free(s);
+    data_sets_buffers.clear();
+}
+
 void HDF5DataSetHandler::close()
 {
-    HDF5Utils hdf5_utils;
-    if (useBuffering) {
-        switch(datatype) {
-            case alconst::integer_data:
-            {
-                if (full_int_data_set_buffer != NULL)
-                    free(full_int_data_set_buffer);
-                int_data_set_buffer.clear();
-                break;
-            }
-            case alconst::double_data:
-            {
-                if (full_double_data_set_buffer != NULL)
-                    free(full_double_data_set_buffer);
-                double_data_set_buffer.clear();
-                break;
-            }
-            case alconst::char_data:
-            {
-            	for (int i = 0; i < (int) full_data_sets_buffers.size(); i++)
-                    free(full_data_sets_buffers[i]);
-                full_data_sets_buffers.clear();
-                for (int i = 0; i < (int) data_sets_buffers.size(); i++)
-                    free(data_sets_buffers[i]);
-                data_sets_buffers.clear();
-                break;
-            }
-        }
-    }
+    releaseBuffers();
 
     herr_t status = H5Dclose (dataset_id);
     if (status < 0) {
@@ -762,15 +754,17 @@ void HDF5DataSetHandler::write_buffers() {
 
         case alconst::integer_data:
             {
-                int *v = full_int_data_set_buffer;
-                status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
+                if (full_int_data_set_buffer.empty())
+                    return; // nothing was buffered (previously H5Dwrite was called with a NULL buffer)
+                status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_int_data_set_buffer.data());
                 break;
             }
     
         case alconst::double_data:
             {
-                double *v = full_double_data_set_buffer;
-                status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
+                if (full_double_data_set_buffer.empty())
+                    return; // nothing was buffered (previously H5Dwrite was called with a NULL buffer)
+                status = H5Dwrite(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_double_data_set_buffer.data());
                 break;
             }
 
@@ -806,7 +800,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (requests_arrctx_indices.size() != requests_shapes.size())
                 throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
 
-            int* v = (int*) malloc(getSize()* sizeof(int));
+            std::vector<int> full(getSize());
+            int* v = full.data();
             herr_t status = H5Dread(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
             if (status < 0) {
                 char error_message[200];
@@ -847,7 +842,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 request++;
                 free(buffer);
             }
-            full_int_data_set_buffer = v;
+            full_int_data_set_buffer = std::move(full);
             break;
         }
     case alconst::double_data: 
@@ -862,7 +857,8 @@ void HDF5DataSetHandler::fillFullBuffers() {
             if (requests_arrctx_indices.size() != requests_shapes.size())
                 throw ALBackendException("HDF5Backend: unexpected error in HDF5DataSetHandler::fillFullBuffers()", LOG);
 
-            double* v = (double*) malloc(getSize()* sizeof(double));
+            std::vector<double> full(getSize());
+            double* v = full.data();
             herr_t status = H5Dread(dataset_id, dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, v);
             if (status < 0) {
                 char error_message[200];
@@ -905,7 +901,7 @@ void HDF5DataSetHandler::fillFullBuffers() {
                 request++;
                 free(buffer);
             }
-            full_double_data_set_buffer = v;
+            full_double_data_set_buffer = std::move(full);
             break;
         }
 
@@ -1058,9 +1054,9 @@ void HDF5DataSetHandler::create0DStringsBuffer(HDF5HsSelectionReader & hsSelecti
 }
 
 void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    int *v = full_int_data_set_buffer;
-    if (full_int_data_set_buffer == NULL)
-        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readInt0DFromBuffer()", LOG);
+    if (full_int_data_set_buffer.empty())
+        throw ALBackendException("HDF5Backend: unexpected empty buffer in HDF5DataSetHandler::readInt0DFromBuffer()", LOG);
+    const int *v = full_int_data_set_buffer.data();
     *data = (void*) malloc(sizeof(int));
     int* data_int = (int*) *data;
     if (hsSelectionReader.getRank() != 0) {
@@ -1074,9 +1070,9 @@ void HDF5DataSetHandler::readInt0DFromBuffer(HDF5HsSelectionReader & hsSelection
 }
 
 void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    int *v = full_int_data_set_buffer;
-    if (full_int_data_set_buffer == NULL)
-        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readIntNDFromBuffer()", LOG);
+    if (full_int_data_set_buffer.empty())
+        throw ALBackendException("HDF5Backend: unexpected empty buffer in HDF5DataSetHandler::readIntNDFromBuffer()", LOG);
+    const int *v = full_int_data_set_buffer.data();
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
@@ -1097,9 +1093,9 @@ void HDF5DataSetHandler::readIntNDFromBuffer(HDF5HsSelectionReader & hsSelection
 }
 
 void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    double *v = full_double_data_set_buffer;
-    if (full_double_data_set_buffer == NULL)
-        throw ALBackendException("HDF5Backend: unexpected NULL buffer in HDF5DataSetHandler::readDoubleNDFromBuffer()", LOG);
+    if (full_double_data_set_buffer.empty())
+        throw ALBackendException("HDF5Backend: unexpected empty buffer in HDF5DataSetHandler::readDoubleNDFromBuffer()", LOG);
+    const double *v = full_double_data_set_buffer.data();
     int dim = hsSelectionReader.getDim();
     int rank = hsSelectionReader.getRank();
     size_t shape = 1;
@@ -1119,9 +1115,12 @@ void HDF5DataSetHandler::readDoubleNDFromBuffer(HDF5HsSelectionReader & hsSelect
 }
 
 void HDF5DataSetHandler::createIntBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    size_t s = hsSelectionReader.getSize2();
-    full_int_data_set_buffer = (int*) malloc(s* sizeof(int));
-    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_int_data_set_buffer);
+    // Read into a local vector and keep it only if the read succeeded, so a failed read
+    // never leaves a partially filled buffer that later requests would use.
+    std::vector<int> full(hsSelectionReader.getSize2());
+    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full.data());
+    if (status >= 0)
+        full_int_data_set_buffer = std::move(full);
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
@@ -1130,6 +1129,8 @@ void HDF5DataSetHandler::createIntBuffer(HDF5HsSelectionReader & hsSelectionRead
 }
 
 void HDF5DataSetHandler::readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
+    if (full_double_data_set_buffer.empty())
+        throw ALBackendException("HDF5Backend: unexpected empty buffer in HDF5DataSetHandler::readDouble0DFromBuffer()", LOG);
     *data = (void*) malloc(sizeof(double));
     double* data_double = (double*) *data;
     if (hsSelectionReader.getRank() != 0) {
@@ -1138,15 +1139,16 @@ void HDF5DataSetHandler::readDouble0DFromBuffer(HDF5HsSelectionReader & hsSelect
         *data_double = full_double_data_set_buffer[index];
     }
     else {
-        *data_double = *full_double_data_set_buffer;
+        *data_double = full_double_data_set_buffer[0];
     }
 }
 
 void HDF5DataSetHandler::createDoubleBuffer(HDF5HsSelectionReader & hsSelectionReader, const std::vector < int >&current_arrctx_indices, void **data) {
-    size_t s = hsSelectionReader.getSize2();
-    //printf("calling createDoubleBuffer for %s, id=%d, size(MB)=%f\n", getName().c_str(), (int) dataset_id, (double) ((s * sizeof(double))/1024./1024.));
-    full_double_data_set_buffer = (double*) malloc(s* sizeof(double));
-    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full_double_data_set_buffer);
+    // Same as createIntBuffer(): keep the buffer only if the read succeeded.
+    std::vector<double> full(hsSelectionReader.getSize2());
+    herr_t status = H5Dread(dataset_id, hsSelectionReader.dtype_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, full.data());
+    if (status >= 0)
+        full_double_data_set_buffer = std::move(full);
     if (status < 0) {
         char error_message[200];
         sprintf(error_message, "Unable to read dataset: %s\n", getName().c_str());
@@ -1214,53 +1216,96 @@ void HDF5DataSetHandler::readUsingHyperslabs(const std::vector < int >&current_a
     }
 }
 
-void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data) {
-    HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+// True if the whole dataset may be buffered: it is not empty and does not exceed
+// hdf5_read_buffer_max (0 = no limit). Empty datasets are read directly, so an empty
+// buffer always means "not buffered yet".
+bool HDF5DataSetHandler::fullBufferFits(HDF5HsSelectionReader & hsSelectionReader, size_t element_size) const {
+    size_t elements = hsSelectionReader.getSize2();
+    if (elements == 0)
+        return false;
+    return max_read_buffer_size == 0 || elements <= max_read_buffer_size / element_size;
+}
 
-    if (hsSelectionReader.time_range.enabled) {
-         readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
-         return;
+void HDF5DataSetHandler::readData(const std::vector < int >&current_arrctx_indices, int datatype, int dim, int slice_mode, bool is_dynamic, bool isTimed, int timed_AOS_index, int slice_index, void **data, bool allow_full_buffering) {
+    HDF5HsSelectionReader & hsSelectionReader = *selection_reader;
+    const bool read_strings = (datatype == alconst::char_data);
+
+    // Read buffering loads the whole dataset once (H5S_ALL) and serves the following
+    // requests from memory. It only pays off when the whole dataset is read (get()).
+    // Previously it was used for every non-slice read, including get_sample(), which made
+    // the memory and time of a get_sample() proportional to the number of *stored* time
+    // slices instead of the number of *requested* ones.
+    //
+    // Buffering is now used only when all of these hold:
+    //  - the user did not disable it (hdf5_read_buffering, useBuffering),
+    //  - the caller reads the whole dataset in this operation (allow_full_buffering),
+    //  - the data kind supports it (0D/1D int/double, 1D strings, not slice mode),
+    //  - the dataset fits the limit (hdf5_read_buffer_max) and the memory can be allocated.
+    // Otherwise only the requested part is read, with a hyperslab selection. HDF5 reads
+    // and decompresses whole chunks and keeps recently used ones in the per-dataset chunk
+    // cache (hdf5_read_cache), so neighbouring requests do not read the same chunk again.
+    // Data read is identical in both paths; only memory use and speed differ.
+    // HDF5 references:
+    //  - H5Dread, H5S_ALL selects the entire dataset:
+    //    https://support.hdfgroup.org/documentation/hdf5/latest/group___h5_d.html#ga8287d5a7be7b8e55ffeff68f7d26811c
+    //  - H5Sselect_hyperslab (partial reads):
+    //    https://support.hdfgroup.org/documentation/hdf5/latest/group___h5_s.html#ga6adfdf1b95dc108a65bf66e97d38536d
+    //  - Chunk I/O and the raw data chunk cache ("disk I/O is always in terms of complete chunks"):
+    //    https://support.hdfgroup.org/documentation/hdf5/latest/hdf5_chunk_issues.html
+    //  - Chunk cache settings (H5Pset_chunk_cache):
+    //    https://support.hdfgroup.org/documentation/hdf5/latest/group___d_a_p_l.html#ga104d00442c31714ee073dee518f661f1
+    const bool buffered_kind = (slice_mode != SLICE_OP) &&
+        ((dim <= 1 && (datatype == alconst::integer_data || datatype == alconst::double_data)) ||
+         (dim == 1 && read_strings));
+    if (hsSelectionReader.time_range.enabled || !useBuffering || !allow_full_buffering || !buffered_kind) {
+        readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, read_strings);
+        return;
     }
 
-    if (useBuffering) {
-        //printf("using buffering...\n");
-        if (datatype != alconst::char_data) {
-            if (dim == 0 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
-                if (full_int_data_set_buffer==NULL)
-                    createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
+    try {
+        if (datatype == alconst::integer_data) {
+            if (full_int_data_set_buffer.empty()) {
+                if (!fullBufferFits(hsSelectionReader, sizeof(int))) {
+                    readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, false);
+                    return;
+                }
+                createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
+            }
+            if (dim == 0)
                 readInt0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
-            }
-            else if (dim == 0 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
-                if (full_double_data_set_buffer==NULL)
-                    createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
-                readDouble0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
-            }
-            else if (dim == 1 && datatype == alconst::integer_data && slice_mode != SLICE_OP) {
-                if (full_int_data_set_buffer==NULL)
-                    createIntBuffer(hsSelectionReader, current_arrctx_indices, data);
+            else
                 readIntNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
+        }
+        else if (datatype == alconst::double_data) {
+            if (full_double_data_set_buffer.empty()) {
+                if (!fullBufferFits(hsSelectionReader, sizeof(double))) {
+                    readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, false);
+                    return;
+                }
+                createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
-            else if (dim == 1 && datatype == alconst::double_data && slice_mode != SLICE_OP) {
-                if (full_double_data_set_buffer==NULL)
-                    createDoubleBuffer(hsSelectionReader, current_arrctx_indices, data);
+            if (dim == 0)
+                readDouble0DFromBuffer(hsSelectionReader, current_arrctx_indices, data);
+            else
                 readDoubleNDFromBuffer(hsSelectionReader, current_arrctx_indices, data);
+        }
+        else { // strings
+            if (full_data_sets_buffers.empty()) {
+                if (!fullBufferFits(hsSelectionReader, sizeof(char *))) {
+                    readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, true);
+                    return;
+                }
+                create0DStringsBuffer(hsSelectionReader, current_arrctx_indices, data);
             }
-            else {
-                readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, false);
-            }
-        } else {
-            if (dim == 1 && slice_mode != SLICE_OP) {
-                if (full_data_sets_buffers.size() == 0)
-                    create0DStringsBuffer(hsSelectionReader, current_arrctx_indices, data);
-                read0DStringsFromBuffer(hsSelectionReader, current_arrctx_indices, data);
-            }
-            else {
-                readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
-            }
+            read0DStringsFromBuffer(hsSelectionReader, current_arrctx_indices, data);
         }
     }
-    else {
-        readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, datatype == alconst::char_data);
+    catch (const std::bad_alloc &) {
+        // Not enough memory for the full buffer: drop it and read only what is requested,
+        // instead of failing the whole read (or, as before, writing through an unchecked
+        // NULL from malloc).
+        releaseBuffers();
+        readUsingHyperslabs(current_arrctx_indices, slice_mode, is_dynamic, isTimed, timed_AOS_index, slice_index, data, read_strings);
     }
 }
 

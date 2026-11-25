@@ -17,45 +17,35 @@ This repository contains the **Lowlevel components of the Access Layer**:
 - **MDS+ model logic** for creating the models required by the MDS+ backend
 
 
-## Quick Installation
-
-Install IMAS-Core with a single command:
-
-```bash
-pip install imas-core
-python -c "import imas_core"
-```
-
-That's it! No need to compile or configure anything.
-
-## Features
-
-- ✅ **Easy to Install** - Single `pip install` command
-- ✅ **Multiple Formats** - HDF5, MDSplus, UDA, in-memory, and more
-- ✅ **Cross-Platform** - Works on Linux, macOS, and Windows
-- ✅ **IMAS Standard** - Access standardized fusion data structures
-- ✅ **Read & Write** - Both data access and creation supported
-
 ## Installation Options
 
-### For Python Users (Recommended)
+### For Python Users
 
 ```bash
-# Simple install from PyPI for Python applications
+# Install from PyPI
 pip install imas-core
 
 # Verify installation
 python -c "import imas; print(imas.__version__)"
 ```
 
-
 ### For Developers
 
-See [Building from Source](docs/source/user_guide/installation.rst) for detailed build instructions.
+To build IMAS-Core from source:
+
+```bash
+git clone https://github.com/iterorganization/IMAS-Core.git
+cd IMAS-Core
+cmake -Bbuild -GNinja -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install"
+cmake --build build --target install
+```
+
+See [Developer Guide](docs/source/developers/index.rst) for build instructions.
+
 
 ## Using IMAS-Core with High-Level Languages
 
-When IMAS-Core is built and installed via CMake, it creates a complete runtime environment with:
+When IMAS-Core is built and installed via CMake, it installs:
 
 - **C/C++ Libraries** (`libal.so`) with full headers
 - **Python Bindings** (`imas_core` Python package)
@@ -74,79 +64,45 @@ export HDF5_USE_FILE_LOCKING=FALSE
 export PYTHONPATH="/path/to/install/lib/pythonX.X/site-packages:$PYTHONPATH"
 ```
 
-Then use IMAS-Core from your preferred language:
+Then use IMAS-Core from the required language:
 - **Python**: `import imas` (see examples above)
 - **C/C++**: Link against `libal.so` with provided headers
 - **Fortran**: Use pkg-config to get compiler flags
 - **Java**: Use `imas.jar` in your classpath
 - **MATLAB**: Add MEX directory to MATLAB path
 
+See [Building from Source](docs/source/user_guide/installation.rst) for detailed build instructions.
 
 ## Documentation
 
-- **[User Guide](docs/source/user_guide/index.rst)** - Complete user documentation
+- **[User Guide](docs/source/user_guide/index.rst)** - User documentation
 - **[Installation Guide](docs/source/user_guide/installation.rst)** - Installation instructions
 - **[Backends Guide](docs/source/user_guide/backends_guide.rst)** - Available data backends
 - **[URIs Guide](docs/source/user_guide/uris_guide.rst)** - Data entry URI documentation
 - **[Configuration](docs/source/user_guide/configuration.rst)** - Configuration options
 - **[FAQ](docs/source/faq.rst)** - Frequently asked questions
-- **[Troubleshooting](docs/source/troubleshooting.rst)** - Common issues & solutions
+- **[Troubleshooting](docs/source/troubleshooting.rst)** - Troubleshooting
 
-## System Requirements
-
-- **Python**: 3.8 or newer 
-- **OS**: Linux, macOS, or Windows
-- **pip**: 19.0 or newer
 
 ## Available Backends
 
-IMAS-Core supports multiple data storage formats:
+IMAS-Core supports these storage backends:
 
 | Backend | Use Case | Remote | File-based |
 |---------|----------|--------|-----------|
 | **HDF5** | Default, local storage | No | Yes |
 | **MDSplus** | ITER experiments | Yes | No |
 | **UDA** | Distributed access | Yes | No |
-| **Memory** | Testing, IPC | No | No |
+| **Memory** | Testing | No | No |
 | **FlexBuffers** | Message passing | No | Yes |
 | **ASCII** | Debugging | No | Yes |
 
-## Troubleshooting
 
-**Can't find file?**
-```python
-# Check file path
-import os
-print(os.path.exists('/path/to/file.h5'))
-```
-
-**Need help?**
+**Help**
 - See [Troubleshooting Guide](docs/source/troubleshooting.rst)
 - Check [FAQ](docs/source/faq.rst)
 - Open an [Issue on GitHub](https://github.com/iterorganization/IMAS-Core/issues)
 
-## What's Included?
-
-IMAS-Core provides:
-
-- **Python API** - Full Python bindings with NumPy support
-- **Multiple Backends** - HDF5, MDSplus, UDA, and more
-- **Data Creation** - Create and populate IMAS IDS structures
-- **Data Access** - Read from multiple sources transparently
-- **Standard Format** - IMAS standardized data structures
-
-## For Developers
-
-To build IMAS-Core from source:
-
-```bash
-git clone https://github.com/iterorganization/IMAS-Core.git
-cd IMAS-Core
-cmake -Bbuild -GNinja -DAL_PYTHON_BINDINGS=ON -DCMAKE_INSTALL_PREFIX="$(pwd)/test-install"
-cmake --build build --target install
-```
-
-See [Developer Guide](docs/source/developers/index.rst) for detailed instructions.
 
 ## Links
 
@@ -165,4 +121,3 @@ IMAS-Core is released under the [LGPL-3.0 License](LICENSE.txt)
 - **Email**: imas-support@iter.org
 - **Documentation**: https://imas-core.readthedocs.io/
 - **Issues**: https://github.com/iterorganization/IMAS-Core/issues
-

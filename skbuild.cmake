@@ -9,6 +9,14 @@ list(FILTER SKBUILD_CMAKE_ARGS EXCLUDE REGEX "CMAKE_INSTALL_PREFIX")
 string(REPLACE ";" " " CMAKE_ARGS "${SKBUILD_CMAKE_ARGS}")
 cmake_path(SET Python_EXECUTABLE ${Python_EXECUTABLE})
 
+# libal and its dependencies are installed in the prefix, so the wheel need not
+# bundle them, except on Windows which has no rpath to find them there.
+if(WIN32)
+  set(BUNDLE_RUNTIME_DEPS ON)
+else()
+  set(BUNDLE_RUNTIME_DEPS OFF)
+endif()
+
 
 if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
   install(CODE "execute_process(
@@ -18,6 +26,7 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
 	SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag} 
 	SKBUILD_EDITABLE_REBUILD=true
 	SKBUILD_EDITABLE_VERBOSE=false
+	AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
         ${Python_EXECUTABLE} 
           -m pip install 
           --no-build-isolation 
@@ -26,7 +35,6 @@ if(${AL_PYTHON_BINDINGS} MATCHES "^e$|^editable$")
   return()
 endif()
 
-
 set(PIP_OPTIONS "--verbose" "--no-deps") 
 if(${AL_PYTHON_BINDINGS} MATCHES "^no-build-isolation$")
   list(APPEND PIP_OPTIONS "--no-build-isolation")
@@ -34,24 +42,44 @@ elseif(NOT ${AL_PYTHON_BINDINGS} MATCHES "[Oo][Nn]")
   message(FATAL_ERROR "AL_PYTHON_BINDINGS=${AL_PYTHON_BINDINGS} not e|editable|no-build-isolation|[Oo][Nn]")
 endif()
 
-add_custom_command(
-  TARGET al POST_BUILD
-    COMMAND 
-      ${CMAKE_COMMAND} -E env 
+if(AL_USE_INSTALLED_CORE)
+  # `al` is an ALIAS to an imported target — it is not built in this tree,
+  # so it cannot carry a POST_BUILD hook. Drive pip wheel from the custom
+  # target itself, and put it in ALL so `cmake --build` triggers it.
+  add_custom_target(al-python-bindings ALL
+    COMMAND
+      ${CMAKE_COMMAND} -E env
       CMAKE_ARGS=${CMAKE_ARGS}
-      SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag} 
+      SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+      AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
       ${Python_EXECUTABLE}
-        -m pip wheel 
+        -m pip wheel
         ${CMAKE_CURRENT_SOURCE_DIR}
-	${PIP_OPTIONS}
-	--wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
-)
-add_custom_target(al-python-bindings DEPENDS al)
+        ${PIP_OPTIONS}
+        --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
+  )
+else()
+  add_custom_command(
+    TARGET al POST_BUILD
+      COMMAND
+        ${CMAKE_COMMAND} -E env
+        CMAKE_ARGS=${CMAKE_ARGS}
+        SKBUILD_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/{wheel_tag}
+        AL_BUNDLE_RUNTIME_DEPS=${BUNDLE_RUNTIME_DEPS}
+        ${Python_EXECUTABLE}
+          -m pip wheel
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${PIP_OPTIONS}
+          --wheel-dir ${CMAKE_CURRENT_BINARY_DIR}/dist/
+  )
+  add_custom_target(al-python-bindings DEPENDS al)
+endif()
 set_target_properties(
   al-python-bindings PROPERTIES DIST_FOLDER ${CMAKE_CURRENT_BINARY_DIR}/dist/)
 install(CODE "execute_process(COMMAND ${Python_EXECUTABLE} 
 -m pip install imas_core
 --no-index
+--no-deps
 --prefix=${CMAKE_INSTALL_PREFIX}
 --find-links ${CMAKE_CURRENT_BINARY_DIR}/dist/
 )"

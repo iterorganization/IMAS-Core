@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+# No find_dependency() calls: libal is always a shared library and links its
+# dependencies (Boost, HDF5, ...) privately, so consumers don't need them.
+# Requiring them would fail where only their runtime libraries are installed
+# (e.g. conda environments without libboost-devel).
+
+include("${CMAKE_CURRENT_LIST_DIR}/al-coreTargets.cmake")
+
+check_required_components(al-core)

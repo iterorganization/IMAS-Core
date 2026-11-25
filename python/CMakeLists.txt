@@ -8,6 +8,14 @@ python_add_library(al_defs MODULE ${al_defs_source} WITH_SOABI)
 target_link_libraries(_al_lowlevel PRIVATE Python::NumPy al)
 target_link_libraries(al_defs PRIVATE Python::NumPy al)
 
+if(AL_USE_INSTALLED_CORE)
+  # libal is provided externally (e.g. the libimas-core conda package).
+  # Install only the Python extensions — the dynamic linker resolves libal
+  # at load time via the host's normal library search path / rpath.
+  install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)
+  return()
+endif()
+
 # Handling RPATH in macOS:
 if(APPLE)
   set_target_properties(al PROPERTIES INSTALL_RPATH "@loader_path")
@@ -102,14 +110,24 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   )
 endif()
 
-install(
-  TARGETS al
-  DESTINATION imas_core.libs
-  RUNTIME_DEPENDENCIES	
-    DIRECTORIES ${LIBRARY_DIRS}
-    PRE_EXCLUDE_REGEXES   
-      "api-ms-" # VC Redistibutable DLLs
-      "ext-ms-" # Windows extension DLLs
-    POST_EXCLUDE_REGEXES ${POST_EXCLUDE_PATTERNS}
-)
+# Bundle libal's dependencies for a self-contained wheel. Prefix installs
+# (CMake-driven, e.g. EasyBuild/Spack) already provide them, and resolving them
+# fails when the same library is found in two places (e.g. two XZ installs).
+option(AL_BUNDLE_RUNTIME_DEPS
+       "Copy the runtime dependencies of libal into imas_core.libs" ON)
+
+if(AL_BUNDLE_RUNTIME_DEPS)
+  install(
+    TARGETS al
+    DESTINATION imas_core.libs
+    RUNTIME_DEPENDENCIES
+      DIRECTORIES ${LIBRARY_DIRS}
+      PRE_EXCLUDE_REGEXES
+        "api-ms-" # VC Redistibutable DLLs
+        "ext-ms-" # Windows extension DLLs
+      POST_EXCLUDE_REGEXES ${POST_EXCLUDE_PATTERNS}
+  )
+else()
+  install(TARGETS al DESTINATION imas_core.libs)
+endif()
 install(TARGETS _al_lowlevel al_defs DESTINATION imas_core)

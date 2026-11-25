@@ -12,3 +12,4 @@ backend options, and configuration settings to help you get started with IMAS-Co
     uris_guide
     backends_guide
     configuration
+    error_handling

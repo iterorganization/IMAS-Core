@@ -219,9 +219,10 @@ Configuration options
     -   ``AL_BACKEND_MDSPLUS``, allowed values ``ON`` or ``OFF`` *(default)*.
         Enable/disable the MDSplus backend.
 
-        -   ``AL_BUILD_MDSPLUS_MODELS``, allowed values ``ON`` *(default)* or ``OFF``,
-            only available when the MDSplus backend is enabled. Enable building MDSplus
-            models for the selected Data Dictionary version.
+        -   ``AL_BUILD_MDSPLUS_MODELS``, allowed values ``ON`` or ``OFF``.
+            Enable building MDSplus models for the selected Data Dictionary version.
+            Defaults to ``ON`` when ``AL_BACKEND_MDSPLUS`` is enabled, ``OFF`` otherwise.
+            Can be overridden by user to explicitly enable or disable building MDSplus models.
 
     -   ``AL_BACKEND_UDA``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         the UDA backend.
@@ -234,14 +235,53 @@ Configuration options
 
     -   ``AL_TESTS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
         building the test programs in the ``tests`` folder.
-    -   ``AL_PLUGINS``, allowed values ``ON`` *(default)* or ``OFF``. Enable/disable
-        building the plugins from the ``al-plugins`` repository.
+    -   ``AL_PLUGINS``, allowed values ``ON`` or ``OFF`` *(default)*. Enable/disable
+        building the access layer plugins from the
+        `IMAS-Core-Plugins <https://github.com/iterorganization/IMAS-Core-Plugins>`__
+        repository. The plugins are downloaded at configure time and built together
+        with the IMAS-Core library, for example:
+
+        .. code-block:: bash
+
+            cmake -B build -D AL_PLUGINS=ON
+            cmake --build build
+
+        The following options control where the plugins are taken from:
+
+        -   ``AL_PLUGINS_GIT_REPOSITORY``, default
+            ``https://github.com/iterorganization/IMAS-Core-Plugins.git``.
+        -   ``AL_PLUGINS_VERSION``, default ``main``. Any branch name, tag or
+            commit hash.
+        -   ``AL_PLUGINS_SOURCE_DIR``, default empty. Path to a local checkout of
+            IMAS-Core-Plugins; when set, nothing is downloaded.
     -   ``AL_DOCS_ONLY``, allowed values ``ON`` or ``OFF`` *(default)*. When enabled,
         ONLY the documentation will be built (needs ``AL_HLI_DOCS=ON``). Regardless of
         other configuration options, nothing else will be built.
     -   ``AL_PYTHON_BINDINGS``, allowed values ``ON`` *(default when building the Python
-        API)* or ``OFF`` *(default when not building the Python API)*. When enabled, this
-        builds the Access Layer Python lowlevel bindings.
+        API)* or ``OFF`` *(default when not building the Python API)*. This CMake option 
+        controls whether and how the `imas_core` Python package is built when installing 
+        through CMake.
+
+        | Value | When to use |
+        |---|---|
+        | `OFF` | Default for CMake builds. Build and install only the native IMAS-Core library, without Python bindings. |
+        | `ON` | Build the `imas_core` wheel using pip's normal build isolation. Build dependencies will be installed by pip. |
+        | `no-build-isolation` | Build the `imas_core` wheel using the current Python environment. Use this when build dependencies like `numpy` are already installed. |
+        | `editable` or `e` | Development mode. Install `imas_core` with `pip install --editable`, so Python changes can be used without reinstalling. |
+
+        When CMake installs the Python bindings, it first builds a local wheel and then
+        installs that wheel with `pip install --no-index --no-deps --find-links
+        <build>/dist`. 
+        `--no-index` prevents pip from searching PyPI or another package
+        index, and 
+        `--no-deps` prevents pip from installing or upgrading dependencies.
+        This keeps the CMake install step local and reproducible: only the wheel built
+        by this build is installed, and dependencies are expected to be provided by the
+        user's environment or system installation.
+
+        When not using CMake to build the Python bindings, you can install the `imas_core` with `pip install .`
+        command without specifying above options. `imas_core` will install with pip's normal build isolation.
+
 
 -   **Dependency configuration options**
 
