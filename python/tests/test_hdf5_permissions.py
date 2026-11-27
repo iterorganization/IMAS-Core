@@ -26,13 +26,13 @@ def _hdf5_available() -> bool:
     uri = f"imas:hdf5?path=dummy"
     try:
         imas_core.exception.raise_error_flag = True
-        status, ctx = ll.al_begin_dataentry_action(uri, defs.OPEN_PULSE)
-        imas_core.exception.raise_error_flag = False
+        try:
+            ll.al_begin_dataentry_action(uri, defs.OPEN_PULSE)
+        finally:
+            imas_core.exception.raise_error_flag = False
         return True
     except imas_core.exception.ImasCoreBackendException as iex:
-        if "not available" in str(iex.message):
-            return False
-        pass
+        return "not available" not in str(iex.message)
 
 
 pytestmark = pytest.mark.skipif(
