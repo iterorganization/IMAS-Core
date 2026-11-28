@@ -20,6 +20,18 @@ jobs:
 
           - os: ubuntu-24.04
             triplet: x64-linux
+            python: 39
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
             python: 310
             cibw_platform: linux
             cibw_archs: x86_64
@@ -29,7 +41,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -42,7 +53,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -55,7 +65,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -75,7 +84,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -88,7 +96,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04
             triplet: x64-linux
@@ -101,7 +108,30 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 315
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 39
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
 
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
@@ -114,7 +144,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
@@ -127,7 +156,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
@@ -140,7 +168,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
@@ -153,7 +180,6 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
 
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
@@ -166,7 +192,18 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-            FMT_REF: "11.1.4"
+
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 315
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
 
           - os: macos-15
             triplet: arm64-osx
@@ -222,7 +259,18 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-    
+
+          - os: macos-15
+            triplet: arm64-osx
+            python: 315
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+
           # Windows wheels are built by the dedicated build_wheels_windows job
           # below: they share a vcpkg dependency tree prepared once by the
           # windows_deps job, and keeping them in this matrix would
@@ -312,7 +360,6 @@ jobs:
               ldconfig >&2;
               cd / >&2;
             else
-              dnf update -y >&2;
               dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
               dnf -y install openssl-devel >&2;
               dnf -y install ninja-build >&2;
@@ -330,11 +377,6 @@ jobs:
             cmake --build build --target install >&2  >&2;
             cmake --install build >&2  >&2;
             cd ..  >&2;
-            # curl -LO https://github.com/fmtlib/fmt/archive/refs/tags/${{matrix.FMT_REF}}.tar.gz &&
-            # tar zxf ${{matrix.FMT_REF}}.tar.gz && cd fmt-${{matrix.FMT_REF}} &&
-            # cmake -G Ninja -B build . -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_LIBDIR:STRING=lib -DFMT_DOC:BOOL=OFF -DFMT_TEST:BOOL=OFF -DBUILD_SHARED_LIBS:BOOL=ON >&2 &&
-            # cmake --build build --target install >&2 &&
-            # cmake --install build >&2 && cd .. ;
           CIBW_CONFIG_SETTINGS: >
             cmake.define.${{ matrix.AL_BACKEND_HDF5 }}
             cmake.define.${{ matrix.AL_BACKEND_MDSPLUS }}
@@ -508,7 +550,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        python: [310, 311, 312, 313, 314]
+        python: [310, 311, 312, 313, 314, 315]
 
     env:
       # The UDA backend is not built on Windows yet; the before-build script
