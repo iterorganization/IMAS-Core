@@ -360,7 +360,6 @@ jobs:
               ldconfig >&2;
               cd / >&2;
             else
-              dnf update -y >&2;
               dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm >&2;
               dnf -y install openssl-devel >&2;
               dnf -y install ninja-build >&2;
