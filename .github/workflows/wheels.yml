@@ -116,6 +116,19 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
+          - os: ubuntu-24.04
+            triplet: x64-linux
+            python: 315
+            cibw_platform: linux
+            cibw_archs: x86_64
+            platform_id: manylinux_x86_64
+            manylinux_image: quay.io/pypa/manylinux_2_28_x86_64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
           - os: ubuntu-24.04-arm
             triplet: arm64-linux
             python: 39
@@ -194,6 +207,19 @@ jobs:
             UDA_REF: "2.9.3"
             FMT_REF: "11.1.4"
 
+          - os: ubuntu-24.04-arm
+            triplet: arm64-linux
+            python: 315
+            cibw_platform: linux
+            cibw_archs: aarch64
+            platform_id: manylinux_aarch64
+            manylinux_image: quay.io/pypa/manylinux_2_28_aarch64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+            FMT_REF: "11.1.4"
+
           - os: macos-15
             triplet: arm64-osx
             python: 310
@@ -248,7 +274,18 @@ jobs:
             AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
             AL_BACKEND_UDA: AL_BACKEND_UDA=ON
             UDA_REF: "2.9.3"
-    
+
+          - os: macos-15
+            triplet: arm64-osx
+            python: 315
+            platform_id: macosx_arm64
+            cibw_platform: macos
+            cibw_archs: arm64
+            AL_BACKEND_HDF5: AL_BACKEND_HDF5=ON
+            AL_BACKEND_MDSPLUS: AL_BACKEND_MDSPLUS=OFF
+            AL_BACKEND_UDA: AL_BACKEND_UDA=ON
+            UDA_REF: "2.9.3"
+
           # Windows wheels are built by the dedicated build_wheels_windows job
           # below: they share a vcpkg dependency tree prepared once by the
           # windows_deps job, and keeping them in this matrix would
@@ -534,7 +571,7 @@ jobs:
       # Ensure that a wheel builder finishes even if another fails
       fail-fast: false
       matrix:
-        python: [310, 311, 312, 313, 314]
+        python: [310, 311, 312, 313, 314, 315]
 
     env:
       # The UDA backend is not built on Windows yet; the before-build script
